@@ -309,10 +309,10 @@ const handlePay = async () => {
     container.style.display = 'none'
     document.body.appendChild(container)
 
-    // 获取表单并自动提交
+    // 获取表单并自动提交 - 在当前窗口打开
     const form = container.querySelector('form')
     if (form) {
-      form.target = '_blank'
+      form.target = '_self' // 在当前窗口提交，不打开新窗口
       form.method = 'post'
       form.acceptCharset = 'UTF-8'
       form.submit()
