@@ -9,17 +9,17 @@
     <el-card class="search-card" shadow="never">
       <el-form :model="searchForm" class="search-form">
         <div class="search-form-row">
-          <el-form-item label="订单号">
-            <el-input v-model="searchForm.orderNo" placeholder="请输入订单号" clearable></el-input>
+          <el-form-item label="订单号" class="form-item-fixed">
+            <el-input v-model="searchForm.orderNo" placeholder="请输入订单号" clearable class="input-fixed"></el-input>
           </el-form-item>
-          <el-form-item label="联系人">
-            <el-input v-model="searchForm.contactName" placeholder="请输入联系人姓名" clearable></el-input>
+          <el-form-item label="联系人" class="form-item-fixed">
+            <el-input v-model="searchForm.contactName" placeholder="请输入联系人姓名" clearable class="input-fixed"></el-input>
           </el-form-item>
-          <el-form-item label="联系电话">
-            <el-input v-model="searchForm.contactPhone" placeholder="请输入联系电话" clearable></el-input>
+          <el-form-item label="联系电话" class="form-item-fixed">
+            <el-input v-model="searchForm.contactPhone" placeholder="请输入联系电话" clearable class="input-fixed"></el-input>
           </el-form-item>
-          <el-form-item label="订单状态">
-            <el-select v-model="searchForm.status" placeholder="请选择订单状态" clearable>
+          <el-form-item label="订单状态" class="form-item-fixed">
+            <el-select v-model="searchForm.status" placeholder="请选择订单状态" clearable class="input-fixed">
               <el-option label="待支付" :value="0"></el-option>
               <el-option label="已支付" :value="1"></el-option>
               <el-option label="已取消" :value="2"></el-option>
@@ -459,6 +459,18 @@ onMounted(() => {
 
       .el-form-item {
         margin-bottom: 0;
+      }
+
+      .form-item-fixed {
+        flex: 0 0 auto;
+
+        .input-fixed {
+          width: 160px;
+        }
+
+        :deep(.el-input__wrapper) {
+          width: 160px;
+        }
       }
 
       .search-buttons {
