@@ -234,7 +234,6 @@
         <el-form-item label="证件类型" prop="idType">
           <el-select v-model="travelerForm.idType" placeholder="请选择证件类型" style="width: 100%">
             <el-option label="身份证" value="ID_CARD" />
-            <el-option label="护照" value="PASSPORT" />
           </el-select>
         </el-form-item>
         <el-form-item label="证件号码" prop="idNumber">
@@ -346,18 +345,8 @@ const travelerRules = computed(() => ({
     { required: true, message: '请输入证件号码', trigger: 'blur' },
     {
       validator: (rule, value, callback) => {
-        if (travelerForm.idType === 'ID_CARD') {
-          if (!/^\d{17}[\dXx]$/.test(value)) {
-            callback(new Error('身份证号码格式不正确'))
-          } else {
-            callback()
-          }
-        } else if (travelerForm.idType === 'PASSPORT') {
-          if (!/^[A-Za-z0-9]{6,9}$/.test(value)) {
-            callback(new Error('护照号码格式不正确'))
-          } else {
-            callback()
-          }
+        if (!/^\d{17}[\dXx]$/.test(value)) {
+          callback(new Error('身份证号码格式不正确'))
         } else {
           callback()
         }
@@ -416,13 +405,12 @@ const canSubmit = computed(() => {
 
 // 证件号码提示
 const idNumberPlaceholder = computed(() => {
-  return travelerForm.idType === 'ID_CARD' ? '请输入18位身份证号码' : '请输入6-9位护照号码'
+  return '请输入18位身份证号码'
 })
 
 // 方法
 const getIdTypeLabel = (type) => {
-  const map = { 'ID_CARD': '身份证', 'PASSPORT': '护照' }
-  return map[type] || type
+  return '身份证'
 }
 
 const maskIdNumber = (idNumber) => {
