@@ -285,7 +285,7 @@ const summarySection = ref(null)
 const isSummaryFixed = ref(false)
 let summaryTop = 0
 let summaryWidth = 320
-let summaryRight = 0 // 记录元素右边缘到视口右边缘的距离
+let summaryLeft = 0 // 记录元素左边缘到视口左边缘的距离
 
 // 联系人表单
 const contactForm = reactive({
@@ -765,8 +765,8 @@ const updateSummaryPosition = () => {
     summaryTop = rect.top + window.scrollY
     // 获取初始的宽度
     summaryWidth = rect.width
-    // 计算元素右边缘到视口右边缘的距离
-    summaryRight = window.innerWidth - rect.right
+    // 记录元素左边缘到视口左边缘的距离（用于固定时精确定位）
+    summaryLeft = rect.left
   }
 }
 
@@ -781,11 +781,12 @@ const handleScroll = () => {
       isSummaryFixed.value = true
       // 创建占位元素
       createPlaceholder()
-      // 固定时设置位置 - 保持水平位置不变
+      // 固定时设置位置 - 使用 left 精确定位，完全避免偏移
       if (summarySection.value) {
         summarySection.value.style.width = summaryWidth + 'px'
-        summarySection.value.style.right = summaryRight + 'px'
-        summarySection.value.style.left = 'auto'
+        summarySection.value.style.left = summaryLeft + 'px'
+        summarySection.value.style.right = 'auto'
+        summarySection.value.style.top = '0'
       }
     }
   } else {
@@ -798,6 +799,7 @@ const handleScroll = () => {
         summarySection.value.style.left = ''
         summarySection.value.style.right = ''
         summarySection.value.style.width = ''
+        summarySection.value.style.top = ''
       }
     }
   }
@@ -890,7 +892,6 @@ const removePlaceholder = () => {
 
 .summary-section.is-fixed {
   position: fixed;
-  top: 0;
   z-index: 100;
   left: auto;
 }
