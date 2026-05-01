@@ -44,4 +44,7 @@ public class TravelGuide {
     @TableField(exist = false)
     @Schema(description = "作者头像")
     private String userAvatar;
+
+    @Schema(description = "目的地")
+    private String destination;
 } 

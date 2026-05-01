@@ -20,6 +20,20 @@
             show-word-limit
           />
         </el-form-item>
+
+        <el-form-item label="目的地" prop="destination" required>
+          <el-select v-model="form.destination" placeholder="请选择目的地" filterable style="width: 100%;">
+            <el-option 
+              v-for="(name, code) in destinationMap" 
+              :key="code" 
+              :label="name" 
+              :value="code"
+            ></el-option>
+          </el-select>
+          <div class="form-tips">
+            选择攻略的目的地，帮助其他用户更好地查找
+          </div>
+        </el-form-item>
         
         <el-form-item label="封面" prop="coverImage" required>
           <div class="cover-uploader-container">
@@ -79,12 +93,25 @@ import request from '@/utils/request'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
 
+// 目的地映射
+const destinationMap = {
+  chongqing: '重庆',
+  sichuan: '四川',
+  yunnan: '云南',
+  guizhou: '贵州',
+  hunan: '湖南',
+  hubei: '湖北',
+  hainan: '海南',
+  xisha: '西沙',
+  sanyan: '三峡'
+}
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const form = reactive({
   title: '',
   coverImage: '',
   content: '',
+  destination: '',
   id: ''
 })
 const formRef = ref(null)
@@ -108,6 +135,7 @@ onMounted(async () => {
           form.title = res.title
           form.coverImage = res.coverImage
           form.content = res.content
+          form.destination = res.destination || ''
           form.id = res.id
         }
       })
@@ -161,6 +189,10 @@ const submit = async () => {
     return ElMessage.warning('请输入攻略标题')
   }
   
+  if (!form.destination) {
+    return ElMessage.warning('请选择攻略目的地')
+  }
+  
   if (!form.coverImage) {
     return ElMessage.warning('请上传攻略封面图片')
   }
@@ -186,6 +218,7 @@ const submit = async () => {
           form.title = ''
           form.coverImage = ''
           form.content = ''
+          form.destination = ''
           router.push({ name: 'MyGuideList' })
         }
       })

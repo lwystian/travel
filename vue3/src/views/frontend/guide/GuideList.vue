@@ -73,7 +73,7 @@
             <div class="article-meta">
               <div class="meta-item">
                 <span class="icon-location">⊙</span>
-                <span class="meta-text">{{ item.destination || '未知目的地' }}</span>
+                <span class="meta-text">{{ getDestinationLabel(item.destination) }}</span>
               </div>
               <div class="meta-item">
                 <img :src="getImageUrl(item.userAvatar)" class="avatar" :alt="item.userNickname" />
@@ -118,9 +118,25 @@ import { formatDate } from '@/utils/dateUtils'
 import { Edit } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
+// 目的地映射
+const destinationMap = {
+  chongqing: '重庆',
+  sichuan: '四川',
+  yunnan: '云南',
+  guizhou: '贵州',
+  hunan: '湖南',
+  hubei: '湖北',
+  hainan: '海南',
+  xisha: '西沙',
+  sanyan: '三峡'
+}
+
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const router = useRouter()
 const route = useRoute()
+
+// 获取目的地标签
+const getDestinationLabel = (dest) => destinationMap[dest] || dest || '未知目的地'
 
 // 数据
 const tableData = ref([])

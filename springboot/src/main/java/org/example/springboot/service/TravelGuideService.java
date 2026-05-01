@@ -106,6 +106,7 @@ public class TravelGuideService {
             map.put("coverImage", guide.getCoverImage());
             map.put("views", guide.getViews());
             map.put("createTime", guide.getCreateTime());
+            map.put("destination", guide.getDestination());
             
             // 获取用户信息
             if (guide.getUserId() != null) {
@@ -161,6 +162,7 @@ public class TravelGuideService {
             suggestion.put("coverImage", guide.getCoverImage());
             suggestion.put("views", guide.getViews());
             suggestion.put("createTime", guide.getCreateTime());
+            suggestion.put("destination", guide.getDestination());
             suggestion.put("type", "guide");
 
             // 添加用户信息
