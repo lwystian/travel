@@ -7,33 +7,35 @@
 
     <!-- 搜索表单 -->
     <el-card class="search-card" shadow="never">
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="订单号">
-          <el-input v-model="searchForm.orderNo" placeholder="请输入订单号" clearable></el-input>
-        </el-form-item>
-        <el-form-item label="联系人">
-          <el-input v-model="searchForm.contactName" placeholder="请输入联系人姓名" clearable></el-input>
-        </el-form-item>
-        <el-form-item label="联系电话">
-          <el-input v-model="searchForm.contactPhone" placeholder="请输入联系电话" clearable></el-input>
-        </el-form-item>
-        <el-form-item label="订单状态">
-          <el-select v-model="searchForm.status" placeholder="请选择订单状态" clearable>
-            <el-option label="待支付" :value="0"></el-option>
-            <el-option label="已支付" :value="1"></el-option>
-            <el-option label="已取消" :value="2"></el-option>
-            <el-option label="已退款" :value="3"></el-option>
-            <el-option label="已完成" :value="4"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch" class="search-btn">
-            <i class="el-icon-search"></i> 查询
-          </el-button>
-          <el-button @click="resetSearch" class="reset-btn">
-            <i class="el-icon-refresh"></i> 重置
-          </el-button>
-        </el-form-item>
+      <el-form :model="searchForm" class="search-form">
+        <div class="search-form-row">
+          <el-form-item label="订单号">
+            <el-input v-model="searchForm.orderNo" placeholder="请输入订单号" clearable></el-input>
+          </el-form-item>
+          <el-form-item label="联系人">
+            <el-input v-model="searchForm.contactName" placeholder="请输入联系人姓名" clearable></el-input>
+          </el-form-item>
+          <el-form-item label="联系电话">
+            <el-input v-model="searchForm.contactPhone" placeholder="请输入联系电话" clearable></el-input>
+          </el-form-item>
+          <el-form-item label="订单状态">
+            <el-select v-model="searchForm.status" placeholder="请选择订单状态" clearable>
+              <el-option label="待支付" :value="0"></el-option>
+              <el-option label="已支付" :value="1"></el-option>
+              <el-option label="已取消" :value="2"></el-option>
+              <el-option label="已退款" :value="3"></el-option>
+              <el-option label="已完成" :value="4"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item class="search-buttons">
+            <el-button type="primary" @click="handleSearch">
+              <i class="el-icon-search"></i> 查询
+            </el-button>
+            <el-button @click="resetSearch">
+              <i class="el-icon-refresh"></i> 重置
+            </el-button>
+          </el-form-item>
+        </div>
       </el-form>
     </el-card>
 
@@ -446,34 +448,43 @@ onMounted(() => {
     box-shadow: none;
 
     .search-form {
-      padding: 10px 0;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
+      padding: 0;
+
+      .search-form-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 16px;
+      }
 
       .el-form-item {
         margin-bottom: 0;
-        margin-right: 16px;
       }
 
-      .search-btn {
-        background-color: #3498db;
-        border-color: #3498db;
-
-        &:hover, &:focus {
-          background-color: #2980b9;
-          border-color: #2980b9;
+      .search-buttons {
+        .el-button {
+          padding: 8px 16px;
         }
-      }
 
-      .reset-btn {
-        color: #7f8c8d;
-        border-color: #bdc3c7;
+        .el-button--primary {
+          background-color: #3498db;
+          border-color: #3498db;
 
-        &:hover, &:focus {
-          color: #34495e;
-          border-color: #95a5a6;
-          background-color: #FFFFFF;
+          &:hover, &:focus {
+            background-color: #2980b9;
+            border-color: #2980b9;
+          }
+        }
+
+        .el-button:not(.el-button--primary) {
+          color: #7f8c8d;
+          border-color: #bdc3c7;
+
+          &:hover, &:focus {
+            color: #34495e;
+            border-color: #95a5a6;
+            background-color: #FFFFFF;
+          }
         }
       }
     }
