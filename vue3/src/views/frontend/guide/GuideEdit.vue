@@ -195,14 +195,14 @@ const submit = async () => {
   
   try {
     if (form.id) {
-      await request.put('/guide/update', submitData, {
+      await request.put('/guide/update', form, {
         successMsg: '修改成功',
         onSuccess: () => {
           router.push({ name: 'MyGuideList' })
         }
       })
     } else {
-      await request.post('/guide/add', submitData, {
+      await request.post('/guide/add', form, {
         successMsg: '发布成功',
         onSuccess: () => {
           form.title = ''
