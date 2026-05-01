@@ -119,12 +119,7 @@ onMounted(async () => {
           form.title = res.title
           form.coverImage = res.coverImage
           form.content = res.content
-          // 处理目的地回显：将字符串转为数组格式
-          if (res.destination) {
-            form.destination = res.destination.includes('/') 
-              ? res.destination.split('/') 
-              : res.destination
-          }
+          form.destination = res.destination || ''
           form.id = res.id
         }
       })
