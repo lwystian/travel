@@ -465,7 +465,7 @@ onMounted(() => {
         flex: 0 0 auto;
 
         .input-fixed {
-          width: 160px;
+          width: 185px;
         }
 
         :deep(.el-input__wrapper) {
