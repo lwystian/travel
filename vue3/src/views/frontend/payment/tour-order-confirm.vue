@@ -285,6 +285,7 @@ const summarySection = ref(null)
 const isSummaryFixed = ref(false)
 let summaryTop = 0
 let summaryWidth = 320
+let summaryRight = 0 // 记录元素右边缘到视口右边缘的距离
 
 // 联系人表单
 const contactForm = reactive({
@@ -762,12 +763,10 @@ const updateSummaryPosition = () => {
   if (summarySection.value) {
     const rect = summarySection.value.getBoundingClientRect()
     summaryTop = rect.top + window.scrollY
-    // 获取初始的 left 和 width 位置
-    const leftPos = rect.left
-    const width = rect.width
-    summarySection.value.style.left = leftPos + 'px'
-    // 存储宽度
-    summaryWidth = width
+    // 获取初始的宽度
+    summaryWidth = rect.width
+    // 计算元素右边缘到视口右边缘的距离
+    summaryRight = window.innerWidth - rect.right
   }
 }
 
@@ -781,9 +780,11 @@ const handleScroll = () => {
       isSummaryFixed.value = true
       // 创建占位元素
       createPlaceholder()
-      // 固定时设置位置
+      // 固定时设置位置 - 保持水平位置不变
       if (summarySection.value) {
         summarySection.value.style.width = summaryWidth + 'px'
+        summarySection.value.style.right = summaryRight + 'px'
+        summarySection.value.style.left = 'auto'
       }
     }
   } else {
@@ -794,6 +795,7 @@ const handleScroll = () => {
       // 恢复样式
       if (summarySection.value) {
         summarySection.value.style.left = ''
+        summarySection.value.style.right = ''
         summarySection.value.style.width = ''
       }
     }
@@ -806,7 +808,7 @@ const createPlaceholder = () => {
   if (!placeholderEl && summarySection.value) {
     placeholderEl = document.createElement('div')
     placeholderEl.className = 'summary-placeholder'
-    placeholderEl.style.width = '320px'
+    placeholderEl.style.width = summaryWidth + 'px'
     placeholderEl.style.flexShrink = '0'
     summarySection.value.parentNode.insertBefore(placeholderEl, summarySection.value)
   }
@@ -889,12 +891,7 @@ const removePlaceholder = () => {
   position: fixed;
   top: 160px;
   z-index: 100;
-}
-
-@media (max-width: 1200px) {
-  .summary-section.is-fixed {
-    right: 20px;
-  }
+  left: auto;
 }
 
 .info-card {
