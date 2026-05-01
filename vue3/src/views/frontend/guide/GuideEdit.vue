@@ -22,14 +22,18 @@
         </el-form-item>
 
         <el-form-item label="目的地" prop="destination" required>
-          <el-select v-model="form.destination" placeholder="请选择目的地" filterable style="width: 100%;">
-            <el-option 
-              v-for="(name, code) in destinationMap" 
-              :key="code" 
-              :label="name" 
-              :value="code"
-            ></el-option>
-          </el-select>
+          <el-cascader
+            v-model="form.destination"
+            :options="destinationOptions"
+            placeholder="请选择目的地"
+            filterable
+            style="width: 100%;"
+            :props="{
+              value: 'code',
+              label: 'name',
+              children: 'cities'
+            }"
+          />
           <div class="form-tips">
             选择攻略的目的地，帮助其他用户更好地查找
           </div>
@@ -93,17 +97,288 @@ import request from '@/utils/request'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
 
-// 目的地映射
-const destinationMap = {
-  chongqing: '重庆',
-  sichuan: '四川',
-  yunnan: '云南',
-  guizhou: '贵州',
-  hunan: '湖南',
-  hubei: '湖北',
-  hainan: '海南',
-  xisha: '西沙',
-  sanyan: '三峡'
+// 全国省市数据
+const destinationOptions = [
+  {
+    code: 'beijing', name: '北京', cities: [
+      { code: 'beijing', name: '北京市' }
+    ]
+  },
+  {
+    code: 'tianjin', name: '天津', cities: [
+      { code: 'tianjin', name: '天津市' }
+    ]
+  },
+  {
+    code: 'hebei', name: '河北', cities: [
+      { code: 'shijiazhuang', name: '石家庄' },
+      { code: 'tangshan', name: '唐山' },
+      { code: 'qinhuangdao', name: '秦皇岛' },
+      { code: 'baoding', name: '保定' },
+      { code: 'zhangjiakou', name: '张家口' },
+      { code: 'chengde', name: '承德' }
+    ]
+  },
+  {
+    code: 'shanxi', name: '山西', cities: [
+      { code: 'taiyuan', name: '太原' },
+      { code: 'datong', name: '大同' },
+      { code: 'pingyao', name: '平遥' },
+      { code: 'lvliang', name: '吕梁' }
+    ]
+  },
+  {
+    code: 'neimenggu', name: '内蒙古', cities: [
+      { code: 'huhehaote', name: '呼和浩特' },
+      { code: 'baotou', name: '包头' },
+      { code: 'orodos', name: '鄂尔多斯' },
+      { code: 'xilingol', name: '锡林郭勒' }
+    ]
+  },
+  {
+    code: 'liaoning', name: '辽宁', cities: [
+      { code: 'shenyang', name: '沈阳' },
+      { code: 'dalian', name: '大连' },
+      { code: 'anshan', name: '鞍山' },
+      { code: 'yingkou', name: '营口' }
+    ]
+  },
+  {
+    code: 'jilin', name: '吉林', cities: [
+      { code: 'changchun', name: '长春' },
+      { code: 'jilin', name: '吉林' },
+      { code: 'siping', name: '四平' }
+    ]
+  },
+  {
+    code: 'heilongjiang', name: '黑龙江', cities: [
+      { code: 'harbin', name: '哈尔滨' },
+      { code: 'daqing', name: '大庆' },
+      { code: 'mudanjiang', name: '牡丹江' },
+      { code: 'jixi', name: '鸡西' }
+    ]
+  },
+  {
+    code: 'shanghai', name: '上海', cities: [
+      { code: 'shanghai', name: '上海市' }
+    ]
+  },
+  {
+    code: 'jiangsu', name: '江苏', cities: [
+      { code: 'nanjing', name: '南京' },
+      { code: 'suzhou', name: '苏州' },
+      { code: 'wuxi', name: '无锡' },
+      { code: 'yangzhou', name: '扬州' },
+      { code: 'xuzhou', name: '徐州' },
+      { code: 'lianyungang', name: '连云港' }
+    ]
+  },
+  {
+    code: 'zhejiang', name: '浙江', cities: [
+      { code: 'hangzhou', name: '杭州' },
+      { code: 'ningbo', name: '宁波' },
+      { code: 'wenzhou', name: '温州' },
+      { code: 'shaoxing', name: '绍兴' },
+      { code: 'jinhua', name: '金华' },
+      { code: 'lishui', name: '丽水' }
+    ]
+  },
+  {
+    code: 'anhui', name: '安徽', cities: [
+      { code: 'hefei', name: '合肥' },
+      { code: 'huangshan', name: '黄山' },
+      { code: 'bengbu', name: '蚌埠' },
+      { code: 'fuyang', name: '阜阳' }
+    ]
+  },
+  {
+    code: 'fujian', name: '福建', cities: [
+      { code: 'fuzhou', name: '福州' },
+      { code: 'xiamen', name: '厦门' },
+      { code: 'quanzhou', name: '泉州' },
+      { code: 'nanping', name: '南平' }
+    ]
+  },
+  {
+    code: 'jiangxi', name: '江西', cities: [
+      { code: 'nanchang', name: '南昌' },
+      { code: 'jiujiang', name: '九江' },
+      { code: 'jingdezhen', name: '景德镇' },
+      { code: 'shangrao', name: '上饶' }
+    ]
+  },
+  {
+    code: 'shandong', name: '山东', cities: [
+      { code: 'jinan', name: '济南' },
+      { code: 'qingdao', name: '青岛' },
+      { code: 'yantai', name: '烟台' },
+      { code: 'weihai', name: '威海' },
+      { code: 'taian', name: '泰安' }
+    ]
+  },
+  {
+    code: 'henan', name: '河南', cities: [
+      { code: 'zhengzhou', name: '郑州' },
+      { code: 'luoyang', name: '洛阳' },
+      { code: 'kaifeng', name: '开封' },
+      { code: 'anyang', name: '安阳' }
+    ]
+  },
+  {
+    code: 'hubei', name: '湖北', cities: [
+      { code: 'wuhan', name: '武汉' },
+      { code: 'yichang', name: '宜昌' },
+      { code: 'shennongjia', name: '神农架' },
+      { code: 'xiangyang', name: '襄阳' }
+    ]
+  },
+  {
+    code: 'hunan', name: '湖南', cities: [
+      { code: 'changsha', name: '长沙' },
+      { code: 'zhangjiajie', name: '张家界' },
+      { code: 'xiangxi', name: '湘西' },
+      { code: 'hengyang', name: '衡阳' }
+    ]
+  },
+  {
+    code: 'guangdong', name: '广东', cities: [
+      { code: 'guangzhou', name: '广州' },
+      { code: 'shenzhen', name: '深圳' },
+      { code: 'zhuhai', name: '珠海' },
+      { code: 'foshan', name: '佛山' },
+      { code: 'chaozhou', name: '潮州' }
+    ]
+  },
+  {
+    code: 'guangxi', name: '广西', cities: [
+      { code: 'nanning', name: '南宁' },
+      { code: 'guilin', name: '桂林' },
+      { code: 'liuzhou', name: '柳州' },
+      { code: 'beihai', name: '北海' },
+      { code: 'baise', name: '百色' }
+    ]
+  },
+  {
+    code: 'hainan', name: '海南', cities: [
+      { code: 'haikou', name: '海口' },
+      { code: 'sanya', name: '三亚' },
+      { code: 'wuzhishan', name: '五指山' },
+      { code: 'qionghai', name: '琼海' }
+    ]
+  },
+  {
+    code: 'chongqing', name: '重庆', cities: [
+      { code: 'chongqing', name: '重庆市' }
+    ]
+  },
+  {
+    code: 'sichuan', name: '四川', cities: [
+      { code: 'chengdu', name: '成都' },
+      { code: 'jiuzhaigou', name: '九寨沟' },
+      { code: 'leshan', name: '乐山' },
+      { code: 'garze', name: '甘孜' },
+      { code: 'aba', name: '阿坝' }
+    ]
+  },
+  {
+    code: 'guizhou', name: '贵州', cities: [
+      { code: 'guiyang', name: '贵阳' },
+      { code: 'zunyi', name: '遵义' },
+      { code: 'liupanshui', name: '六盘水' },
+      { code: 'qianxinan', name: '黔西南' }
+    ]
+  },
+  {
+    code: 'yunnan', name: '云南', cities: [
+      { code: 'kunming', name: '昆明' },
+      { code: 'dali', name: '大理' },
+      { code: 'lijiang', name: '丽江' },
+      { code: 'shangri-la', name: '香格里拉' },
+      { code: 'xishuangbanna', name: '西双版纳' }
+    ]
+  },
+  {
+    code: 'xizang', name: '西藏', cities: [
+      { code: 'lhasa', name: '拉萨' },
+      { code: 'shigatse', name: '日喀则' },
+      { code: 'nyingchi', name: '林芝' },
+      { code: 'qinghai', name: '青海' }
+    ]
+  },
+  {
+    code: 'shaanxi', name: '陕西', cities: [
+      { code: 'xian', name: '西安' },
+      { code: 'yanan', name: '延安' },
+      { code: 'xianyang', name: '咸阳' },
+      { code: 'hanzhong', name: '汉中' }
+    ]
+  },
+  {
+    code: 'gansu', name: '甘肃', cities: [
+      { code: 'lanzhou', name: '兰州' },
+      { code: 'tianshui', name: '天水' },
+      { code: 'jiayuguan', name: '嘉峪关' },
+      { code: 'zhangye', name: '张掖' },
+      { code: 'dunhuang', name: '敦煌' }
+    ]
+  },
+  {
+    code: 'qinghai', name: '青海', cities: [
+      { code: 'xining', name: '西宁' },
+      { code: 'hainan', name: '海南州' },
+      { code: 'haixi', name: '海西' }
+    ]
+  },
+  {
+    code: 'ningxia', name: '宁夏', cities: [
+      { code: 'yinchuan', name: '银川' },
+      { code: 'shizuishan', name: '石嘴山' },
+      { code: 'guyuan', name: '固原' }
+    ]
+  },
+  {
+    code: 'xinjiang', name: '新疆', cities: [
+      { code: 'wulumuqi', name: '乌鲁木齐' },
+      { code: 'turpan', name: '吐鲁番' },
+      { code: 'kashgar', name: '喀什' },
+      { code: 'yili', name: '伊犁' }
+    ]
+  },
+  {
+    code: 'taiwan', name: '台湾', cities: [
+      { code: 'taipei', name: '台北' },
+      { code: 'kaohsiung', name: '高雄' },
+      { code: 'taichung', name: '台中' }
+    ]
+  },
+  {
+    code: 'xianggang', name: '香港', cities: [
+      { code: 'xianggang', name: '香港' }
+    ]
+  },
+  {
+    code: 'aomen', name: '澳门', cities: [
+      { code: 'aomen', name: '澳门' }
+    ]
+  }
+]
+
+// 获取目的地标签（用于显示）
+const getDestinationLabel = (dest) => {
+  if (!dest) return ''
+  if (Array.isArray(dest)) {
+    if (dest.length === 2) {
+      const province = destinationOptions.find(p => p.code === dest[0])
+      const city = province?.cities.find(c => c.code === dest[1])
+      return city ? `${province.name} · ${city.name}` : dest[1]
+    }
+    return dest[dest.length - 1] || ''
+  }
+  const province = destinationOptions.find(p => p.code === dest)
+  if (province) {
+    return province.cities.length === 1 ? province.name : province.name + ' · 选择城市'
+  }
+  return dest
 }
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
@@ -135,7 +410,12 @@ onMounted(async () => {
           form.title = res.title
           form.coverImage = res.coverImage
           form.content = res.content
-          form.destination = res.destination || ''
+          // 处理目的地回显：将字符串转为数组格式
+          if (res.destination) {
+            form.destination = res.destination.includes('/') 
+              ? res.destination.split('/') 
+              : res.destination
+          }
           form.id = res.id
         }
       })
@@ -189,7 +469,7 @@ const submit = async () => {
     return ElMessage.warning('请输入攻略标题')
   }
   
-  if (!form.destination) {
+  if (!form.destination || (Array.isArray(form.destination) && form.destination.length === 0)) {
     return ElMessage.warning('请选择攻略目的地')
   }
   
@@ -203,16 +483,23 @@ const submit = async () => {
   
   submitting.value = true
   form.userId = userStore.userInfo.id
+  
+  // 处理目的地：如果是数组则转为字符串
+  const submitData = { ...form }
+  if (Array.isArray(submitData.destination)) {
+    submitData.destination = submitData.destination.join('/')
+  }
+  
   try {
     if (form.id) {
-      await request.put('/guide/update', form, {
+      await request.put('/guide/update', submitData, {
         successMsg: '修改成功',
         onSuccess: () => {
           router.push({ name: 'MyGuideList' })
         }
       })
     } else {
-      await request.post('/guide/add', form, {
+      await request.post('/guide/add', submitData, {
         successMsg: '发布成功',
         onSuccess: () => {
           form.title = ''
