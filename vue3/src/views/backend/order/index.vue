@@ -163,36 +163,30 @@
         </el-descriptions>
 
         <!-- 出行人信息 -->
-        <el-descriptions title="出行人信息" :column="1" border style="margin-top: 20px">
-          <el-descriptions-item label="出行人列表">
-            <div v-if="currentTravelers.length > 0" class="travelers-list">
-              <el-table
-                :data="currentTravelers"
-                border
-                size="small"
-                style="width: 100%"
-              >
-                <el-table-column prop="name" label="姓名" width="100" />
-                <el-table-column prop="phone" label="手机号" width="130" />
-                <el-table-column label="类型" width="80">
-                  <template #default="scope">
-                    <el-tag :type="scope.row.travelerType === 'ADULT' ? 'success' : 'warning'" size="small">
-                      {{ scope.row.travelerType === 'ADULT' ? '成人' : '儿童' }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="证件类型" width="100">
-                  <template #default="scope">
-                    {{ getIdTypeLabel(scope.row.idType) }}
-                  </template>
-                </el-table-column>
-                <el-table-column prop="idNumber" label="证件号码" min-width="180" />
-                <el-table-column prop="birthDate" label="出生日期" width="120" />
-              </el-table>
-            </div>
-            <span v-else class="no-travelers">暂无出行人信息</span>
-          </el-descriptions-item>
-        </el-descriptions>
+        <div class="travelers-section" style="margin-top: 20px">
+          <div class="section-title">出行人信息</div>
+          <div v-if="currentTravelers.length > 0" class="travelers-list">
+            <el-table
+              :data="currentTravelers"
+              border
+              size="small"
+              style="width: 100%"
+            >
+              <el-table-column prop="name" label="姓名" width="100" />
+              <el-table-column prop="phone" label="手机号" width="130" />
+              <el-table-column label="类型" width="80">
+                <template #default="scope">
+                  <el-tag :type="scope.row.travelerType === 'ADULT' ? 'success' : 'warning'" size="small">
+                    {{ scope.row.travelerType === 'ADULT' ? '成人' : '儿童' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="idNumber" label="身份证号" min-width="200" />
+              <el-table-column prop="birthDate" label="出生日期" width="120" />
+            </el-table>
+          </div>
+          <el-empty v-else description="暂无出行人信息" :image-size="60" />
+        </div>
 
         <el-descriptions title="订单状态" :column="1" border style="margin-top: 20px">
           <el-descriptions-item label="订单状态">
@@ -414,24 +408,6 @@ const formatTime = (timeStr) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`
 }
 
-// 获取证件类型标签
-const getIdTypeLabel = (type) => {
-  const typeMap = {
-    'ID_CARD': '身份证',
-    'PASSPORT': '护照'
-  }
-  return typeMap[type] || type || '-'
-}
-
-// 脱敏证件号码
-const maskIdNumber = (idNumber) => {
-  if (!idNumber) return '-'
-  if (idNumber.length > 8) {
-    return idNumber.substring(0, 4) + '****' + idNumber.substring(idNumber.length - 4)
-  }
-  return idNumber
-}
-
 // 页面加载时获取数据
 onMounted(() => {
   fetchOrders()
@@ -580,13 +556,30 @@ onMounted(() => {
       justify-content: flex-end;
     }
 
+    .travelers-section {
+      border: 1px solid #ebeef5;
+      border-radius: 4px;
+    }
+
+    .travelers-section .section-title {
+      padding: 12px 15px;
+      background: #f5f7fa;
+      border-bottom: 1px solid #ebeef5;
+      font-weight: 600;
+      font-size: 14px;
+      color: #303133;
+    }
+
     .travelers-list {
       width: 100%;
     }
 
-    .no-travelers {
-      color: #909399;
-      font-size: 14px;
+    .travelers-list :deep(.el-table) {
+      border-radius: 0;
+    }
+
+    .travelers-list :deep(.el-table__header th) {
+      background-color: #f5f7fa;
     }
   }
 }
