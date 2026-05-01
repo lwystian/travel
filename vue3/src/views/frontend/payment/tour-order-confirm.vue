@@ -773,9 +773,10 @@ const updateSummaryPosition = () => {
 // 处理滚动事件
 const handleScroll = () => {
   const scrollTop = window.scrollY
-  const headerHeight = 160 // 页面头部高度（顶部信息栏 + Logo搜索栏 + 导航菜单）
 
-  if (scrollTop + headerHeight >= summaryTop) {
+  // 只在结算模块的顶部即将到达视口顶部时开始固定
+  // 这样结算模块会紧贴窗口顶部，不再有提前固定的问题
+  if (scrollTop >= summaryTop) {
     if (!isSummaryFixed.value) {
       isSummaryFixed.value = true
       // 创建占位元素
@@ -889,7 +890,7 @@ const removePlaceholder = () => {
 
 .summary-section.is-fixed {
   position: fixed;
-  top: 160px;
+  top: 0;
   z-index: 100;
   left: auto;
 }
