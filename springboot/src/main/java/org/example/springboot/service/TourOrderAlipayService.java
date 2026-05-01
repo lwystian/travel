@@ -1,0 +1,269 @@
+package org.example.springboot.service;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
+import org.example.springboot.entity.TourOrder;
+import org.example.springboot.exception.ServiceException;
+import org.example.springboot.mapper.TourOrderMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 行程订单支付服务
+ * 支持多种支付方式
+ */
+@Service
+public class TourOrderAlipayService {
+
+    private static final Logger logger = LoggerFactory.getLogger(TourOrderAlipayService.class);
+
+    private static final Duration NOTIFY_CACHE_EXPIRE = Duration.ofHours(24);
+
+    private final Map<String, Long> notifyIdCache = new ConcurrentHashMap<>();
+
+    private static final ScheduledExecutorService cleanupScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "alipay-notify-cache-cleanup");
+        t.setDaemon(true);
+        return t;
+    });
+
+    @Autowired
+    private TourOrderMapper tourOrderMapper;
+
+    @Autowired(required = false)
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private ApplicationContext applicationContext;
+
+    @Autowired
+    private AlipayPaymentStrategy alipayPaymentStrategy;
+
+    /**
+     * 支付策略注册表
+     */
+    private final Map<String, PaymentStrategy> strategyRegistry = new ConcurrentHashMap<>();
+
+    @PostConstruct
+    public void init() {
+        registerStrategies();
+        cleanupScheduler.scheduleAtFixedRate(() -> cleanupExpiredCache(), 1, 1, TimeUnit.HOURS);
+    }
+
+    /**
+     * 注册所有支付策略
+     */
+    private void registerStrategies() {
+        Map<String, PaymentStrategy> strategies = applicationContext.getBeansOfType(PaymentStrategy.class);
+        strategies.forEach((name, strategy) -> {
+            strategyRegistry.put(strategy.getPaymentType(), strategy);
+            logger.info("注册支付策略: {} - {}", strategy.getPaymentType(), strategy.getPaymentName());
+        });
+    }
+
+    /**
+     * 生成支付表单
+     *
+     * @param orderId 订单ID
+     * @param paymentType 支付类型
+     * @return 支付表单HTML
+     */
+    public String generatePayForm(Long orderId, String paymentType) {
+        if (paymentType == null || paymentType.isEmpty()) {
+            paymentType = "alipay";
+        }
+
+        logger.info("开始生成支付表单，订单ID: {}, 支付方式: {}", orderId, paymentType);
+
+        // 1. 查询订单
+        TourOrder order = tourOrderMapper.selectById(orderId);
+        if (order == null) {
+            throw new ServiceException("订单不存在");
+        }
+
+        // 2. 验证订单状态
+        if (order.getStatus() != 0) {
+            throw new ServiceException("订单状态异常，无法发起支付");
+        }
+
+        // 3. 验证订单金额
+        if (order.getTotalAmount() == null || order.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ServiceException("订单金额异常");
+        }
+
+        // 4. 构建商品描述
+        String subject = buildSubject(order);
+
+        // 5. 使用支付策略生成表单
+        PaymentStrategy strategy = strategyRegistry.get(paymentType);
+        if (strategy == null) {
+            throw new ServiceException("不支持的支付方式: " + paymentType);
+        }
+
+        if (!strategy.isConfigured()) {
+            throw new ServiceException(paymentType + " 未配置或未启用");
+        }
+
+        try {
+            String formHtml = strategy.generatePayForm(
+                    orderId,
+                    order.getOrderNo(),
+                    order.getTotalAmount().toString(),
+                    subject,
+                    order.getOrderNo()
+            );
+            logger.info("支付表单生成成功，订单号: {}, 支付方式: {}", order.getOrderNo(), paymentType);
+            return formHtml;
+        } catch (Exception e) {
+            logger.error("生成支付表单失败，订单号: {}，错误: {}", order.getOrderNo(), e.getMessage());
+            throw new ServiceException("生成支付表单失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 生成支付表单（兼容旧接口，默认支付宝）
+     */
+    public String generatePayForm(Long orderId) {
+        return generatePayForm(orderId, "alipay");
+    }
+
+    /**
+     * 构建商品描述
+     */
+    private String buildSubject(TourOrder order) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("侠客行国旅-");
+        sb.append(order.getTourName());
+        if (order.getPackageName() != null && !order.getPackageName().isEmpty()) {
+            sb.append("(").append(order.getPackageName()).append(")");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 处理支付宝异步通知
+     */
+    public String handleNotify(Map<String, String> params) {
+        return alipayPaymentStrategy.handleNotify(params);
+    }
+
+    /**
+     * 处理支付成功
+     */
+    @Transactional
+    public String processPaySuccess(String outTradeNo, String tradeNo, String notifyAmount) {
+        LambdaQueryWrapper<TourOrder> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TourOrder::getOrderNo, outTradeNo);
+        TourOrder order = tourOrderMapper.selectOne(wrapper);
+
+        if (order == null) {
+            logger.error("订单不存在: {}", outTradeNo);
+            return "fail";
+        }
+
+        if (order.getStatus() == 1) {
+            logger.info("订单已支付，跳过处理: {}", outTradeNo);
+            return "success";
+        }
+
+        if (order.getStatus() != 0) {
+            logger.error("订单状态不是待支付，无法支付: {}，状态: {}", outTradeNo, order.getStatus());
+            return "fail";
+        }
+
+        order.setStatus(1);
+        order.setPaymentMethod("ALIPAY");
+        order.setPaymentTime(java.time.LocalDateTime.now());
+        order.setUpdateTime(java.time.LocalDateTime.now());
+
+        tourOrderMapper.updateById(order);
+
+        logger.info("订单支付成功 - 订单号: {}, 交易号: {}", outTradeNo, tradeNo);
+
+        return "success";
+    }
+
+    /**
+     * 查询订单支付状态
+     */
+    public TourOrder getPaymentStatus(Long orderId) {
+        TourOrder order = tourOrderMapper.selectById(orderId);
+        if (order == null) {
+            throw new ServiceException("订单不存在");
+        }
+        return order;
+    }
+
+    /**
+     * 根据订单号查询订单
+     */
+    public TourOrder getOrderByOrderNo(String orderNo) {
+        LambdaQueryWrapper<TourOrder> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TourOrder::getOrderNo, orderNo);
+        return tourOrderMapper.selectOne(wrapper);
+    }
+
+    /**
+     * 模拟支付（用于测试）
+     */
+    @Transactional
+    public void mockPay(Long orderId) {
+        logger.info("模拟支付，订单ID: {}", orderId);
+
+        TourOrder order = tourOrderMapper.selectById(orderId);
+        if (order == null) {
+            throw new ServiceException("订单不存在");
+        }
+
+        if (order.getStatus() != 0) {
+            throw new ServiceException("订单状态异常，无法支付");
+        }
+
+        order.setStatus(1);
+        order.setPaymentMethod("MOCK_PAY");
+        order.setPaymentTime(java.time.LocalDateTime.now());
+        order.setUpdateTime(java.time.LocalDateTime.now());
+        tourOrderMapper.updateById(order);
+
+        logger.info("模拟支付成功，订单ID: {}", orderId);
+    }
+
+    /**
+     * 获取支付策略
+     */
+    public PaymentStrategy getStrategy(String paymentType) {
+        return strategyRegistry.get(paymentType);
+    }
+
+    /**
+     * 获取所有支持的支付方式
+     */
+    public Map<String, PaymentStrategy> getAllStrategies() {
+        return strategyRegistry;
+    }
+
+    /**
+     * 清理过期的内存缓存
+     */
+    private void cleanupExpiredCache() {
+        long now = System.currentTimeMillis();
+        notifyIdCache.entrySet().removeIf(entry -> entry.getValue() <= now);
+        if (logger.isDebugEnabled()) {
+            logger.debug("内存缓存清理完成，当前条目数: {}", notifyIdCache.size());
+        }
+    }
+}

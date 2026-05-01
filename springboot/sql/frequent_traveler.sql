@@ -1,0 +1,17 @@
+-- 常用出行人表
+CREATE TABLE IF NOT EXISTS `frequent_traveler` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '出行人ID',
+  `user_id` BIGINT NOT NULL COMMENT '用户ID',
+  `name` VARCHAR(50) NOT NULL COMMENT '姓名',
+  `id_type` VARCHAR(20) DEFAULT 'ID_CARD' COMMENT '证件类型: ID_CARD-身份证, PASSPORT-护照',
+  `id_number` VARCHAR(50) NOT NULL COMMENT '证件号码',
+  `birth_date` DATE DEFAULT NULL COMMENT '出生日期',
+  `gender` VARCHAR(10) DEFAULT NULL COMMENT '性别: MALE-男, FEMALE-女',
+  `traveler_type` VARCHAR(20) DEFAULT 'ADULT' COMMENT '类型: ADULT-成人, CHILD-儿童',
+  `phone` VARCHAR(20) DEFAULT NULL COMMENT '手机号码',
+  `is_default` TINYINT(1) DEFAULT FALSE COMMENT '是否默认',
+  `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='常用出行人表';
