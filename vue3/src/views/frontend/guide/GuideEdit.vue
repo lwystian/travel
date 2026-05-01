@@ -302,7 +302,7 @@ const destinationOptions = [
       { code: 'lhasa', name: '拉萨' },
       { code: 'shigatse', name: '日喀则' },
       { code: 'nyingchi', name: '林芝' },
-      { code: 'qinghai', name: '青海' }
+      { code: 'shannan', name: '山南' }
     ]
   },
   {

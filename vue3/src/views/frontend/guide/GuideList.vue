@@ -323,7 +323,7 @@ const destinationOptions = [
       { code: 'lhasa', name: '拉萨' },
       { code: 'shigatse', name: '日喀则' },
       { code: 'nyingchi', name: '林芝' },
-      { code: 'qinghai', name: '青海' }
+      { code: 'shannan', name: '山南' }
     ]
   },
   {
@@ -405,9 +405,6 @@ const getDestinationLabel = (dest) => {
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const router = useRouter()
 const route = useRoute()
-
-// 获取目的地标签
-const getDestinationLabel = (dest) => destinationMap[dest] || dest || '未知目的地'
 
 // 数据
 const tableData = ref([])

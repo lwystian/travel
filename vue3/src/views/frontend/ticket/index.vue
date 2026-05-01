@@ -481,7 +481,7 @@ const destinationOptions = [
   ]},
   { code: 'xizang', name: '西藏', cities: [
     { code: 'lhasa', name: '拉萨' }, { code: 'shigatse', name: '日喀则' },
-    { code: 'nyingchi', name: '林芝' }
+    { code: 'nyingchi', name: '林芝' }, { code: 'shannan', name: '山南' }
   ]},
   { code: 'shaanxi', name: '陕西', cities: [
     { code: 'xian', name: '西安' }, { code: 'yanan', name: '延安' },
