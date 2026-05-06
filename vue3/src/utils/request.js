@@ -264,7 +264,11 @@ service.interceptors.response.use(
 // 扩展请求方法
 const request = {
   get(url, params, config = {}) {
-    // 将 params 和 config 分离，params 用于 URL 查询参数，config 包含回调等配置
+    // params 为 null/undefined 时，config 就是 axios 配置
+    if (params == null) {
+      return service.get(url, config)
+    }
+    // params 是对象时，作为查询参数，config 作为 axios 配置
     return service.get(url, { params, ...config })
   },
 
