@@ -185,73 +185,6 @@
       </div>
     </div>
 
-    <!-- 行程预订区域 -->
-    <div class="ticket-section">
-      <div class="section-container">
-        <h2 class="section-title">
-          <el-icon><Ticket /></el-icon>
-          行程预订
-        </h2>
-        <div v-loading="ticketLoading" class="ticket-content">
-          <div v-if="tickets.length === 0" class="empty-state">
-            <div class="empty-icon">🎫</div>
-            <h3 class="empty-title">暂无可预订行程</h3>
-            <p class="empty-desc">该景点暂时没有开放在线预订服务</p>
-          </div>
-          <div v-else class="ticket-grid">
-            <div
-              v-for="ticket in tickets"
-              :key="ticket.id"
-              class="ticket-card"
-            >
-              <div class="ticket-header">
-                <h4 class="ticket-name">{{ ticket.ticketName }}</h4>
-                <div class="ticket-type-badge">{{ ticket.ticketType }}</div>
-              </div>
-
-              <div class="ticket-price">
-                <template v-if="ticket.discountPrice">
-                  <div class="price-original">¥{{ ticket.price }}</div>
-                  <div class="price-discount">¥{{ ticket.discountPrice }}</div>
-                  <div class="discount-tag">优惠</div>
-                </template>
-                <template v-else>
-                  <div class="price-normal">¥{{ ticket.price }}</div>
-                </template>
-              </div>
-
-              <div class="ticket-details">
-                <div class="detail-item">
-                  <el-icon><Timer /></el-icon>
-                  <span>{{ ticket.validPeriod }}</span>
-                </div>
-                <div class="detail-item">
-                  <el-icon><Tickets /></el-icon>
-                  <span>剩余 {{ ticket.stock }} 张</span>
-                </div>
-              </div>
-
-              <div class="ticket-description" v-if="ticket.description">
-                {{ ticket.description }}
-              </div>
-
-              <div class="ticket-actions">
-                <el-button
-                  type="primary"
-                  size="large"
-                  @click="goToBooking(ticket.id)"
-                  class="booking-btn"
-                  :disabled="ticket.stock === 0"
-                >
-                  {{ ticket.stock === 0 ? '已售罄' : '立即预订' }}
-                </el-button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- 评论区域 -->
     <div class="comment-section">
       <div class="section-container">
@@ -278,7 +211,7 @@ import { useUserStore } from '@/store/user'
 import axios from 'axios'
 import {
   Location, CollectionTag, Timer, Sunny, Loading, Star, StarFilled,
-  Document, InfoFilled, CopyDocument, Share, Ticket, Tickets, ChatDotRound
+  Document, InfoFilled, CopyDocument, Share, ChatDotRound
 } from '@element-plus/icons-vue'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
@@ -286,8 +219,6 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const scenic = ref({})
-const tickets = ref([])
-const ticketLoading = ref(false)
 // 收藏相关状态
 const isCollected = ref(false)
 const collectionLoading = ref(false)
@@ -494,7 +425,6 @@ const fetchDetail = async () => {
   await request.get(`/scenic/${id}`,null, {
     onSuccess: (res) => {
       scenic.value = res
-      fetchTickets(id)
       // 获取评论统计
       fetchCommentStats(id)
       // 加载天气信息
@@ -641,30 +571,7 @@ const handleCollection = async () => {
   }
 }
 
-const fetchTickets = async (scenicId) => {
-  ticketLoading.value = true
-  try {
-    await request.get(`/ticket/scenic/${scenicId}`, {
-      currentPage: 1,
-      size: 10
-    }, {
-      showDefaultMsg: false,
-      onSuccess: (res) => {
-        tickets.value = res.records || []
-      }
-    })
-  } catch (error) {
-    console.error('获取景点行程失败:', error)
-  } finally {
-    ticketLoading.value = false
-  }
-}
-
-const goToBooking = (ticketId) => {
-  router.push(`/ticket/booking/${ticketId}`)
-}
-
-// 复制坐标到剪贴板
+const copyCoordinates
 const copyCoordinates = () => {
   if (!scenic.value.longitude || !scenic.value.latitude) return
   
@@ -1182,158 +1089,7 @@ onMounted(fetchDetail)
 
 
 
-// 行程区域
-.ticket-section {
-  background: white;
-  padding: 40px 0;
-  position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
-  }
-}
-
-.ticket-content {
-  min-height: 200px;
-}
-
-.ticket-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 24px;
-}
-
-.ticket-card {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e2e8f0;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-  }
-}
-
-.ticket-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
-}
-
-.ticket-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: #2d3748;
-  margin: 0;
-  flex: 1;
-}
-
-.ticket-type-badge {
-  background: linear-gradient(45deg, #667eea, #764ba2);
-  color: white;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.ticket-price {
-  margin-bottom: 16px;
-  position: relative;
-}
-
-.price-original {
-  font-size: 14px;
-  color: #94a3b8;
-  text-decoration: line-through;
-  margin-bottom: 4px;
-}
-
-.price-discount {
-  font-size: 24px;
-  font-weight: 700;
-  color: #e53e3e;
-}
-
-.price-normal {
-  font-size: 24px;
-  font-weight: 700;
-  color: #667eea;
-}
-
-.discount-tag {
-  position: absolute;
-  top: -8px;
-  right: 0;
-  background: #e53e3e;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 8px;
-  font-size: 10px;
-  font-weight: 600;
-}
-
-.ticket-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.detail-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #64748b;
-
-  .el-icon {
-    color: #667eea;
-  }
-}
-
-.ticket-description {
-  font-size: 14px;
-  color: #64748b;
-  line-height: 1.6;
-  margin-bottom: 20px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.ticket-actions {
-  .booking-btn {
-    width: 100%;
-    border-radius: 25px;
-    background: linear-gradient(45deg, #667eea, #764ba2);
-    border: none;
-    font-weight: 600;
-
-    &:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-    }
-
-    &:disabled {
-      background: #e2e8f0;
-      color: #94a3b8;
-    }
-  }
-}
-
-// 空状态
+// 评论区域
 .empty-state {
   text-align: center;
   padding: 60px 20px;

@@ -692,7 +692,8 @@ const batchDatesWithDisplay = computed(() => {
 
   return batchDates.value.map(batch => {
     const date = new Date(batch.date)
-    const remaining = batch.remaining ?? 0
+    // 可用余位 = 剩余余位 - 已锁定库存
+    const remaining = (batch.remaining ?? 0) - (batch.occupied ?? 0)
     return {
       ...batch,
       weekdayName: weekdayNames[date.getDay()],
@@ -714,7 +715,8 @@ const getBatchForDate = (dateStr) => {
   const tripChildPrice = hasChildPrice.value ? (selectedTripPackage.value?.childPrice ?? tripAdultPrice) : 0
   const batchExtra = selectedBatchPackageData.value?.extraFeePerPerson || 0
   const requiredCount = adultCount.value + (hasChildPrice.value ? childCount.value : 0)
-  const remaining = batch.remaining ?? 0
+  // 可用余位 = 剩余余位 - 已锁定库存
+  const remaining = (batch.remaining ?? 0) - (batch.occupied ?? 0)
 
   return {
     ...batch,
@@ -771,7 +773,8 @@ const isSelectionComplete = computed(() => {
 const currentBatchCanBook = computed(() => {
   if (!currentBatch.value) return false
   const statusOk = currentBatch.value.status === '可报名'
-  const remainingOk = (currentBatch.value.remaining ?? 0) >= adultCount.value
+  // 可用余位 = 剩余余位 - 已锁定库存
+  const remainingOk = ((currentBatch.value.remaining ?? 0) - (currentBatch.value.occupied ?? 0)) >= adultCount.value
   return statusOk && remainingOk
 })
 
@@ -781,7 +784,8 @@ const cannotBookReason = computed(() => {
   if (currentBatch.value.status !== '可报名') {
     return `该批次${currentBatch.value.status}，不可预订`
   }
-  const remaining = currentBatch.value.remaining ?? 0
+  // 可用余位 = 剩余余位 - 已锁定库存
+  const remaining = (currentBatch.value.remaining ?? 0) - (currentBatch.value.occupied ?? 0)
   if (remaining < adultCount.value) {
     return `余位不足，当前剩余${remaining}个名额，需要${adultCount.value}人`
   }
@@ -812,7 +816,8 @@ const nextMonth = () => {
 const toggleDateSelection = (item) => {
   // 检查是否可以预订
   if (item.canBook === false) {
-    const remaining = item.batch?.remaining ?? item.remaining ?? 0
+    // 可用余位 = 剩余余位 - 已锁定库存
+    const remaining = ((item.batch?.remaining ?? item.remaining ?? 0) - (item.batch?.occupied ?? item.occupied ?? 0))
     const required = adultCount.value + (hasChildPrice.value ? childCount.value : 0)
     if (remaining < required) {
       ElMessage.warning(`余位不足，当前剩余${remaining}个名额，需要${required}人`)
@@ -1177,7 +1182,8 @@ const handleBooking = async () => {
     ElMessage.warning(`该批次${batch.status}，不可预订`)
     return
   }
-  const remaining = batch?.remaining ?? 0
+  // 可用余位 = 剩余余位 - 已锁定库存
+  const remaining = ((batch?.remaining ?? 0) - (batch?.occupied ?? 0))
   const required = adultCount.value + (hasChildPrice.value ? childCount.value : 0)
   if (remaining < required) {
     ElMessage.warning(`余位不足，当前剩余${remaining}个名额，需要${required}人`)

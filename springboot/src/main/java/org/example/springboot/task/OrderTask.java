@@ -1,7 +1,9 @@
 package org.example.springboot.task;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import org.example.springboot.entity.TourBatch;
 import org.example.springboot.entity.TourOrder;
+import org.example.springboot.mapper.TourBatchMapper;
 import org.example.springboot.mapper.TourOrderMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +31,9 @@ public class OrderTask {
     @Autowired
     private TourOrderMapper tourOrderMapper;
 
+    @Autowired
+    private TourBatchMapper tourBatchMapper;
+
     /**
      * 定时取消超时未支付的订单
      * 每分钟执行一次
@@ -53,6 +58,9 @@ public class OrderTask {
             logger.info("发现 {} 个超时未支付的订单", expiredOrders.size());
 
             for (TourOrder order : expiredOrders) {
+                // 释放锁定库存
+                releaseBatchOccupancy(order);
+
                 order.setStatus(2);  // 2 = 已取消
                 order.setRemark("系统自动取消：支付超时" + ORDER_TIMEOUT_MINUTES + "分钟");
                 order.setUpdateTime(LocalDateTime.now());
@@ -64,6 +72,28 @@ public class OrderTask {
 
         } catch (Exception e) {
             logger.error("执行订单超时取消任务失败: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 释放锁定库存（超时取消订单时调用）
+     */
+    private void releaseBatchOccupancy(TourOrder order) {
+        try {
+            LambdaQueryWrapper<TourBatch> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(TourBatch::getTourId, order.getTourId())
+                   .eq(TourBatch::getDepartureDate, order.getDepartureDate());
+            TourBatch batch = tourBatchMapper.selectOne(wrapper);
+            if (batch != null) {
+                int totalPeople = order.getAdultCount() + (order.getChildCount() != null ? order.getChildCount() : 0);
+                int currentOccupied = batch.getOccupied() != null ? batch.getOccupied() : 0;
+                batch.setOccupied(Math.max(0, currentOccupied - totalPeople));
+                tourBatchMapper.updateById(batch);
+                logger.info("超时取消释放锁定库存：行程={}, 日期={}, 人数={}, 当前锁定={}",
+                    order.getTourId(), order.getDepartureDate(), totalPeople, batch.getOccupied());
+            }
+        } catch (Exception e) {
+            logger.error("释放锁定库存失败：订单号={}, 错误={}", order.getOrderNo(), e.getMessage(), e);
         }
     }
 

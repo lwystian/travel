@@ -539,8 +539,8 @@ const fetchSearchSuggestions = async (keyword) => {
       searchSuggestions.guides = Array.isArray(guideResponse) ? guideResponse : (guideResponse?.data || [])
 
       // 单独获取线路建议（使用行程接口）
-      await request.get('/ticket/page', {
-        ticketName: keyword,
+      await request.get('/tour/page', {
+        title: keyword,
         currentPage: 1,
         size: 3
       }, {
@@ -571,8 +571,8 @@ const fetchSearchSuggestions = async (keyword) => {
       searchSuggestions.guides = Array.isArray(response) ? response : (response?.data || [])
     } else if (category === 'line') {
       // 只获取线路建议（使用行程接口）
-      await request.get('/ticket/page', {
-        ticketName: keyword,
+      await request.get('/tour/page', {
+        title: keyword,
         currentPage: 1,
         size: 5
       }, {

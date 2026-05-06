@@ -33,8 +33,11 @@ public class TourBatch {
     @Schema(description = "状态: 可报名/已满员/已结束")
     private String status;
 
-    @Schema(description = "余位")
+    @Schema(description = "余位（可用）")
     private Integer remaining;
+
+    @Schema(description = "锁定库存（已下单未付款占用的名额）")
+    private Integer occupied;
 
     @Schema(description = "最大容量")
     private Integer maxCapacity;

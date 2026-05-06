@@ -59,7 +59,7 @@ public class OrderMessageDTO implements Serializable {
     private BigDecimal amount;
     
     /**
-     * 订单类型：ticket-门票订单
+     * 订单类型：tour-行程订单
      */
     private String orderType;
     
