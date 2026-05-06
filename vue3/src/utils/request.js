@@ -2,22 +2,38 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
 
+// Token 失效处理标志，防止重复提示和跳转
+let isHandlingTokenExpired = false
+
 // Token 失效时清除登录状态并跳转
 const handleTokenExpired = () => {
+  // 防止重复处理
+  if (isHandlingTokenExpired) return
+  isHandlingTokenExpired = true
+
   // 清除 localStorage 中的登录信息
   localStorage.removeItem('userInfo')
   localStorage.removeItem('token')
   localStorage.removeItem('role')
   localStorage.removeItem('menus')
   localStorage.removeItem('tokenExpire')
-  
-  // 跳转到登录页
-  if (router.currentRoute.value.path !== '/login') {
-    router.push({
-      path: '/login',
-      query: { redirect: router.currentRoute.value.fullPath }
-    })
-  }
+
+  // 只显示一条提示
+  ElMessage.error('登录已过期，请重新登录')
+
+  // 延迟跳转，避免重复提示
+  setTimeout(() => {
+    if (router.currentRoute.value.path !== '/login') {
+      router.push({
+        path: '/login',
+        query: { redirect: router.currentRoute.value.fullPath }
+      })
+    }
+    // 重置标志位，允许后续处理
+    setTimeout(() => {
+      isHandlingTokenExpired = false
+    }, 1000)
+  }, 100)
 }
 
 
@@ -69,6 +85,19 @@ service.interceptors.request.use(
   }
 )
 
+// 刷新 token 过期时间
+const refreshTokenExpire = () => {
+  const tokenExpire = localStorage.getItem('tokenExpire')
+  if (tokenExpire) {
+    // 计算剩余时间，如果小于30分钟则刷新
+    const remaining = Number(tokenExpire) - Date.now()
+    if (remaining < 30 * 60 * 1000) {
+      const newExpire = Date.now() + 2 * 60 * 60 * 1000 // 刷新到2小时
+      localStorage.setItem('tokenExpire', newExpire.toString())
+    }
+  }
+}
+
 // 响应拦截器
 service.interceptors.response.use(
   response => {
@@ -80,6 +109,9 @@ service.interceptors.response.use(
 
     // 检查响应状态
     if (res.code === "200") {
+      // 刷新 token 过期时间
+      refreshTokenExpire()
+
       try {
         // 自定义成功提示
         if (config.successMsg) {
@@ -104,33 +136,34 @@ service.interceptors.response.use(
     } else {
         // 错误处理
         try {
-          // 自定义错误提示
-          if (config.errorMsg) {
-            ElMessage.error(config.errorMsg)
-          } else if (showDefaultMsg) {
-            // 根据后端返回的错误码显示对应的错误信息
-            let errorMessage = res.msg || '请求失败'
-            
-            switch (res.code) {
-              case "401":
-                errorMessage = '登录已过期，请重新登录'
-                handleTokenExpired()
-                break
-              case "403":
-                errorMessage = '没有权限进行此操作'
-                break
-              case "404":
-                errorMessage = '请求的资源不存在'
-                break
-              case "500":
-                errorMessage = '服务器内部错误'
-                break
-              default:
-                // 如果后端返回了具体错误信息，优先使用后端的错误信息
-                errorMessage = res.msg || `请求失败(${res.code})`
+          // 自定义错误提示（401 错误由 handleTokenExpired 统一处理，不显示额外提示）
+          if (res.code !== "401") {
+            if (config.errorMsg) {
+              ElMessage.error(config.errorMsg)
+            } else if (showDefaultMsg) {
+              // 根据后端返回的错误码显示对应的错误信息
+              let errorMessage = res.msg || '请求失败'
+              
+              switch (res.code) {
+                case "403":
+                  errorMessage = '没有权限进行此操作'
+                  break
+                case "404":
+                  errorMessage = '请求的资源不存在'
+                  break
+                case "500":
+                  errorMessage = '服务器内部错误'
+                  break
+                default:
+                  // 如果后端返回了具体错误信息，优先使用后端的错误信息
+                  errorMessage = res.msg || `请求失败(${res.code})`
+              }
+              
+              ElMessage.error(errorMessage)
             }
-            
-            ElMessage.error(errorMessage)
+          } else {
+            // 401 错误，handleTokenExpired 已经显示提示
+            handleTokenExpired()
           }
         
         // 自定义错误回调
@@ -163,18 +196,14 @@ service.interceptors.response.use(
       }
     }
     
-    // 显示错误信息
-    if (config.showDefaultMsg !== false) {
+    // 显示错误信息（401 错误由 handleTokenExpired 统一处理，不显示额外提示）
+    if (config.showDefaultMsg !== false && error.response?.status !== 401) {
       let message = config.errorMsg || '网络请求失败，请稍后重试'
       
       if (error.response) {
         switch (error.response.status) {
           case 400:
             message = '请求参数错误'
-            break
-          case 401:
-            message = '登录已过期，请重新登录'
-            handleTokenExpired()
             break
           case 403:
             message = '拒绝访问'
@@ -216,6 +245,9 @@ service.interceptors.response.use(
         duration: 5000,
         showClose: true
       })
+    } else if (error.response?.status === 401) {
+      // 401 错误，handleTokenExpired 已经显示提示
+      handleTokenExpired()
     }
     
     // 返回一个被拒绝的 Promise，但包含更多信息
