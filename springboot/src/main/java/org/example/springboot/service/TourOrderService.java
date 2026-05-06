@@ -66,7 +66,17 @@ public class TourOrderService {
             throw new ServiceException("该行程暂不可预订");
         }
 
-        // 3. 验证套餐
+        // 3. 检查用户是否已有该行程的未支付订单（防止恶意刷单）
+        LambdaQueryWrapper<TourOrder> existingOrderWrapper = new LambdaQueryWrapper<>();
+        existingOrderWrapper.eq(TourOrder::getUserId, currentUser.getId())
+                          .eq(TourOrder::getTourId, tour.getId())
+                          .eq(TourOrder::getStatus, 0); // 待支付状态
+        TourOrder existingOrder = tourOrderMapper.selectOne(existingOrderWrapper);
+        if (existingOrder != null) {
+            throw new ServiceException("您已有该行程的未支付订单（订单号：" + existingOrder.getOrderNo() + "），请先完成支付或取消后再试");
+        }
+
+        // 4. 验证套餐
         TourPackage tourPackage = tourPackageMapper.selectById(dto.getTripPackageId());
         if (tourPackage == null) {
             throw new ServiceException("套餐不存在");
@@ -78,7 +88,7 @@ public class TourOrderService {
             throw new ServiceException("该套餐暂不可预订");
         }
 
-        // 4. 验证出发日期批次
+        // 5. 验证出发日期批次
         LocalDate departureDate;
         TourBatch tourBatch;
         try {
@@ -98,13 +108,13 @@ public class TourOrderService {
             throw new ServiceException("该批次" + tourBatch.getStatus() + "，不可预订");
         }
 
-        // 5. 验证余位
+        // 6. 验证余位
         int totalPeople = dto.getAdultCount() + (dto.getChildCount() != null ? dto.getChildCount() : 0);
         if (tourBatch.getRemaining() < totalPeople) {
             throw new ServiceException("余位不足，当前剩余" + tourBatch.getRemaining() + "个名额");
         }
 
-        // 6. 获取批次套餐及附加费
+        // 7. 获取批次套餐及附加费
         BigDecimal batchExtraFee = BigDecimal.ZERO;
         String batchPackageName = "标准";
         if (dto.getBatchPackageId() != null) {
@@ -115,11 +125,11 @@ public class TourOrderService {
             }
         }
 
-        // 7. 后端精确计算价格
+        // 8. 后端精确计算价格
         BigDecimal adultUnitPrice = calculateAdultUnitPrice(tourPackage, tourBatch, batchExtraFee);
         BigDecimal childUnitPrice = calculateChildUnitPrice(tourPackage, tourBatch, batchExtraFee);
 
-        // 8. 验证前端传来的价格（允许0.01元误差）
+        // 9. 验证前端传来的价格（允许0.01元误差）
         if (dto.getClientAdultUnitPrice() != null) {
             BigDecimal diff = adultUnitPrice.subtract(dto.getClientAdultUnitPrice()).abs();
             if (diff.compareTo(PRICE_TOLERANCE) > 0) {
@@ -138,13 +148,13 @@ public class TourOrderService {
             }
         }
 
-        // 9. 计算行程费用
+        // 10. 计算行程费用
         BigDecimal tourAmount = adultUnitPrice.multiply(new BigDecimal(dto.getAdultCount()));
         if (dto.getChildCount() != null && dto.getChildCount() > 0) {
             tourAmount = tourAmount.add(childUnitPrice.multiply(new BigDecimal(dto.getChildCount())));
         }
 
-        // 10. 计算酒店费用（如有）
+        // 11. 计算酒店费用（如有）
         BigDecimal hotelAmount = BigDecimal.ZERO;
         if (dto.getHotelId() != null && dto.getHotelDays() != null && dto.getHotelDays() > 0) {
             if (dto.getHotelPricePerNight() == null || dto.getHotelPricePerNight().compareTo(BigDecimal.ZERO) <= 0) {
@@ -153,10 +163,10 @@ public class TourOrderService {
             hotelAmount = dto.getHotelPricePerNight().multiply(new BigDecimal(dto.getHotelDays()));
         }
 
-        // 11. 计算订单总金额
+        // 12. 计算订单总金额
         BigDecimal totalAmount = tourAmount.add(hotelAmount);
 
-        // 12. 验证前端传来的总价（允许0.01元误差）
+        // 13. 验证前端传来的总价（允许0.01元误差）
         if (dto.getClientTotalPrice() != null) {
             BigDecimal diff = totalAmount.subtract(dto.getClientTotalPrice()).abs();
             if (diff.compareTo(PRICE_TOLERANCE) > 0) {
@@ -166,7 +176,7 @@ public class TourOrderService {
             }
         }
 
-        // 13. 创建订单
+        // 14. 创建订单
         TourOrder order = new TourOrder();
         order.setOrderNo(generateOrderNo());
         order.setUserId(currentUser.getId());
@@ -196,10 +206,10 @@ public class TourOrderService {
         order.setCreateTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
 
-        // 14. 保存订单
+        // 15. 保存订单
         tourOrderMapper.insert(order);
 
-        // 15. 扣减余位
+        // 16. 扣减余位
         tourBatch.setRemaining(tourBatch.getRemaining() - totalPeople);
         tourBatchMapper.updateById(tourBatch);
 
