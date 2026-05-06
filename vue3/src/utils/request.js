@@ -89,10 +89,10 @@ service.interceptors.request.use(
 const refreshTokenExpire = () => {
   const tokenExpire = localStorage.getItem('tokenExpire')
   if (tokenExpire) {
-    // 计算剩余时间，如果小于30分钟则刷新
+    // 计算剩余时间，如果小于1小时则刷新
     const remaining = Number(tokenExpire) - Date.now()
-    if (remaining < 30 * 60 * 1000) {
-      const newExpire = Date.now() + 2 * 60 * 60 * 1000 // 刷新到2小时
+    if (remaining < 60 * 60 * 1000) {
+      const newExpire = Date.now() + 12 * 60 * 60 * 1000 // 刷新到12小时
       localStorage.setItem('tokenExpire', newExpire.toString())
     }
   }

@@ -40,7 +40,7 @@ public class JwtTokenUtils {
     
     private static final String USER_TOKEN_KEY_PREFIX = "user:token:";
     private static final String USER_ID_KEY_PREFIX = "user:id:";
-    private static final long TOKEN_EXPIRE = 7200; // 2小时
+    private static final long TOKEN_EXPIRE = 43200; // 12小时
     
     @PostConstruct
     public void setServices() {
@@ -52,7 +52,7 @@ public class JwtTokenUtils {
     public static String genToken(String userId, String sign) {
         String token = JWT.create()
                 .withAudience(userId)
-                .withExpiresAt(DateUtil.offsetHour(new Date(), 2))
+                .withExpiresAt(DateUtil.offsetHour(new Date(), 12))
                 .sign(Algorithm.HMAC256(sign));
         
         // 将token和用户ID的映射关系存入Redis，方便后续查询和管理

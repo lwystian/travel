@@ -4,7 +4,7 @@ import { login, register } from '@/api/user'
 // import { setToken, removeToken } from '@/utils/auth'
 
 const TOKEN_EXPIRE_KEY = 'tokenExpire'
-const TOKEN_EXPIRE_TIME = 2 * 60 * 60 * 1000 // 2小时
+const TOKEN_EXPIRE_TIME = 12 * 60 * 60 * 1000 // 12小时
 
 export const useUserStore = defineStore('user', {
   state: () => ({
