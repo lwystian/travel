@@ -296,6 +296,17 @@ public class TourOrderService {
     }
 
     /**
+     * 根据行程ID和出发日期获取批次ID
+     */
+    private Long getBatchId(Long tourId, LocalDate departureDate) {
+        LambdaQueryWrapper<TourBatch> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TourBatch::getTourId, tourId)
+               .eq(TourBatch::getDepartureDate, departureDate);
+        TourBatch batch = tourBatchMapper.selectOne(wrapper);
+        return batch != null ? batch.getId() : null;
+    }
+
+    /**
      * 支付订单
      */
     @Transactional
@@ -317,8 +328,20 @@ public class TourOrderService {
             throw new ServiceException("订单状态不正确，无法支付");
         }
 
-        // 将锁定库存转为真正的扣减
-        confirmBatchOccupancy(order);
+        // 查询批次ID
+        Long batchId = getBatchId(order.getTourId(), order.getDepartureDate());
+        if (batchId == null) {
+            throw new ServiceException("批次不存在");
+        }
+
+        int totalPeople = order.getAdultCount() + (order.getChildCount() != null ? order.getChildCount() : 0);
+
+        // 原子确认库存（支付时：将occupied转为remaining扣减）
+        int result = tourBatchMapper.confirmOccupancy(batchId, totalPeople);
+        if (result == 0) {
+            logger.error("支付确认库存失败：订单号={}, 批次={}, 人数={}", order.getOrderNo(), batchId, totalPeople);
+            throw new ServiceException("库存确认失败，请稍后重试");
+        }
 
         order.setStatus(1); // 已支付
         order.setPaymentMethod(paymentMethod);
@@ -351,8 +374,14 @@ public class TourOrderService {
             throw new ServiceException("只有待支付的订单可以取消");
         }
 
-        // 释放锁定库存
-        releaseBatchOccupancy(order);
+        // 查询批次ID
+        Long batchId = getBatchId(order.getTourId(), order.getDepartureDate());
+        if (batchId != null) {
+            int totalPeople = order.getAdultCount() + (order.getChildCount() != null ? order.getChildCount() : 0);
+            // 原子释放锁定库存
+            tourBatchMapper.releaseOccupancy(batchId, totalPeople);
+            logger.info("释放锁定库存：批次={}, 人数={}", batchId, totalPeople);
+        }
 
         order.setStatus(2); // 已取消
         order.setUpdateTime(LocalDateTime.now());
@@ -380,76 +409,25 @@ public class TourOrderService {
             throw new ServiceException("只有已支付的订单可以退款");
         }
 
-        // 退款时需要增加余位（因为支付时扣减了remaining）
-        returnBatchRemaining(order);
+        // 查询批次
+        LambdaQueryWrapper<TourBatch> batchWrapper = new LambdaQueryWrapper<>();
+        batchWrapper.eq(TourBatch::getTourId, order.getTourId())
+                   .eq(TourBatch::getDepartureDate, order.getDepartureDate());
+        TourBatch batch = tourBatchMapper.selectOne(batchWrapper);
+
+        if (batch != null) {
+            int totalPeople = order.getAdultCount() + (order.getChildCount() != null ? order.getChildCount() : 0);
+            int maxCapacity = batch.getMaxCapacity() != null ? batch.getMaxCapacity() : 999;
+            // 原子退还余位
+            tourBatchMapper.returnRemaining(batch.getId(), totalPeople, maxCapacity);
+            logger.info("退还余位：批次={}, 人数={}", batch.getId(), totalPeople);
+        }
 
         order.setStatus(3); // 已退款
         order.setUpdateTime(LocalDateTime.now());
 
         tourOrderMapper.updateById(order);
         logger.info("行程订单退款成功：订单号={}", order.getOrderNo());
-    }
-
-    /**
-     * 释放锁定库存（取消订单时调用）
-     * 减少occupied数量
-     */
-    private void releaseBatchOccupancy(TourOrder order) {
-        LambdaQueryWrapper<TourBatch> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(TourBatch::getTourId, order.getTourId())
-               .eq(TourBatch::getDepartureDate, order.getDepartureDate());
-        TourBatch batch = tourBatchMapper.selectOne(wrapper);
-        if (batch != null) {
-            int totalPeople = order.getAdultCount() + (order.getChildCount() != null ? order.getChildCount() : 0);
-            int currentOccupied = batch.getOccupied() != null ? batch.getOccupied() : 0;
-            batch.setOccupied(Math.max(0, currentOccupied - totalPeople));
-            tourBatchMapper.updateById(batch);
-            logger.info("释放锁定库存：行程={}, 日期={}, 人数={}, 当前锁定={}",
-                order.getTourId(), order.getDepartureDate(), totalPeople, batch.getOccupied());
-        }
-    }
-
-    /**
-     * 确认锁定库存（支付订单时调用）
-     * 将occupied转为真正的remaining扣减
-     */
-    private void confirmBatchOccupancy(TourOrder order) {
-        LambdaQueryWrapper<TourBatch> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(TourBatch::getTourId, order.getTourId())
-               .eq(TourBatch::getDepartureDate, order.getDepartureDate());
-        TourBatch batch = tourBatchMapper.selectOne(wrapper);
-        if (batch != null) {
-            int totalPeople = order.getAdultCount() + (order.getChildCount() != null ? order.getChildCount() : 0);
-            int currentOccupied = batch.getOccupied() != null ? batch.getOccupied() : 0;
-            // 减少occupied，同时减少remaining
-            batch.setOccupied(Math.max(0, currentOccupied - totalPeople));
-            batch.setRemaining(Math.max(0, batch.getRemaining() - totalPeople));
-            tourBatchMapper.updateById(batch);
-            logger.info("确认锁定库存：行程={}, 日期={}, 人数={}, 当前锁定={}, 当前余位={}",
-                order.getTourId(), order.getDepartureDate(), totalPeople, batch.getOccupied(), batch.getRemaining());
-        }
-    }
-
-    /**
-     * 退还余位（退款订单时调用）
-     * 增加remaining
-     */
-    private void returnBatchRemaining(TourOrder order) {
-        LambdaQueryWrapper<TourBatch> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(TourBatch::getTourId, order.getTourId())
-               .eq(TourBatch::getDepartureDate, order.getDepartureDate());
-        TourBatch batch = tourBatchMapper.selectOne(wrapper);
-        if (batch != null) {
-            int totalPeople = order.getAdultCount() + (order.getChildCount() != null ? order.getChildCount() : 0);
-            batch.setRemaining(batch.getRemaining() + totalPeople);
-            // 确保不超过最大容量
-            if (batch.getMaxCapacity() != null && batch.getRemaining() > batch.getMaxCapacity()) {
-                batch.setRemaining(batch.getMaxCapacity());
-            }
-            tourBatchMapper.updateById(batch);
-            logger.info("退还余位：行程={}, 日期={}, 人数={}, 当前余位={}",
-                order.getTourId(), order.getDepartureDate(), totalPeople, batch.getRemaining());
-        }
     }
 
     /**
