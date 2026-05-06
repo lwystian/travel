@@ -112,116 +112,149 @@ public class TourOrderService {
             throw new ServiceException("该批次" + tourBatch.getStatus() + "，不可预订");
         }
 
-        // 6. 验证余位（使用 available = remaining - occupied）
+        // 6. 计算总人数
         int totalPeople = dto.getAdultCount() + (dto.getChildCount() != null ? dto.getChildCount() : 0);
-        int available = tourBatch.getRemaining() - (tourBatch.getOccupied() != null ? tourBatch.getOccupied() : 0);
-        if (available < totalPeople) {
-            throw new ServiceException("余位不足，当前剩余" + available + "个名额");
+
+        // 7. 原子锁定库存（解决并发问题）
+        // 使用 UPDATE ... WHERE (remaining - occupied) >= totalPeople 保证原子性
+        int lockResult = tourBatchMapper.lockOccupancy(tourBatch.getId(), totalPeople);
+        if (lockResult == 0) {
+            // 锁定失败，余位不足
+            // 重新查询当前余位，给出准确的错误提示
+            tourBatch = tourBatchMapper.selectById(tourBatch.getId());
+            int currentAvailable = tourBatch.getRemaining() - (tourBatch.getOccupied() != null ? tourBatch.getOccupied() : 0);
+            throw new ServiceException("余位不足，当前剩余" + currentAvailable + "个名额");
         }
 
-        // 7. 获取批次套餐及附加费
-        BigDecimal batchExtraFee = BigDecimal.ZERO;
-        String batchPackageName = "标准";
-        if (dto.getBatchPackageId() != null) {
-            BatchPackage batchPackage = batchPackageMapper.selectById(dto.getBatchPackageId());
-            if (batchPackage != null && batchPackage.getTourId().equals(tour.getId())) {
-                batchExtraFee = batchPackage.getExtraFeePerPerson() != null ? batchPackage.getExtraFeePerPerson() : BigDecimal.ZERO;
-                batchPackageName = batchPackage.getName();
+        try {
+            // 8. 获取批次套餐及附加费
+            BigDecimal batchExtraFee = BigDecimal.ZERO;
+            String batchPackageName = "标准";
+            if (dto.getBatchPackageId() != null) {
+                BatchPackage batchPackage = batchPackageMapper.selectById(dto.getBatchPackageId());
+                if (batchPackage != null && batchPackage.getTourId().equals(tour.getId())) {
+                    batchExtraFee = batchPackage.getExtraFeePerPerson() != null ? batchPackage.getExtraFeePerPerson() : BigDecimal.ZERO;
+                    batchPackageName = batchPackage.getName();
+                }
             }
-        }
 
-        // 8. 后端精确计算价格
-        BigDecimal adultUnitPrice = calculateAdultUnitPrice(tourPackage, tourBatch, batchExtraFee);
-        BigDecimal childUnitPrice = calculateChildUnitPrice(tourPackage, tourBatch, batchExtraFee);
+            // 9. 后端精确计算价格
+            BigDecimal adultUnitPrice = calculateAdultUnitPrice(tourPackage, tourBatch, batchExtraFee);
+            BigDecimal childUnitPrice = calculateChildUnitPrice(tourPackage, tourBatch, batchExtraFee);
 
-        // 9. 验证前端传来的价格（允许0.01元误差）
-        if (dto.getClientAdultUnitPrice() != null) {
-            BigDecimal diff = adultUnitPrice.subtract(dto.getClientAdultUnitPrice()).abs();
-            if (diff.compareTo(PRICE_TOLERANCE) > 0) {
-                logger.warn("成人单价校验失败：前端={}, 后端={}, 差异={}",
-                    dto.getClientAdultUnitPrice(), adultUnitPrice, diff);
-                throw new ServiceException("价格已变更，请刷新页面后重试");
+            // 10. 验证前端传来的价格（允许0.01元误差）
+            if (dto.getClientAdultUnitPrice() != null) {
+                BigDecimal diff = adultUnitPrice.subtract(dto.getClientAdultUnitPrice()).abs();
+                if (diff.compareTo(PRICE_TOLERANCE) > 0) {
+                    logger.warn("成人单价校验失败：前端={}, 后端={}, 差异={}",
+                        dto.getClientAdultUnitPrice(), adultUnitPrice, diff);
+                    throw new ServiceException("价格已变更，请刷新页面后重试");
+                }
             }
-        }
 
-        if (dto.getClientChildUnitPrice() != null && dto.getClientChildUnitPrice().compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal diff = childUnitPrice.subtract(dto.getClientChildUnitPrice()).abs();
-            if (diff.compareTo(PRICE_TOLERANCE) > 0) {
-                logger.warn("儿童单价校验失败：前端={}, 后端={}, 差异={}",
-                    dto.getClientChildUnitPrice(), childUnitPrice, diff);
-                throw new ServiceException("价格已变更，请刷新页面后重试");
+            if (dto.getClientChildUnitPrice() != null && dto.getClientChildUnitPrice().compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal diff = childUnitPrice.subtract(dto.getClientChildUnitPrice()).abs();
+                if (diff.compareTo(PRICE_TOLERANCE) > 0) {
+                    logger.warn("儿童单价校验失败：前端={}, 后端={}, 差异={}",
+                        dto.getClientChildUnitPrice(), childUnitPrice, diff);
+                    throw new ServiceException("价格已变更，请刷新页面后重试");
+                }
             }
-        }
 
-        // 10. 计算行程费用
-        BigDecimal tourAmount = adultUnitPrice.multiply(new BigDecimal(dto.getAdultCount()));
-        if (dto.getChildCount() != null && dto.getChildCount() > 0) {
-            tourAmount = tourAmount.add(childUnitPrice.multiply(new BigDecimal(dto.getChildCount())));
-        }
-
-        // 11. 计算酒店费用（如有）
-        BigDecimal hotelAmount = BigDecimal.ZERO;
-        if (dto.getHotelId() != null && dto.getHotelDays() != null && dto.getHotelDays() > 0) {
-            if (dto.getHotelPricePerNight() == null || dto.getHotelPricePerNight().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new ServiceException("酒店价格信息错误");
+            // 11. 计算行程费用
+            BigDecimal tourAmount = adultUnitPrice.multiply(new BigDecimal(dto.getAdultCount()));
+            if (dto.getChildCount() != null && dto.getChildCount() > 0) {
+                tourAmount = tourAmount.add(childUnitPrice.multiply(new BigDecimal(dto.getChildCount())));
             }
-            hotelAmount = dto.getHotelPricePerNight().multiply(new BigDecimal(dto.getHotelDays()));
-        }
 
-        // 12. 计算订单总金额
-        BigDecimal totalAmount = tourAmount.add(hotelAmount);
-
-        // 13. 验证前端传来的总价（允许0.01元误差）
-        if (dto.getClientTotalPrice() != null) {
-            BigDecimal diff = totalAmount.subtract(dto.getClientTotalPrice()).abs();
-            if (diff.compareTo(PRICE_TOLERANCE) > 0) {
-                logger.warn("总价校验失败：前端={}, 后端={}, 差异={}",
-                    dto.getClientTotalPrice(), totalAmount, diff);
-                throw new ServiceException("价格已变更，请刷新页面后重试");
+            // 12. 计算酒店费用（如有）
+            BigDecimal hotelAmount = BigDecimal.ZERO;
+            if (dto.getHotelId() != null && dto.getHotelDays() != null && dto.getHotelDays() > 0) {
+                if (dto.getHotelPricePerNight() == null || dto.getHotelPricePerNight().compareTo(BigDecimal.ZERO) <= 0) {
+                    throw new ServiceException("酒店价格信息错误");
+                }
+                hotelAmount = dto.getHotelPricePerNight().multiply(new BigDecimal(dto.getHotelDays()));
             }
+
+            // 13. 计算订单总金额
+            BigDecimal totalAmount = tourAmount.add(hotelAmount);
+
+            // 14. 验证前端传来的总价（允许0.01元误差）
+            if (dto.getClientTotalPrice() != null) {
+                BigDecimal diff = totalAmount.subtract(dto.getClientTotalPrice()).abs();
+                if (diff.compareTo(PRICE_TOLERANCE) > 0) {
+                    logger.warn("总价校验失败：前端={}, 后端={}, 差异={}",
+                        dto.getClientTotalPrice(), totalAmount, diff);
+                    throw new ServiceException("价格已变更，请刷新页面后重试");
+                }
+            }
+
+            // 15. 创建订单
+            TourOrder order = new TourOrder();
+            order.setOrderNo(generateOrderNo());
+            order.setUserId(currentUser.getId());
+            order.setTourId(tour.getId());
+            order.setTourName(tour.getTitle());
+            order.setTourCode(tour.getCode());
+            order.setPackageId(tourPackage.getId());
+            order.setPackageName(tourPackage.getName());
+            order.setBatchPackageId(dto.getBatchPackageId());
+            order.setBatchPackageName(batchPackageName);
+            order.setDepartureDate(departureDate);
+            order.setAdultCount(dto.getAdultCount());
+            order.setChildCount(dto.getChildCount() != null ? dto.getChildCount() : 0);
+            order.setAdultUnitPrice(adultUnitPrice);
+            order.setChildUnitPrice(childUnitPrice);
+            order.setTourAmount(tourAmount);
+            order.setHotelId(dto.getHotelId());
+            order.setHotelName(dto.getHotelName());
+            order.setHotelDays(dto.getHotelDays());
+            order.setHotelPricePerNight(dto.getHotelPricePerNight());
+            order.setHotelAmount(hotelAmount);
+            order.setTotalAmount(totalAmount);
+            order.setContactName(dto.getContactName());
+            order.setContactPhone(dto.getContactPhone());
+            order.setRemark(dto.getRemark());
+            order.setStatus(0); // 待支付
+            order.setCreateTime(LocalDateTime.now());
+            order.setUpdateTime(LocalDateTime.now());
+
+            // 16. 保存订单
+            tourOrderMapper.insert(order);
+
+            logger.info("行程订单创建成功：订单号={}, 用户={}, 行程={}, 总价={}, 锁定人数={}",
+                order.getOrderNo(), currentUser.getUsername(), tour.getTitle(), totalAmount, totalPeople);
+
+            return order;
+
+        } catch (ServiceException e) {
+            // 业务异常：释放已锁定的库存
+            releaseBatchOccupancy(tourBatch.getId(), totalPeople);
+            throw e;
+        } catch (Exception e) {
+            // 其他异常：释放已锁定的库存
+            releaseBatchOccupancy(tourBatch.getId(), totalPeople);
+            throw new ServiceException("订单创建失败：" + e.getMessage());
         }
+    }
 
-        // 14. 创建订单
-        TourOrder order = new TourOrder();
-        order.setOrderNo(generateOrderNo());
-        order.setUserId(currentUser.getId());
-        order.setTourId(tour.getId());
-        order.setTourName(tour.getTitle());
-        order.setTourCode(tour.getCode());
-        order.setPackageId(tourPackage.getId());
-        order.setPackageName(tourPackage.getName());
-        order.setBatchPackageId(dto.getBatchPackageId());
-        order.setBatchPackageName(batchPackageName);
-        order.setDepartureDate(departureDate);
-        order.setAdultCount(dto.getAdultCount());
-        order.setChildCount(dto.getChildCount() != null ? dto.getChildCount() : 0);
-        order.setAdultUnitPrice(adultUnitPrice);
-        order.setChildUnitPrice(childUnitPrice);
-        order.setTourAmount(tourAmount);
-        order.setHotelId(dto.getHotelId());
-        order.setHotelName(dto.getHotelName());
-        order.setHotelDays(dto.getHotelDays());
-        order.setHotelPricePerNight(dto.getHotelPricePerNight());
-        order.setHotelAmount(hotelAmount);
-        order.setTotalAmount(totalAmount);
-        order.setContactName(dto.getContactName());
-        order.setContactPhone(dto.getContactPhone());
-        order.setRemark(dto.getRemark());
-        order.setStatus(0); // 待支付
-        order.setCreateTime(LocalDateTime.now());
-        order.setUpdateTime(LocalDateTime.now());
-
-        // 15. 保存订单
-        tourOrderMapper.insert(order);
-
-        // 16. 锁定库存（不直接扣减remaining，而是增加occupied）
-        tourBatch.setOccupied((tourBatch.getOccupied() != null ? tourBatch.getOccupied() : 0) + totalPeople);
-        tourBatchMapper.updateById(tourBatch);
-
-        logger.info("行程订单创建成功：订单号={}, 用户={}, 行程={}, 总价={}, 锁定人数={}",
-            order.getOrderNo(), currentUser.getUsername(), tour.getTitle(), totalAmount, totalPeople);
-
-        return order;
+    /**
+     * 释放锁定库存（异常时回滚）
+     */
+    private void releaseBatchOccupancy(Long batchId, int totalPeople) {
+        try {
+            LambdaQueryWrapper<TourBatch> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(TourBatch::getId, batchId);
+            TourBatch batch = tourBatchMapper.selectOne(wrapper);
+            if (batch != null) {
+                int currentOccupied = batch.getOccupied() != null ? batch.getOccupied() : 0;
+                batch.setOccupied(Math.max(0, currentOccupied - totalPeople));
+                tourBatchMapper.updateById(batch);
+                logger.info("异常回滚释放锁定库存：批次={}, 人数={}, 当前锁定={}", batchId, totalPeople, batch.getOccupied());
+            }
+        } catch (Exception e) {
+            logger.error("释放锁定库存失败：批次={}, 错误={}", batchId, e.getMessage());
+        }
     }
 
     /**
