@@ -94,4 +94,14 @@ public class TourOrderController {
         tourOrderService.updateContactInfo(id, contactName, contactPhone);
         return Result.success();
     }
+
+    @Operation(summary = "检查用户是否有该行程的未支付订单")
+    @GetMapping("/check-pending")
+    public Result<?> checkPendingOrder(@RequestParam String productId) {
+        TourOrder pendingOrder = tourOrderService.getPendingOrderByProductId(productId);
+        if (pendingOrder != null) {
+            return Result.success(pendingOrder);
+        }
+        return Result.success(null);
+    }
 }

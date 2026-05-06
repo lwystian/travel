@@ -31,3 +31,8 @@ export function updateOrderContact(id, contactName, contactPhone) {
     params: { contactName, contactPhone }
   })
 }
+
+// 检查是否有未支付的订单
+export function checkPendingOrder(productId) {
+  return request.get('/tour-order/check-pending', { productId })
+}

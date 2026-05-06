@@ -512,7 +512,7 @@ import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getTourDetailFull } from '@/api/tour'
-import { createTourOrder } from '@/api/tourOrder'
+import { createTourOrder, checkPendingOrder } from '@/api/tourOrder'
 
 // =============================================
 // 常量定义
@@ -1242,6 +1242,21 @@ const handleBooking = async () => {
     } catch (err) {
       // 后端返回的错误信息已经在拦截器中显示了，这里不需要再显示
       console.error('订单创建失败:', err)
+      // 如果是未支付订单错误，提供跳转选项
+      if (err.message && err.message.includes('未支付订单')) {
+        const goToOrders = await ElMessageBox.confirm(
+          '您有该行程的未支付订单，是否前往订单页面处理？',
+          '提示',
+          {
+            confirmButtonText: '前往订单',
+            cancelButtonText: '留在本页',
+            type: 'warning'
+          }
+        ).catch(() => false)
+        if (goToOrders) {
+          router.push('/orders')
+        }
+      }
       return
     }
     // 询问用户是否立即支付
