@@ -272,10 +272,25 @@ router.beforeEach((to, from, next) => {
   }
 
   const userStore = useUserStore()
+  
+  // 检查token是否过期（基于本地时间）
+  if (userStore.token && userStore.isTokenExpired) {
+    userStore.clearUserInfo()
+    // 如果访问需要权限的页面，清除后跳转登录
+    if (to.matched.some(record => record.meta.requiresAuth)) {
+      next({
+        path: '/login',
+        query: { redirect: to.fullPath }
+      })
+      return
+    }
+  }
+  
   console.log("Current route:", to.path)
   console.log("User status:", {
     isLoggedIn: userStore.isLoggedIn,
-    isUser: userStore.isUser
+    isUser: userStore.isUser,
+    isTokenExpired: userStore.isTokenExpired
   })
 
   // 检查是否需要登录权限

@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.example.springboot.entity.User;
 import org.example.springboot.service.UserService;
+import org.example.springboot.util.RedisUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -29,8 +30,14 @@ public class JwtInterceptor implements HandlerInterceptor {
     // 将用户ID存储到请求属性中的key
     public static final String USER_ID_ATTRIBUTE = "userId";
     
+    // Redis中token的key前缀
+    private static final String USER_TOKEN_KEY_PREFIX = "user:token:";
+    
     @Resource
     private UserService userService;
+    
+    @Resource
+    private RedisUtil redisUtil;
 
     @Override
     public boolean preHandle(HttpServletRequest request,  HttpServletResponse response,  Object handler) throws Exception {
@@ -40,7 +47,18 @@ public class JwtInterceptor implements HandlerInterceptor {
         }
         if (StringUtils.isBlank(token)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401状态码
-            response.getWriter().print("Token缺失"); // 返回错误信息
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().print("{\"code\":\"401\",\"msg\":\"请先登录\"}"); // 返回JSON错误信息
+            return false;
+        }
+
+        // 首先检查Redis中token是否还存在，如果不存在说明已过期
+        String redisUserId = (String) redisUtil.get(USER_TOKEN_KEY_PREFIX + token);
+        if (StringUtils.isBlank(redisUserId)) {
+            LOGGER.warn("Token已在Redis中过期或不存在, token={}", token);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().print("{\"code\":\"401\",\"msg\":\"登录已过期，请重新登录\"}");
             return false;
         }
 
@@ -51,15 +69,17 @@ public class JwtInterceptor implements HandlerInterceptor {
             // 将用户ID存储到请求属性中
             request.setAttribute(USER_ID_ATTRIBUTE, Long.valueOf(userId));
         } catch (Exception e) {
-            String errMsg = "token失效，重新登录！";
+            String errMsg = "token失效，请重新登录";
             LOGGER.error(errMsg + " ,token=" + token, e);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().print(errMsg); // 返回错误信息
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().print("{\"code\":\"401\",\"msg\":\"" + errMsg + "\"}");
             return false;
         }
         if (user == null) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().print("User not found");
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().print("{\"code\":\"401\",\"msg\":\"用户不存在，请重新登录\"}");
             return false;
         }
         try {
@@ -67,7 +87,8 @@ public class JwtInterceptor implements HandlerInterceptor {
             jwtVerifier.verify(token);
         } catch (JWTVerificationException e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().print("token认证失败，重新登录！");
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().print("{\"code\":\"401\",\"msg\":\"登录验证失败，请重新登录\"}");
             return false;
         }
         LOGGER.info("验证成功，允许放行。{}",user);
