@@ -270,7 +270,6 @@ router.beforeEach((to, from, next) => {
   if (to.meta.title) {
     document.title = `${to.meta.title} - 侠客行国旅`
   } else {
-    // 如果没有标题，使用默认标题
     document.title = '侠客行国旅'
   }
 
