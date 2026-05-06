@@ -508,4 +508,29 @@ public class TourOrderService {
         tourOrderMapper.updateById(order);
         logger.info("订单联系人信息更新成功：订单号={}", order.getOrderNo());
     }
+
+    /**
+     * 检查用户是否有该行程的未支付订单
+     */
+    public TourOrder getPendingOrderByProductId(String productId) {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null) {
+            return null;
+        }
+
+        // 根据行程编号查询行程
+        LambdaQueryWrapper<Tour> tourWrapper = new LambdaQueryWrapper<>();
+        tourWrapper.eq(Tour::getCode, productId);
+        Tour tour = tourMapper.selectOne(tourWrapper);
+        if (tour == null) {
+            return null;
+        }
+
+        // 检查是否有未支付的订单
+        LambdaQueryWrapper<TourOrder> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TourOrder::getUserId, currentUser.getId())
+               .eq(TourOrder::getTourId, tour.getId())
+               .eq(TourOrder::getStatus, 0); // 待支付状态
+        return tourOrderMapper.selectOne(wrapper);
+    }
 }
