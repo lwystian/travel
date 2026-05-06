@@ -1238,14 +1238,16 @@ const handleBooking = async () => {
     ElMessage.info('正在提交订单...')
     let order
     try {
-      order = await createTourOrder(orderData)
+      order = await createTourOrder(orderData, { showDefaultMsg: false })
     } catch (err) {
-      // 后端返回的错误信息已经在拦截器中显示了，这里不需要再显示
-      console.error('订单创建失败:', err)
+      // 从错误对象中提取错误消息
+      const errorMsg = err?.message || err?.msg || '订单创建失败'
+      console.error('订单创建失败:', errorMsg, err)
+      
       // 如果是未支付订单错误，提供跳转选项
-      if (err.message && err.message.includes('未支付订单')) {
+      if (errorMsg.includes('未支付订单')) {
         const goToOrders = await ElMessageBox.confirm(
-          '您有该行程的未支付订单，是否前往订单页面处理？',
+          errorMsg + '\n\n是否前往订单页面处理？',
           '提示',
           {
             confirmButtonText: '前往订单',
@@ -1256,6 +1258,9 @@ const handleBooking = async () => {
         if (goToOrders) {
           router.push('/orders')
         }
+      } else {
+        // 其他错误，显示错误消息
+        ElMessage.error(errorMsg)
       }
       return
     }
