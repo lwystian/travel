@@ -269,6 +269,8 @@ router.beforeEach((to, from, next) => {
   // 设置页面标题
   if (to.meta.title) {
     document.title = `${to.meta.title} - 侠客行国旅`
+  } else {
+    document.title = '侠客行国旅'
   }
 
   const userStore = useUserStore()
