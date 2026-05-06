@@ -1244,8 +1244,8 @@ const handleBooking = async () => {
       const errorMsg = err?.message || err?.msg || '订单创建失败'
       console.error('订单创建失败:', errorMsg, err)
       
-      // 如果是未支付订单错误，提供跳转选项
-      if (errorMsg.includes('未支付订单')) {
+      // 如果是未支付/待支付订单错误，提供跳转选项
+      if (errorMsg.includes('待支付订单')) {
         const goToOrders = await ElMessageBox.confirm(
           errorMsg + '\n\n是否前往订单页面处理？',
           '提示',

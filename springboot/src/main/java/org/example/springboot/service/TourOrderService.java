@@ -71,9 +71,13 @@ public class TourOrderService {
         existingOrderWrapper.eq(TourOrder::getUserId, currentUser.getId())
                           .eq(TourOrder::getTourId, tour.getId())
                           .eq(TourOrder::getStatus, 0); // 待支付状态
-        TourOrder existingOrder = tourOrderMapper.selectOne(existingOrderWrapper);
-        if (existingOrder != null) {
-            throw new ServiceException("您已有该行程的未支付订单（订单号：" + existingOrder.getOrderNo() + "），请先完成支付或取消后再试");
+        List<TourOrder> existingOrders = tourOrderMapper.selectList(existingOrderWrapper);
+        if (existingOrders != null && !existingOrders.isEmpty()) {
+            if (existingOrders.size() == 1) {
+                throw new ServiceException("您已有一笔该行程的待支付订单，请先完成支付或取消后再重新预订");
+            } else {
+                throw new ServiceException("您已有" + existingOrders.size() + "笔该行程的待支付订单，请先完成支付或取消后再重新预订");
+            }
         }
 
         // 4. 验证套餐
