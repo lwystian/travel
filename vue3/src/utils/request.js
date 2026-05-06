@@ -1,5 +1,24 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import router from '@/router'
+
+// Token 失效时清除登录状态并跳转
+const handleTokenExpired = () => {
+  // 清除 localStorage 中的登录信息
+  localStorage.removeItem('userInfo')
+  localStorage.removeItem('token')
+  localStorage.removeItem('role')
+  localStorage.removeItem('menus')
+  localStorage.removeItem('tokenExpire')
+  
+  // 跳转到登录页
+  if (router.currentRoute.value.path !== '/login') {
+    router.push({
+      path: '/login',
+      query: { redirect: router.currentRoute.value.fullPath }
+    })
+  }
+}
 
 
 
@@ -83,35 +102,36 @@ service.interceptors.response.use(
         return res.data
       }
     } else {
-      // 错误处理
-      try {
-        // 自定义错误提示
-        if (config.errorMsg) {
-          ElMessage.error(config.errorMsg)
-        } else if (showDefaultMsg) {
-          // 根据后端返回的错误码显示对应的错误信息
-          let errorMessage = res.msg || '请求失败'
-          
-          switch (res.code) {
-            case "401":
-              errorMessage = '未登录或登录已过期，请重新登录'
-              break
-            case "403":
-              errorMessage = '没有权限进行此操作'
-              break
-            case "404":
-              errorMessage = '请求的资源不存在'
-              break
-            case "500":
-              errorMessage = '服务器内部错误'
-              break
-            default:
-              // 如果后端返回了具体错误信息，优先使用后端的错误信息
-              errorMessage = res.msg || `请求失败(${res.code})`
+        // 错误处理
+        try {
+          // 自定义错误提示
+          if (config.errorMsg) {
+            ElMessage.error(config.errorMsg)
+          } else if (showDefaultMsg) {
+            // 根据后端返回的错误码显示对应的错误信息
+            let errorMessage = res.msg || '请求失败'
+            
+            switch (res.code) {
+              case "401":
+                errorMessage = '登录已过期，请重新登录'
+                handleTokenExpired()
+                break
+              case "403":
+                errorMessage = '没有权限进行此操作'
+                break
+              case "404":
+                errorMessage = '请求的资源不存在'
+                break
+              case "500":
+                errorMessage = '服务器内部错误'
+                break
+              default:
+                // 如果后端返回了具体错误信息，优先使用后端的错误信息
+                errorMessage = res.msg || `请求失败(${res.code})`
+            }
+            
+            ElMessage.error(errorMessage)
           }
-          
-          ElMessage.error(errorMessage)
-        }
         
         // 自定义错误回调
         if (typeof config.onError === 'function') {
@@ -153,7 +173,8 @@ service.interceptors.response.use(
             message = '请求参数错误'
             break
           case 401:
-            message = '未授权，请重新登录'
+            message = '登录已过期，请重新登录'
+            handleTokenExpired()
             break
           case 403:
             message = '拒绝访问'
