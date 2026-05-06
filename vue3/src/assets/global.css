@@ -82,4 +82,21 @@ img {
   padding-left: 0 !important;
 }
 
+/* 面包屑导航：隐藏链接项前的图标 */
+.el-breadcrumb__item .el-breadcrumb__inner.is-link .el-icon,
+.el-breadcrumb__item .el-breadcrumb__inner.is-link::before,
+.el-breadcrumb__inner a::before,
+.el-breadcrumb__inner.is-link::before,
+.el-breadcrumb__inner .el-icon,
+.el-breadcrumb__inner i {
+  display: none !important;
+}
+
+/* 隐藏 Element Plus 面包屑默认图标 */
+.el-breadcrumb__separator el-icon,
+.el-breadcrumb__separator-icon,
+.el-breadcrumb__inner .el-icon {
+  display: none !important;
+}
+
 

@@ -267,28 +267,23 @@
             :default-active="activeMenuIndex"
           >
             <el-menu-item index="/">
-              <el-icon><HomeFilled /></el-icon>
               <span>首页</span>
             </el-menu-item>
 
             <el-menu-item index="/scenic">
-              <el-icon><Bicycle /></el-icon>
               <span>景点</span>
             </el-menu-item>
 
             <el-menu-item index="/guide">
-              <el-icon><Reading /></el-icon>
               <span>攻略</span>
             </el-menu-item>
 
             <el-menu-item index="/accommodation">
-              <el-icon><House /></el-icon>
               <span>住宿</span>
             </el-menu-item>
 
             <el-sub-menu index="/around">
               <template #title>
-                <el-icon><Place /></el-icon>
                 <span>周边游</span>
               </template>
               <el-menu-item-group>
@@ -303,7 +298,6 @@
 
             <el-sub-menu index="/cruise">
               <template #title>
-                <el-icon><Ship /></el-icon>
                 <span>邮轮出行</span>
               </template>
               <el-menu-item-group>
@@ -314,7 +308,6 @@
             </el-sub-menu>
 
             <el-menu-item index="/tickets">
-              <el-icon><Ticket /></el-icon>
               <span>行程预订</span>
             </el-menu-item>
           </el-menu>
