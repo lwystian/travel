@@ -138,7 +138,7 @@
                     {{ batch.status }}
                   </span>
                 </td>
-                <td>{{ batch.remaining }}</td>
+                <td>{{ (batch.remaining ?? 0) - (batch.occupied ?? 0) }}</td>
                 <td>
                   <button
                     v-if="batch.canBook"
@@ -1095,7 +1095,8 @@ const fetchProductDetail = async () => {
         adultDateExtraFee: batch.adultDateExtraFee || 0,
         childDateExtraFee: batch.childDateExtraFee || 0,
         status: batch.status || '可报名',
-        remaining: batch.remaining || 0
+        remaining: batch.remaining || 0,
+        occupied: batch.occupied || 0
       }))
 
       // 图片处理

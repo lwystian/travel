@@ -87,6 +87,7 @@ public class TourDetailDTO {
         private BigDecimal childDateExtraFee;
         private String status;
         private Integer remaining;
+        private Integer occupied;
     }
 
     @Data

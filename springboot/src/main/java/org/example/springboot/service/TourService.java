@@ -208,6 +208,7 @@ public class TourService {
             info.setChildDateExtraFee(batch.getChildDateExtraFee() != null ? batch.getChildDateExtraFee() : BigDecimal.ZERO);
             info.setStatus(batch.getStatus() != null ? batch.getStatus() : "可报名");
             info.setRemaining(batch.getRemaining() != null ? batch.getRemaining() : 0);
+            info.setOccupied(batch.getOccupied() != null ? batch.getOccupied() : 0);
             return info;
         }).collect(Collectors.toList()));
 

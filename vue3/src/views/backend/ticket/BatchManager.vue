@@ -45,10 +45,10 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="余位/容量" width="100">
+        <el-table-column label="余位/锁定/容量" width="120">
           <template #default="scope">
-            <span :class="{ 'warning': scope.row.remaining <= 5 }">
-              {{ scope.row.remaining }}/{{ scope.row.maxCapacity }}
+            <span :class="{ 'warning': (scope.row.remaining - (scope.row.occupied || 0)) <= 5 }">
+              {{ (scope.row.remaining || 0) - (scope.row.occupied || 0) }}/{{ scope.row.occupied || 0 }}/{{ scope.row.maxCapacity }}
             </span>
           </template>
         </el-table-column>
