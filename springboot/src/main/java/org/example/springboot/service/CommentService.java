@@ -82,9 +82,10 @@ public class CommentService {
         }
         
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.like(User::getUsername, name)
-                   .or()
-                   .like(User::getNickname, name);
+        queryWrapper.and(wrapper -> wrapper
+                .like(User::getUsername, name)
+                .or()
+                .like(User::getNickname, name));
         return userMapper.selectList(queryWrapper)
             .stream()
             .map(User::getId)

@@ -596,15 +596,10 @@ public class TourService {
         queryWrapper.eq(Tour::getStatus, 1);
 
         // 构建模糊匹配条件
-        LambdaQueryWrapper<Tour> titleWrapper = new LambdaQueryWrapper<>();
-        LambdaQueryWrapper<Tour> destWrapper = new LambdaQueryWrapper<>();
+        List<String> searchKeywords = new ArrayList<>();
 
         if (scenicName != null && !scenicName.isEmpty()) {
-            // 在行程标题中模糊搜索景点名称
-            titleWrapper.like(Tour::getTitle, scenicName);
-            // 在目的地中搜索
-            destWrapper.or();
-            destWrapper.like(Tour::getDestination, scenicName);
+            searchKeywords.add(scenicName);
         }
 
         if (location != null && !location.isEmpty()) {
@@ -615,17 +610,31 @@ public class TourService {
                 if (part.length() >= 2) {
                     // 过滤掉太短的部分和具体地址
                     if (!isFilteredKeyword(part)) {
-                        titleWrapper.or();
-                        titleWrapper.like(Tour::getTitle, part);
-                        destWrapper.or();
-                        destWrapper.like(Tour::getDestination, part);
+                        searchKeywords.add(part);
                     }
                 }
             }
         }
 
-        // 组合条件：标题匹配 OR 目的地匹配
-        queryWrapper.and(wrapper -> wrapper.or(titleWrapper).or(destWrapper));
+        // 如果有关键词，构建 OR 条件
+        if (!searchKeywords.isEmpty()) {
+            queryWrapper.and(wrapper -> {
+                for (int i = 0; i < searchKeywords.size(); i++) {
+                    String keyword = searchKeywords.get(i);
+                    if (i == 0) {
+                        wrapper.and(q -> q
+                            .like(Tour::getTitle, keyword)
+                            .or()
+                            .like(Tour::getDestination, keyword));
+                    } else {
+                        wrapper.or(q -> q
+                            .like(Tour::getTitle, keyword)
+                            .or()
+                            .like(Tour::getDestination, keyword));
+                    }
+                }
+            });
+        }
 
         // 按相关性排序（优先按标题匹配，然后按目的地匹配）
         queryWrapper.orderByDesc(Tour::getCreateTime);
