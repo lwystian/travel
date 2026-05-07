@@ -37,7 +37,7 @@
                 </div>
                 <div class="meta-item" v-if="tour.destination">
                   <el-icon><MapLocation /></el-icon>
-                  <span>目的地: {{ tour.destination }}</span>
+                  <span>目的地: {{ formatCity(tour.destination) }}</span>
                 </div>
               </div>
               <div class="tour-stats">
@@ -106,6 +106,10 @@
                 <div class="detail-row">
                   <span class="detail-label">行程类型</span>
                   <span class="detail-value">{{ getTourTypeName(tour.tourType) }}</span>
+                </div>
+                <div class="detail-row" v-if="tour.theme">
+                  <span class="detail-label">产品主题</span>
+                  <span class="detail-value">{{ getThemeName(tour.theme) }}</span>
                 </div>
                 <div class="detail-row" v-if="tour.recommendDate">
                   <span class="detail-label">推荐日期</span>
@@ -348,6 +352,21 @@ const getTourTypeName = (type) => {
     'cruise': '邮轮出行'
   }
   return typeMap[type] || '旅行'
+}
+
+// 获取主题名称
+const getThemeName = (theme) => {
+  const themeMap = {
+    'scenic': '风景游',
+    'cultural': '文化游',
+    'adventure': '探险游',
+    'hiking': '徒步游',
+    'family': '亲子游',
+    'romantic': '浪漫游',
+    'food': '美食游',
+    'photography': '摄影游'
+  }
+  return themeMap[theme] || theme || ''
 }
 
 // 获取图片URL

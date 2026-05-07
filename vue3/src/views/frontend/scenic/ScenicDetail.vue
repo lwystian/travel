@@ -210,11 +210,14 @@
               <div class="tour-meta">
                 <span class="tour-destination" v-if="tour.destination">
                   <el-icon><Location /></el-icon>
-                  {{ tour.destination }}
+                  {{ formatCity(tour.destination) }}
                 </span>
                 <span class="tour-star" v-if="tour.starRating">
                   <el-icon><Star /></el-icon>
                   {{ tour.starRating }}
+                </span>
+                <span class="tour-theme" v-if="tour.theme">
+                  {{ getThemeName(tour.theme) }}
                 </span>
               </div>
               <div class="tour-footer">
@@ -638,6 +641,48 @@ const getTourTypeName = (type) => {
     'cruise': '邮轮出行'
   }
   return typeMap[type] || '旅行'
+}
+
+// 格式化城市名称
+const formatCity = (city) => {
+  const cityMap = {
+    'chongqing': '重庆',
+    'chengdu': '成都',
+    'kunming': '昆明',
+    'guiyang': '贵阳',
+    'sanya': '三亚',
+    'beijing': '北京',
+    'shanghai': '上海',
+    'guangzhou': '广州',
+    'shenzhen': '深圳',
+    'xian': '西安',
+    'hangzhou': '杭州',
+    'suzhou': '苏州',
+    'nanjing': '南京',
+    'wuhan': '武汉',
+    'changsha': '长沙',
+    'haikou': '海口',
+    'dali': '大理',
+    'lijiang': '丽江',
+    'xiamen': '厦门',
+    'qingdao': '青岛'
+  }
+  return cityMap[city] || city || ''
+}
+
+// 获取主题名称
+const getThemeName = (theme) => {
+  const themeMap = {
+    'scenic': '风景游',
+    'cultural': '文化游',
+    'adventure': '探险游',
+    'hiking': '徒步游',
+    'family': '亲子游',
+    'romantic': '浪漫游',
+    'food': '美食游',
+    'photography': '摄影游'
+  }
+  return themeMap[theme] || theme || ''
 }
 
 // 跳转到行程预订页

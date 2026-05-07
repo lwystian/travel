@@ -216,6 +216,18 @@
           </div>
         </div>
 
+        <!-- 行程类型 -->
+        <div class="info-row" v-if="productInfo.tourType">
+          <span class="info-label">行程类型：</span>
+          <span class="info-text">{{ getTourTypeName(productInfo.tourType) }}</span>
+        </div>
+
+        <!-- 产品主题 -->
+        <div class="info-row" v-if="productInfo.theme">
+          <span class="info-label">产品主题：</span>
+          <span class="info-text">{{ getThemeName(productInfo.theme) }}</span>
+        </div>
+
         <!-- 供应商 -->
         <div class="info-row">
           <span class="info-label">供 应 商：</span>
@@ -225,7 +237,7 @@
         <!-- 出发地 -->
         <div class="info-row">
           <span class="info-label">出 发 地：</span>
-          <a href="#" class="info-link" @click.prevent="filterByDeparture">{{ productInfo.departure }}</a>
+          <a href="#" class="info-link" @click.prevent="filterByDeparture">{{ formatCity(productInfo.departure) }}</a>
         </div>
 
         <!-- 退订政策 -->
@@ -522,6 +534,66 @@ const personCountOptions = Array.from({ length: 51 }, (_, i) => i)
 const weekDays = ['日', '一', '二', '三', '四', '五', '六']
 const weekdayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
+// 城市代码映射
+const cityMap = {
+  'chongqing': '重庆',
+  'chengdu': '成都',
+  'kunming': '昆明',
+  'guiyang': '贵阳',
+  'sanya': '三亚',
+  'beijing': '北京',
+  'shanghai': '上海',
+  'guangzhou': '广州',
+  'shenzhen': '深圳',
+  'xian': '西安',
+  'hangzhou': '杭州',
+  'suzhou': '苏州',
+  'nanjing': '南京',
+  'wuhan': '武汉',
+  'changsha': '长沙',
+  'haikou': '海口',
+  'dali': '大理',
+  'lijiang': '丽江',
+  'xiamen': '厦门',
+  'qingdao': '青岛',
+  'yichang': '宜昌'
+}
+
+// 主题映射
+const themeMap = {
+  'scenic': '风景游',
+  'cultural': '文化游',
+  'adventure': '探险游',
+  'hiking': '徒步游',
+  'family': '亲子游',
+  'romantic': '浪漫游',
+  'food': '美食游',
+  'photography': '摄影游'
+}
+
+// 行程类型映射
+const tourTypeMap = {
+  'around': '周边游',
+  'long': '长线游',
+  'team': '跟团游',
+  'cruise': '邮轮出行'
+}
+
+// 格式化城市名称
+const formatCity = (city) => {
+  return cityMap[city] || city || ''
+}
+
+// 获取主题名称
+const getThemeName = (theme) => {
+  return themeMap[theme] || theme || ''
+}
+
+// 获取行程类型名称
+const getTourTypeName = (type) => {
+  return tourTypeMap[type] || '旅行'
+}
+
 const route = useRoute()
 const router = useRouter()
 
@@ -535,6 +607,8 @@ const productInfo = ref({
   code: '',
   days: 1,
   departure: '',
+  tourType: '',
+  theme: '',
   enrolledCount: 0,
   notice: ''
 })
@@ -1044,7 +1118,9 @@ const fetchProductDetail = async () => {
           subtitle: data.tour.subtitle || '',
           code: data.tour.code || data.tour.id,
           days: data.tour.days || 1,
-          departure: data.tour.departure || '',
+          departure: data.tour.city || '', // 后端返回的是 city 字段
+          tourType: data.tour.tourType || '',
+          theme: data.tour.theme || '',
           enrolledCount: data.tour.enrolledCount || 0,
           notice: data.tour.notice || ''
         }
@@ -1318,7 +1394,7 @@ const viewSupplier = () => {
 }
 
 const filterByDeparture = () => {
-  ElMessage.info(`筛选 ${productInfo.value.departure} 出发的线路`)
+  ElMessage.info(`筛选 ${formatCity(productInfo.value.departure)} 出发的线路`)
 }
 
 const showRefundPolicy = () => {
