@@ -109,4 +109,14 @@ public class TourController {
         tourService.updateTourVideo(id, videoUrl, videoPoster, videoEnabled);
         return Result.success();
     }
+
+    @Operation(summary = "根据景点推荐相关行程")
+    @GetMapping("/recommended")
+    public Result<?> getRecommendedTours(
+            @RequestParam(required = false) String scenicName,
+            @RequestParam(required = false) String location,
+            @RequestParam(defaultValue = "6") Integer limit) {
+        List<Tour> tours = tourService.getRecommendedToursByScenic(scenicName, location, limit);
+        return Result.success(tours);
+    }
 }

@@ -581,4 +581,89 @@ public class TourService {
         }
         return tours;
     }
+
+    /**
+     * 根据景点名称和地点推荐相关行程
+     * @param scenicName 景点名称
+     * @param location 景点地点
+     * @param limit 返回数量限制
+     * @return 推荐的行程列表
+     */
+    public List<Tour> getRecommendedToursByScenic(String scenicName, String location, Integer limit) {
+        LambdaQueryWrapper<Tour> queryWrapper = new LambdaQueryWrapper<>();
+
+        // 只查询上架的行程
+        queryWrapper.eq(Tour::getStatus, 1);
+
+        // 构建模糊匹配条件
+        LambdaQueryWrapper<Tour> titleWrapper = new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<Tour> destWrapper = new LambdaQueryWrapper<>();
+
+        if (scenicName != null && !scenicName.isEmpty()) {
+            // 在行程标题中模糊搜索景点名称
+            titleWrapper.like(Tour::getTitle, scenicName);
+            // 在目的地中搜索
+            destWrapper.or();
+            destWrapper.like(Tour::getDestination, scenicName);
+        }
+
+        if (location != null && !location.isEmpty()) {
+            // 从地点中提取可能的关键词（如城市名）
+            String[] locationParts = location.split("[,，\\s]");
+            for (String part : locationParts) {
+                part = part.trim();
+                if (part.length() >= 2) {
+                    // 过滤掉太短的部分和具体地址
+                    if (!isFilteredKeyword(part)) {
+                        titleWrapper.or();
+                        titleWrapper.like(Tour::getTitle, part);
+                        destWrapper.or();
+                        destWrapper.like(Tour::getDestination, part);
+                    }
+                }
+            }
+        }
+
+        // 组合条件：标题匹配 OR 目的地匹配
+        queryWrapper.and(wrapper -> wrapper.or(titleWrapper).or(destWrapper));
+
+        // 按相关性排序（优先按标题匹配，然后按目的地匹配）
+        queryWrapper.orderByDesc(Tour::getCreateTime);
+
+        // 限制返回数量
+        queryWrapper.last("LIMIT " + (limit != null ? limit : 6));
+
+        List<Tour> tours = tourMapper.selectList(queryWrapper);
+
+        // 计算每个行程的实际最低价
+        for (Tour tour : tours) {
+            BigDecimal minPrice = calculateMinPrice(tour.getId());
+            if (minPrice != null) {
+                tour.setMinPrice(minPrice);
+            }
+        }
+        return tours;
+    }
+
+    /**
+     * 判断是否为需要过滤的关键词
+     */
+    private boolean isFilteredKeyword(String keyword) {
+        // 需要过滤的关键词列表
+        String[] filteredKeywords = {
+            "路", "街", "号", "弄", "号", "村", "镇", "县",
+            "市辖区", "区", "开发区", "度假区", "景区", "公园",
+            "大道", "广场", "大厦", "酒店", "宾馆", "客栈"
+        };
+        for (String filtered : filteredKeywords) {
+            if (keyword.endsWith(filtered) || keyword.contains(filtered)) {
+                return true;
+            }
+        }
+        // 过滤纯数字
+        if (keyword.matches("\\d+")) {
+            return true;
+        }
+        return false;
+    }
 }

@@ -185,6 +185,54 @@
       </div>
     </div>
 
+    <!-- 推荐行程区域 -->
+    <div class="recommended-tours-section" v-if="recommendedTours.length > 0">
+      <div class="section-container">
+        <h2 class="section-title">
+          <el-icon><Tickets /></el-icon>
+          相关行程推荐
+        </h2>
+        <p class="section-subtitle">根据 "{{ scenic.name }}" 为您推荐以下热门行程</p>
+        <div class="recommended-tours-grid">
+          <div
+            v-for="tour in recommendedTours"
+            :key="tour.id"
+            class="tour-card"
+            @click="goToTourDetail(tour.id)"
+          >
+            <div class="tour-image-wrapper">
+              <img :src="getTourImage(tour)" :alt="tour.title" class="tour-image" />
+              <div class="tour-type-badge">{{ getTourTypeName(tour.tourType) }}</div>
+              <div class="tour-days-badge">{{ tour.days }}天</div>
+            </div>
+            <div class="tour-info">
+              <h3 class="tour-title">{{ tour.title }}</h3>
+              <div class="tour-meta">
+                <span class="tour-destination" v-if="tour.destination">
+                  <el-icon><Location /></el-icon>
+                  {{ tour.destination }}
+                </span>
+                <span class="tour-star" v-if="tour.starRating">
+                  <el-icon><Star /></el-icon>
+                  {{ tour.starRating }}
+                </span>
+              </div>
+              <div class="tour-footer">
+                <div class="tour-price" v-if="tour.minPrice">
+                  <span class="price-symbol">¥</span>
+                  <span class="price-value">{{ formatPrice(tour.minPrice) }}</span>
+                  <span class="price-unit">起</span>
+                </div>
+                <div class="tour-enrolled" v-if="tour.enrolledCount">
+                  <span>{{ tour.enrolledCount }}人已报名</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 评论区域 -->
     <div class="comment-section">
       <div class="section-container">
@@ -211,7 +259,7 @@ import { useUserStore } from '@/store/user'
 import axios from 'axios'
 import {
   Location, CollectionTag, Timer, Sunny, Loading, Star, StarFilled,
-  Document, InfoFilled, CopyDocument, Share, ChatDotRound
+  Document, InfoFilled, CopyDocument, Share, ChatDotRound, Tickets
 } from '@element-plus/icons-vue'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
@@ -222,6 +270,9 @@ const scenic = ref({})
 // 收藏相关状态
 const isCollected = ref(false)
 const collectionLoading = ref(false)
+
+// 推荐行程相关状态
+const recommendedTours = ref([])
 
 // 检查用户是否登录
 const isLoggedIn = computed(() => userStore.isLoggedIn)
@@ -454,6 +505,9 @@ const fetchDetail = async () => {
       if (isLoggedIn.value) {
         checkCollectionStatus(id)
       }
+
+      // 获取推荐行程
+      fetchRecommendedTours(res.name, res.location)
     },
     onError: (error) => {
       console.error('景点详情 - 获取失败:', error)
@@ -512,7 +566,7 @@ const fetchAllCommentsForRating = async (scenicId) => {
 // 检查收藏状态
 const checkCollectionStatus = async (scenicId) => {
   if (!isLoggedIn.value) return
-  
+
   try {
     await request.get(`/scenic-collection/is-collected/${scenicId}`, null, {
       showDefaultMsg: false,
@@ -523,6 +577,72 @@ const checkCollectionStatus = async (scenicId) => {
   } catch (error) {
     console.error('获取收藏状态失败:', error)
   }
+}
+
+// 获取推荐行程
+const fetchRecommendedTours = async (scenicName, location) => {
+  try {
+    await request.get('/tour/recommended', {
+      scenicName: scenicName,
+      location: location,
+      limit: 6
+    }, {
+      showDefaultMsg: false,
+      onSuccess: (res) => {
+        recommendedTours.value = res || []
+        console.log('推荐行程:', recommendedTours.value)
+      },
+      onError: (error) => {
+        console.error('获取推荐行程失败:', error)
+        recommendedTours.value = []
+      }
+    })
+  } catch (error) {
+    console.error('获取推荐行程失败:', error)
+    recommendedTours.value = []
+  }
+}
+
+// 获取行程图片
+const getTourImage = (tour) => {
+  if (!tour) return 'https://picsum.photos/seed/tour/400/260'
+  // 优先使用 mainImage
+  if (tour.mainImage) {
+    return tour.mainImage.startsWith('http') ? tour.mainImage : baseAPI + tour.mainImage
+  }
+  // 尝试解析 images JSON
+  if (tour.images) {
+    try {
+      const images = JSON.parse(tour.images)
+      if (Array.isArray(images) && images.length > 0) {
+        return images[0].startsWith('http') ? images[0] : baseAPI + images[0]
+      }
+    } catch (e) {}
+  }
+  return 'https://picsum.photos/seed/tour/400/260'
+}
+
+// 格式化价格
+const formatPrice = (price) => {
+  if (!price) return '0'
+  const num = typeof price === 'string' ? parseFloat(price) : price
+  return num.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+}
+
+// 获取行程类型名称
+const getTourTypeName = (type) => {
+  const typeMap = {
+    'around': '周边游',
+    'long': '长线游',
+    'team': '跟团游',
+    'cruise': '邮轮出行'
+  }
+  return typeMap[type] || '旅行'
+}
+
+// 跳转到行程详情
+const goToTourDetail = (tourId) => {
+  router.push(`/tour/${tourId}`)
 }
 
 // 收藏/取消收藏操作
@@ -1277,5 +1397,173 @@ onMounted(fetchDetail)
 ::-moz-selection {
   background: rgba(102, 126, 234, 0.2);
   color: #2d3748;
+}
+
+// 推荐行程区域样式
+.recommended-tours-section {
+  background: #f8fafc;
+  padding: 40px 0;
+}
+
+.section-subtitle {
+  color: #64748b;
+  font-size: 14px;
+  margin: -8px 0 24px;
+}
+
+.recommended-tours-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tour-card {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+
+    .tour-image {
+      transform: scale(1.08);
+    }
+  }
+}
+
+.tour-image-wrapper {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+}
+
+.tour-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.tour-type-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.tour-days-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+}
+
+.tour-info {
+  padding: 16px;
+}
+
+.tour-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 10px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tour-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+
+  .tour-destination {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #64748b;
+
+    .el-icon {
+      font-size: 12px;
+    }
+  }
+
+  .tour-star {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #f6ad55;
+
+    .el-icon {
+      font-size: 12px;
+    }
+  }
+}
+
+.tour-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.tour-price {
+  display: flex;
+  align-items: baseline;
+
+  .price-symbol {
+    font-size: 14px;
+    color: #e53e3e;
+    font-weight: 600;
+  }
+
+  .price-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #e53e3e;
+    line-height: 1;
+  }
+
+  .price-unit {
+    font-size: 12px;
+    color: #a0aec0;
+    margin-left: 4px;
+  }
+}
+
+.tour-enrolled {
+  font-size: 12px;
+  color: #a0aec0;
 }
 </style>

@@ -165,6 +165,12 @@ const frontendRoutes = [
         meta: { title: '分类景点' }
       },
       {
+        path: 'tour/:id',
+        name: 'TourDetail',
+        component: () => import('@/views/frontend/tour/TourDetail.vue'),
+        meta: { title: '行程详情' }
+      },
+      {
         path: 'guide',
         name: 'GuideList',
         component: () => import('@/views/frontend/guide/GuideList.vue'),
