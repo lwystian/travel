@@ -523,9 +523,31 @@ const allCityOptions = computed(() => {
   return options
 })
 
+// 特殊目的地代码映射
+const specialDestinationMap = {
+  'xisha': '西沙群岛',
+  'sanya': '三亚',
+  'chongqing': '重庆',
+  'chengdu': '成都',
+  'kunming': '昆明',
+  'guiyang': '贵阳',
+  'lijiang': '丽江',
+  'dali': '大理',
+  'xiamen': '厦门',
+  'hangzhou': '杭州',
+  'suzhou': '苏州',
+  'nanjing': '南京',
+  'guilin': '桂林',
+  'beihai': '北海'
+}
+
 // 获取目的地标签
 const getDestinationLabel = (dest) => {
   if (!dest) return ''
+  // 先检查特殊目的地映射
+  if (specialDestinationMap[dest]) {
+    return specialDestinationMap[dest]
+  }
   if (dest.includes('/')) {
     const [provinceCode, cityCode] = dest.split('/')
     const province = destinationOptions.find(p => p.code === provinceCode)
@@ -558,7 +580,8 @@ const priceMap = {
 
 const themeMap = {
   hiking: '户外徒步', cultural: '人文古迹', scenic: '自然风光',
-  city: '城市漫步', family: '亲子游'
+  city: '城市漫步', family: '亲子游', adventure: '探险游',
+  romantic: '浪漫游', food: '美食游', photography: '摄影游'
 }
 
 // 行程类型映射
