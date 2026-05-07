@@ -198,7 +198,7 @@
             v-for="tour in recommendedTours"
             :key="tour.id"
             class="tour-card"
-            @click="goToTourDetail(tour.id)"
+            @click.stop="goToTourDetail(tour.id)"
           >
             <div class="tour-image-wrapper">
               <img :src="getTourImage(tour)" :alt="tour.title" class="tour-image" />
@@ -1401,7 +1401,7 @@ onMounted(fetchDetail)
 
 // 推荐行程区域样式
 .recommended-tours-section {
-  background: #f8fafc;
+  background: #FFFFFF;
   padding: 40px 0;
 }
 
