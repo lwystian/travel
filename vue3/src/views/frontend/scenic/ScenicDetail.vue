@@ -329,12 +329,12 @@ const loadMapScript = () => {
     }
     // 设置高德安全密钥（securityJsCode）
     window._AMapSecurityConfig = {
-      securityJsCode: 'cc6ce30d593e182d159e8378417b2553'
+      securityJsCode: '87afaff2dd4a5da739be8debe8947aa9'
     }
     const script = document.createElement('script')
     script.type = 'text/javascript'
     script.async = true
-    script.src = `https://webapi.amap.com/maps?v=2.0&key=16e2711c3a087b844eb977103e4b2d13`
+    script.src = `https://webapi.amap.com/maps?v=2.0&key=34757b62e54af874a594831dfa463106`
     script.onerror = reject
     script.onload = resolve
     document.head.appendChild(script)
