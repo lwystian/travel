@@ -640,9 +640,9 @@ const getTourTypeName = (type) => {
   return typeMap[type] || '旅行'
 }
 
-// 跳转到行程详情
+// 跳转到行程预订页
 const goToTourDetail = (tourId) => {
-  router.push(`/tour/${tourId}`)
+  router.push(`/ticket/booking/${tourId}`)
 }
 
 // 收藏/取消收藏操作
