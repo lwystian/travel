@@ -422,14 +422,20 @@ const fetchWeatherInfo = async (location) => {
 
 const fetchDetail = async () => {
   const id = route.params.id
+  console.log('景点详情 - 获取ID:', id)
+  if (!id) {
+    console.error('景点ID为空')
+    return
+  }
   await request.get(`/scenic/${id}`,null, {
     onSuccess: (res) => {
+      console.log('景点详情 - 获取成功:', res)
       scenic.value = res
       // 获取评论统计
       fetchCommentStats(id)
       // 加载天气信息
       fetchWeatherInfo(res.location)
-      
+
       // 确保DOM已经渲染完成后再初始化地图
       nextTick(() => {
         loadMapScript()
@@ -443,11 +449,14 @@ const fetchDetail = async () => {
             console.error('加载高德地图失败:', err)
           })
       })
-      
+
       // 如果用户已登录，检查收藏状态
       if (isLoggedIn.value) {
         checkCollectionStatus(id)
       }
+    },
+    onError: (error) => {
+      console.error('景点详情 - 获取失败:', error)
     }
   })
 }
@@ -571,7 +580,6 @@ const handleCollection = async () => {
   }
 }
 
-const copyCoordinates
 const copyCoordinates = () => {
   if (!scenic.value.longitude || !scenic.value.latitude) return
   

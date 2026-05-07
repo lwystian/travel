@@ -322,6 +322,7 @@ const handleCategoryChange = (categoryId) => {
 }
 
 const goDetail = (id) => {
+  console.log('景点列表 - 点击景点，ID:', id)
   router.push(`/scenic/${id}`)
 }
 
