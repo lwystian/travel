@@ -5,8 +5,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.example.springboot.DTO.TourDetailDTO;
+import org.example.springboot.DTO.HomeRecommendDTO;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.Tour;
+import org.example.springboot.entity.HomeRecommend;
 import org.example.springboot.service.TourService;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,14 +25,15 @@ public class TourController {
     @Operation(summary = "分页查询行程")
     @GetMapping("/page")
     public Result<?> getToursByPage(
-            @RequestParam(defaultValue = "") String title,
+            @RequestParam(defaultValue = "") String keyword,
             @RequestParam(defaultValue = "") String tourType,
             @RequestParam(defaultValue = "") String city,
             @RequestParam(defaultValue = "") String destination,
             @RequestParam(defaultValue = "") String theme,
             @RequestParam(defaultValue = "1") Integer currentPage,
-            @RequestParam(defaultValue = "10") Integer size) {
-        Page<Tour> page = tourService.getToursByPage(title, tourType, city, destination, theme, currentPage, size);
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        Page<Tour> page = tourService.getToursByPage(
+            keyword, tourType, city, destination, theme, currentPage, pageSize);
         return Result.success(page);
     }
 
@@ -46,6 +49,66 @@ public class TourController {
     public Result<?> getActiveTours() {
         List<Tour> tours = tourService.getActiveTours();
         return Result.success(tours);
+    }
+
+    // ==================== 首页推荐管理接口 ====================
+
+    @Operation(summary = "获取精选行程（首页使用）")
+    @GetMapping("/featured")
+    public Result<?> getFeaturedTours() {
+        List<Tour> tours = tourService.getFeaturedTours();
+        return Result.success(tours);
+    }
+
+    @Operation(summary = "获取更多推荐行程（首页使用）")
+    @GetMapping("/more")
+    public Result<?> getMoreTours() {
+        List<Tour> tours = tourService.getMoreTours();
+        return Result.success(tours);
+    }
+
+    @Operation(summary = "获取首页推荐列表（后台管理使用）")
+    @GetMapping("/recommends")
+    public Result<?> getRecommends(@RequestParam(required = false) String type) {
+        List<HomeRecommendDTO> recommends;
+        if (type != null && !type.isEmpty()) {
+            recommends = tourService.getRecommendsByTypeDTO(type);
+        } else {
+            recommends = tourService.getAllRecommendsDTO();
+        }
+        return Result.success(recommends);
+    }
+
+    @Operation(summary = "批量保存首页推荐")
+    @PostMapping("/recommends")
+    public Result<?> saveRecommends(@RequestBody java.util.Map<String, Object> body) {
+        String type = (String) body.get("type");
+        @SuppressWarnings("unchecked")
+        java.util.List<Number> tourIdList = (java.util.List<Number>) body.get("tourIds");
+
+        if (type == null || type.isEmpty()) {
+            return Result.error("类型不能为空");
+        }
+
+        if (tourIdList == null || tourIdList.isEmpty()) {
+            tourService.clearRecommendsByType(type);
+            return Result.success();
+        }
+
+        List<Long> tourIds = new java.util.ArrayList<>();
+        for (Number id : tourIdList) {
+            tourIds.add(id.longValue());
+        }
+
+        tourService.saveRecommends(type, tourIds);
+        return Result.success();
+    }
+
+    @Operation(summary = "清空指定类型的首页推荐")
+    @DeleteMapping("/recommends/clear")
+    public Result<?> clearRecommends(@RequestParam String type) {
+        tourService.clearRecommendsByType(type);
+        return Result.success();
     }
 
     @Operation(summary = "根据ID获取行程详情（简单信息）")
@@ -118,5 +181,24 @@ public class TourController {
             @RequestParam(defaultValue = "6") Integer limit) {
         List<Tour> tours = tourService.getRecommendedToursByScenic(scenicName, location, limit);
         return Result.success(tours);
+    }
+
+    @Operation(summary = "删除首页推荐")
+    @DeleteMapping("/recommend/{id}")
+    public Result<?> deleteRecommend(@PathVariable Long id) {
+        tourService.deleteRecommend(id);
+        return Result.success();
+    }
+
+    @Operation(summary = "更新推荐排序")
+    @PutMapping("/recommend/sort")
+    public Result<?> updateRecommendSort(@RequestBody java.util.Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        java.util.List<Number> ids = (java.util.List<Number>) body.get("ids");
+        if (ids == null || ids.isEmpty()) {
+            return Result.error("ID列表不能为空");
+        }
+        tourService.updateRecommendSort(ids);
+        return Result.success();
     }
 }

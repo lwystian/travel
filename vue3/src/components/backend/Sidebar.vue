@@ -58,6 +58,11 @@
           <el-icon><Ticket /></el-icon>
           <template #title>行程管理</template>
         </el-menu-item>
+
+        <el-menu-item index="/back/recommend" v-if="userStore.isAdmin">
+          <el-icon><Star /></el-icon>
+          <span>首页推荐</span>
+        </el-menu-item>
         
         <el-menu-item index="/back/order" v-if="userStore.isAdmin">
           <el-icon><List /></el-icon>
@@ -103,7 +108,8 @@ import {
   House,
   Picture,
   PriceTag,
-  Wallet
+  Wallet,
+  Promotion
 } from '@element-plus/icons-vue'
 
 const route = useRoute()

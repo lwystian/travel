@@ -64,6 +64,12 @@ export const backendRoutes = [
         meta: { title: '行程管理', icon: 'Ticket' }
       },
       {
+        path: 'recommend',
+        name: 'RecommendManagement',
+        component: () => import('@/views/backend/recommend/RecommendManager.vue'),
+        meta: { title: '首页推荐', icon: 'Star' }
+      },
+      {
         path: 'order',
         name: 'OrderManagement',
         component: () => import('@/views/backend/order/index.vue'),
@@ -267,7 +273,11 @@ const router = createRouter({
     ...frontendRoutes,
     ...backendRoutes,
     ...errorRoutes
-  ]
+  ],
+  scrollBehavior(to, from, savedPosition) {
+    // 每次路由切换都滚动到页面顶部
+    return { top: 0 }
+  }
 })
 
 // 路由守卫

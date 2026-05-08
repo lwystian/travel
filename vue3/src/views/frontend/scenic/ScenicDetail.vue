@@ -221,7 +221,7 @@
                 </span>
               </div>
               <div class="tour-footer">
-                <div class="tour-price" v-if="tour.minPrice">
+                <div class="tour-price" v-if="tour.minPrice !== undefined && tour.minPrice !== null && tour.minPrice !== ''">
                   <span class="price-symbol">¥</span>
                   <span class="price-value">{{ formatPrice(tour.minPrice) }}</span>
                   <span class="price-unit">起</span>
@@ -620,7 +620,9 @@ const getTourImage = (tour) => {
       if (Array.isArray(images) && images.length > 0) {
         return images[0].startsWith('http') ? images[0] : baseAPI + images[0]
       }
-    } catch (e) {}
+    } catch (e) {
+      // JSON解析失败，使用默认图片
+    }
   }
   return 'https://picsum.photos/seed/tour/400/260'
 }

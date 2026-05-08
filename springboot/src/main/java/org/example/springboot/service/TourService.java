@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.example.springboot.DTO.TourDetailDTO;
+import org.example.springboot.DTO.HomeRecommendDTO;
 import org.example.springboot.entity.*;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.*;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,8 +37,11 @@ public class TourService {
     @Resource
     private TourHotelMapper tourHotelMapper;
 
+    @Resource
+    private HomeRecommendMapper homeRecommendMapper;
+
     /**
-     * 分页查询行程
+     * 分页查询行程（包含计算最低价格）
      */
     public Page<Tour> getToursByPage(
             String title,
@@ -71,7 +76,19 @@ public class TourService {
         // 按创建时间降序排序
         queryWrapper.orderByDesc(Tour::getCreateTime);
 
-        return tourMapper.selectPage(new Page<>(currentPage, size), queryWrapper);
+        Page<Tour> page = tourMapper.selectPage(new Page<>(currentPage, size), queryWrapper);
+
+        // 为每个行程计算最低价格
+        if (page.getRecords() != null && !page.getRecords().isEmpty()) {
+            for (Tour tour : page.getRecords()) {
+                BigDecimal minPrice = calculateMinPrice(tour.getId());
+                if (minPrice != null) {
+                    tour.setMinPrice(minPrice);
+                }
+            }
+        }
+
+        return page;
     }
 
     /**
@@ -90,22 +107,72 @@ public class TourService {
     }
 
     /**
-     * 计算行程的实际最低价（基于套餐表）
+     * 计算行程的实际最低价
+     * 计算公式：行程套餐成人价 + 批次套餐附加费 + 出发班期附加费 的最小组合
      */
     private BigDecimal calculateMinPrice(Long tourId) {
+        // 获取所有行程套餐
         List<TourPackage> packages = getTourPackages(tourId);
         if (packages == null || packages.isEmpty()) {
             return null;
         }
+
+        // 获取所有批次套餐的最小附加费
+        BigDecimal minBatchExtraFee = getMinBatchExtraFee(tourId);
+
+        // 获取所有出发班期的最小成人附加费
+        BigDecimal minDateExtraFee = getMinDateExtraFee(tourId);
+
+        // 计算每个套餐的最低价（套餐价 + 批次附加费 + 日期附加费）
         BigDecimal minPrice = null;
         for (TourPackage pkg : packages) {
             if (pkg.getAdultPrice() != null) {
-                if (minPrice == null || pkg.getAdultPrice().compareTo(minPrice) < 0) {
-                    minPrice = pkg.getAdultPrice();
+                BigDecimal totalPrice = pkg.getAdultPrice();
+                if (minBatchExtraFee != null) {
+                    totalPrice = totalPrice.add(minBatchExtraFee);
+                }
+                if (minDateExtraFee != null) {
+                    totalPrice = totalPrice.add(minDateExtraFee);
+                }
+                if (minPrice == null || totalPrice.compareTo(minPrice) < 0) {
+                    minPrice = totalPrice;
                 }
             }
         }
+
         return minPrice;
+    }
+
+    /**
+     * 获取所有批次套餐的最小附加费
+     */
+    private BigDecimal getMinBatchExtraFee(Long tourId) {
+        List<BatchPackage> batchPackages = getBatchPackages(tourId);
+        BigDecimal minFee = null;
+        for (BatchPackage bp : batchPackages) {
+            if (bp.getExtraFeePerPerson() != null) {
+                if (minFee == null || bp.getExtraFeePerPerson().compareTo(minFee) < 0) {
+                    minFee = bp.getExtraFeePerPerson();
+                }
+            }
+        }
+        return minFee;
+    }
+
+    /**
+     * 获取所有出发班期的最小成人附加费
+     */
+    private BigDecimal getMinDateExtraFee(Long tourId) {
+        List<TourBatch> batches = getTourBatches(tourId);
+        BigDecimal minFee = null;
+        for (TourBatch batch : batches) {
+            if (batch.getAdultDateExtraFee() != null) {
+                if (minFee == null || batch.getAdultDateExtraFee().compareTo(minFee) < 0) {
+                    minFee = batch.getAdultDateExtraFee();
+                }
+            }
+        }
+        return minFee;
     }
 
     /**
@@ -674,5 +741,352 @@ public class TourService {
             return true;
         }
         return false;
+    }
+
+    // ==================== 首页推荐相关方法 ====================
+
+    /**
+     * 获取精选行程
+     * 如果管理员设置了推荐，返回设置的行程；否则按默认规则返回
+     * 默认规则：返回最近创建的6个上架行程
+     */
+    public List<Tour> getFeaturedTours() {
+        // 查询管理员设置的精选行程
+        LambdaQueryWrapper<HomeRecommend> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(HomeRecommend::getType, "featured");
+        queryWrapper.orderByAsc(HomeRecommend::getSortOrder);
+        List<HomeRecommend> recommends = homeRecommendMapper.selectList(queryWrapper);
+
+        List<Tour> tours = new ArrayList<>();
+        
+        if (recommends != null && !recommends.isEmpty()) {
+            // 有设置的推荐，按设置的顺序返回
+            for (HomeRecommend recommend : recommends) {
+                Tour tour = tourMapper.selectById(recommend.getTourId());
+                if (tour != null && tour.getStatus() != null && tour.getStatus() == 1) {
+                    // 计算最低价
+                    BigDecimal minPrice = calculateMinPrice(tour.getId());
+                    if (minPrice != null) {
+                        tour.setMinPrice(minPrice);
+                    }
+                    tours.add(tour);
+                }
+            }
+        } else {
+            // 没有设置，返回默认推荐的行程（最近创建的6个上架行程）
+            tours = getDefaultFeaturedTours();
+        }
+        
+        return tours;
+    }
+
+    /**
+     * 获取更多推荐行程
+     * 如果管理员设置了推荐，返回设置的行程；否则按默认规则返回
+     * 默认规则：返回除精选行程外的最近创建的行程
+     */
+    public List<Tour> getMoreTours() {
+        // 查询管理员设置的更多推荐行程
+        LambdaQueryWrapper<HomeRecommend> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(HomeRecommend::getType, "more");
+        queryWrapper.orderByAsc(HomeRecommend::getSortOrder);
+        List<HomeRecommend> recommends = homeRecommendMapper.selectList(queryWrapper);
+
+        List<Tour> tours = new ArrayList<>();
+        
+        if (recommends != null && !recommends.isEmpty()) {
+            // 有设置的推荐，按设置的顺序返回
+            for (HomeRecommend recommend : recommends) {
+                Tour tour = tourMapper.selectById(recommend.getTourId());
+                if (tour != null && tour.getStatus() != null && tour.getStatus() == 1) {
+                    // 计算最低价
+                    BigDecimal minPrice = calculateMinPrice(tour.getId());
+                    if (minPrice != null) {
+                        tour.setMinPrice(minPrice);
+                    }
+                    tours.add(tour);
+                }
+            }
+        } else {
+            // 没有设置，返回默认推荐（除精选外的最近行程）
+            tours = getDefaultMoreTours();
+        }
+        
+        return tours;
+    }
+
+    /**
+     * 获取默认精选行程（最近创建的6个上架行程）
+     */
+    private List<Tour> getDefaultFeaturedTours() {
+        List<Tour> tours = tourMapper.selectList(
+            new LambdaQueryWrapper<Tour>()
+                .eq(Tour::getStatus, 1)
+                .orderByDesc(Tour::getCreateTime)
+                .last("LIMIT 6")
+        );
+        
+        for (Tour tour : tours) {
+            BigDecimal minPrice = calculateMinPrice(tour.getId());
+            if (minPrice != null) {
+                tour.setMinPrice(minPrice);
+            }
+        }
+        return tours;
+    }
+
+    /**
+     * 获取默认更多推荐行程（精选行程之后的最近行程）
+     */
+    private List<Tour> getDefaultMoreTours() {
+        // 获取已有的精选行程ID
+        Set<Long> featuredIds = new HashSet<>();
+        LambdaQueryWrapper<HomeRecommend> featuredWrapper = new LambdaQueryWrapper<>();
+        featuredWrapper.eq(HomeRecommend::getType, "featured");
+        List<HomeRecommend> featuredRecommends = homeRecommendMapper.selectList(featuredWrapper);
+        if (featuredRecommends != null) {
+            for (HomeRecommend r : featuredRecommends) {
+                featuredIds.add(r.getTourId());
+            }
+        }
+        
+        // 如果没有精选设置，排除默认精选的6个
+        if (featuredIds.isEmpty()) {
+            List<Tour> allTours = tourMapper.selectList(
+                new LambdaQueryWrapper<Tour>()
+                    .eq(Tour::getStatus, 1)
+                    .orderByDesc(Tour::getCreateTime)
+            );
+            
+            List<Tour> result = new ArrayList<>();
+            for (Tour tour : allTours) {
+                if (result.size() >= 10) break;
+                if (!featuredIds.contains(tour.getId())) {
+                    featuredIds.add(tour.getId()); // 加入已排除集合
+                    BigDecimal minPrice = calculateMinPrice(tour.getId());
+                    if (minPrice != null) {
+                        tour.setMinPrice(minPrice);
+                    }
+                    result.add(tour);
+                }
+            }
+            return result;
+        }
+        
+        // 排除已有的精选行程，返回其他行程
+        LambdaQueryWrapper<Tour> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Tour::getStatus, 1);
+        queryWrapper.notIn(!featuredIds.isEmpty(), Tour::getId, featuredIds);
+        queryWrapper.orderByDesc(Tour::getCreateTime);
+        queryWrapper.last("LIMIT 10");
+        
+        List<Tour> tours = tourMapper.selectList(queryWrapper);
+        for (Tour tour : tours) {
+            BigDecimal minPrice = calculateMinPrice(tour.getId());
+            if (minPrice != null) {
+                tour.setMinPrice(minPrice);
+            }
+        }
+        return tours;
+    }
+
+    /**
+     * 获取所有推荐列表（返回DTO，包含行程详情）
+     */
+    public List<HomeRecommendDTO> getAllRecommendsDTO() {
+        List<HomeRecommend> recommends = homeRecommendMapper.selectList(
+            new LambdaQueryWrapper<HomeRecommend>()
+                .orderByAsc(HomeRecommend::getSortOrder)
+        );
+        return convertToDTOList(recommends);
+    }
+
+    /**
+     * 根据类型获取推荐列表（返回DTO，包含行程详情）
+     */
+    public List<HomeRecommendDTO> getRecommendsByTypeDTO(String type) {
+        List<HomeRecommend> recommends = homeRecommendMapper.selectList(
+            new LambdaQueryWrapper<HomeRecommend>()
+                .eq(HomeRecommend::getType, type)
+                .orderByAsc(HomeRecommend::getSortOrder)
+        );
+        return convertToDTOList(recommends);
+    }
+
+    /**
+     * 将推荐列表转换为DTO列表
+     */
+    private List<HomeRecommendDTO> convertToDTOList(List<HomeRecommend> recommends) {
+        List<HomeRecommendDTO> dtoList = new ArrayList<>();
+        if (recommends == null || recommends.isEmpty()) {
+            return dtoList;
+        }
+        
+        for (HomeRecommend recommend : recommends) {
+            HomeRecommendDTO dto = new HomeRecommendDTO();
+            dto.setId(recommend.getId());
+            dto.setType(recommend.getType());
+            dto.setTourId(recommend.getTourId());
+            dto.setSortOrder(recommend.getSortOrder());
+            dto.setCreateTime(recommend.getCreateTime());
+            
+            // 获取行程详情
+            Tour tour = tourMapper.selectById(recommend.getTourId());
+            if (tour != null) {
+                dto.setTourIdDetail(tour.getId());
+                dto.setTourCode(tour.getCode());
+                dto.setTitle(tour.getTitle());
+                dto.setSubtitle(tour.getSubtitle());
+                dto.setMainImage(tour.getMainImage());
+                dto.setTourType(tour.getTourType());
+                dto.setDays(tour.getDays());
+                dto.setStatus(tour.getStatus());
+                
+                // 计算最低价
+                BigDecimal minPrice = calculateMinPrice(tour.getId());
+                dto.setMinPrice(minPrice);
+            }
+            
+            dtoList.add(dto);
+        }
+        return dtoList;
+    }
+
+    /**
+     * 获取所有推荐列表（返回原始对象）
+     */
+    public List<HomeRecommend> getAllRecommends() {
+        return homeRecommendMapper.selectList(
+            new LambdaQueryWrapper<HomeRecommend>()
+                .orderByAsc(HomeRecommend::getSortOrder)
+        );
+    }
+
+    /**
+     * 根据类型获取推荐列表（返回原始对象）
+     */
+    public List<HomeRecommend> getRecommendsByType(String type) {
+        return homeRecommendMapper.selectList(
+            new LambdaQueryWrapper<HomeRecommend>()
+                .eq(HomeRecommend::getType, type)
+                .orderByAsc(HomeRecommend::getSortOrder)
+        );
+    }
+
+    /**
+     * 添加或更新推荐
+     */
+    @Transactional
+    public void saveRecommend(HomeRecommend recommend) {
+        // 检查是否已存在相同类型和行程的推荐
+        LambdaQueryWrapper<HomeRecommend> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(HomeRecommend::getType, recommend.getType());
+        queryWrapper.eq(HomeRecommend::getTourId, recommend.getTourId());
+        HomeRecommend exist = homeRecommendMapper.selectOne(queryWrapper);
+        
+        if (exist != null) {
+            // 已存在，更新排序
+            exist.setSortOrder(recommend.getSortOrder());
+            exist.setUpdateTime(LocalDateTime.now());
+            homeRecommendMapper.updateById(exist);
+        } else {
+            // 新增
+            recommend.setCreateTime(LocalDateTime.now());
+            recommend.setUpdateTime(LocalDateTime.now());
+            homeRecommendMapper.insert(recommend);
+        }
+    }
+
+    /**
+     * 批量保存推荐
+     * featured类型：替换模式（先删后插，保留最后一个）
+     * more类型：追加模式（保留已有的，追加新的）
+     */
+    @Transactional
+    public void saveRecommends(String type, List<Long> tourIds) {
+        if (tourIds == null || tourIds.isEmpty()) {
+            return;
+        }
+        
+        // featured类型：替换模式，只保留新添加的
+        if ("featured".equals(type)) {
+            // 删除同类型的推荐
+            LambdaQueryWrapper<HomeRecommend> delWrapper = new LambdaQueryWrapper<>();
+            delWrapper.eq(HomeRecommend::getType, type);
+            homeRecommendMapper.delete(delWrapper);
+            
+            // 只插入最后一个（精选行程只保留一个）
+            if (!tourIds.isEmpty()) {
+                HomeRecommend recommend = new HomeRecommend();
+                recommend.setType(type);
+                recommend.setTourId(tourIds.get(tourIds.size() - 1));
+                recommend.setSortOrder(1);
+                recommend.setCreateTime(LocalDateTime.now());
+                recommend.setUpdateTime(LocalDateTime.now());
+                homeRecommendMapper.insert(recommend);
+            }
+            return;
+        }
+        
+        // more类型：追加模式
+        // 获取当前最大的排序号
+        LambdaQueryWrapper<HomeRecommend> maxWrapper = new LambdaQueryWrapper<>();
+        maxWrapper.eq(HomeRecommend::getType, type);
+        maxWrapper.orderByDesc(HomeRecommend::getSortOrder);
+        maxWrapper.last("LIMIT 1");
+        HomeRecommend lastRecommend = homeRecommendMapper.selectOne(maxWrapper);
+        int maxSort = (lastRecommend != null && lastRecommend.getSortOrder() != null) ? lastRecommend.getSortOrder() : 0;
+        
+        // 追加新的推荐
+        for (Long tourId : tourIds) {
+            // 检查是否已存在
+            LambdaQueryWrapper<HomeRecommend> existWrapper = new LambdaQueryWrapper<>();
+            existWrapper.eq(HomeRecommend::getType, type);
+            existWrapper.eq(HomeRecommend::getTourId, tourId);
+            HomeRecommend exist = homeRecommendMapper.selectOne(existWrapper);
+            
+            if (exist == null) {
+                HomeRecommend recommend = new HomeRecommend();
+                recommend.setType(type);
+                recommend.setTourId(tourId);
+                recommend.setSortOrder(++maxSort);
+                recommend.setCreateTime(LocalDateTime.now());
+                recommend.setUpdateTime(LocalDateTime.now());
+                homeRecommendMapper.insert(recommend);
+            }
+        }
+    }
+
+    /**
+     * 删除推荐
+     */
+    @Transactional
+    public void deleteRecommend(Long id) {
+        homeRecommendMapper.deleteById(id);
+    }
+
+    /**
+     * 更新推荐排序
+     */
+    @Transactional
+    public void updateRecommendSort(List<Number> ids) {
+        for (int i = 0; i < ids.size(); i++) {
+            HomeRecommend recommend = homeRecommendMapper.selectById(ids.get(i).longValue());
+            if (recommend != null) {
+                recommend.setSortOrder(i + 1);
+                recommend.setUpdateTime(LocalDateTime.now());
+                homeRecommendMapper.updateById(recommend);
+            }
+        }
+    }
+
+    /**
+     * 清空指定类型的推荐
+     */
+    @Transactional
+    public void clearRecommendsByType(String type) {
+        LambdaQueryWrapper<HomeRecommend> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(HomeRecommend::getType, type);
+        homeRecommendMapper.delete(queryWrapper);
     }
 }

@@ -63,7 +63,7 @@
               <el-icon><ChatDotRound /></el-icon>
               微信
               <div v-if="showWechatQR" class="wechat-qrcode">
-                <img src="@/assets/logo.png" alt="微信公众号" @error="handleQRCodeError" />
+                <img src="@/assets/wechat.jpg" alt="微信公众号" @error="handleQRCodeError" />
                 <p>扫码关注微信公众号</p>
               </div>
             </span>

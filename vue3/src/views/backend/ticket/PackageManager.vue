@@ -24,7 +24,7 @@
         </el-table-column>
         <el-table-column label="儿童价" width="100">
           <template #default="scope">
-            <span class="price">{{ scope.row.childPrice > 0 ? '¥' + scope.row.childPrice : '-' }}</span>
+            <span class="price">{{ scope.row.childPrice !== null && scope.row.childPrice !== undefined ? '¥' + scope.row.childPrice : '-' }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip />

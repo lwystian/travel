@@ -656,8 +656,7 @@ const tripPackages = ref([])
 const hasChildPrice = computed(() => {
   return tripPackages.value.some(pkg =>
     pkg.childPrice !== null &&
-    pkg.childPrice !== undefined &&
-    pkg.childPrice > 0
+    pkg.childPrice !== undefined
   )
 })
 
@@ -701,12 +700,16 @@ const loading = ref(false)
 // =============================================
 const minAdultPrice = computed(() => {
   if (tripPackages.value.length === 0) return 0
-  return Math.min(...tripPackages.value.map(p => p.adultPrice))
+  const prices = tripPackages.value.map(p => p.adultPrice)
+  console.log('成人价格列表:', prices)
+  const result = Math.min(...prices)
+  console.log('最低成人价:', result)
+  return result
 })
 
 const minChildPrice = computed(() => {
   if (!hasChildPrice.value) return 0
-  const packagesWithChild = tripPackages.value.filter(p => p.childPrice !== null && p.childPrice > 0)
+  const packagesWithChild = tripPackages.value.filter(p => p.childPrice !== null && p.childPrice !== undefined)
   if (packagesWithChild.length === 0) return 0
   return Math.min(...packagesWithChild.map(p => p.childPrice))
 })
@@ -1110,6 +1113,9 @@ const fetchProductDetail = async () => {
     if (res) {
       // 解析后端返回的详细数据
       const data = res
+      
+      console.log('行程详情数据:', data)
+      console.log('行程套餐数据:', data.tripPackages)
 
       // 基本信息
       if (data.tour) {
