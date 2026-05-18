@@ -8,6 +8,7 @@ import org.example.springboot.common.Result;
 import org.example.springboot.entity.Comment;
 import org.example.springboot.entity.ScenicSpot;
 import org.example.springboot.entity.User;
+import org.example.springboot.exception.ServiceException;
 import org.example.springboot.service.CommentLikeService;
 import org.example.springboot.service.CommentService;
 import org.example.springboot.service.ScenicSpotService;
@@ -91,7 +92,28 @@ public class CommentController {
         // 获取当前用户ID
         comment.setUserId(JwtTokenUtils.getCurrentUser().getId());
         commentService.addComment(comment);
-        return Result.success("评论成功");
+        return Result.success("评论成功，需审核通过后才能正常显示");
+    }
+
+    @Operation(summary = "获取我的评论列表")
+    @GetMapping("/my")
+    public Result<?> getMyComments(
+            @RequestParam(defaultValue = "1") Integer currentPage,
+            @RequestParam(defaultValue = "10") Integer size) {
+        Long userId = JwtTokenUtils.getCurrentUser().getId();
+        Page<Comment> page = commentService.getMyComments(userId, currentPage, size);
+
+        // 批量查询景点信息
+        List<Long> scenicIds = page.getRecords().stream().map(Comment::getScenicId).distinct().toList();
+        List<ScenicSpot> scenicSpots = scenicSpotService.getScenicSpotsByIds(scenicIds);
+        for (Comment c : page.getRecords()) {
+            scenicSpots.stream()
+                .filter(s -> s.getId().equals(c.getScenicId()))
+                .findFirst()
+                .ifPresent(s -> c.setScenicName(s.getName()));
+        }
+
+        return Result.success(page);
     }
 
     @Operation(summary = "删除评论")
@@ -114,6 +136,25 @@ public class CommentController {
     @GetMapping("/{id}")
     public Result<?> getById(@PathVariable Long id) {
         Comment comment = commentService.getById(id);
+        if (comment == null) {
+            throw new ServiceException("评论不存在");
+        }
+
+        // 检查审核状态
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        boolean isAdmin = currentUser != null && "ADMIN".equals(currentUser.getRoleCode());
+        boolean isOwner = currentUser != null && currentUser.getId().equals(comment.getUserId());
+
+        // 管理员或作者本人可以查看所有评论
+        // 其他用户只能查看审核通过的评论
+        if (!isAdmin && !isOwner && comment.getReviewStatus() != 1) {
+            if (comment.getReviewStatus() == 0) {
+                throw new ServiceException("该评论正在审核中，暂不可查看");
+            } else {
+                throw new ServiceException("该评论审核未通过，无法查看");
+            }
+        }
+
         return Result.success(comment);
     }
 

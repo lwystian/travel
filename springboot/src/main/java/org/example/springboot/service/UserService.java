@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -89,13 +90,23 @@ public class UserService {
     }
 
     private User generateLoginResponse(User dbUser) {
+        // 获取登录IP
+        String loginIp = getClientIp();
+        int loginPort = getClientPort();
+        
+        // 更新登录信息：IP、时间、次数
+        dbUser.setLastLoginIp(loginIp);
+        dbUser.setLastLoginTime(LocalDateTime.now());
+        dbUser.setLoginCount(dbUser.getLoginCount() == null ? 1 : dbUser.getLoginCount() + 1);
+        userMapper.updateById(dbUser);
+        
         String token = JwtTokenUtils.genToken(String.valueOf(dbUser.getId()), dbUser.getPassword());
         dbUser.setToken(token);
         
         // 将用户信息放入Redis，便于后续请求使用
         String userCacheKey = USER_CACHE_PREFIX + dbUser.getId();
         redisUtil.set(userCacheKey, dbUser, USER_CACHE_EXPIRE);
-        logger.info("用户登录信息已缓存，key: {}", userCacheKey);
+        logger.info("用户登录信息已缓存，key: {}, IP: {}, 登录次数: {}", userCacheKey, loginIp, dbUser.getLoginCount());
         
         // 将用户加入在线用户统计
         String onlineUserKey = "online:users";
@@ -108,7 +119,8 @@ public class UserService {
         userLoginInfo.put("nickname", dbUser.getNickname());
         userLoginInfo.put("roleCode", dbUser.getRoleCode());
         userLoginInfo.put("loginTime", System.currentTimeMillis());
-        userLoginInfo.put("ip", getClientIp());
+        userLoginInfo.put("ip", loginIp);
+        userLoginInfo.put("port", loginPort);
         
         // 使用Hash结构存储在线用户信息
         redisUtil.hset(onlineUserKey, dbUser.getId().toString(), dbUser.getUsername());
@@ -131,6 +143,13 @@ public class UserService {
     }
 
     public void createUser(User user) {
+        // 获取注册IP和端口
+        String registerIp = getClientIp();
+        int registerPort = getClientPort();
+        user.setRegisterIp(registerIp);
+        user.setRegisterPort(registerPort);
+        user.setLoginCount(0);
+        
         // 检查用户名是否存在
         if (userMapper.selectOne(
                 new LambdaQueryWrapper<User>()
@@ -153,6 +172,9 @@ public class UserService {
         if (userMapper.insert(user) <= 0) {
             throw new ServiceException("用户创建失败");
         }
+        
+        logger.info("用户注册成功，用户ID: {}, 用户名: {}, 注册IP: {}, 端口: {}", 
+                user.getId(), user.getUsername(), registerIp, registerPort);
         
         // 清除用户列表缓存
         redisUtil.del(USER_LIST_CACHE_KEY);
@@ -465,6 +487,23 @@ public class UserService {
         } catch (Exception e) {
             logger.error("获取客户端IP异常", e);
             return "unknown";
+        }
+    }
+    
+    /**
+     * 获取客户端端口
+     * @return 端口号
+     */
+    private int getClientPort() {
+        try {
+            ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (requestAttributes != null) {
+                return requestAttributes.getRequest().getRemotePort();
+            }
+            return 0;
+        } catch (Exception e) {
+            logger.error("获取客户端端口异常", e);
+            return 0;
         }
     }
 }

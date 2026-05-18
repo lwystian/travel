@@ -38,6 +38,11 @@
           <el-icon><Menu /></el-icon>
           <template #title>分类管理</template>
         </el-menu-item>
+
+        <el-menu-item index="/back/review" v-if="userStore.isAdmin">
+          <el-icon><Checked /></el-icon>
+          <span>内容审核</span>
+        </el-menu-item>
         
         <el-menu-item index="/back/comment" v-if="userStore.isAdmin">
           <el-icon><ChatDotRound /></el-icon>
@@ -109,7 +114,8 @@ import {
   Picture,
   PriceTag,
   Wallet,
-  Promotion
+  Promotion,
+  Checked
 } from '@element-plus/icons-vue'
 
 const route = useRoute()

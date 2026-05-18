@@ -8,6 +8,7 @@ import org.example.springboot.entity.TravelGuide;
 import org.example.springboot.entity.User;
 import org.example.springboot.mapper.TravelGuideMapper;
 import org.example.springboot.mapper.UserMapper;
+import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,9 @@ public class TravelGuideService {
 
     public Page<TravelGuide> getGuidesByPage(String title, Long userId, Integer currentPage, Integer size) {
         LambdaQueryWrapper<TravelGuide> queryWrapper = new LambdaQueryWrapper<>();
+
+        // 只查询已审核通过的内容
+        queryWrapper.eq(TravelGuide::getReviewStatus, 1);
 
         // 如果有标题搜索，进行综合搜索（标题、内容）
         if (StringUtils.isNotBlank(title)) {
@@ -70,6 +74,10 @@ public class TravelGuideService {
     }
 
     public void addGuide(TravelGuide guide) {
+        // 设置默认审核状态为待审核
+        if (guide.getReviewStatus() == null) {
+            guide.setReviewStatus(0); // 0-待审核
+        }
         travelGuideMapper.insert(guide);
     }
 
@@ -83,6 +91,14 @@ public class TravelGuideService {
 
     public void addView(Long id) {
         travelGuideMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<TravelGuide>().eq("id", id).setSql("views = views + 1"));
+    }
+
+    public Page<TravelGuide> getMyGuides(Integer currentPage, Integer size) {
+        Long userId = JwtTokenUtils.getCurrentUser().getId();
+        LambdaQueryWrapper<TravelGuide> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TravelGuide::getUserId, userId);
+        queryWrapper.orderByDesc(TravelGuide::getCreateTime);
+        return travelGuideMapper.selectPage(new Page<>(currentPage, size), queryWrapper);
     }
 
     /**

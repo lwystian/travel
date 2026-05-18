@@ -65,6 +65,21 @@ public class User {
     @Schema(description = "更新时间")
     private LocalDateTime updateTime;
     
+    @Schema(description = "注册IP")
+    private String registerIp;
+    
+    @Schema(description = "注册端口")
+    private Integer registerPort;
+    
+    @Schema(description = "最后登录IP")
+    private String lastLoginIp;
+    
+    @Schema(description = "最后登录时间")
+    private LocalDateTime lastLoginTime;
+    
+    @Schema(description = "登录次数")
+    private Integer loginCount;
+    
     @TableField(exist = false)
     private String token;
 }

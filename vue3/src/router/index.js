@@ -98,6 +98,12 @@ export const backendRoutes = [
         name: 'PaymentManagement',
         component: () => import('@/views/backend/payment/PaymentConfig.vue'),
         meta: { title: '支付配置', icon: 'Wallet' }
+      },
+      {
+        path: 'review',
+        name: 'ReviewManagement',
+        component: () => import('@/views/backend/review/ReviewManager.vue'),
+        meta: { title: '内容审核', icon: 'Checked' }
       }
     ]
   }

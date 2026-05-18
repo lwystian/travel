@@ -124,7 +124,7 @@ const submitComment = () => {
           ...form,
           scenicId: scenicId.value
         }, {
-          successMsg: '评论成功',
+          successMsg: '评论成功，需审核通过后才能正常显示',
           onSuccess: () => {
             form.content = ''
             form.rating = 5

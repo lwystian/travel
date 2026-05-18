@@ -80,8 +80,13 @@
                 </div>
               </div>
               <div class="card-badges">
-                <span v-if="isNew(guide.createTime)" class="badge new">新</span>
-                <span class="badge guide">攻略</span>
+                <el-tag
+                  :type="getReviewStatusType(guide.reviewStatus)"
+                  size="small"
+                  class="status-tag"
+                >
+                  {{ getReviewStatusText(guide.reviewStatus) }}
+                </el-tag>
               </div>
             </div>
 
@@ -101,11 +106,8 @@
 
               <div class="card-footer">
                 <div class="guide-status">
-                  <el-tag v-if="isNew(guide.createTime)" type="success" size="small">
-                    最新发布
-                  </el-tag>
-                  <el-tag v-else type="info" size="small">
-                    已发布
+                  <el-tag :type="getReviewStatusType(guide.reviewStatus)" size="small">
+                    {{ getReviewStatusText(guide.reviewStatus) }}
                   </el-tag>
                 </div>
                 <div class="card-actions">
@@ -121,6 +123,7 @@
                     size="small"
                     @click.stop="goEdit(guide)"
                     class="edit-btn"
+                    v-if="guide.reviewStatus !== 1"
                   >
                     <el-icon><Edit /></el-icon>
                   </el-button>
@@ -207,11 +210,30 @@ const isNew = (dateString) => {
   return diffDays < 7
 }
 
+// 获取审核状态文本
+const getReviewStatusText = (status) => {
+  switch (status) {
+    case 0: return '待审核'
+    case 1: return '已通过'
+    case 2: return '已拒绝'
+    default: return '未知'
+  }
+}
+
+// 获取审核状态标签类型
+const getReviewStatusType = (status) => {
+  switch (status) {
+    case 0: return 'warning'
+    case 1: return 'success'
+    case 2: return 'danger'
+    default: return 'info'
+  }
+}
+
 const fetchGuides = async () => {
   loading.value = true
   try {
-    await request.get('/guide/page', {
-      userId: userStore.userInfo?.id,
+    await request.get('/guide/my', {
       currentPage: currentPage.value,
       size: pageSize.value
     }, {
@@ -511,6 +533,10 @@ const deleteGuide = (row) => {
     display: flex;
     flex-direction: column;
     gap: 6px;
+
+    .status-tag {
+      backdrop-filter: blur(10px);
+    }
   }
 
   .badge {

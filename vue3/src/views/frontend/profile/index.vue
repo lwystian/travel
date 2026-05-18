@@ -212,6 +212,67 @@
                 </div>
               </div>
             </el-tab-pane>
+
+            <!-- 我的评论标签页 -->
+            <el-tab-pane label="我的评论" name="mycomments">
+              <template #label>
+                <div class="tab-label">
+                  <el-icon><ChatDotRound /></el-icon>
+                  <span>我的评论</span>
+                </div>
+              </template>
+
+              <div class="my-comments-content">
+                <div v-if="myCommentsLoading" class="loading-state">
+                  <el-skeleton :rows="5" animated />
+                </div>
+                <div v-else-if="myComments.length === 0" class="empty-state">
+                  <div class="empty-icon">💬</div>
+                  <h3 class="empty-title">您还没有发表任何评论</h3>
+                  <p class="empty-desc">去景点页面发表您的第一条评论吧</p>
+                </div>
+                <div v-else class="comment-list">
+                  <div v-for="comment in myComments" :key="comment.id" class="comment-card">
+                    <div class="comment-header">
+                      <div class="scenic-info">
+                        <el-icon><Location /></el-icon>
+                        <span>{{ comment.scenicName || '景点评论' }}</span>
+                      </div>
+                      <el-tag :type="getReviewStatusType(comment.reviewStatus)" size="small">
+                        {{ getReviewStatusText(comment.reviewStatus) }}
+                      </el-tag>
+                    </div>
+                    <div class="comment-body">
+                      <div class="comment-rating">
+                        <el-rate v-model="comment.rating" disabled size="small" />
+                      </div>
+                      <p class="comment-content">{{ comment.content }}</p>
+                    </div>
+                    <div class="comment-footer">
+                      <span class="comment-time">{{ formatDate(comment.createTime) }}</span>
+                      <el-button
+                        type="danger"
+                        size="small"
+                        @click="deleteMyComment(comment)"
+                        v-if="comment.reviewStatus !== 1"
+                      >
+                        删除
+                      </el-button>
+                    </div>
+                  </div>
+                </div>
+                <div class="pagination-wrapper" v-if="commentTotal > 0">
+                  <el-pagination
+                    background
+                    layout="total, prev, pager, next"
+                    :total="commentTotal"
+                    :page-size="commentPageSize"
+                    :current-page="commentPage"
+                    @current-change="handleCommentPageChange"
+                  />
+                </div>
+              </div>
+            </el-tab-pane>
           </el-tabs>
         </div>
       </div>
@@ -224,11 +285,19 @@ import { ref, reactive, computed, onMounted, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useUserStore } from "@/store/user";
 import request from "@/utils/request";
-import {User,Edit,Lock,Key,Check,Camera,Male,Female,Phone,Message,EditPen} from '@element-plus/icons-vue'
+import {User,Edit,Lock,Key,Check,Camera,Male,Female,Phone,Message,EditPen,ChatDotRound,Location} from '@element-plus/icons-vue'
+import { formatDate } from '@/utils/dateUtils'
 
 const baseAPI = process.env.VUE_APP_BASE_API || "/api";
 const userStore = useUserStore();
 const activeTab = ref("basic");
+
+// 我的评论相关
+const myComments = ref([])
+const myCommentsLoading = ref(false)
+const commentPage = ref(1)
+const commentPageSize = ref(10)
+const commentTotal = ref(0)
 
 // 表单引用
 const userFormRef = ref(null);
@@ -523,10 +592,76 @@ watch(
   { deep: true }
 );
 
+// 获取我的评论
+const fetchMyComments = async () => {
+  myCommentsLoading.value = true
+  try {
+    await request.get('/comment/my', {
+      currentPage: commentPage.value,
+      size: commentPageSize.value
+    }, {
+      showDefaultMsg: false,
+      onSuccess: (res) => {
+        myComments.value = res.records || []
+        commentTotal.value = res.total || 0
+      }
+    })
+  } catch (error) {
+    console.error('获取我的评论失败', error)
+  } finally {
+    myCommentsLoading.value = false
+  }
+}
+
+// 监听标签页切换
+watch(activeTab, (newTab) => {
+  if (newTab === 'mycomments') {
+    fetchMyComments()
+  }
+})
+
+// 评论分页变化
+const handleCommentPageChange = (page) => {
+  commentPage.value = page
+  fetchMyComments()
+}
+
+// 获取审核状态文本
+const getReviewStatusText = (status) => {
+  switch (status) {
+    case 0: return '待审核'
+    case 1: return '已通过'
+    case 2: return '已拒绝'
+    default: return '未知'
+  }
+}
+
+// 获取审核状态标签类型
+const getReviewStatusType = (status) => {
+  switch (status) {
+    case 0: return 'warning'
+    case 1: return 'success'
+    case 2: return 'danger'
+    default: return 'info'
+  }
+}
+
+// 删除我的评论
+const deleteMyComment = async (comment) => {
+  try {
+    await request.delete(`/comment/delete/${comment.id}`, {
+      successMsg: '删除成功',
+      onSuccess: () => fetchMyComments()
+    })
+  } catch (error) {
+    console.error('删除评论失败', error)
+  }
+}
+
 // 组件挂载时获取用户信息
 onMounted(() => {
   getUserInfo();
-});
+})
 </script>
 
 <style lang="scss" scoped>
@@ -915,7 +1050,98 @@ onMounted(() => {
     }
   }
 
+  // 我的评论样式
+  .my-comments-content {
+    .loading-state {
+      padding: 20px;
+    }
 
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
 
+      .empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+      }
+
+      .empty-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0 0 8px;
+      }
+
+      .empty-desc {
+        font-size: 14px;
+        color: #64748b;
+        margin: 0;
+      }
+    }
+
+    .comment-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .comment-card {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid #e2e8f0;
+
+      .comment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+
+        .scenic-info {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 14px;
+          color: #667eea;
+          font-weight: 600;
+
+          .el-icon {
+            font-size: 16px;
+          }
+        }
+      }
+
+      .comment-body {
+        .comment-rating {
+          margin-bottom: 8px;
+        }
+
+        .comment-content {
+          margin: 0;
+          font-size: 14px;
+          color: #2d3748;
+          line-height: 1.6;
+        }
+      }
+
+      .comment-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 12px;
+
+        .comment-time {
+          font-size: 12px;
+          color: #64748b;
+        }
+      }
+    }
+
+    .pagination-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-top: 24px;
+    }
+  }
 }
 </style>

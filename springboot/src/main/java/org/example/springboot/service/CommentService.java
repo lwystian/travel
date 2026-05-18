@@ -30,6 +30,9 @@ public class CommentService {
     public Page<Comment> getCommentsByPage(Long scenicId, String scenicName, String userName, String content, Integer currentPage, Integer size) {
         LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
         
+        // 只查询已审核通过的评论
+        queryWrapper.eq(Comment::getReviewStatus, 1);
+        
         // 如果提供了景点ID，直接使用ID查询
         if (scenicId != null) {
             queryWrapper.eq(Comment::getScenicId, scenicId);
@@ -93,6 +96,10 @@ public class CommentService {
     }
 
     public void addComment(Comment comment) {
+        // 设置默认审核状态为待审核
+        if (comment.getReviewStatus() == null) {
+            comment.setReviewStatus(0); // 0-待审核
+        }
         if (commentMapper.insert(comment) <= 0) throw new ServiceException("评论失败");
     }
 
@@ -106,6 +113,10 @@ public class CommentService {
     public void likeComment(Long id) {
         Comment comment = commentMapper.selectById(id);
         if (comment == null) throw new ServiceException("评论不存在");
+        // 只允许点赞已审核通过的评论
+        if (comment.getReviewStatus() == null || comment.getReviewStatus() != 1) {
+            throw new ServiceException("该评论未通过审核，无法点赞");
+        }
         comment.setLikes(comment.getLikes() == null ? 1 : comment.getLikes() + 1);
         if (commentMapper.updateById(comment) <= 0) throw new ServiceException("点赞失败");
     }
@@ -117,6 +128,19 @@ public class CommentService {
     }
 
     public List<Comment> getAllByScenicId(Long scenicId) {
-        return commentMapper.selectList(new LambdaQueryWrapper<Comment>().eq(Comment::getScenicId, scenicId));
+        // 只查询已审核通过的评论
+        return commentMapper.selectList(
+            new LambdaQueryWrapper<Comment>()
+                .eq(Comment::getScenicId, scenicId)
+                .eq(Comment::getReviewStatus, 1)
+                .orderByDesc(Comment::getCreateTime)
+        );
+    }
+
+    public Page<Comment> getMyComments(Long userId, Integer currentPage, Integer size) {
+        LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Comment::getUserId, userId);
+        queryWrapper.orderByDesc(Comment::getCreateTime);
+        return commentMapper.selectPage(new Page<>(currentPage, size), queryWrapper);
     }
 } 

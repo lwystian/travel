@@ -6,8 +6,11 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import java.util.Date;
+import java.time.LocalDateTime;
 
+/**
+ * 旅游攻略实体类
+ */
 @Data
 @TableName("travel_guide")
 @Schema(description = "旅游攻略实体类")
@@ -31,11 +34,26 @@ public class TravelGuide {
     @Schema(description = "浏览量")
     private Integer views;
 
+    @Schema(description = "审核状态: 0-待审核, 1-已通过, 2-已拒绝")
+    private Integer reviewStatus;
+
+    @Schema(description = "审核人ID")
+    private Long reviewerId;
+
+    @Schema(description = "审核人用户名")
+    private String reviewerName;
+
+    @Schema(description = "审核时间")
+    private LocalDateTime reviewTime;
+
+    @Schema(description = "审核意见")
+    private String reviewComment;
+
     @Schema(description = "创建时间")
-    private Date createTime;
+    private LocalDateTime createTime;
 
     @Schema(description = "更新时间")
-    private Date updateTime;
+    private LocalDateTime updateTime;
 
     @TableField(exist = false)
     @Schema(description = "作者昵称")
@@ -47,4 +65,4 @@ public class TravelGuide {
 
     @Schema(description = "目的地")
     private String destination;
-} 
+}

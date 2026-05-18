@@ -6,7 +6,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.TravelGuide;
+import org.example.springboot.entity.User;
+import org.example.springboot.exception.ServiceException;
 import org.example.springboot.service.TravelGuideService;
+import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,15 +36,48 @@ public class TravelGuideController {
     @Operation(summary = "查看攻略详情")
     @GetMapping("/{id}")
     public Result<?> getGuideById(@PathVariable Long id) {
-        travelGuideService.addView(id); // 增加浏览量
-        return Result.success(travelGuideService.getById(id));
+        TravelGuide guide = travelGuideService.getById(id);
+        if (guide == null) {
+            throw new ServiceException("攻略不存在");
+        }
+
+        // 检查审核状态
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        boolean isAdmin = currentUser != null && "ADMIN".equals(currentUser.getRoleCode());
+        boolean isOwner = currentUser != null && currentUser.getId().equals(guide.getUserId());
+
+        // 管理员或作者本人可以查看所有攻略
+        // 其他用户只能查看审核通过的攻略
+        if (!isAdmin && !isOwner && guide.getReviewStatus() != 1) {
+            if (guide.getReviewStatus() == 0) {
+                throw new ServiceException("该攻略正在审核中，暂不可查看");
+            } else {
+                throw new ServiceException("该攻略审核未通过，无法查看");
+            }
+        }
+
+        // 只有审核通过的攻略才增加浏览量
+        if (guide.getReviewStatus() == 1) {
+            travelGuideService.addView(id);
+        }
+
+        return Result.success(guide);
     }
 
     @Operation(summary = "新增攻略")
     @PostMapping("/add")
     public Result<?> addGuide(@RequestBody TravelGuide guide) {
         travelGuideService.addGuide(guide);
-        return Result.success();
+        return Result.success("攻略发布成功，需审核通过后才能正常显示");
+    }
+
+    @Operation(summary = "获取我的攻略列表")
+    @GetMapping("/my")
+    public Result<?> getMyGuides(
+        @RequestParam(defaultValue = "1") Integer currentPage,
+        @RequestParam(defaultValue = "10") Integer size) {
+        Page<TravelGuide> page = travelGuideService.getMyGuides(currentPage, size);
+        return Result.success(page);
     }
 
     @Operation(summary = "修改攻略")

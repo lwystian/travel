@@ -31,6 +31,21 @@ public class Comment {
     @Schema(description = "点赞数")
     private Integer likes;
 
+    @Schema(description = "审核状态: 0-待审核, 1-已通过, 2-已拒绝")
+    private Integer reviewStatus;
+
+    @Schema(description = "审核人ID")
+    private Long reviewerId;
+
+    @Schema(description = "审核人用户名")
+    private String reviewerName;
+
+    @Schema(description = "审核时间")
+    private LocalDateTime reviewTime;
+
+    @Schema(description = "审核意见")
+    private String reviewComment;
+
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
 
