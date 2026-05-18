@@ -119,6 +119,15 @@
             </div>
           </el-card>
         </el-col>
+        <el-col :span="6">
+          <el-card class="action-card log-card" @click="navigateTo('/back/log')">
+            <div class="action-content">
+              <el-icon class="action-icon"><Document /></el-icon>
+              <h3>日志审计</h3>
+              <p>系统操作日志记录</p>
+            </div>
+          </el-card>
+        </el-col>
       </el-row>
     </div>
   </div>
@@ -475,6 +484,10 @@ onUnmounted(() => {
 
       &.collection-card .action-icon {
         color: #f1c40f;
+      }
+
+      &.log-card .action-icon {
+        color: #95a5a6;
       }
     }
   }

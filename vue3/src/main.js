@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import logger from '@/utils/logger'
 // 导入 Element Plus
 import ElementPlus from 'element-plus'
 // 导入自定义主题色配置
@@ -15,12 +16,11 @@ import './assets/animations.css'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 
 // 添加全局错误处理器来抑制ResizeObserver警告
-const originalConsoleError = console.error
 console.error = (...args) => {
   if (args[0] && args[0].includes && args[0].includes('ResizeObserver loop')) {
     return
   }
-  originalConsoleError(...args)
+  logger.error(...args)
 }
 
 const app = createApp(App)

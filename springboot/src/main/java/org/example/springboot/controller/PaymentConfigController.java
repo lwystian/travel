@@ -63,6 +63,7 @@ public class PaymentConfigController {
      * 保存支付宝配置
      */
     @Operation(summary = "保存支付宝配置")
+    @org.example.springboot.annotation.OperationLog(operationType = "UPDATE", description = "保存支付宝支付配置", targetType = "支付配置")
     @PostMapping("/alipay/save")
     public Result<?> saveAlipayConfig(@RequestBody AlipayConfigDTO alipayConfig) {
         paymentConfigService.saveAlipayConfigDetail(alipayConfig);
@@ -73,6 +74,7 @@ public class PaymentConfigController {
      * 保存支付配置
      */
     @Operation(summary = "保存支付配置")
+    @org.example.springboot.annotation.OperationLog(operationType = "CREATE", description = "新增支付配置", targetType = "支付配置")
     @PostMapping("/save")
     public Result<?> savePayment(@RequestBody PaymentConfig config) {
         paymentConfigService.savePayment(config);
@@ -83,6 +85,7 @@ public class PaymentConfigController {
      * 更新支付配置
      */
     @Operation(summary = "更新支付配置")
+    @org.example.springboot.annotation.OperationLog(operationType = "UPDATE", description = "更新支付配置", targetType = "支付配置")
     @PutMapping("/{id}")
     public Result<?> updatePayment(@PathVariable Long id, @RequestBody PaymentConfig config) {
         paymentConfigService.updatePayment(id, config);
@@ -93,6 +96,7 @@ public class PaymentConfigController {
      * 切换启用状态
      */
     @Operation(summary = "切换启用状态")
+    @org.example.springboot.annotation.OperationLog(operationType = "UPDATE", description = "调整支付配置启用状态", targetType = "支付配置")
     @PutMapping("/{id}/toggle")
     public Result<?> toggleEnabled(@PathVariable Long id, @RequestParam boolean enabled) {
         paymentConfigService.toggleEnabled(id, enabled);
@@ -103,6 +107,7 @@ public class PaymentConfigController {
      * 删除配置
      */
     @Operation(summary = "删除支付配置")
+    @org.example.springboot.annotation.OperationLog(operationType = "DELETE", description = "删除支付配置", targetType = "支付配置")
     @DeleteMapping("/{id}")
     public Result<?> deletePayment(@PathVariable Long id) {
         paymentConfigService.deletePayment(id);

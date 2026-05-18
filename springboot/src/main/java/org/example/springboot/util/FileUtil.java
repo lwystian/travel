@@ -64,7 +64,7 @@ public class FileUtil {
             file.transferTo(uploadFile);
             LOGGER.info("File saved at: {}", uploadFile.getAbsolutePath());
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error("Save file failed: originalFilename={}, baseDir={}, folderName={}", originalFilename, baseDir, folderName, e);
             return null;
         }
 
@@ -115,8 +115,7 @@ public class FileUtil {
         // 创建文件对象
         File file = new File(fileName);
 
-        // 获取并打印文件的绝对路径
-        System.out.println("Writing to file: " + file.getAbsolutePath());
+        LOGGER.debug("Writing to file: {}", file.getAbsolutePath());
 
         // 使用 try-with-resources 确保 FileWriter 在使用完毕后自动关闭
         try (FileWriter fileWriter = new FileWriter(file)) {

@@ -9,6 +9,8 @@ import org.example.springboot.DTO.HomeRecommendDTO;
 import org.example.springboot.entity.*;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class TourService {
+    private static final Logger logger = LoggerFactory.getLogger(TourService.class);
 
     @Resource
     private TourMapper tourMapper;
@@ -408,7 +411,7 @@ public class TourService {
                 }
             } catch (Exception e) {
                 // 解析失败，当作单个图片URL处理
-                System.err.println("解析 images JSON 失败: " + e.getMessage());
+                logger.debug("Parse tour images JSON failed: {}", e.getMessage());
             }
             // 如果解析失败，当作单个图片URL处理
             images.add(mainImage);
@@ -437,7 +440,7 @@ public class TourService {
                     }
                 }
             } catch (Exception e) {
-                System.err.println("解析缩略图 JSON 失败: " + e.getMessage());
+                logger.debug("Parse tour thumbnails JSON failed: {}", e.getMessage());
             }
             // 解析失败，当作单个图片URL处理
             thumbnails.add(images);
@@ -588,7 +591,7 @@ public class TourService {
      */
     @Transactional
     public void updateTourImages(Long id, List<String> images) {
-        System.out.println("=== TourService.updateTourImages === id=" + id + " images=" + images);
+        logger.debug("Update tour images: id={}, images={}", id, images);
         Tour tour = tourMapper.selectById(id);
         if (tour == null) {
             throw new ServiceException("行程不存在");
@@ -598,18 +601,18 @@ public class TourService {
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
             tour.setImages(mapper.writeValueAsString(images));
         } catch (Exception e) {
-            System.err.println("序列化图片失败: " + e.getMessage());
+            logger.warn("Serialize tour images failed: id={}, reason={}", id, e.getMessage(), e);
         }
         // 同时更新 mainImage 为第一张图片
         if (images != null && !images.isEmpty()) {
             tour.setMainImage(images.get(0));
-            System.out.println("设置 mainImage=" + images.get(0));
+            logger.debug("Set tour main image: id={}, mainImage={}", id, images.get(0));
         } else {
             tour.setMainImage(null);
-            System.out.println("清空 mainImage");
+            logger.debug("Clear tour main image: id={}", id);
         }
         tourMapper.updateById(tour);
-        System.out.println("数据库更新完成");
+        logger.debug("Tour images updated: id={}", id);
     }
 
     /**

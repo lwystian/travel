@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import BackendLayout from '@/layouts/BackendLayout.vue'
+import logger from '@/utils/logger'
 
-// 后台路由
 export const backendRoutes = [
   {
     path: '/back',
@@ -70,6 +70,12 @@ export const backendRoutes = [
         meta: { title: '首页推荐', icon: 'Star' }
       },
       {
+        path: 'log',
+        name: 'LogManagement',
+        component: () => import('@/views/backend/log/LogManager.vue'),
+        meta: { title: '系统日志', icon: 'Document' }
+      },
+      {
         path: 'order',
         name: 'OrderManagement',
         component: () => import('@/views/backend/order/index.vue'),
@@ -109,7 +115,6 @@ export const backendRoutes = [
   }
 ]
 
-// 前台路由配置
 const frontendRoutes = [
   {
     path: '/',
@@ -242,7 +247,7 @@ const frontendRoutes = [
         component: () => import('@/views/frontend/payment/payment-result.vue'),
         meta: { title: '支付结果' }
       }
-    ] 
+    ]
   },
   {
     path: '/login',
@@ -258,7 +263,6 @@ const frontendRoutes = [
   }
 ]
 
-// 错误页面路由
 const errorRoutes = [
   {
     path: '/404',
@@ -272,7 +276,6 @@ const errorRoutes = [
   }
 ]
 
-// 路由配置
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -280,27 +283,18 @@ const router = createRouter({
     ...backendRoutes,
     ...errorRoutes
   ],
-  scrollBehavior(to, from, savedPosition) {
-    // 每次路由切换都滚动到页面顶部
+  scrollBehavior() {
     return { top: 0 }
   }
 })
 
-// 路由守卫
 router.beforeEach((to, from, next) => {
-  // 设置页面标题
-  if (to.meta.title) {
-    document.title = `${to.meta.title} - 侠客行国旅`
-  } else {
-    document.title = '侠客行国旅'
-  }
+  document.title = to.meta.title ? `${to.meta.title} - 侠客行国旅` : '侠客行国旅'
 
   const userStore = useUserStore()
-  
-  // 检查token是否过期（基于本地时间）
+
   if (userStore.token && userStore.isTokenExpired) {
     userStore.clearUserInfo()
-    // 如果访问需要权限的页面，清除后跳转登录
     if (to.matched.some(record => record.meta.requiresAuth)) {
       next({
         path: '/login',
@@ -309,15 +303,14 @@ router.beforeEach((to, from, next) => {
       return
     }
   }
-  
-  console.log("Current route:", to.path)
-  console.log("User status:", {
+
+  logger.debug('Current route:', to.path)
+  logger.debug('User status:', {
     isLoggedIn: userStore.isLoggedIn,
     isUser: userStore.isUser,
     isTokenExpired: userStore.isTokenExpired
   })
 
-  // 检查是否需要登录权限
   if (to.matched.some(record => record.meta.requiresAuth) && !userStore.isLoggedIn) {
     next({
       path: '/login',
@@ -326,37 +319,24 @@ router.beforeEach((to, from, next) => {
     return
   }
 
-  // 已登录用户的路由控制
   if (userStore.isLoggedIn) {
-    // 处理登录页面访问
     if (to.path === '/login') {
       next(userStore.isUser ? '/' : '/back/dashboard')
       return
     }
 
-    if (!userStore.isUser) {
-      // 非普通用户只能访问后台路由
-      if (to.path.startsWith('/back')) {
-        next()
-      } else {
-        next('/back/dashboard')
-      }
-      return
-    } else {
-      // 普通用户只能访问前台路由
-      if (to.path.startsWith('/back')) {
-        next('/')
-      } else {
-        next()
-      }
+    if (userStore.isUser && to.path.startsWith('/back')) {
+      next('/')
       return
     }
-  } else {
-    // 未登录用户
-    if (to.path.startsWith('/back')) {
-      next('/login')
-      return
-    }
+
+    next()
+    return
+  }
+
+  if (to.path.startsWith('/back')) {
+    next('/login')
+    return
   }
 
   next()

@@ -1,27 +1,25 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
+import logger from '@/utils/logger'
 
-// Token 失效处理标志，防止重复提示和跳转
 let isHandlingTokenExpired = false
 
-// Token 失效时清除登录状态并跳转
-const handleTokenExpired = () => {
-  // 防止重复处理
-  if (isHandlingTokenExpired) return
-  isHandlingTokenExpired = true
-
-  // 清除 localStorage 中的登录信息
+const clearAuthStorage = () => {
   localStorage.removeItem('userInfo')
   localStorage.removeItem('token')
   localStorage.removeItem('role')
   localStorage.removeItem('menus')
   localStorage.removeItem('tokenExpire')
+}
 
-  // 只显示一条提示
+const handleTokenExpired = () => {
+  if (isHandlingTokenExpired) return
+  isHandlingTokenExpired = true
+
+  clearAuthStorage()
   ElMessage.error('登录已过期，请重新登录')
 
-  // 延迟跳转，避免重复提示
   setTimeout(() => {
     if (router.currentRoute.value.path !== '/login') {
       router.push({
@@ -29,246 +27,198 @@ const handleTokenExpired = () => {
         query: { redirect: router.currentRoute.value.fullPath }
       })
     }
-    // 重置标志位，允许后续处理
+
     setTimeout(() => {
       isHandlingTokenExpired = false
     }, 1000)
   }, 100)
 }
 
-
-
-/**
- * 封装的 axios 请求工具
- * 
- * 特性：
- * 1. 自动携带 token
- * 2. 统一的错误处理
- * 3. 支持自定义成功/错误提示
- * 4. 支持自定义成功/错误回调
- * 
- * 配置选项：
- * @param {boolean} showDefaultMsg - 是否显示默认的成功/错误提示，默认为 true
- * @param {string} successMsg - 自定义成功提示消息
- * @param {string} errorMsg - 自定义错误提示消息
- * @param {Function} onSuccess - 成功回调函数，参数为响应数据
- * @param {Function} onError - 错误回调函数，参数为错误信息
- */
-
-// 创建 axios 实例
 const service = axios.create({
-  baseURL: process.env.VUE_APP_BASE_API || '/api', // API 的基础URL
-  timeout: 15000, // 请求超时时间
+  baseURL: process.env.VUE_APP_BASE_API || '/api',
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json;charset=utf-8'
   }
 })
 
-// 请求拦截器
 service.interceptors.request.use(
   config => {
     const token = localStorage.getItem('token')
     if (token) {
-      // 直接使用 token，不加 Bearer 前缀
-      config.headers['token'] = token
+      config.headers.token = token
     }
-    // 禁用 GET 请求的浏览器缓存
+
     if (config.method === 'get') {
       config.headers['Cache-Control'] = 'no-cache'
-      config.headers['Pragma'] = 'no-cache'
+      config.headers.Pragma = 'no-cache'
     }
+
     return config
   },
   error => {
-    console.error('请求错误：', error)
+    logger.error('Request interceptor failed:', error)
     return Promise.reject(error)
   }
 )
 
-// 刷新 token 过期时间
 const refreshTokenExpire = () => {
   const tokenExpire = localStorage.getItem('tokenExpire')
-  if (tokenExpire) {
-    // 计算剩余时间，如果小于1小时则刷新
-    const remaining = Number(tokenExpire) - Date.now()
-    if (remaining < 60 * 60 * 1000) {
-      const newExpire = Date.now() + 12 * 60 * 60 * 1000 // 刷新到12小时
-      localStorage.setItem('tokenExpire', newExpire.toString())
-    }
+  if (!tokenExpire) return
+
+  const remaining = Number(tokenExpire) - Date.now()
+  if (remaining < 60 * 60 * 1000) {
+    const newExpire = Date.now() + 12 * 60 * 60 * 1000
+    localStorage.setItem('tokenExpire', newExpire.toString())
   }
 }
 
-// 响应拦截器
+const getBusinessErrorMessage = (code, fallback) => {
+  switch (String(code)) {
+    case '403':
+      return '没有权限进行此操作'
+    case '404':
+      return '请求的资源不存在'
+    case '500':
+      return '服务器内部错误'
+    default:
+      return fallback || `请求失败(${code})`
+  }
+}
+
+const getHttpErrorMessage = (error, config) => {
+  if (config.errorMsg) return config.errorMsg
+
+  if (error.response) {
+    switch (error.response.status) {
+      case 400:
+        return '请求参数错误'
+      case 403:
+        return '拒绝访问'
+      case 404:
+        return '请求的资源不存在'
+      case 408:
+        return '请求超时'
+      case 500:
+        return '服务器内部错误'
+      case 501:
+        return '服务未实现'
+      case 502:
+        return '网关错误'
+      case 503:
+        return '服务不可用'
+      case 504:
+        return '网关超时'
+      default:
+        return error.response.data?.msg || `请求失败(${error.response.status})`
+    }
+  }
+
+  if (error.code === 'ECONNABORTED') {
+    return '请求超时，请检查网络连接'
+  }
+
+  if (error.message?.includes('Network Error')) {
+    return '网络连接失败，请检查网络设置'
+  }
+
+  return '网络请求失败，请稍后重试'
+}
+
 service.interceptors.response.use(
   response => {
+    if (response.config?.responseType === 'blob') {
+      refreshTokenExpire()
+      return response
+    }
+
     const res = response.data
     const config = response.config || {}
-
-    // 如果请求配置中指定了不需要默认的成功/错误提示，则跳过
     const showDefaultMsg = config.showDefaultMsg !== false
 
-    // 检查响应状态
-    if (res.code === "200") {
-      // 刷新 token 过期时间
+    if (res.code === '200') {
       refreshTokenExpire()
 
       try {
-        // 自定义成功提示
         if (config.successMsg) {
           ElMessage.success(config.successMsg)
         } else if (showDefaultMsg && config.method && config.method.toLowerCase() !== 'get') {
-          // 非 GET 请求默认显示后端返回的消息（如果后端有返回的话）
           if (res.msg && res.msg !== 'success' && res.msg !== '操作成功') {
             ElMessage.success(res.msg)
           }
         }
-        
-        // 自定义成功回调
+
         if (typeof config.onSuccess === 'function') {
           config.onSuccess(res.data)
         }
-        
-        return res.data
       } catch (err) {
-        console.error('Success handler error:', err)
-        return res.data
+        logger.error('Success handler failed:', err)
       }
-    } else {
-        // 错误处理
-        try {
-          // 自定义错误提示（401 错误由 handleTokenExpired 统一处理，不显示额外提示）
-          if (res.code !== "401") {
-            if (config.errorMsg) {
-              ElMessage.error(config.errorMsg)
-            } else if (showDefaultMsg) {
-              // 根据后端返回的错误码显示对应的错误信息
-              let errorMessage = res.msg || '请求失败'
-              
-              switch (res.code) {
-                case "403":
-                  errorMessage = '没有权限进行此操作'
-                  break
-                case "404":
-                  errorMessage = '请求的资源不存在'
-                  break
-                case "500":
-                  errorMessage = '服务器内部错误'
-                  break
-                default:
-                  // 如果后端返回了具体错误信息，优先使用后端的错误信息
-                  errorMessage = res.msg || `请求失败(${res.code})`
-              }
-              
-              ElMessage.error(errorMessage)
-            }
-          } else {
-            // 401 错误，handleTokenExpired 已经显示提示
-            handleTokenExpired()
-          }
-        
-        // 自定义错误回调
-        if (typeof config.onError === 'function') {
-          config.onError(res)
-        }
-        
-        // 返回一个被拒绝的 Promise，但保留原始错误信息
-        return Promise.reject({
-          code: res.code,
-          message: res.msg || '请求失败',
-          data: res.data,
-          type: 'business' // 标记这是业务错误
-        })
-      } catch (err) {
-        console.error('Error handler error:', err)
-        return Promise.reject(err)
-      }
+
+      return res.data
     }
+
+    try {
+      if (res.code === '401') {
+        handleTokenExpired()
+      } else if (config.errorMsg) {
+        ElMessage.error(config.errorMsg)
+      } else if (showDefaultMsg) {
+        ElMessage.error(getBusinessErrorMessage(res.code, res.msg))
+      }
+
+      if (typeof config.onError === 'function') {
+        config.onError(res)
+      }
+    } catch (err) {
+      logger.error('Business error handler failed:', err)
+      return Promise.reject(err)
+    }
+
+    return Promise.reject({
+      code: res.code,
+      message: res.msg || '请求失败',
+      data: res.data,
+      type: 'business'
+    })
   },
   error => {
     const config = error.config || {}
-    
-    // 错误处理
+
     if (typeof config.onError === 'function') {
       try {
         config.onError(error)
       } catch (err) {
-        console.error('Error callback error:', err)
+        logger.error('HTTP error callback failed:', err)
       }
     }
-    
-    // 显示错误信息（401 错误由 handleTokenExpired 统一处理，不显示额外提示）
-    if (config.showDefaultMsg !== false && error.response?.status !== 401) {
-      let message = config.errorMsg || '网络请求失败，请稍后重试'
-      
-      if (error.response) {
-        switch (error.response.status) {
-          case 400:
-            message = '请求参数错误'
-            break
-          case 403:
-            message = '拒绝访问'
-            break
-          case 404:
-            message = '请求的资源不存在'
-            break
-          case 408:
-            message = '请求超时'
-            break
-          case 500:
-            message = '服务器内部错误'
-            break
-          case 501:
-            message = '服务未实现'
-            break
-          case 502:
-            message = '网关错误'
-            break
-          case 503:
-            message = '服务不可用'
-            break
-          case 504:
-            message = '网关超时'
-            break
-          default:
-            message = error.response.data?.msg || `请求失败(${error.response.status})`
-        }
-      } else if (error.code === 'ECONNABORTED') {
-        message = '请求超时，请检查网络连接'
-      } else if (error.message?.includes('Network Error')) {
-        message = '网络连接失败，请检查网络设置'
-      }
-      
-      // 使用 ElMessage 显示错误，并设置较长的显示时间
+
+    if (error.response?.status === 401) {
+      handleTokenExpired()
+    } else if (config.showDefaultMsg !== false) {
       ElMessage({
-        message: message,
+        message: getHttpErrorMessage(error, config),
         type: 'error',
         duration: 5000,
         showClose: true
       })
-    } else if (error.response?.status === 401) {
-      // 401 错误，handleTokenExpired 已经显示提示
-      handleTokenExpired()
     }
-    
-    // 返回一个被拒绝的 Promise，但包含更多信息
+
     return Promise.reject({
       code: error.response?.status,
       message: error.message,
       data: error.response?.data,
-      type: 'http', // 标记这是 HTTP 错误
+      type: 'http',
       originalError: error
     })
   }
 )
 
-// 扩展请求方法
 const request = {
   get(url, params, config = {}) {
-    // params 为 null/undefined 时，config 就是 axios 配置
     if (params == null) {
       return service.get(url, config)
     }
-    // params 是对象时，作为查询参数，config 作为 axios 配置
     return service.get(url, { params, ...config })
   },
 
@@ -284,68 +234,24 @@ const request = {
     return service.delete(url, config)
   },
 
-  // 文件上传
   upload(url, formData, config = {}) {
     const token = localStorage.getItem('token') || ''
     return service.post(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
-        'token': token
+        token
       },
+      ...config
+    })
+  },
+
+  download(url, params, config = {}) {
+    return service.get(url, {
+      params,
+      responseType: 'blob',
       ...config
     })
   }
 }
 
-
- 
- 
-//  1. 基础请求：
-//  // GET 请求
-//  request.get('/api/users', { page: 1 })
- 
-//  // POST 请求
-//  request.post('/api/users', { name: 'Tom', age: 20 })
- 
-//  // PUT 请求
-//  request.put('/api/users/1', { name: 'Tom' })
- 
-//  // DELETE 请求
-//  request.delete('/api/users/1')
- 
-//  2. 自定义提示消息：
-//  request.post('/api/users', data, {
-//    successMsg: '添加用户成功！',
-//    errorMsg: '添加用户失败，请重试'
-//  })
- 
-//  3. 关闭默认提示：
-//  request.post('/api/users', data, {
-//    showDefaultMsg: false
-//  })
- 
-//  4. 使用回调函数：
-//  request.post('/api/users', data, {
-//    onSuccess: (data) => {
-//      console.log('请求成功：', data)
-//    },
-//    onError: (error) => {
-//      console.log('请求失败：', error)
-//    }
-//  })
- 
-//  5. 完整示例：
-//  request.post('/api/users', data, {
-//    successMsg: '添加成功',
-//    errorMsg: '添加失败',
-//    showDefaultMsg: true,
-//    onSuccess: (data) => {
-//      // 处理成功逻辑
-//    },
-//    onError: (error) => {
-//      // 处理错误逻辑
-//    }
-//  })
- 
-
-export default request 
+export default request

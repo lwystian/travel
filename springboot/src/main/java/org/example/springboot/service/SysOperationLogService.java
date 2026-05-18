@@ -18,6 +18,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -27,6 +28,7 @@ import java.util.List;
 public class SysOperationLogService {
     
     private static final Logger logger = LoggerFactory.getLogger(SysOperationLogService.class);
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     
     @Resource
     private SysOperationLogMapper sysOperationLogMapper;
@@ -45,7 +47,7 @@ public class SysOperationLogService {
                 log.setCreateTime(LocalDateTime.now());
             }
             sysOperationLogMapper.insert(log);
-            logger.info("操作日志保存成功: 用户={}, 类型={}, 描述={}, IP={}", 
+            logger.debug("操作日志保存成功: 用户={}, 类型={}, 描述={}, IP={}", 
                     log.getUsername(), log.getOperationType(), log.getOperationDesc(), log.getIpAddress());
         } catch (Exception e) {
             logger.error("保存操作日志失败", e);
@@ -79,11 +81,13 @@ public class SysOperationLogService {
         if (StringUtils.isNotBlank(operationType)) {
             queryWrapper.eq(SysOperationLog::getOperationType, operationType);
         }
-        if (StringUtils.isNotBlank(startTime)) {
-            queryWrapper.ge(SysOperationLog::getCreateTime, startTime);
+        LocalDateTime parsedStartTime = parseDateTime(startTime);
+        LocalDateTime parsedEndTime = parseDateTime(endTime);
+        if (parsedStartTime != null) {
+            queryWrapper.ge(SysOperationLog::getCreateTime, parsedStartTime);
         }
-        if (StringUtils.isNotBlank(endTime)) {
-            queryWrapper.le(SysOperationLog::getCreateTime, endTime);
+        if (parsedEndTime != null) {
+            queryWrapper.le(SysOperationLog::getCreateTime, parsedEndTime);
         }
         
         queryWrapper.orderByDesc(SysOperationLog::getCreateTime);
@@ -104,11 +108,13 @@ public class SysOperationLogService {
         if (StringUtils.isNotBlank(operationType)) {
             queryWrapper.eq(SysOperationLog::getOperationType, operationType);
         }
-        if (StringUtils.isNotBlank(startTime)) {
-            queryWrapper.ge(SysOperationLog::getCreateTime, startTime);
+        LocalDateTime parsedStartTime = parseDateTime(startTime);
+        LocalDateTime parsedEndTime = parseDateTime(endTime);
+        if (parsedStartTime != null) {
+            queryWrapper.ge(SysOperationLog::getCreateTime, parsedStartTime);
         }
-        if (StringUtils.isNotBlank(endTime)) {
-            queryWrapper.le(SysOperationLog::getCreateTime, endTime);
+        if (parsedEndTime != null) {
+            queryWrapper.le(SysOperationLog::getCreateTime, parsedEndTime);
         }
         
         queryWrapper.orderByDesc(SysOperationLog::getCreateTime);
@@ -128,6 +134,30 @@ public class SysOperationLogService {
      */
     public void deleteBatch(List<Long> ids) {
         sysOperationLogMapper.deleteBatchIds(ids);
+    }
+
+    /**
+     * 删除指定时间之前的日志
+     */
+    public int deleteBefore(LocalDateTime beforeTime) {
+        if (beforeTime == null) {
+            return 0;
+        }
+        LambdaQueryWrapper<SysOperationLog> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.lt(SysOperationLog::getCreateTime, beforeTime);
+        return sysOperationLogMapper.delete(queryWrapper);
+    }
+
+    private LocalDateTime parseDateTime(String value) {
+        if (StringUtils.isBlank(value)) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(value, DATE_TIME_FORMATTER);
+        } catch (Exception e) {
+            logger.warn("Invalid system log query time: {}", value);
+            return null;
+        }
     }
     
     /**

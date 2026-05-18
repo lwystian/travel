@@ -10,6 +10,8 @@ import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.ScenicCollectionMapper;
 import org.example.springboot.mapper.ScenicSpotMapper;
 import org.example.springboot.util.JwtTokenUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -17,11 +19,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Service
 public class ScenicCollectionService {
+    private static final Logger logger = LoggerFactory.getLogger(ScenicCollectionService.class);
+
     @Resource
     private ScenicCollectionMapper scenicCollectionMapper;
     
@@ -97,7 +100,7 @@ public class ScenicCollectionService {
         }
         
         // 查询是否存在收藏记录
-        System.out.printf("当前登录："+currentUser.getId()+"<UNK>");
+        logger.debug("Check scenic collection status: userId={}, scenicId={}", currentUser.getId(), scenicId);
         LambdaQueryWrapper<ScenicCollection> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ScenicCollection::getUserId, currentUser.getId())
                    .eq(ScenicCollection::getScenicId, scenicId);

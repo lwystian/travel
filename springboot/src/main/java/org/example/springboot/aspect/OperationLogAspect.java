@@ -9,10 +9,12 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.example.springboot.annotation.OperationLog;
+import org.example.springboot.common.Result;
 import org.example.springboot.entity.SysOperationLog;
 import org.example.springboot.entity.User;
 import org.example.springboot.service.SysOperationLogService;
 import org.example.springboot.util.JwtTokenUtils;
+import org.example.springboot.util.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -20,280 +22,331 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.lang.reflect.Method;
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Locale;
 
-/**
- * 操作日志切面
- * 自动拦截标注了@OperationLog注解的方法，记录操作日志
- */
 @Aspect
 @Component
 public class OperationLogAspect {
-    
     private static final Logger logger = LoggerFactory.getLogger(OperationLogAspect.class);
-    
+
     @Resource
     private SysOperationLogService sysOperationLogService;
-    
+
     @Resource
     private ObjectMapper objectMapper;
-    
-    /**
-     * 定义切点：标注了@OperationLog注解的方法
-     */
-    @Pointcut("@annotation(org.example.springboot.annotation.OperationLog)")
-    public void operationLogPointcut() {}
-    
-    /**
-     * 环绕通知：记录操作日志
-     */
-    @Around("operationLogPointcut()")
+
+    @Pointcut("execution(* org.example.springboot.controller..*.*(..))")
+    public void controllerPointcut() {
+    }
+
+    @Around("controllerPointcut()")
     public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
+        HttpServletRequest request = getRequest();
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        Method method = signature.getMethod();
+        OperationLog annotation = method.getAnnotation(OperationLog.class);
+
+        if (!shouldAudit(request, annotation)) {
+            return joinPoint.proceed();
+        }
+
         long startTime = System.currentTimeMillis();
-        SysOperationLog log = new SysOperationLog();
-        
+        SysOperationLog auditLog = buildBaseLog(joinPoint, signature, annotation, request);
+
         try {
-            // 获取方法签名和注解
-            MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-            Method method = signature.getMethod();
-            OperationLog operationLog = method.getAnnotation(OperationLog.class);
-            
-            // 设置基本信息
-            log.setOperationType(operationLog.operationType());
-            log.setOperationDesc(operationLog.description());
-            log.setRequestMethod(getRequestMethod());
-            log.setRequestUrl(getRequestUrl());
-            log.setIpAddress(getClientIp());
-            log.setPort(getClientPort());
-            log.setUserAgent(getUserAgent());
-            
-            // 获取当前用户信息
-            User currentUser = getCurrentUser();
-            if (currentUser != null) {
-                log.setUserId(currentUser.getId());
-                log.setUsername(currentUser.getUsername());
-            }
-            
-            // 设置目标对象信息
-            log.setTargetType(joinPoint.getTarget().getClass().getSimpleName().replace("Controller", ""));
-            log.setTargetId(extractTargetId(joinPoint.getArgs(), signature.getParameterNames()));
-            
-            // 记录请求参数
-            if (operationLog.logParams()) {
-                log.setRequestParams(extractParams(joinPoint.getArgs(), signature.getParameterNames()));
-            }
-            
-            // 执行目标方法
             Object result = joinPoint.proceed();
-            
-            // 设置执行结果
-            log.setStatus(1); // 成功
-            log.setExecutionTime(System.currentTimeMillis() - startTime);
-            
-            // 异步保存日志
-            sysOperationLogService.saveLogAsync(log);
-            
+            fillResult(auditLog, result);
             return result;
-            
-        } catch (Exception e) {
-            // 记录异常信息
-            log.setStatus(0); // 失败
-            log.setErrorMessage(e.getMessage());
-            log.setExecutionTime(System.currentTimeMillis() - startTime);
-            
-            // 异步保存日志
-            sysOperationLogService.saveLogAsync(log);
-            
+        } catch (Throwable e) {
+            auditLog.setStatus(0);
+            auditLog.setErrorMessage(LogSanitizer.sanitizeThrowable(e));
             throw e;
+        } finally {
+            auditLog.setExecutionTime(System.currentTimeMillis() - startTime);
+            sysOperationLogService.saveLogAsync(auditLog);
         }
     }
-    
-    /**
-     * 获取当前请求的IP地址
-     */
-    private String getClientIp() {
-        try {
-            ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (requestAttributes != null) {
-                HttpServletRequest request = requestAttributes.getRequest();
-                String ip = request.getHeader("X-Forwarded-For");
-                if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-                    ip = request.getHeader("Proxy-Client-IP");
-                }
-                if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-                    ip = request.getHeader("WL-Proxy-Client-IP");
-                }
-                if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-                    ip = request.getHeader("HTTP_CLIENT_IP");
-                }
-                if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-                    ip = request.getHeader("HTTP_X_FORWARDED_FOR");
-                }
-                if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-                    ip = request.getRemoteAddr();
-                }
-                if (ip != null && ip.contains(",")) {
-                    ip = ip.split(",")[0];
-                }
-                return ip;
+
+    private SysOperationLog buildBaseLog(
+            ProceedingJoinPoint joinPoint,
+            MethodSignature signature,
+            OperationLog annotation,
+            HttpServletRequest request) {
+        SysOperationLog auditLog = new SysOperationLog();
+        String operationType = resolveOperationType(annotation, request);
+        String targetType = resolveTargetType(annotation, joinPoint);
+
+        auditLog.setOperationType(operationType);
+        auditLog.setOperationDesc(resolveOperationDesc(annotation, request, operationType, targetType));
+        auditLog.setRequestMethod(request != null ? request.getMethod() : "");
+        auditLog.setRequestUrl(request != null ? request.getRequestURI() : "");
+        auditLog.setIpAddress(getClientIp(request));
+        auditLog.setPort(request != null ? request.getRemotePort() : 0);
+        auditLog.setUserAgent(getUserAgent(request));
+        auditLog.setTargetType(targetType);
+        auditLog.setTargetId(extractTargetId(operationType, joinPoint.getArgs(), signature.getParameterNames()));
+
+        User currentUser = getCurrentUser();
+        if (currentUser != null) {
+            auditLog.setUserId(currentUser.getId());
+            auditLog.setUsername(currentUser.getUsername());
+        }
+
+        if (annotation == null || annotation.logParams()) {
+            auditLog.setRequestParams(extractParams(joinPoint.getArgs(), signature.getParameterNames()));
+        }
+
+        return auditLog;
+    }
+
+    private boolean shouldAudit(HttpServletRequest request, OperationLog annotation) {
+        if (annotation != null) {
+            return true;
+        }
+        if (request == null) {
+            return false;
+        }
+        String method = request.getMethod();
+        return "POST".equalsIgnoreCase(method)
+                || "PUT".equalsIgnoreCase(method)
+                || "PATCH".equalsIgnoreCase(method)
+                || "DELETE".equalsIgnoreCase(method);
+    }
+
+    private void fillResult(SysOperationLog auditLog, Object result) {
+        auditLog.setStatus(1);
+        if (result instanceof Result<?> response && !"200".equals(response.getCode())) {
+            auditLog.setStatus(0);
+            auditLog.setErrorMessage(LogSanitizer.truncate(response.getMsg(), 500));
+        }
+    }
+
+    private String resolveOperationType(OperationLog annotation, HttpServletRequest request) {
+        if (annotation != null && annotation.operationType() != null && !annotation.operationType().isBlank()) {
+            return annotation.operationType();
+        }
+
+        String path = request != null ? request.getRequestURI().toLowerCase(Locale.ROOT) : "";
+        String method = request != null ? request.getMethod() : "";
+        if (path.contains("login")) {
+            return "LOGIN";
+        }
+        if (path.contains("logout")) {
+            return "LOGOUT";
+        }
+        if (path.contains("register")) {
+            return "REGISTER";
+        }
+        if (path.contains("pay") || path.contains("payment")) {
+            return "PAY";
+        }
+        if (path.contains("cancel")) {
+            return "CANCEL";
+        }
+        if (path.contains("review")) {
+            return "REVIEW";
+        }
+        if ("POST".equalsIgnoreCase(method)) {
+            return "CREATE";
+        }
+        if ("PUT".equalsIgnoreCase(method) || "PATCH".equalsIgnoreCase(method)) {
+            return "UPDATE";
+        }
+        if ("DELETE".equalsIgnoreCase(method)) {
+            return "DELETE";
+        }
+        return "QUERY";
+    }
+
+    private String resolveOperationDesc(OperationLog annotation, HttpServletRequest request, String operationType, String targetType) {
+        if (annotation != null && annotation.description() != null && !annotation.description().isBlank()) {
+            return annotation.description();
+        }
+        if (request == null) {
+            return "系统操作";
+        }
+
+        String path = request.getRequestURI().toLowerCase(Locale.ROOT);
+        if (path.matches(".*/payment-config/[^/]+/toggle$")) {
+            String enabled = request.getParameter("enabled");
+            if ("true".equalsIgnoreCase(enabled)) {
+                return "启用支付配置";
             }
-        } catch (Exception e) {
-            logger.error("获取客户端IP异常", e);
+            if ("false".equalsIgnoreCase(enabled)) {
+                return "停用支付配置";
+            }
+            return "调整支付配置启用状态";
+        }
+
+        return describeOperation(operationType, request.getMethod()) + humanTargetName(targetType);
+    }
+
+    private String describeOperation(String operationType, String method) {
+        if ("LOGIN".equalsIgnoreCase(operationType)) {
+            return "登录";
+        }
+        if ("LOGOUT".equalsIgnoreCase(operationType)) {
+            return "退出";
+        }
+        if ("REGISTER".equalsIgnoreCase(operationType)) {
+            return "注册";
+        }
+        if ("PAY".equalsIgnoreCase(operationType)) {
+            return "支付";
+        }
+        if ("CANCEL".equalsIgnoreCase(operationType)) {
+            return "取消";
+        }
+        if ("REVIEW".equalsIgnoreCase(operationType)) {
+            return "审核";
+        }
+        if ("CREATE".equalsIgnoreCase(operationType) || "POST".equalsIgnoreCase(method)) {
+            return "新增";
+        }
+        if ("UPDATE".equalsIgnoreCase(operationType) || "PUT".equalsIgnoreCase(method) || "PATCH".equalsIgnoreCase(method)) {
+            return "更新";
+        }
+        if ("DELETE".equalsIgnoreCase(operationType) || "DELETE".equalsIgnoreCase(method)) {
+            return "删除";
+        }
+        if ("QUERY".equalsIgnoreCase(operationType) || "GET".equalsIgnoreCase(method)) {
+            return "查询";
+        }
+        return "操作";
+    }
+
+    private String humanTargetName(String targetType) {
+        if (targetType == null || targetType.isBlank()) {
+            return "数据";
+        }
+        return switch (targetType) {
+            case "SysLog", "系统日志" -> "系统日志";
+            case "User" -> "用户";
+            case "ScenicSpot" -> "景点";
+            case "ScenicCategory" -> "分类";
+            case "ScenicTag" -> "标签";
+            case "TravelGuide" -> "攻略";
+            case "Comment" -> "评论";
+            case "Tour" -> "行程";
+            case "TourOrder" -> "订单";
+            case "PaymentConfig", "支付配置" -> "支付配置";
+            case "Review" -> "内容审核";
+            case "Carousel" -> "轮播图";
+            case "Accommodation" -> "住宿";
+            case "AccommodationReview" -> "住宿评价";
+            case "FrequentTraveler" -> "常用出行人";
+            case "File" -> "文件";
+            case "Collection" -> "收藏";
+            case "ScenicCollection" -> "景点收藏";
+            case "TourDetail" -> "行程明细";
+            case "TourHotel" -> "行程酒店";
+            case "TourOrderPay" -> "订单支付";
+            case "Traveler" -> "出行人";
+            default -> targetType;
+        };
+    }
+
+    private String resolveTargetType(OperationLog annotation, ProceedingJoinPoint joinPoint) {
+        if (annotation != null && annotation.targetType() != null && !annotation.targetType().isBlank()) {
+            return annotation.targetType();
+        }
+        return joinPoint.getTarget().getClass().getSimpleName().replace("Controller", "");
+    }
+
+    private String extractTargetId(String operationType, Object[] args, String[] paramNames) {
+        if (isReadOnlyOperation(operationType) || args == null || args.length == 0) {
+            return "";
+        }
+
+        for (int i = 0; i < args.length; i++) {
+            String paramName = paramNames != null && i < paramNames.length ? paramNames[i] : "";
+            Object arg = args[i];
+            if (isPaginationParam(paramName)) {
+                continue;
+            }
+            if ((arg instanceof Long || arg instanceof Integer) && isLikelyIdParam(paramName)) {
+                return String.valueOf(arg);
+            }
+            if (arg instanceof String && isLikelyIdParam(paramName)) {
+                return String.valueOf(arg);
+            }
+        }
+        return "";
+    }
+
+    private boolean isReadOnlyOperation(String operationType) {
+        return "QUERY".equalsIgnoreCase(operationType) || "EXPORT".equalsIgnoreCase(operationType);
+    }
+
+    private boolean isPaginationParam(String paramName) {
+        if (paramName == null) {
+            return false;
+        }
+        String normalized = paramName.toLowerCase(Locale.ROOT);
+        return normalized.equals("page")
+                || normalized.equals("currentpage")
+                || normalized.equals("pagesize")
+                || normalized.equals("size")
+                || normalized.equals("limit")
+                || normalized.equals("offset");
+    }
+
+    private boolean isLikelyIdParam(String paramName) {
+        if (paramName == null || paramName.isBlank()) {
+            return false;
+        }
+        String normalized = paramName.toLowerCase(Locale.ROOT);
+        return normalized.equals("id") || normalized.endsWith("id") || normalized.contains("id");
+    }
+
+    private String extractParams(Object[] args, String[] paramNames) {
+        return LogSanitizer.serializeArgs(objectMapper, args, paramNames, 1000);
+    }
+
+    private HttpServletRequest getRequest() {
+        ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        return requestAttributes != null ? requestAttributes.getRequest() : null;
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        if (request == null) {
+            return "unknown";
+        }
+        String ip = firstNonBlank(
+                request.getHeader("X-Forwarded-For"),
+                request.getHeader("X-Real-IP"),
+                request.getHeader("Proxy-Client-IP"),
+                request.getHeader("WL-Proxy-Client-IP"),
+                request.getRemoteAddr()
+        );
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank() && !"unknown".equalsIgnoreCase(value)) {
+                return value;
+            }
         }
         return "unknown";
     }
-    
-    /**
-     * 获取当前请求的端口
-     */
-    private int getClientPort() {
-        try {
-            ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (requestAttributes != null) {
-                return requestAttributes.getRequest().getRemotePort();
-            }
-        } catch (Exception e) {
-            logger.error("获取客户端端口异常", e);
+
+    private String getUserAgent(HttpServletRequest request) {
+        if (request == null) {
+            return "";
         }
-        return 0;
+        return LogSanitizer.truncate(request.getHeader("User-Agent"), 500);
     }
-    
-    /**
-     * 获取当前请求的UserAgent
-     */
-    private String getUserAgent() {
-        try {
-            ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (requestAttributes != null) {
-                String userAgent = requestAttributes.getRequest().getHeader("User-Agent");
-                return userAgent != null && userAgent.length() > 500 ? userAgent.substring(0, 500) : userAgent;
-            }
-        } catch (Exception e) {
-            logger.error("获取UserAgent异常", e);
-        }
-        return "";
-    }
-    
-    /**
-     * 获取当前请求的URL
-     */
-    private String getRequestUrl() {
-        try {
-            ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (requestAttributes != null) {
-                return requestAttributes.getRequest().getRequestURI();
-            }
-        } catch (Exception e) {
-            logger.error("获取请求URL异常", e);
-        }
-        return "";
-    }
-    
-    /**
-     * 获取当前请求的方法
-     */
-    private String getRequestMethod() {
-        try {
-            ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (requestAttributes != null) {
-                return requestAttributes.getRequest().getMethod();
-            }
-        } catch (Exception e) {
-            logger.error("获取请求方法异常", e);
-        }
-        return "";
-    }
-    
-    /**
-     * 获取当前登录用户
-     */
+
     private User getCurrentUser() {
         try {
             return JwtTokenUtils.getCurrentUser();
         } catch (Exception e) {
+            logger.debug("No authenticated user found for audit log");
             return null;
         }
-    }
-    
-    /**
-     * 提取目标对象ID
-     */
-    private String extractTargetId(Object[] args, String[] paramNames) {
-        if (args == null || args.length == 0) {
-            return "";
-        }
-        
-        // 尝试从路径参数中获取ID
-        for (int i = 0; i < args.length; i++) {
-            Object arg = args[i];
-            if (arg instanceof Long || arg instanceof Integer) {
-                return String.valueOf(arg);
-            }
-            if (arg instanceof String && paramNames != null && i < paramNames.length) {
-                String paramName = paramNames[i].toLowerCase();
-                if (paramName.contains("id")) {
-                    return String.valueOf(arg);
-                }
-            }
-        }
-        return "";
-    }
-    
-    /**
-     * 提取请求参数
-     */
-    private String extractParams(Object[] args, String[] paramNames) {
-        if (args == null || args.length == 0) {
-            return "";
-        }
-        
-        try {
-            Map<String, Object> params = new HashMap<>();
-            for (int i = 0; i < args.length; i++) {
-                Object arg = args[i];
-                String paramName = paramNames != null && i < paramNames.length ? paramNames[i] : "arg" + i;
-                
-                // 过滤敏感参数
-                if (arg instanceof String) {
-                    String strVal = (String) arg;
-                    if (paramName.toLowerCase().contains("password") || 
-                        paramName.toLowerCase().contains("pwd") ||
-                        paramName.toLowerCase().contains("token") ||
-                        paramName.toLowerCase().contains("secret") ||
-                        paramName.toLowerCase().contains("key")) {
-                        params.put(paramName, "***");
-                    } else {
-                        params.put(paramName, strVal.length() > 200 ? strVal.substring(0, 200) + "..." : strVal);
-                    }
-                } else if (arg != null && !isFileOrMultipart(arg)) {
-                    // 序列化参数对象
-                    try {
-                        String json = objectMapper.writeValueAsString(arg);
-                        if (json.length() > 500) {
-                            json = json.substring(0, 500) + "...";
-                        }
-                        params.put(paramName, json);
-                    } catch (Exception e) {
-                        params.put(paramName, arg.toString());
-                    }
-                }
-            }
-            return objectMapper.writeValueAsString(params);
-        } catch (Exception e) {
-            logger.error("提取请求参数异常", e);
-            return "";
-        }
-    }
-    
-    /**
-     * 判断是否是文件上传类型
-     */
-    private boolean isFileOrMultipart(Object obj) {
-        String className = obj.getClass().getName();
-        return className.contains("MultipartFile") || 
-               className.contains("UploadedFile") ||
-               className.contains("Part");
     }
 }

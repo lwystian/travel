@@ -20,6 +20,8 @@ public @interface OperationLog {
      * 操作描述
      */
     String description() default "";
+
+    String targetType() default "";
     
     /**
      * 是否记录请求参数

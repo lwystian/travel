@@ -89,6 +89,11 @@
           <span>支付配置</span>
         </el-menu-item>
 
+        <el-menu-item index="/back/log" v-if="userStore.isAdmin">
+          <el-icon><Document /></el-icon>
+          <span>系统日志</span>
+        </el-menu-item>
+
       </el-menu>
     </div>
   </div>

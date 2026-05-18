@@ -10,6 +10,8 @@ import org.example.springboot.common.Result;
 import org.example.springboot.entity.Tour;
 import org.example.springboot.entity.HomeRecommend;
 import org.example.springboot.service.TourService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,6 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/tour")
 public class TourController {
+    private static final Logger logger = LoggerFactory.getLogger(TourController.class);
 
     @Resource
     private TourService tourService;
@@ -158,7 +161,7 @@ public class TourController {
     @PutMapping("/{id}/images")
     public Result<?> updateTourImages(@PathVariable Long id, @RequestBody java.util.Map<String, List<String>> body) {
         List<String> images = body.get("images");
-        System.out.println("=== 更新图片 === id=" + id + " images=" + images);
+        logger.debug("Update tour images request: id={}, imageCount={}", id, images == null ? 0 : images.size());
         tourService.updateTourImages(id, images);
         return Result.success();
     }
