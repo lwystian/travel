@@ -470,6 +470,14 @@ const allCityOptions = computed(() => {
 // 获取目的地标签
 const getDestinationLabel = (dest) => {
   if (!dest) return '-'
+  const specialDestinationMap = {
+    xisha: '西沙群岛',
+    sanxia: '三峡',
+    sanyan: '三峡'
+  }
+  if (specialDestinationMap[dest]) {
+    return specialDestinationMap[dest]
+  }
   if (dest.includes('/')) {
     const [provinceCode, cityCode] = dest.split('/')
     const province = destinationOptions.find(p => p.code === provinceCode)

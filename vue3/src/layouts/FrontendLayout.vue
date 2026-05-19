@@ -305,7 +305,7 @@
               </template>
               <el-menu-item-group>
                 <template #title>选择邮轮类型</template>
-                <el-menu-item @click="goToCruise('sanyan')">三峡邮轮</el-menu-item>
+                <el-menu-item @click="goToCruise('sanxia')">三峡邮轮</el-menu-item>
                 <el-menu-item @click="goToCruise('xisha')">西沙邮轮</el-menu-item>
               </el-menu-item-group>
             </el-sub-menu>
@@ -367,26 +367,26 @@ const route = useRoute()
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 
 // 位置相关
-const currentCity = ref('重庆')
+const DEFAULT_CITY = '重庆'
+const LOCATION_STORAGE_KEY = 'frontend_selected_city'
+const currentCity = ref(DEFAULT_CITY)
 const showWechatQR = ref(false)
 
 const cityList = ref([
-  { code: '500000', name: '重庆' },
-  { code: '420500', name: '宜昌' },
-  { code: '460100', name: '海口' },
-  { code: '460200', name: '三亚' },
-  { code: '510100', name: '成都' },
-  { code: '500100', name: '万州' },
-  { code: '500200', name: '涪陵' },
-  { code: '421200', name: '恩施' },
-  { code: '430100', name: '长沙' },
-  { code: '520100', name: '贵阳' },
-  { code: '530100', name: '昆明' },
-  { code: '310100', name: '上海' },
-  { code: '110000', name: '北京' },
-  { code: '440100', name: '广州' },
-  { code: '440300', name: '深圳' },
-  { code: '320100', name: '南京' }
+  { code: 'chongqing', name: '重庆', aliases: ['重庆市', 'Chongqing'] },
+  { code: 'yichang', name: '宜昌', aliases: ['宜昌市', 'Yichang'] },
+  { code: 'hainan', name: '海南', aliases: ['海南省', '海口', '海口市', '三亚', '三亚市', 'Hainan', 'Haikou', 'Sanya'] },
+  { code: 'chengdu', name: '成都', aliases: ['成都市', 'Chengdu'] },
+  { code: 'guiyang', name: '贵阳', aliases: ['贵阳市', 'Guiyang'] },
+  { code: 'kunming', name: '昆明', aliases: ['昆明市', 'Kunming'] },
+  { code: 'changsha', name: '长沙', aliases: ['长沙市', 'Changsha'] },
+  { code: 'beijing', name: '北京', aliases: ['北京市', 'Beijing'] },
+  { code: 'shanghai', name: '上海', aliases: ['上海市', 'Shanghai'] },
+  { code: 'guangzhou', name: '广州', aliases: ['广州市', 'Guangzhou'] },
+  { code: 'shenzhen', name: '深圳', aliases: ['深圳市', 'Shenzhen'] },
+  { code: 'hangzhou', name: '杭州', aliases: ['杭州市', 'Hangzhou'] },
+  { code: 'nanjing', name: '南京', aliases: ['南京市', 'Nanjing'] },
+  { code: 'xian', name: '西安', aliases: ['西安市', 'Xi’an', "Xi'an", 'Xian'] }
 ])
 
 // 搜索相关变量
@@ -452,19 +452,17 @@ const handleLocationChange = (cityCode) => {
   const city = cityList.value.find(c => c.code === cityCode)
   if (city) {
     currentCity.value = city.name
+    localStorage.setItem(LOCATION_STORAGE_KEY, city.code)
     ElMessage.success(`已切换到${city.name}`)
   }
 }
 
 // 城市名到代码的映射
 const cityNameToCode = {
-  '重庆': 'chongqing', '成都': 'chengdu', '昆明': 'kunming', '贵阳': 'guiyang',
-  '三亚': 'sanya', '北京': 'beijing', '上海': 'shanghai', '长沙': 'changsha',
-  '宜昌': 'yichang', '杭州': 'hangzhou', '广州': 'guangzhou', '深圳': 'shenzhen',
-  '宁波': 'ningbo', '嘉兴': 'jiaxing', '绍兴': 'shaoxing', '金华': 'jinhua',
-  '衢州': 'quzhou', '舟山': 'zhoushan', '台州': 'taizhou', '丽水': 'lishui',
-  '温州': 'wenzhou', '苏州': 'suzhou', '南京': 'nanjing', '湖州': 'huzhou',
-  '海口': 'haikou', '万州': 'wanzhou', '涪陵': 'fuling', '恩施': 'enshi'
+  '重庆': 'chongqing', '宜昌': 'yichang', '海南': 'hainan', '成都': 'chengdu',
+  '贵阳': 'guiyang', '昆明': 'kunming', '长沙': 'changsha', '北京': 'beijing',
+  '上海': 'shanghai', '广州': 'guangzhou', '深圳': 'shenzhen', '杭州': 'hangzhou',
+  '南京': 'nanjing', '西安': 'xian'
 }
 
 // 周边游跳转 - 使用精确天数
@@ -756,69 +754,84 @@ const handleQRCodeError = (e) => {
   e.target.parentElement.style.display = 'none'
 }
 
-// 通过IP获取位置（可选功能）
+const normalizeLocationName = (value = '') => {
+  return String(value)
+    .trim()
+    .replace(/(省|市|地区|自治州|特别行政区)$/g, '')
+    .toLowerCase()
+}
+
+const matchCityFromLocation = (...values) => {
+  const tokens = values
+    .filter(Boolean)
+    .flatMap(value => String(value).split(/[,\s/|-]+/))
+    .map(normalizeLocationName)
+    .filter(Boolean)
+
+  return cityList.value.find(city => {
+    const names = [city.name, ...(city.aliases || [])].map(normalizeLocationName)
+    return tokens.some(token => names.some(name => token.includes(name) || name.includes(token)))
+  })
+}
+
+const applyDefaultCity = () => {
+  currentCity.value = DEFAULT_CITY
+}
+
+// 通过公网 IP 自动定位。失败或未命中展示城市时，默认回到重庆。
 const fetchLocationByIP = async () => {
-  // 尝试多个IP定位API
+  const savedCityCode = localStorage.getItem(LOCATION_STORAGE_KEY)
+  const savedCity = cityList.value.find(city => city.code === savedCityCode)
+  if (savedCity) {
+    currentCity.value = savedCity.name
+    return
+  }
+
   const apis = [
-    'https://ipapi.co/json/',
-    'https://ip-api.com/json/',
-    'https://whois.pconline.com.cn/ipJson.jsp?json=true'
+    {
+      url: 'https://ipapi.co/json/',
+      parse: data => [data.city, data.region, data.country_name]
+    },
+    {
+      url: 'https://ipwho.is/',
+      parse: data => [data.city, data.region, data.country]
+    },
+    {
+      url: 'https://api.vore.top/api/IPdata',
+      parse: data => [
+        data.ipdata?.info1,
+        data.ipdata?.info2,
+        data.ipdata?.info3,
+        data.adcode?.o
+      ]
+    }
   ]
-  
+
   for (const api of apis) {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3000)
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000)
-      
-      let url = api
-      let data
-      
-      if (api.includes('pconline')) {
-        // 太平洋网络IP查询（国内API，返回gbk编码）
-        url = 'https://whois.pconline.com.cn/ipJson.jsp?json=true'
-        const response = await fetch(url, { 
-          signal: controller.signal,
-          headers: { 'Accept': 'application/json' }
-        })
-        clearTimeout(timeoutId)
-        if (response.ok) {
-          const text = await response.text()
-          // 处理gbk编码的响应
-          const decoder = new TextDecoder('gbk')
-          const uint8Array = new Uint8Array([...text].map(c => c.charCodeAt(0)))
-          data = JSON.parse(decoder.decode(uint8Array))
-          const cityName = data.city || ''
-          const matchedCity = cityList.value.find(c =>
-            c.name.includes(cityName) || cityName.includes(c.name)
-          )
-          if (matchedCity) {
-            currentCity.value = matchedCity.name
-            return
-          }
-        }
-      } else {
-        const response = await fetch(url, { signal: controller.signal })
-        clearTimeout(timeoutId)
-        if (response.ok) {
-          data = await response.json()
-          const cityName = data.city || data.cityName || ''
-          const matchedCity = cityList.value.find(c =>
-            c.name.includes(cityName) || cityName.includes(c.name)
-          )
-          if (matchedCity) {
-            currentCity.value = matchedCity.name
-            return
-          }
-        }
+      const response = await fetch(api.url, {
+        signal: controller.signal,
+        cache: 'no-store',
+        headers: { Accept: 'application/json' }
+      })
+      clearTimeout(timeoutId)
+      if (!response.ok) {
+        continue
+      }
+      const data = await response.json()
+      const matchedCity = matchCityFromLocation(...api.parse(data))
+      if (matchedCity) {
+        currentCity.value = matchedCity.name
+        return
       }
     } catch (error) {
-      console.log(`IP定位API ${api} 请求失败:`, error.message)
-      continue
+      clearTimeout(timeoutId)
     }
   }
-  
-  // 所有API都失败时使用默认城市
-  console.log('IP定位失败，使用默认城市杭州')
+
+  applyDefaultCity()
 }
 
 const handleCommand = (command) => {

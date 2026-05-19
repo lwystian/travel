@@ -277,7 +277,17 @@ const featuredTour = computed(() => tourList.value[0] || null)
 // 获取图片完整URL
 const getImageUrl = (url) => {
   if (!url) return ''
-  return url.startsWith('http') ? url : baseAPI + url
+  let imageUrl = url
+  if (typeof imageUrl === 'string' && imageUrl.trim().startsWith('[')) {
+    try {
+      const images = JSON.parse(imageUrl)
+      imageUrl = Array.isArray(images) ? images[0] : imageUrl
+    } catch {
+      imageUrl = ''
+    }
+  }
+  if (!imageUrl) return ''
+  return imageUrl.startsWith('http') ? imageUrl : baseAPI + imageUrl
 }
 
 // 获取行程类型名称
@@ -476,6 +486,8 @@ onMounted(() => {
 
 .hero-tour-card {
   display: flex;
+  align-items: stretch;
+  min-height: 320px;
   border-radius: 20px;
   overflow: hidden;
   background: white;
@@ -494,24 +506,30 @@ onMounted(() => {
 
   @media (max-width: 768px) {
     flex-direction: column;
+    min-height: auto;
   }
 }
 
 .hero-image-wrapper {
-  width: 55%;
-  height: 320px;
+  flex: 0 0 55%;
+  min-height: 320px;
   position: relative;
   overflow: hidden;
+  background: #eef2f7;
 
   @media (max-width: 768px) {
     width: 100%;
-    height: 200px;
+    flex: none;
+    min-height: 220px;
   }
 
   img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
     transition: transform 0.6s ease;
   }
 }

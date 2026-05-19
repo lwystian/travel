@@ -337,6 +337,9 @@ const formatCity = (city) => {
     'kunming': '昆明',
     'guiyang': '贵阳',
     'sanya': '三亚',
+    'xisha': '西沙群岛',
+    'sanxia': '三峡',
+    'sanyan': '三峡',
     'beijing': '北京',
     'shanghai': '上海'
   }

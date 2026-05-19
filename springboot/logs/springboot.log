@@ -8667,3 +8667,632 @@ Caused by: java.lang.NumberFormatException: For input string: "related"
 2026-05-19 16:09:15.088 INFO  [http-nio-1236-exec-6] [ecc24a6d00eb4da9af459563c7031ba6] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
 2026-05-19 16:09:15.089 INFO  [http-nio-1236-exec-6] [ecc24a6d00eb4da9af459563c7031ba6] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
 2026-05-19 16:09:15.091 INFO  [http-nio-1236-exec-6] [ecc24a6d00eb4da9af459563c7031ba6] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:12:11.208 INFO  [http-nio-1236-exec-9] [ce2510814f0640e1bd4de924870f6693] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:12:11.209 INFO  [http-nio-1236-exec-9] [ce2510814f0640e1bd4de924870f6693] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:12:11.226 INFO  [http-nio-1236-exec-9] [ce2510814f0640e1bd4de924870f6693] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/list status=200 durationMs=15 ip=192.168.2.6 operation=TourController.getActiveTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:12:15.990 INFO  [http-nio-1236-exec-4] [defc9c09e55e43978ee8892614ce6493] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:12:15.990 INFO  [http-nio-1236-exec-8] [e7d5cd8c14c64a7ab20b3e83f435a0f2] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:12:15.990 INFO  [http-nio-1236-exec-3] [b94766081ec24afcb1bc3b128673619f] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:12:15.990 INFO  [http-nio-1236-exec-5] [642aca46125b4790ba084f946e6c7c2f] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:12:15.990 INFO  [http-nio-1236-exec-5] [642aca46125b4790ba084f946e6c7c2f] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:12:15.991 INFO  [http-nio-1236-exec-3] [b94766081ec24afcb1bc3b128673619f] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:12:15.991 INFO  [http-nio-1236-exec-4] [defc9c09e55e43978ee8892614ce6493] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:12:15.991 INFO  [http-nio-1236-exec-8] [e7d5cd8c14c64a7ab20b3e83f435a0f2] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:12:15.993 INFO  [http-nio-1236-exec-8] [e7d5cd8c14c64a7ab20b3e83f435a0f2] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=1 ip=192.168.2.6 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:12:15.994 INFO  [http-nio-1236-exec-5] [642aca46125b4790ba084f946e6c7c2f] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=2 ip=192.168.2.6 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:12:15.996 INFO  [http-nio-1236-exec-3] [b94766081ec24afcb1bc3b128673619f] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/hot status=200 durationMs=4 ip=192.168.2.6 operation=TravelGuideController.getHotGuides userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:12:16.021 INFO  [http-nio-1236-exec-4] [defc9c09e55e43978ee8892614ce6493] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=29 ip=192.168.2.6 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:16:04.848 INFO  [http-nio-1236-exec-1] [0d24dcb15515490c80535e5cd0425153] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:16:04.849 INFO  [http-nio-1236-exec-1] [0d24dcb15515490c80535e5cd0425153] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:16:04.873 INFO  [http-nio-1236-exec-1] [0d24dcb15515490c80535e5cd0425153] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/list status=200 durationMs=22 ip=192.168.2.6 operation=TourController.getActiveTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:16:04.939 INFO  [http-nio-1236-exec-2] [f20ed29a0a744e96a0b22b2347477712] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:16:04.939 INFO  [http-nio-1236-exec-9] [1b54c89639084a4ca0fae09dd3819f02] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:16:04.940 INFO  [http-nio-1236-exec-9] [1b54c89639084a4ca0fae09dd3819f02] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:16:04.940 INFO  [http-nio-1236-exec-2] [f20ed29a0a744e96a0b22b2347477712] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:16:04.949 INFO  [http-nio-1236-exec-9] [1b54c89639084a4ca0fae09dd3819f02] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic/suggestions status=200 durationMs=8 ip=192.168.2.6 operation=ScenicSpotController.getSearchSuggestions userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:16:04.950 INFO  [http-nio-1236-exec-2] [f20ed29a0a744e96a0b22b2347477712] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/suggestions status=200 durationMs=9 ip=192.168.2.6 operation=TravelGuideController.getGuideSuggestions userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:16:04.969 INFO  [http-nio-1236-exec-7] [4f2e543394224227801cb0f6b3faada9] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:16:04.970 INFO  [http-nio-1236-exec-7] [4f2e543394224227801cb0f6b3faada9] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:16:04.988 INFO  [http-nio-1236-exec-7] [4f2e543394224227801cb0f6b3faada9] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/page status=200 durationMs=17 ip=192.168.2.6 operation=TourController.getToursByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:18:23.160 INFO  [http-nio-1236-exec-5] [c135387834da47c4a63b9f4e4fe36f10] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:18:23.160 INFO  [http-nio-1236-exec-4] [e42d31e0cd934a1ebc42d1d4587a376e] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:18:23.160 INFO  [http-nio-1236-exec-3] [b1e42d30235b48ecb02f9729535b05e1] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:18:23.160 INFO  [http-nio-1236-exec-8] [28b98170f79a4387b176a2767fa0b002] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:18:23.161 INFO  [http-nio-1236-exec-3] [b1e42d30235b48ecb02f9729535b05e1] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:18:23.161 INFO  [http-nio-1236-exec-4] [e42d31e0cd934a1ebc42d1d4587a376e] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:18:23.161 INFO  [http-nio-1236-exec-8] [28b98170f79a4387b176a2767fa0b002] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:18:23.161 INFO  [http-nio-1236-exec-5] [c135387834da47c4a63b9f4e4fe36f10] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:18:23.164 INFO  [http-nio-1236-exec-8] [28b98170f79a4387b176a2767fa0b002] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=1 ip=192.168.2.6 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:18:23.166 INFO  [http-nio-1236-exec-5] [c135387834da47c4a63b9f4e4fe36f10] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=3 ip=192.168.2.6 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:18:23.168 INFO  [http-nio-1236-exec-4] [e42d31e0cd934a1ebc42d1d4587a376e] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/hot status=200 durationMs=5 ip=192.168.2.6 operation=TravelGuideController.getHotGuides userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:18:23.191 INFO  [http-nio-1236-exec-3] [b1e42d30235b48ecb02f9729535b05e1] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=28 ip=192.168.2.6 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:20:48.950 INFO  [http-nio-1236-exec-6] [def45b2f4b604ead8064aba49b589f2b] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:page:::::1:10
+2026-05-19 16:20:48.952 INFO  [http-nio-1236-exec-6] [def45b2f4b604ead8064aba49b589f2b] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:page:::::1:10
+2026-05-19 16:20:48.955 INFO  [http-nio-1236-exec-6] [def45b2f4b604ead8064aba49b589f2b] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/user/page status=200 durationMs=5 ip=192.168.2.6 operation=UserController.getUsersByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-05-19 16:21:27.069 INFO  [http-nio-1236-exec-9] [f0c8cbbb081f4b488e2c5cc9dc10de13] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:21:27.069 INFO  [http-nio-1236-exec-2] [944b7fc9990b45c69e37bd71322dfb6a] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:21:27.069 INFO  [http-nio-1236-exec-10] [601c6c3cb8e94e759542a2a8a9e8595e] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:21:27.069 INFO  [http-nio-1236-exec-7] [241b8ea3a0224002bc92228e3b095575] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:21:27.069 INFO  [http-nio-1236-exec-8] [735bbfe17277459bae743cc3f0cdd4f9] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:21:27.070 INFO  [http-nio-1236-exec-8] [735bbfe17277459bae743cc3f0cdd4f9] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:21:27.070 INFO  [http-nio-1236-exec-7] [241b8ea3a0224002bc92228e3b095575] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:21:27.070 INFO  [http-nio-1236-exec-2] [944b7fc9990b45c69e37bd71322dfb6a] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:21:27.070 INFO  [http-nio-1236-exec-9] [f0c8cbbb081f4b488e2c5cc9dc10de13] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:21:27.070 INFO  [http-nio-1236-exec-10] [601c6c3cb8e94e759542a2a8a9e8595e] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:21:27.074 INFO  [http-nio-1236-exec-7] [241b8ea3a0224002bc92228e3b095575] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=2 ip=192.168.2.6 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:21:27.076 INFO  [http-nio-1236-exec-9] [f0c8cbbb081f4b488e2c5cc9dc10de13] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=4 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:21:27.076 INFO  [http-nio-1236-exec-10] [601c6c3cb8e94e759542a2a8a9e8595e] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=4 ip=192.168.2.6 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:21:27.078 INFO  [http-nio-1236-exec-8] [735bbfe17277459bae743cc3f0cdd4f9] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/hot status=200 durationMs=6 ip=192.168.2.6 operation=TravelGuideController.getHotGuides userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:21:27.101 INFO  [http-nio-1236-exec-2] [944b7fc9990b45c69e37bd71322dfb6a] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=28 ip=192.168.2.6 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:21:54.565 INFO  [http-nio-1236-exec-3] [be4cf993e52842b791e1dc523a65cfe9] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:21:54.565 INFO  [http-nio-1236-exec-1] [d557f66fae19488d9449af3506aa1799] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:21:54.565 INFO  [http-nio-1236-exec-4] [6bb5f2f2c399430ca5793c4ea4ec1afe] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:21:54.565 INFO  [http-nio-1236-exec-5] [750ba5336eba46a18b6aedee6361f46a] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:21:54.565 INFO  [http-nio-1236-exec-6] [2f85405ed06f4275ac1021c973f3cadc] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:21:54.566 INFO  [http-nio-1236-exec-6] [2f85405ed06f4275ac1021c973f3cadc] o.e.s.aspect.RedisCacheAspect - 缓存未命中或转换失败，执行方法: getUserById
+2026-05-19 16:21:54.566 INFO  [http-nio-1236-exec-5] [750ba5336eba46a18b6aedee6361f46a] o.e.s.aspect.RedisCacheAspect - 缓存未命中或转换失败，执行方法: getUserById
+2026-05-19 16:21:54.566 INFO  [http-nio-1236-exec-1] [d557f66fae19488d9449af3506aa1799] o.e.s.aspect.RedisCacheAspect - 缓存未命中或转换失败，执行方法: getUserById
+2026-05-19 16:21:54.566 INFO  [http-nio-1236-exec-3] [be4cf993e52842b791e1dc523a65cfe9] o.e.s.aspect.RedisCacheAspect - 缓存未命中或转换失败，执行方法: getUserById
+2026-05-19 16:21:54.566 INFO  [http-nio-1236-exec-4] [6bb5f2f2c399430ca5793c4ea4ec1afe] o.e.s.aspect.RedisCacheAspect - 缓存未命中或转换失败，执行方法: getUserById
+2026-05-19 16:21:54.568 INFO  [http-nio-1236-exec-4] [6bb5f2f2c399430ca5793c4ea4ec1afe] o.e.s.aspect.RedisCacheAspect - 将结果缓存: user:3, 过期时间: 3600秒
+2026-05-19 16:21:54.568 INFO  [http-nio-1236-exec-3] [be4cf993e52842b791e1dc523a65cfe9] o.e.s.aspect.RedisCacheAspect - 将结果缓存: user:3, 过期时间: 3600秒
+2026-05-19 16:21:54.568 INFO  [http-nio-1236-exec-6] [2f85405ed06f4275ac1021c973f3cadc] o.e.s.aspect.RedisCacheAspect - 将结果缓存: user:3, 过期时间: 3600秒
+2026-05-19 16:21:54.568 INFO  [http-nio-1236-exec-5] [750ba5336eba46a18b6aedee6361f46a] o.e.s.aspect.RedisCacheAspect - 将结果缓存: user:3, 过期时间: 3600秒
+2026-05-19 16:21:54.570 INFO  [http-nio-1236-exec-1] [d557f66fae19488d9449af3506aa1799] o.e.s.aspect.RedisCacheAspect - 将结果缓存: user:3, 过期时间: 3600秒
+2026-05-19 16:21:54.572 INFO  [http-nio-1236-exec-5] [750ba5336eba46a18b6aedee6361f46a] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:21:54.572 INFO  [http-nio-1236-exec-6] [2f85405ed06f4275ac1021c973f3cadc] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/hot status=200 durationMs=2 ip=192.168.2.6 operation=TravelGuideController.getHotGuides userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:21:54.572 INFO  [http-nio-1236-exec-1] [d557f66fae19488d9449af3506aa1799] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=1 ip=192.168.2.6 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:21:54.573 INFO  [http-nio-1236-exec-4] [6bb5f2f2c399430ca5793c4ea4ec1afe] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=4 ip=192.168.2.6 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:21:54.589 INFO  [http-nio-1236-exec-3] [be4cf993e52842b791e1dc523a65cfe9] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=20 ip=192.168.2.6 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:22:17.058 INFO  [http-nio-1236-exec-7] [55fea4c01d02451a8e5037a3a2a0f53f] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:22:17.059 INFO  [http-nio-1236-exec-7] [55fea4c01d02451a8e5037a3a2a0f53f] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:22:17.095 INFO  [http-nio-1236-exec-7] [55fea4c01d02451a8e5037a3a2a0f53f] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/list status=200 durationMs=30 ip=192.168.2.6 operation=TourController.getActiveTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:22:21.601 INFO  [http-nio-1236-exec-2] [2eb7ed485530404e83b5587ce6d187f8] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:22:21.601 INFO  [http-nio-1236-exec-5] [bafa7b060e0e4705b51603d68b6bc98c] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:22:21.601 INFO  [http-nio-1236-exec-8] [66d0aef6edbc48e3b3f6cca092dad709] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:22:21.601 INFO  [http-nio-1236-exec-8] [66d0aef6edbc48e3b3f6cca092dad709] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:22:21.601 INFO  [http-nio-1236-exec-2] [2eb7ed485530404e83b5587ce6d187f8] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:22:21.601 INFO  [http-nio-1236-exec-5] [bafa7b060e0e4705b51603d68b6bc98c] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:22:21.604 INFO  [http-nio-1236-exec-5] [bafa7b060e0e4705b51603d68b6bc98c] o.e.s.c.AccommodationController - 分页查询住宿列表，参数：name=null, scenicId=null, type=null, price=null~null, rating>=null, page=1, size=12
+2026-05-19 16:22:21.612 INFO  [http-nio-1236-exec-2] [2eb7ed485530404e83b5587ce6d187f8] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/accommodation/types status=200 durationMs=8 ip=192.168.2.6 operation=AccommodationController.getAccommodationTypes userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:22:21.613 INFO  [http-nio-1236-exec-5] [bafa7b060e0e4705b51603d68b6bc98c] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/accommodation/page status=200 durationMs=9 ip=192.168.2.6 operation=AccommodationController.getAccommodationsByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:22:21.626 INFO  [http-nio-1236-exec-8] [66d0aef6edbc48e3b3f6cca092dad709] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic/all status=200 durationMs=22 ip=192.168.2.6 operation=ScenicSpotController.getAll userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:22:22.336 INFO  [http-nio-1236-exec-7] [811d51f3ee01473093182e4139196732] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:22:22.336 INFO  [http-nio-1236-exec-10] [b55bde9c3655436eaa4646af4af1bd96] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:22:22.337 INFO  [http-nio-1236-exec-10] [b55bde9c3655436eaa4646af4af1bd96] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:22:22.337 INFO  [http-nio-1236-exec-7] [811d51f3ee01473093182e4139196732] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:22:22.342 INFO  [http-nio-1236-exec-7] [811d51f3ee01473093182e4139196732] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic-category/tree status=200 durationMs=3 ip=192.168.2.6 operation=ScenicCategoryController.getCategoryTree userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:22:22.365 INFO  [http-nio-1236-exec-10] [b55bde9c3655436eaa4646af4af1bd96] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic/page status=200 durationMs=26 ip=192.168.2.6 operation=ScenicSpotController.getScenicSpotsByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:22:22.591 INFO  [http-nio-1236-exec-7] [597253c5bb2a417c83e51318279816d1] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:22:22.591 INFO  [http-nio-1236-exec-10] [f30ece4e6dda49c9b7386e075b155a76] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:22:22.594 INFO  [http-nio-1236-exec-10] [f30ece4e6dda49c9b7386e075b155a76] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:22:22.594 INFO  [http-nio-1236-exec-7] [597253c5bb2a417c83e51318279816d1] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:22:22.599 INFO  [http-nio-1236-exec-3] [85a606ddd26140018dce5be6e2b465ef] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:22:22.602 INFO  [http-nio-1236-exec-3] [85a606ddd26140018dce5be6e2b465ef] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:22:22.603 INFO  [http-nio-1236-exec-4] [a1b822ae58184efc88493993d2c54bb9] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:22:22.604 INFO  [http-nio-1236-exec-4] [a1b822ae58184efc88493993d2c54bb9] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:22:22.604 INFO  [http-nio-1236-exec-7] [597253c5bb2a417c83e51318279816d1] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=2 ip=192.168.2.6 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:22:22.607 INFO  [http-nio-1236-exec-10] [f30ece4e6dda49c9b7386e075b155a76] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=7 ip=192.168.2.6 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:22:22.618 INFO  [http-nio-1236-exec-3] [85a606ddd26140018dce5be6e2b465ef] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/hot status=200 durationMs=14 ip=192.168.2.6 operation=TravelGuideController.getHotGuides userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:22:22.646 INFO  [http-nio-1236-exec-4] [a1b822ae58184efc88493993d2c54bb9] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=41 ip=192.168.2.6 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:23:28.438 INFO  [http-nio-1236-exec-9] [c3557ad466344b5287b7e773bac1f133] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:23:28.438 INFO  [http-nio-1236-exec-2] [0a49114a14ee4ab9af525ae1ffff23ca] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:23:28.439 INFO  [http-nio-1236-exec-9] [c3557ad466344b5287b7e773bac1f133] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:23:28.439 INFO  [http-nio-1236-exec-2] [0a49114a14ee4ab9af525ae1ffff23ca] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:23:28.440 INFO  [http-nio-1236-exec-6] [06b1844023f54ffabb67a6539d9fb810] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:23:28.440 INFO  [http-nio-1236-exec-8] [f6e33bda09b744a982dd4b2ce1d80edf] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:23:28.440 INFO  [http-nio-1236-exec-1] [b4bca5f45d6a49239c559c00bfafd195] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:23:28.441 INFO  [http-nio-1236-exec-6] [06b1844023f54ffabb67a6539d9fb810] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:23:28.442 INFO  [http-nio-1236-exec-1] [b4bca5f45d6a49239c559c00bfafd195] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:23:28.442 INFO  [http-nio-1236-exec-8] [f6e33bda09b744a982dd4b2ce1d80edf] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:23:28.443 INFO  [http-nio-1236-exec-2] [0a49114a14ee4ab9af525ae1ffff23ca] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=2 ip=192.168.2.6 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:23:28.445 INFO  [http-nio-1236-exec-9] [c3557ad466344b5287b7e773bac1f133] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:23:28.453 INFO  [http-nio-1236-exec-8] [f6e33bda09b744a982dd4b2ce1d80edf] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=4 ip=192.168.2.6 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:23:28.454 INFO  [http-nio-1236-exec-6] [06b1844023f54ffabb67a6539d9fb810] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/hot status=200 durationMs=10 ip=192.168.2.6 operation=TravelGuideController.getHotGuides userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:23:28.485 INFO  [http-nio-1236-exec-1] [b4bca5f45d6a49239c559c00bfafd195] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=40 ip=192.168.2.6 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:24:32.607 INFO  [http-nio-1236-exec-10] [a7c7bceb043f46298410dfeb832bab86] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:24:32.608 INFO  [http-nio-1236-exec-7] [590aebca1cb74df194b028f258385cdb] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:24:32.609 INFO  [http-nio-1236-exec-3] [2b87a8facb4c47869115aaf8d6cfba38] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:24:32.609 INFO  [http-nio-1236-exec-10] [a7c7bceb043f46298410dfeb832bab86] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:24:32.612 INFO  [http-nio-1236-exec-7] [590aebca1cb74df194b028f258385cdb] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:24:32.614 INFO  [http-nio-1236-exec-3] [2b87a8facb4c47869115aaf8d6cfba38] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:24:32.615 INFO  [http-nio-1236-exec-5] [8eb60bcebdde4237b067344cbbc76ee3] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:24:32.616 INFO  [http-nio-1236-exec-4] [9061107e301e4aa9a8d9456a873c5b0f] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:24:32.617 INFO  [http-nio-1236-exec-5] [8eb60bcebdde4237b067344cbbc76ee3] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:24:32.617 INFO  [http-nio-1236-exec-4] [9061107e301e4aa9a8d9456a873c5b0f] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:24:32.618 INFO  [http-nio-1236-exec-10] [a7c7bceb043f46298410dfeb832bab86] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=3 ip=192.168.2.6 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:24:32.619 INFO  [http-nio-1236-exec-7] [590aebca1cb74df194b028f258385cdb] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=4 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:24:32.620 INFO  [http-nio-1236-exec-3] [2b87a8facb4c47869115aaf8d6cfba38] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=3 ip=192.168.2.6 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:24:32.625 INFO  [http-nio-1236-exec-4] [9061107e301e4aa9a8d9456a873c5b0f] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/hot status=200 durationMs=6 ip=192.168.2.6 operation=TravelGuideController.getHotGuides userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:24:32.651 INFO  [http-nio-1236-exec-5] [8eb60bcebdde4237b067344cbbc76ee3] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=32 ip=192.168.2.6 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:24:35.908 INFO  [http-nio-1236-exec-6] [8a9b2c5dc4e743c095a257e61449675f] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:24:35.909 INFO  [http-nio-1236-exec-6] [8a9b2c5dc4e743c095a257e61449675f] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:24:35.924 INFO  [http-nio-1236-exec-6] [8a9b2c5dc4e743c095a257e61449675f] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/list status=200 durationMs=14 ip=192.168.2.6 operation=TourController.getActiveTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:26:25.972 INFO  [http-nio-1236-exec-7] [e3d199dd3e0e4be6985592b74dba2e13] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:26:25.974 INFO  [http-nio-1236-exec-7] [e3d199dd3e0e4be6985592b74dba2e13] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:26:25.979 INFO  [http-nio-1236-exec-7] [e3d199dd3e0e4be6985592b74dba2e13] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:26:25.993 INFO  [http-nio-1236-exec-3] [c3ef1bb8b45443d0977dad7b4c8d2181] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:26:25.994 INFO  [http-nio-1236-exec-3] [c3ef1bb8b45443d0977dad7b4c8d2181] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:26:26.010 INFO  [http-nio-1236-exec-3] [c3ef1bb8b45443d0977dad7b4c8d2181] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/list status=200 durationMs=14 ip=192.168.2.6 operation=TourController.getActiveTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:26:27.107 INFO  [http-nio-1236-exec-9] [6c1e596bad6a471cbac3f5c6a93ae08d] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:26:27.108 INFO  [http-nio-1236-exec-9] [6c1e596bad6a471cbac3f5c6a93ae08d] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:26:27.113 INFO  [http-nio-1236-exec-9] [6c1e596bad6a471cbac3f5c6a93ae08d] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=4 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:26:27.120 INFO  [http-nio-1236-exec-6] [a6bd7820f00b4d80b0defac37c8ccfbe] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:26:27.121 INFO  [http-nio-1236-exec-6] [a6bd7820f00b4d80b0defac37c8ccfbe] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:26:27.142 INFO  [http-nio-1236-exec-6] [a6bd7820f00b4d80b0defac37c8ccfbe] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/list status=200 durationMs=20 ip=192.168.2.6 operation=TourController.getActiveTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:27:08.506 INFO  [http-nio-1236-exec-10] [7cab853238ed4ae895a2d7f2a0743330] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:8
+2026-05-19 16:27:08.506 INFO  [http-nio-1236-exec-10] [7cab853238ed4ae895a2d7f2a0743330] o.e.s.aspect.RedisCacheAspect - 缓存未命中或转换失败，执行方法: getUserById
+2026-05-19 16:27:08.508 INFO  [http-nio-1236-exec-10] [7cab853238ed4ae895a2d7f2a0743330] o.e.s.aspect.RedisCacheAspect - 将结果缓存: user:8, 过期时间: 3600秒
+2026-05-19 16:27:08.514 INFO  [http-nio-1236-exec-10] [7cab853238ed4ae895a2d7f2a0743330] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/sys/log/page status=200 durationMs=4 ip=192.168.2.6 operation=SysLogController.getLogsByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-05-19 16:27:16.780 INFO  [http-nio-1236-exec-7] [4a54c833b1844f4d8017f240fbb45da2] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:8
+2026-05-19 16:27:16.780 INFO  [http-nio-1236-exec-3] [9d935581dfe447aca64fa9b9b2980b22] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:8
+2026-05-19 16:27:16.781 INFO  [http-nio-1236-exec-7] [4a54c833b1844f4d8017f240fbb45da2] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:8
+2026-05-19 16:27:16.781 INFO  [http-nio-1236-exec-3] [9d935581dfe447aca64fa9b9b2980b22] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:8
+2026-05-19 16:27:16.784 INFO  [http-nio-1236-exec-7] [4a54c833b1844f4d8017f240fbb45da2] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-05-19 16:27:16.787 INFO  [http-nio-1236-exec-3] [9d935581dfe447aca64fa9b9b2980b22] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/sys/log/page status=200 durationMs=5 ip=192.168.2.6 operation=SysLogController.getLogsByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-05-19 16:28:13.282 INFO  [http-nio-1236-exec-5] [52772bd3947c42baa6f39aa3ee0fa313] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:13.283 INFO  [http-nio-1236-exec-5] [52772bd3947c42baa6f39aa3ee0fa313] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:13.285 INFO  [http-nio-1236-exec-4] [150e600daefd4911afee8d34e320f1c9] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:13.285 INFO  [http-nio-1236-exec-4] [150e600daefd4911afee8d34e320f1c9] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:13.286 INFO  [http-nio-1236-exec-5] [52772bd3947c42baa6f39aa3ee0fa313] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:13.307 INFO  [http-nio-1236-exec-4] [150e600daefd4911afee8d34e320f1c9] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/list status=200 durationMs=21 ip=192.168.2.6 operation=TourController.getActiveTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:13.327 INFO  [http-nio-1236-exec-1] [d21eab6a52ed48f8a253bb7358056fc0] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:13.328 INFO  [http-nio-1236-exec-1] [d21eab6a52ed48f8a253bb7358056fc0] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:13.344 INFO  [http-nio-1236-exec-1] [d21eab6a52ed48f8a253bb7358056fc0] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/list status=200 durationMs=15 ip=192.168.2.6 operation=TourController.getActiveTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:15.121 INFO  [http-nio-1236-exec-8] [6bf4029189d14f73b47d6e9dab8277d4] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:15.121 INFO  [http-nio-1236-exec-10] [a64149e5cf7e44ae9348c9379eb79ddf] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:15.122 INFO  [http-nio-1236-exec-7] [e1a29adb79144980a49b9e11be8d0096] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:15.122 INFO  [http-nio-1236-exec-10] [a64149e5cf7e44ae9348c9379eb79ddf] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:15.122 INFO  [http-nio-1236-exec-8] [6bf4029189d14f73b47d6e9dab8277d4] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:15.122 INFO  [http-nio-1236-exec-2] [540201aa99c54d3195ea0eebecad4b6d] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:15.123 INFO  [http-nio-1236-exec-7] [e1a29adb79144980a49b9e11be8d0096] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:15.123 INFO  [http-nio-1236-exec-2] [540201aa99c54d3195ea0eebecad4b6d] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:15.125 INFO  [http-nio-1236-exec-8] [6bf4029189d14f73b47d6e9dab8277d4] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=1 ip=192.168.2.6 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:15.126 INFO  [http-nio-1236-exec-10] [a64149e5cf7e44ae9348c9379eb79ddf] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=2 ip=192.168.2.6 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:15.127 INFO  [http-nio-1236-exec-7] [e1a29adb79144980a49b9e11be8d0096] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/hot status=200 durationMs=3 ip=192.168.2.6 operation=TravelGuideController.getHotGuides userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:15.157 INFO  [http-nio-1236-exec-2] [540201aa99c54d3195ea0eebecad4b6d] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=33 ip=192.168.2.6 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:21.198 INFO  [http-nio-1236-exec-9] [8f511c73777d4bf5b2184cad0e6def7e] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:8
+2026-05-19 16:28:21.198 INFO  [http-nio-1236-exec-2] [702682bffa594a3dbd09e6d4a65239e8] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:8
+2026-05-19 16:28:21.199 INFO  [http-nio-1236-exec-9] [8f511c73777d4bf5b2184cad0e6def7e] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:8
+2026-05-19 16:28:21.199 INFO  [http-nio-1236-exec-2] [702682bffa594a3dbd09e6d4a65239e8] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:8
+2026-05-19 16:28:21.203 INFO  [http-nio-1236-exec-2] [702682bffa594a3dbd09e6d4a65239e8] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-05-19 16:28:21.208 INFO  [http-nio-1236-exec-9] [8f511c73777d4bf5b2184cad0e6def7e] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/sys/log/page status=200 durationMs=8 ip=192.168.2.6 operation=SysLogController.getLogsByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-05-19 16:28:29.464 INFO  [http-nio-1236-exec-4] [c5687b69a8e644548370fd3bfa62ed65] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:29.465 INFO  [http-nio-1236-exec-4] [c5687b69a8e644548370fd3bfa62ed65] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:29.487 INFO  [http-nio-1236-exec-4] [c5687b69a8e644548370fd3bfa62ed65] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/list status=200 durationMs=19 ip=192.168.2.6 operation=TourController.getActiveTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:31.961 INFO  [http-nio-1236-exec-7] [7f9cc7ccd52d47909f9b7aebd84d8217] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:31.961 INFO  [http-nio-1236-exec-8] [e67b0bf3cec642b9a3368f321f00084e] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:31.962 INFO  [http-nio-1236-exec-8] [e67b0bf3cec642b9a3368f321f00084e] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:31.962 INFO  [http-nio-1236-exec-7] [7f9cc7ccd52d47909f9b7aebd84d8217] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:31.968 INFO  [http-nio-1236-exec-8] [e67b0bf3cec642b9a3368f321f00084e] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour-order/user status=200 durationMs=5 ip=192.168.2.6 operation=TourOrderController.getUserOrders userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:31.972 INFO  [http-nio-1236-exec-7] [7f9cc7ccd52d47909f9b7aebd84d8217] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour-order/user status=200 durationMs=8 ip=192.168.2.6 operation=TourOrderController.getUserOrders userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:35.666 INFO  [http-nio-1236-exec-10] [c19ada1f86824d25bfee639dde77a97f] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:35.667 INFO  [http-nio-1236-exec-10] [c19ada1f86824d25bfee639dde77a97f] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:35.675 INFO  [http-nio-1236-exec-10] [c19ada1f86824d25bfee639dde77a97f] o.e.s.service.TourOrderService - 释放锁定库存：批次=19, 人数=1
+2026-05-19 16:28:35.681 INFO  [http-nio-1236-exec-10] [c19ada1f86824d25bfee639dde77a97f] o.e.s.service.TourOrderService - 行程订单取消成功：订单号=TR2026051916051555ed
+2026-05-19 16:28:35.684 INFO  [http-nio-1236-exec-10] [c19ada1f86824d25bfee639dde77a97f] o.e.springboot.aspect.LogAspect - http_access method=PUT path=/api/tour-order/120/cancel status=200 durationMs=16 ip=192.168.2.6 operation=TourOrderController.cancelOrder userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:35.718 INFO  [http-nio-1236-exec-1] [5422662386284bb6bcf9d178f0f19379] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:35.718 INFO  [http-nio-1236-exec-3] [d512ff3dc35d42f3be86279d5da91881] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:35.719 INFO  [http-nio-1236-exec-3] [d512ff3dc35d42f3be86279d5da91881] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:35.721 INFO  [http-nio-1236-exec-1] [5422662386284bb6bcf9d178f0f19379] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:35.726 INFO  [http-nio-1236-exec-1] [5422662386284bb6bcf9d178f0f19379] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour-order/user status=200 durationMs=4 ip=192.168.2.6 operation=TourOrderController.getUserOrders userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:35.729 INFO  [http-nio-1236-exec-3] [d512ff3dc35d42f3be86279d5da91881] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour-order/user status=200 durationMs=8 ip=192.168.2.6 operation=TourOrderController.getUserOrders userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:38.391 INFO  [http-nio-1236-exec-2] [21079ab44273482a98d118dabc0658e6] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:38.392 INFO  [http-nio-1236-exec-2] [21079ab44273482a98d118dabc0658e6] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:38.401 INFO  [http-nio-1236-exec-2] [21079ab44273482a98d118dabc0658e6] o.e.s.service.TourOrderService - 释放锁定库存：批次=11, 人数=1
+2026-05-19 16:28:38.406 INFO  [http-nio-1236-exec-2] [21079ab44273482a98d118dabc0658e6] o.e.s.service.TourOrderService - 行程订单取消成功：订单号=TR20260519155846eb8f
+2026-05-19 16:28:38.409 INFO  [http-nio-1236-exec-2] [21079ab44273482a98d118dabc0658e6] o.e.springboot.aspect.LogAspect - http_access method=PUT path=/api/tour-order/119/cancel status=200 durationMs=15 ip=192.168.2.6 operation=TourOrderController.cancelOrder userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:38.447 INFO  [http-nio-1236-exec-9] [21c0070f680d47c194e32fc312325232] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:38.448 INFO  [http-nio-1236-exec-4] [d6df957c0f8243758f977e6c8d20b321] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:38.449 INFO  [http-nio-1236-exec-9] [21c0070f680d47c194e32fc312325232] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:38.449 INFO  [http-nio-1236-exec-4] [d6df957c0f8243758f977e6c8d20b321] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:38.457 INFO  [http-nio-1236-exec-9] [21c0070f680d47c194e32fc312325232] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour-order/user status=200 durationMs=6 ip=192.168.2.6 operation=TourOrderController.getUserOrders userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:38.465 INFO  [http-nio-1236-exec-4] [d6df957c0f8243758f977e6c8d20b321] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour-order/user status=200 durationMs=14 ip=192.168.2.6 operation=TourOrderController.getUserOrders userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:28:49.210 INFO  [http-nio-1236-exec-6] [b9a0f49b24314483ac0527f26eaa78b0] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:8
+2026-05-19 16:28:49.210 INFO  [http-nio-1236-exec-8] [4d9ccaa6c7e748d1aa46d26d558aefe9] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:8
+2026-05-19 16:28:49.210 INFO  [http-nio-1236-exec-8] [4d9ccaa6c7e748d1aa46d26d558aefe9] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:8
+2026-05-19 16:28:49.211 INFO  [http-nio-1236-exec-6] [b9a0f49b24314483ac0527f26eaa78b0] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:8
+2026-05-19 16:28:49.215 INFO  [http-nio-1236-exec-6] [b9a0f49b24314483ac0527f26eaa78b0] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-05-19 16:28:49.218 INFO  [http-nio-1236-exec-8] [4d9ccaa6c7e748d1aa46d26d558aefe9] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/sys/log/page status=200 durationMs=5 ip=192.168.2.6 operation=SysLogController.getLogsByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-05-19 16:28:58.193 INFO  [http-nio-1236-exec-7] [3034a3f165ce41968953c662312be74e] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:28:58.194 INFO  [http-nio-1236-exec-7] [3034a3f165ce41968953c662312be74e] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:28:58.218 INFO  [http-nio-1236-exec-7] [3034a3f165ce41968953c662312be74e] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic-collection/user status=200 durationMs=18 ip=192.168.2.6 operation=ScenicCollectionController.getUserCollections userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:29:01.894 INFO  [http-nio-1236-exec-2] [ffc1e3fffeda452ca97c2815efc67945] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:29:01.896 INFO  [http-nio-1236-exec-2] [ffc1e3fffeda452ca97c2815efc67945] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:29:01.920 INFO  [http-nio-1236-exec-2] [ffc1e3fffeda452ca97c2815efc67945] o.e.springboot.aspect.LogAspect - http_access method=DELETE path=/api/scenic-collection/3 status=200 durationMs=22 ip=192.168.2.6 operation=ScenicCollectionController.cancelCollection userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:29:05.424 INFO  [http-nio-1236-exec-9] [68108d04f4b84deab42f44b7a22f7362] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:29:05.425 INFO  [http-nio-1236-exec-9] [68108d04f4b84deab42f44b7a22f7362] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:29:05.448 ERROR [http-nio-1236-exec-9] [68108d04f4b84deab42f44b7a22f7362] o.e.springboot.aspect.LogAspect - http_access method=DELETE path=/api/scenic-collection/3 status=500 durationMs=22 ip=192.168.2.6 operation=ScenicCollectionController.cancelCollection userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0 error=ServiceException: 取消收藏失败，可能未收藏该景点
+org.example.springboot.exception.ServiceException: 取消收藏失败，可能未收藏该景点
+	at org.example.springboot.service.ScenicCollectionService.cancelCollection(ScenicCollectionService.java:88)
+	at org.example.springboot.controller.ScenicCollectionController.cancelCollection(ScenicCollectionController.java:36)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:352)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.aspectj.MethodInvocationProceedingJoinPoint.proceed(MethodInvocationProceedingJoinPoint.java:89)
+	at org.example.springboot.aspect.OperationLogAspect.around(OperationLogAspect.java:57)
+	at jdk.internal.reflect.GeneratedMethodAccessor119.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethodWithGivenArgs(AbstractAspectJAdvice.java:637)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethod(AbstractAspectJAdvice.java:627)
+	at org.springframework.aop.aspectj.AspectJAroundAdvice.invoke(AspectJAroundAdvice.java:71)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.aspectj.MethodInvocationProceedingJoinPoint.proceed(MethodInvocationProceedingJoinPoint.java:89)
+	at org.example.springboot.aspect.LogAspect.around(LogAspect.java:39)
+	at jdk.internal.reflect.GeneratedMethodAccessor118.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethodWithGivenArgs(AbstractAspectJAdvice.java:637)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethod(AbstractAspectJAdvice.java:627)
+	at org.springframework.aop.aspectj.AspectJAroundAdvice.invoke(AspectJAroundAdvice.java:71)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.interceptor.ExposeInvocationInterceptor.invoke(ExposeInvocationInterceptor.java:97)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:717)
+	at org.example.springboot.controller.ScenicCollectionController$$SpringCGLIB$$0.cancelCollection(<generated>)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:254)
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:182)
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:917)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:829)
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+	at org.springframework.web.servlet.FrameworkServlet.doDelete(FrameworkServlet.java:936)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:596)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:205)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at com.github.xiaoymin.knife4j.extend.filter.basic.JakartaServletSecurityBasicAuthFilter.doFilter(JakartaServletSecurityBasicAuthFilter.java:55)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:110)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.security.web.FilterChainProxy.lambda$doFilterInternal$3(FilterChainProxy.java:231)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:365)
+	at org.springframework.security.web.access.intercept.AuthorizationFilter.doFilter(AuthorizationFilter.java:100)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:126)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:120)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.authentication.AnonymousAuthenticationFilter.doFilter(AnonymousAuthenticationFilter.java:100)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter.doFilter(SecurityContextHolderAwareRequestFilter.java:179)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.savedrequest.RequestCacheAwareFilter.doFilter(RequestCacheAwareFilter.java:63)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:107)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:93)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90)
+	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:82)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:69)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:62)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:233)
+	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:191)
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:352)
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:268)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.filter.RequestTraceFilter.doFilterInternal(RequestTraceFilter.java:34)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:115)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:340)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:391)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:896)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1744)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
+	at java.base/java.lang.Thread.run(Thread.java:842)
+2026-05-19 16:29:05.457 ERROR [http-nio-1236-exec-9] [68108d04f4b84deab42f44b7a22f7362] o.e.s.e.GlobalExceptionHandler - 取消收藏失败，可能未收藏该景点
+org.example.springboot.exception.ServiceException: 取消收藏失败，可能未收藏该景点
+	at org.example.springboot.service.ScenicCollectionService.cancelCollection(ScenicCollectionService.java:88)
+	at org.example.springboot.controller.ScenicCollectionController.cancelCollection(ScenicCollectionController.java:36)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:352)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.aspectj.MethodInvocationProceedingJoinPoint.proceed(MethodInvocationProceedingJoinPoint.java:89)
+	at org.example.springboot.aspect.OperationLogAspect.around(OperationLogAspect.java:57)
+	at jdk.internal.reflect.GeneratedMethodAccessor119.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethodWithGivenArgs(AbstractAspectJAdvice.java:637)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethod(AbstractAspectJAdvice.java:627)
+	at org.springframework.aop.aspectj.AspectJAroundAdvice.invoke(AspectJAroundAdvice.java:71)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.aspectj.MethodInvocationProceedingJoinPoint.proceed(MethodInvocationProceedingJoinPoint.java:89)
+	at org.example.springboot.aspect.LogAspect.around(LogAspect.java:39)
+	at jdk.internal.reflect.GeneratedMethodAccessor118.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethodWithGivenArgs(AbstractAspectJAdvice.java:637)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethod(AbstractAspectJAdvice.java:627)
+	at org.springframework.aop.aspectj.AspectJAroundAdvice.invoke(AspectJAroundAdvice.java:71)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.interceptor.ExposeInvocationInterceptor.invoke(ExposeInvocationInterceptor.java:97)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:717)
+	at org.example.springboot.controller.ScenicCollectionController$$SpringCGLIB$$0.cancelCollection(<generated>)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:254)
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:182)
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:917)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:829)
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+	at org.springframework.web.servlet.FrameworkServlet.doDelete(FrameworkServlet.java:936)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:596)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:205)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at com.github.xiaoymin.knife4j.extend.filter.basic.JakartaServletSecurityBasicAuthFilter.doFilter(JakartaServletSecurityBasicAuthFilter.java:55)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:110)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.security.web.FilterChainProxy.lambda$doFilterInternal$3(FilterChainProxy.java:231)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:365)
+	at org.springframework.security.web.access.intercept.AuthorizationFilter.doFilter(AuthorizationFilter.java:100)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:126)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:120)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.authentication.AnonymousAuthenticationFilter.doFilter(AnonymousAuthenticationFilter.java:100)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter.doFilter(SecurityContextHolderAwareRequestFilter.java:179)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.savedrequest.RequestCacheAwareFilter.doFilter(RequestCacheAwareFilter.java:63)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:107)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:93)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90)
+	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:82)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:69)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:62)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:233)
+	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:191)
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:352)
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:268)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.filter.RequestTraceFilter.doFilterInternal(RequestTraceFilter.java:34)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:115)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:340)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:391)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:896)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1744)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
+	at java.base/java.lang.Thread.run(Thread.java:842)
+2026-05-19 16:29:09.599 INFO  [http-nio-1236-exec-4] [a85f7888d31343219fa05ed7bb31fe20] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:29:09.599 INFO  [http-nio-1236-exec-5] [568922981fb8420aad4f4f9fe105edc8] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:29:09.600 INFO  [http-nio-1236-exec-5] [568922981fb8420aad4f4f9fe105edc8] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:29:09.600 INFO  [http-nio-1236-exec-4] [a85f7888d31343219fa05ed7bb31fe20] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:29:09.607 INFO  [http-nio-1236-exec-5] [568922981fb8420aad4f4f9fe105edc8] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:29:09.620 INFO  [http-nio-1236-exec-4] [a85f7888d31343219fa05ed7bb31fe20] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic-collection/user status=200 durationMs=16 ip=192.168.2.6 operation=ScenicCollectionController.getUserCollections userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:29:12.589 INFO  [http-nio-1236-exec-7] [c5252e8feac64bb5a48899386551c659] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:29:12.591 INFO  [http-nio-1236-exec-7] [c5252e8feac64bb5a48899386551c659] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:29:12.613 INFO  [http-nio-1236-exec-7] [c5252e8feac64bb5a48899386551c659] o.e.springboot.aspect.LogAspect - http_access method=DELETE path=/api/scenic-collection/4 status=200 durationMs=20 ip=192.168.2.6 operation=ScenicCollectionController.cancelCollection userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:29:22.074 INFO  [http-nio-1236-exec-1] [abbef847888b496299366107e17fd81f] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:29:22.075 INFO  [http-nio-1236-exec-1] [abbef847888b496299366107e17fd81f] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:29:22.082 INFO  [http-nio-1236-exec-1] [abbef847888b496299366107e17fd81f] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour-collection/user status=200 durationMs=6 ip=192.168.2.6 operation=TourCollectionController.getUserCollections userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:29:25.376 INFO  [http-nio-1236-exec-10] [1c737c0b9fa3494585b7fcd3160f2525] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:29:25.378 INFO  [http-nio-1236-exec-3] [62668562e78e4b1e88f8b6cef90c4675] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:29:25.384 INFO  [http-nio-1236-exec-10] [1c737c0b9fa3494585b7fcd3160f2525] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:29:25.385 INFO  [http-nio-1236-exec-3] [62668562e78e4b1e88f8b6cef90c4675] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:29:25.389 INFO  [http-nio-1236-exec-10] [1c737c0b9fa3494585b7fcd3160f2525] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:29:25.400 INFO  [http-nio-1236-exec-3] [62668562e78e4b1e88f8b6cef90c4675] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic-collection/user status=200 durationMs=13 ip=192.168.2.6 operation=ScenicCollectionController.getUserCollections userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:29:59.281 INFO  [http-nio-1236-exec-9] [93dbca7d0baf4fe68373deea053ff021] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:29:59.282 INFO  [http-nio-1236-exec-9] [93dbca7d0baf4fe68373deea053ff021] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:29:59.288 INFO  [http-nio-1236-exec-9] [93dbca7d0baf4fe68373deea053ff021] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour-collection/user status=200 durationMs=4 ip=192.168.2.6 operation=TourCollectionController.getUserCollections userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:04.800 INFO  [http-nio-1236-exec-8] [2553d51e4aa64c41b45b4d9e6803fff7] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:8
+2026-05-19 16:30:04.800 INFO  [http-nio-1236-exec-4] [b458fb34edf341749b0e1a32a6bee70b] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:8
+2026-05-19 16:30:04.801 INFO  [http-nio-1236-exec-8] [2553d51e4aa64c41b45b4d9e6803fff7] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:8
+2026-05-19 16:30:04.801 INFO  [http-nio-1236-exec-4] [b458fb34edf341749b0e1a32a6bee70b] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:8
+2026-05-19 16:30:04.805 INFO  [http-nio-1236-exec-4] [b458fb34edf341749b0e1a32a6bee70b] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-05-19 16:30:04.807 INFO  [http-nio-1236-exec-8] [2553d51e4aa64c41b45b4d9e6803fff7] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/sys/log/page status=200 durationMs=4 ip=192.168.2.6 operation=SysLogController.getLogsByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-05-19 16:30:21.326 INFO  [http-nio-1236-exec-6] [9750f7bff4db42c7b8ede8ebfe3d4209] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:21.326 INFO  [http-nio-1236-exec-7] [5f613fe86a0e4c4497cc55cfa80d057a] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:21.328 INFO  [http-nio-1236-exec-7] [5f613fe86a0e4c4497cc55cfa80d057a] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:21.328 INFO  [http-nio-1236-exec-6] [9750f7bff4db42c7b8ede8ebfe3d4209] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:21.332 INFO  [http-nio-1236-exec-6] [9750f7bff4db42c7b8ede8ebfe3d4209] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:21.337 INFO  [http-nio-1236-exec-7] [5f613fe86a0e4c4497cc55cfa80d057a] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic-collection/user status=200 durationMs=8 ip=192.168.2.6 operation=ScenicCollectionController.getUserCollections userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:22.695 INFO  [http-nio-1236-exec-10] [207f4baa9a27465db8f37c19fa5187b9] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:22.696 INFO  [http-nio-1236-exec-10] [207f4baa9a27465db8f37c19fa5187b9] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:22.703 INFO  [http-nio-1236-exec-10] [207f4baa9a27465db8f37c19fa5187b9] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour-collection/user status=200 durationMs=5 ip=192.168.2.6 operation=TourCollectionController.getUserCollections userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:24.425 INFO  [http-nio-1236-exec-3] [d466c99514484979928fe2ea2723aae9] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:24.426 INFO  [http-nio-1236-exec-3] [d466c99514484979928fe2ea2723aae9] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:24.436 INFO  [http-nio-1236-exec-3] [d466c99514484979928fe2ea2723aae9] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/collection/page status=200 durationMs=8 ip=192.168.2.6 operation=CollectionController.getCollectionsByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:27.237 INFO  [http-nio-1236-exec-5] [ffbde733db3c445aaa343328953c00c8] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:27.237 INFO  [http-nio-1236-exec-4] [95a13516ed624eecaf907fe0d04d53aa] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:27.238 INFO  [http-nio-1236-exec-5] [ffbde733db3c445aaa343328953c00c8] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:27.238 INFO  [http-nio-1236-exec-4] [95a13516ed624eecaf907fe0d04d53aa] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:27.242 INFO  [http-nio-1236-exec-5] [ffbde733db3c445aaa343328953c00c8] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:27.253 INFO  [http-nio-1236-exec-4] [95a13516ed624eecaf907fe0d04d53aa] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic-collection/user status=200 durationMs=12 ip=192.168.2.6 operation=ScenicCollectionController.getUserCollections userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:36.153 INFO  [http-nio-1236-exec-6] [dbff0951fac247938257da411a63992a] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:36.154 INFO  [http-nio-1236-exec-6] [dbff0951fac247938257da411a63992a] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:36.159 INFO  [http-nio-1236-exec-6] [dbff0951fac247938257da411a63992a] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/page status=200 durationMs=4 ip=192.168.2.6 operation=SiteNotificationController.page userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:36.175 INFO  [http-nio-1236-exec-7] [2b4169857e8a4df18f27ad37b38f5d5b] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:36.176 INFO  [http-nio-1236-exec-7] [2b4169857e8a4df18f27ad37b38f5d5b] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:36.178 INFO  [http-nio-1236-exec-7] [2b4169857e8a4df18f27ad37b38f5d5b] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:36.394 INFO  [http-nio-1236-exec-10] [43de5d833b094279887e1dac00fc0f00] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:36.395 INFO  [http-nio-1236-exec-2] [48dfbd91d7514a638b596bc7fc96021c] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:36.395 INFO  [http-nio-1236-exec-10] [43de5d833b094279887e1dac00fc0f00] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:36.395 INFO  [http-nio-1236-exec-2] [48dfbd91d7514a638b596bc7fc96021c] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:36.395 INFO  [http-nio-1236-exec-3] [3be8175f01f042baa3d2b281cd2b7c82] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/user/current status=200 durationMs=1 ip=192.168.2.6 operation=UserController.getCurrentUser userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:36.402 INFO  [http-nio-1236-exec-10] [43de5d833b094279887e1dac00fc0f00] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/page status=200 durationMs=6 ip=192.168.2.6 operation=SiteNotificationController.page userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:36.403 INFO  [http-nio-1236-exec-2] [48dfbd91d7514a638b596bc7fc96021c] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/page status=200 durationMs=7 ip=192.168.2.6 operation=SiteNotificationController.page userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:36.432 INFO  [http-nio-1236-exec-5] [a0b308e3f9d549fc95ed01e6e9fc6929] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:36.433 INFO  [http-nio-1236-exec-5] [a0b308e3f9d549fc95ed01e6e9fc6929] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:36.435 INFO  [http-nio-1236-exec-4] [cd2107401a71418881fa480cc0b68f52] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:36.435 INFO  [http-nio-1236-exec-4] [cd2107401a71418881fa480cc0b68f52] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:36.437 INFO  [http-nio-1236-exec-5] [a0b308e3f9d549fc95ed01e6e9fc6929] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:36.439 INFO  [http-nio-1236-exec-4] [cd2107401a71418881fa480cc0b68f52] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:43.351 INFO  [http-nio-1236-exec-8] [0472aa4652a74bc7af481d1715446c06] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:43.352 INFO  [http-nio-1236-exec-8] [0472aa4652a74bc7af481d1715446c06] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:43.358 INFO  [http-nio-1236-exec-8] [0472aa4652a74bc7af481d1715446c06] o.e.springboot.aspect.LogAspect - http_access method=PUT path=/api/notification/34/read status=200 durationMs=5 ip=192.168.2.6 operation=SiteNotificationController.markRead userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:43.372 INFO  [http-nio-1236-exec-6] [1dccc565600e4b24855ea0de8944088c] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:43.372 INFO  [http-nio-1236-exec-6] [1dccc565600e4b24855ea0de8944088c] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:43.375 INFO  [http-nio-1236-exec-6] [1dccc565600e4b24855ea0de8944088c] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:44.055 INFO  [http-nio-1236-exec-7] [147b9c98e5f846ad9455be1ca60245ce] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:44.055 INFO  [http-nio-1236-exec-7] [147b9c98e5f846ad9455be1ca60245ce] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:44.064 INFO  [http-nio-1236-exec-7] [147b9c98e5f846ad9455be1ca60245ce] o.e.springboot.aspect.LogAspect - http_access method=PUT path=/api/notification/33/read status=200 durationMs=7 ip=192.168.2.6 operation=SiteNotificationController.markRead userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:30:44.080 INFO  [http-nio-1236-exec-3] [112f0d04ceaf4d4e90ee69da671c283c] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:30:44.081 INFO  [http-nio-1236-exec-3] [112f0d04ceaf4d4e90ee69da671c283c] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:30:44.084 INFO  [http-nio-1236-exec-3] [112f0d04ceaf4d4e90ee69da671c283c] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:31:04.276 INFO  [http-nio-1236-exec-1] [b14082426a364abb86ff33e4d4ef7edd] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:31:04.277 INFO  [http-nio-1236-exec-1] [b14082426a364abb86ff33e4d4ef7edd] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:31:04.292 INFO  [http-nio-1236-exec-1] [b14082426a364abb86ff33e4d4ef7edd] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/list status=200 durationMs=14 ip=192.168.2.6 operation=TourController.getActiveTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:31:32.104 INFO  [http-nio-1236-exec-7] [a4fee73d60e545fc99b80eb440a6d324] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:31:32.104 INFO  [http-nio-1236-exec-4] [7fe26d153be34baeb79055e44b1469d7] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:31:32.104 INFO  [http-nio-1236-exec-6] [6a473fbc672140ff861ce9ab131c9f03] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:31:32.104 INFO  [http-nio-1236-exec-8] [efc01943f7ca4d438bfef4deda12f9c7] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:31:32.105 INFO  [http-nio-1236-exec-8] [efc01943f7ca4d438bfef4deda12f9c7] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:31:32.105 INFO  [http-nio-1236-exec-4] [7fe26d153be34baeb79055e44b1469d7] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:31:32.105 INFO  [http-nio-1236-exec-6] [6a473fbc672140ff861ce9ab131c9f03] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:31:32.105 INFO  [http-nio-1236-exec-7] [a4fee73d60e545fc99b80eb440a6d324] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:31:32.107 INFO  [http-nio-1236-exec-4] [7fe26d153be34baeb79055e44b1469d7] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=1 ip=192.168.2.6 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:31:32.108 INFO  [http-nio-1236-exec-8] [efc01943f7ca4d438bfef4deda12f9c7] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=2 ip=192.168.2.6 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:31:32.109 INFO  [http-nio-1236-exec-7] [a4fee73d60e545fc99b80eb440a6d324] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/hot status=200 durationMs=3 ip=192.168.2.6 operation=TravelGuideController.getHotGuides userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:31:32.138 INFO  [http-nio-1236-exec-6] [6a473fbc672140ff861ce9ab131c9f03] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=32 ip=192.168.2.6 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:33:37.265 INFO  [http-nio-1236-exec-1] [22f2bb98a7e74073b634e18363d12468] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:33:37.265 INFO  [http-nio-1236-exec-10] [9c15c745decf49ed9c5c42ffcba91332] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:33:37.265 INFO  [http-nio-1236-exec-2] [94002b76af8b42bfa76bf838e9efa8e9] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:33:37.265 INFO  [http-nio-1236-exec-3] [eeedb448cb4046ec80fc6b8ded48dde4] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:33:37.266 INFO  [http-nio-1236-exec-1] [22f2bb98a7e74073b634e18363d12468] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:33:37.266 INFO  [http-nio-1236-exec-10] [9c15c745decf49ed9c5c42ffcba91332] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:33:37.266 INFO  [http-nio-1236-exec-3] [eeedb448cb4046ec80fc6b8ded48dde4] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:33:37.266 INFO  [http-nio-1236-exec-2] [94002b76af8b42bfa76bf838e9efa8e9] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:33:37.268 INFO  [http-nio-1236-exec-3] [eeedb448cb4046ec80fc6b8ded48dde4] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=1 ip=192.168.2.6 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:33:37.269 INFO  [http-nio-1236-exec-1] [22f2bb98a7e74073b634e18363d12468] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=2 ip=192.168.2.6 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:33:37.271 INFO  [http-nio-1236-exec-2] [94002b76af8b42bfa76bf838e9efa8e9] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/hot status=200 durationMs=3 ip=192.168.2.6 operation=TravelGuideController.getHotGuides userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:33:37.289 INFO  [http-nio-1236-exec-10] [9c15c745decf49ed9c5c42ffcba91332] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=22 ip=192.168.2.6 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:43:33.102 INFO  [http-nio-1236-exec-5] [c4fc53ee058f4e1685b6db68b3e6654c] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:43:33.104 INFO  [http-nio-1236-exec-5] [c4fc53ee058f4e1685b6db68b3e6654c] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:43:33.122 INFO  [http-nio-1236-exec-5] [c4fc53ee058f4e1685b6db68b3e6654c] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/list status=200 durationMs=17 ip=192.168.2.6 operation=TourController.getActiveTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:43:35.373 INFO  [http-nio-1236-exec-8] [d4e4369d872341ffbe9c2097271c8018] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:43:35.373 INFO  [http-nio-1236-exec-6] [e0aadf50e57944339555c4ee4b6a2b96] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:43:35.373 INFO  [http-nio-1236-exec-9] [eb7599f454e44e0081cf5fe596fbc013] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:43:35.373 INFO  [http-nio-1236-exec-3] [57b60c36e4ee4fffab497c112aa64f2d] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:43:35.373 INFO  [http-nio-1236-exec-6] [e0aadf50e57944339555c4ee4b6a2b96] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:43:35.373 INFO  [http-nio-1236-exec-8] [d4e4369d872341ffbe9c2097271c8018] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:43:35.373 INFO  [http-nio-1236-exec-3] [57b60c36e4ee4fffab497c112aa64f2d] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:43:35.374 INFO  [http-nio-1236-exec-9] [eb7599f454e44e0081cf5fe596fbc013] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:43:35.376 INFO  [http-nio-1236-exec-8] [d4e4369d872341ffbe9c2097271c8018] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=1 ip=192.168.2.6 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:43:35.377 INFO  [http-nio-1236-exec-6] [e0aadf50e57944339555c4ee4b6a2b96] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=3 ip=192.168.2.6 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:43:35.381 INFO  [http-nio-1236-exec-3] [57b60c36e4ee4fffab497c112aa64f2d] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/hot status=200 durationMs=6 ip=192.168.2.6 operation=TravelGuideController.getHotGuides userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:43:35.406 INFO  [http-nio-1236-exec-9] [eb7599f454e44e0081cf5fe596fbc013] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=31 ip=192.168.2.6 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:44:04.704 INFO  [http-nio-1236-exec-1] [c88e8521945b46a99e4f87e22706311c] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:44:04.706 INFO  [http-nio-1236-exec-1] [c88e8521945b46a99e4f87e22706311c] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:44:04.711 INFO  [http-nio-1236-exec-1] [c88e8521945b46a99e4f87e22706311c] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/page status=200 durationMs=4 ip=192.168.2.6 operation=SiteNotificationController.page userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0
+2026-05-19 16:44:04.724 INFO  [http-nio-1236-exec-2] [193153ee201a4ac7883329374a5f6c30] o.e.s.aspect.RedisCacheAspect - Redis缓存键: user:3
+2026-05-19 16:44:04.724 INFO  [http-nio-1236-exec-2] [193153ee201a4ac7883329374a5f6c30] o.e.s.aspect.RedisCacheAspect - 从缓存获取数据: user:3
+2026-05-19 16:44:04.726 INFO  [http-nio-1236-exec-2] [193153ee201a4ac7883329374a5f6c30] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=1 ip=192.168.2.6 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0

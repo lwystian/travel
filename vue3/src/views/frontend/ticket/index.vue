@@ -526,6 +526,8 @@ const allCityOptions = computed(() => {
 // 特殊目的地代码映射
 const specialDestinationMap = {
   'xisha': '西沙群岛',
+  'sanxia': '三峡',
+  'sanyan': '三峡',
   'sanya': '三亚',
   'chongqing': '重庆',
   'chengdu': '成都',
