@@ -27,17 +27,18 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/user/login").permitAll()
+                        .requestMatchers("/user/login", "/api/auth/**", "/auth/**").permitAll()
                         .anyRequest().permitAll()
                 )
                 .headers(headers -> headers
                         .contentSecurityPolicy(csp -> csp.policyDirectives(
                                 "default-src 'self'; " +
-                                        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://webapi.amap.com https://*.amap.com https://openapi.alipay.com https://mapi.alipay.com; " +
+                                        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://webapi.amap.com https://*.amap.com https://openapi.alipay.com https://mapi.alipay.com https://static.geetest.com https://*.geetest.com; " +
                                         "style-src 'self' 'unsafe-inline' https://webapi.amap.com https://*.amap.com; " +
                                         "img-src 'self' data: blob: https:; " +
                                         "font-src 'self' data:; " +
-                                        "connect-src 'self' https://webapi.amap.com https://*.amap.com https://openapi.alipay.com https://mapi.alipay.com; " +
+                                        "connect-src 'self' https://webapi.amap.com https://*.amap.com https://openapi.alipay.com https://mapi.alipay.com https://gcaptcha4.geetest.com https://*.geetest.com; " +
+                                        "frame-src 'self' https://*.geetest.com; " +
                                         "frame-ancestors 'self'; object-src 'none'; base-uri 'self'"
                         ))
                         .frameOptions(frame -> frame.sameOrigin())

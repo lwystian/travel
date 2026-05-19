@@ -12,8 +12,11 @@ public class SecurityProperties {
     private List<String> allowedOrigins = new ArrayList<>(List.of(
             "http://localhost:8080",
             "http://127.0.0.1:8080",
+            "http://localhost:8081",
+            "http://127.0.0.1:8081",
             "http://localhost:5173",
-            "http://127.0.0.1:5173"
+            "http://127.0.0.1:5173",
+            "http://192.168.*:*"
     ));
     private List<String> allowedMethods = new ArrayList<>(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
     private List<String> allowedHeaders = new ArrayList<>(List.of(
@@ -26,6 +29,7 @@ public class SecurityProperties {
     private boolean originCheckEnabled = true;
     private boolean sqlInjectionCheckEnabled = true;
     private boolean xssProtectionEnabled = true;
+    private boolean passwordEncryptionEnabled = false;
 
     public List<String> getAllowedOrigins() {
         return allowedOrigins;
@@ -73,5 +77,13 @@ public class SecurityProperties {
 
     public void setXssProtectionEnabled(boolean xssProtectionEnabled) {
         this.xssProtectionEnabled = xssProtectionEnabled;
+    }
+
+    public boolean isPasswordEncryptionEnabled() {
+        return passwordEncryptionEnabled;
+    }
+
+    public void setPasswordEncryptionEnabled(boolean passwordEncryptionEnabled) {
+        this.passwordEncryptionEnabled = passwordEncryptionEnabled;
     }
 }

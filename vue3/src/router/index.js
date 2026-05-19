@@ -106,6 +106,12 @@ export const backendRoutes = [
         meta: { title: '支付配置', icon: 'Wallet' }
       },
       {
+        path: 'auth-config',
+        name: 'AuthConfigManagement',
+        component: () => import('@/views/backend/auth/AuthConfig.vue'),
+        meta: { title: '认证配置', icon: 'Lock' }
+      },
+      {
         path: 'review',
         name: 'ReviewManagement',
         component: () => import('@/views/backend/review/ReviewManager.vue'),

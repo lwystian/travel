@@ -1,4 +1,5 @@
 const { defineConfig } = require('@vue/cli-service')
+const proxyTarget = process.env.VUE_APP_PROXY_TARGET || 'http://localhost:3001'
 module.exports = defineConfig({
   transpileDependencies: true,
   chainWebpack: config => {
@@ -17,11 +18,11 @@ module.exports = defineConfig({
     port: 8081,
     proxy: {
       '^/api': {
-        target: 'http://localhost:1236',
+        target: proxyTarget,
         changeOrigin: true
       },
       '^/img': {
-        target: 'http://localhost:1236',
+        target: proxyTarget,
         changeOrigin: true
       }
     },

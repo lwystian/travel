@@ -23,6 +23,7 @@ public class WebConfig implements WebMvcConfigurer {
     // 定义不需要JWT验证的路径
     private static final String[] PUBLIC_PATHS = {
         "/api/user/login",      // 登录接口
+        "/api/auth/**",         // 手机号登录注册、短信验证码、极验公开配置
         "/api/user/forget",     // 忘记密码接口
         "/api/user/add",        // 用户注册接口
         "/api/user/{id}",       // 用户信息查询接口

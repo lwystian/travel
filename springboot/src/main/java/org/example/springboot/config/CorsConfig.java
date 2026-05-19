@@ -19,8 +19,14 @@ public class CorsConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(false);
-        securityProperties.getAllowedOrigins().forEach(config::addAllowedOrigin);
-        securityProperties.getAllowedHeaders().forEach(config::addAllowedHeader);
+        securityProperties.getAllowedOrigins().forEach(origin -> {
+            if (origin.contains("*")) {
+                config.addAllowedOriginPattern(origin);
+            } else {
+                config.addAllowedOrigin(origin);
+            }
+        });
+        config.addAllowedHeader("*");
         securityProperties.getAllowedMethods().forEach(config::addAllowedMethod);
         config.addExposedHeader("X-Refresh-Token");
         config.addExposedHeader("X-Token-Expire");

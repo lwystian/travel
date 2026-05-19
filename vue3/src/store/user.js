@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import request from '@/utils/request'
-import { login, register } from '@/api/user'
+import { encryptPassword } from '@/utils/passwordCrypto'
 // import { setToken, removeToken } from '@/utils/auth'
 
 const TOKEN_EXPIRE_KEY = 'tokenExpire'
@@ -108,7 +108,12 @@ export const useUserStore = defineStore('user', {
     // 登录
     async login(loginForm) {
       try {
-        const res = await request.post('/user/login', loginForm)
+        const encryptedPassword = await encryptPassword(loginForm.password)
+        const res = await request.post('/auth/login/password', {
+          phone: loginForm.phone,
+          encryptedPassword,
+          agreementAccepted: loginForm.agreementAccepted === true
+        })
         this.setUserInfo(res)
         return res
       } catch (error) {

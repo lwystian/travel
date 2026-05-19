@@ -53,7 +53,18 @@ public class CsrfOriginFilter extends OncePerRequestFilter {
         if (origin == null || origin.isBlank()) {
             return false;
         }
-        return securityProperties.getAllowedOrigins().stream().anyMatch(allowed -> allowed.equalsIgnoreCase(origin));
+        return securityProperties.getAllowedOrigins().stream().anyMatch(allowed -> {
+            if (allowed.equalsIgnoreCase(origin)) {
+                return true;
+            }
+            if (allowed.contains("*")) {
+                String regex = allowed
+                        .replace(".", "\\.")
+                        .replace("*", ".*");
+                return origin.matches(regex);
+            }
+            return false;
+        });
     }
 
     private boolean isAllowedReferer(String referer) {

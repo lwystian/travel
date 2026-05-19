@@ -90,6 +90,94 @@ public class UserService {
         return generateLoginResponse(dbUser);
     }
 
+    public User loginByPhonePassword(String phone, String password) {
+        if (StringUtils.isBlank(phone) || !phone.matches("^1[3-9]\\d{9}$")) {
+            throw new ServiceException("请输入正确的手机号");
+        }
+        if (StringUtils.isBlank(password)) {
+            throw new ServiceException("请输入密码");
+        }
+        User dbUser = getByPhone(phone);
+        validateLoginStatus(dbUser);
+        if (!bCryptPasswordEncoder.matches(password, dbUser.getPassword())) {
+            throw new ServiceException("手机号或密码错误");
+        }
+        return generateLoginResponse(dbUser);
+    }
+
+    public User loginByPhoneCode(String phone) {
+        if (StringUtils.isBlank(phone) || !phone.matches("^1[3-9]\\d{9}$")) {
+            throw new ServiceException("请输入正确的手机号");
+        }
+        User dbUser = getByPhone(phone);
+        validateLoginStatus(dbUser);
+        return generateLoginResponse(dbUser);
+    }
+
+    public boolean existsByPhone(String phone) {
+        if (StringUtils.isBlank(phone)) {
+            return false;
+        }
+        return userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getPhone, phone)) > 0;
+    }
+
+    public User registerByPhone(String phone, String password) {
+        if (StringUtils.isBlank(phone) || !phone.matches("^1[3-9]\\d{9}$")) {
+            throw new ServiceException("请输入正确的手机号");
+        }
+        if (userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone)) != null) {
+            throw new ServiceException("该手机号已注册，请直接登录");
+        }
+
+        String registerIp = getClientIp();
+        int registerPort = getClientPort();
+        User user = new User();
+        user.setPhone(phone);
+        user.setUsername(generatePhoneUsername(phone));
+        user.setNickname("用户" + phone.substring(phone.length() - 4));
+        user.setPassword(bCryptPasswordEncoder.encode(password));
+        user.setRoleCode("USER");
+        user.setStatus(1);
+        user.setLoginCount(0);
+        user.setRegisterIp(registerIp);
+        user.setRegisterPort(registerPort);
+        user.setCreateTime(LocalDateTime.now());
+        user.setUpdateTime(LocalDateTime.now());
+
+        if (userMapper.insert(user) <= 0) {
+            throw new ServiceException("注册失败，请稍后再试");
+        }
+
+        redisUtil.del(USER_LIST_CACHE_KEY);
+        redisUtil.delByPrefix(USER_PAGE_CACHE_PREFIX);
+        siteNotificationService.sendToUser(user.getId(), "注册成功",
+                "欢迎加入侠客行国旅，你可以浏览景点、发布攻略、收藏行程并管理订单。",
+                "ACCOUNT", "REGISTER", String.valueOf(user.getId()), "/profile");
+        return user;
+    }
+
+    private void validateLoginStatus(User dbUser) {
+        if (dbUser.getStatus() != null && dbUser.getStatus().equals(AccountStatus.PENDING_REVIEW.getValue())) {
+            throw new ServiceException("账号正在审核");
+        }
+        if (dbUser.getStatus() != null && dbUser.getStatus().equals(AccountStatus.REVIEW_FAILED.getValue())) {
+            throw new ServiceException("账号审核未通过，请联系管理员");
+        }
+        if (dbUser.getStatus() != null && dbUser.getStatus() == 0) {
+            throw new ServiceException("账号已被禁用，请联系管理员");
+        }
+    }
+
+    private String generatePhoneUsername(String phone) {
+        String base = "u" + phone.substring(phone.length() - 4);
+        String username = base;
+        int index = 1;
+        while (userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getUsername, username)) > 0) {
+            username = base + index++;
+        }
+        return username;
+    }
+
     private User generateLoginResponse(User dbUser) {
         String loginIp = getClientIp();
         int loginPort = getClientPort();
