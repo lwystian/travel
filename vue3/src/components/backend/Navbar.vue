@@ -16,6 +16,8 @@
           <component :is="isFullscreen ? Aim : FullScreen" />
         </el-icon>
       </div>
+
+      <NotificationBell />
       
       <el-dropdown trigger="click">
         <div class="avatar-wrapper">
@@ -47,6 +49,7 @@ import { useUserStore } from '@/store/user'
 import { useAppStore } from '@/store/app'
 import { ElMessageBox } from 'element-plus'
 import { Expand, Fold, ArrowDown, User, SwitchButton, FullScreen, Aim } from '@element-plus/icons-vue'
+import NotificationBell from '@/components/NotificationBell.vue'
 
 const router = useRouter()
 const route = useRoute()

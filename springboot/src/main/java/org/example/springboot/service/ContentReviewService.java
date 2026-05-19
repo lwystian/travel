@@ -4,9 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.annotation.Resource;
 import org.example.springboot.entity.Comment;
+import org.example.springboot.entity.AccommodationReview;
 import org.example.springboot.entity.TravelGuide;
 import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
+import org.example.springboot.mapper.AccommodationReviewMapper;
+import org.example.springboot.mapper.AccommodationMapper;
 import org.example.springboot.mapper.CommentMapper;
 import org.example.springboot.mapper.TravelGuideMapper;
 import org.example.springboot.mapper.UserMapper;
@@ -15,6 +18,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -36,9 +41,15 @@ public class ContentReviewService {
     
     @Resource
     private CommentMapper commentMapper;
+    @Resource
+    private AccommodationReviewMapper accommodationReviewMapper;
+    @Resource
+    private AccommodationMapper accommodationMapper;
     
     @Resource
     private TravelGuideMapper travelGuideMapper;
+    @Resource
+    private SiteNotificationService siteNotificationService;
     
     // ==================== 评论审核 ====================
     
@@ -111,6 +122,15 @@ public class ContentReviewService {
         commentEntity.setReviewComment(comment);
         
         commentMapper.updateById(commentEntity);
+        siteNotificationService.sendToUser(
+                commentEntity.getUserId(),
+                status == STATUS_APPROVED ? "评论审核通过" : "评论审核未通过",
+                status == STATUS_APPROVED ? "你的评论已审核通过，现在可以在前台展示。" : "你的评论未通过审核，原因：" + (comment == null ? "内容不符合平台规范" : comment),
+                "REVIEW",
+                "COMMENT",
+                String.valueOf(commentId),
+                "/profile"
+        );
         logger.info("评论审核完成，评论ID: {}, 审核结果: {}, 审核人: {}", 
                 commentId, status == STATUS_APPROVED ? "通过" : "拒绝", reviewerName);
     }
@@ -121,6 +141,67 @@ public class ContentReviewService {
     public long getPendingCommentCount() {
         return commentMapper.selectCount(new LambdaQueryWrapper<Comment>()
                 .eq(Comment::getReviewStatus, STATUS_PENDING));
+    }
+
+    // ==================== 住宿评价审核 ====================
+
+    public Page<AccommodationReview> getPendingAccommodationReviews(Integer currentPage, Integer size) {
+        LambdaQueryWrapper<AccommodationReview> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AccommodationReview::getReviewStatus, STATUS_PENDING)
+                .orderByAsc(AccommodationReview::getCreateTime);
+        Page<AccommodationReview> page = accommodationReviewMapper.selectPage(new Page<>(currentPage, size), queryWrapper);
+        fillAccommodationReviewUserInfo(page.getRecords());
+        return page;
+    }
+
+    public Page<AccommodationReview> getAllAccommodationReviews(Integer reviewStatus, Integer currentPage, Integer size) {
+        LambdaQueryWrapper<AccommodationReview> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(reviewStatus != null, AccommodationReview::getReviewStatus, reviewStatus)
+                .orderByDesc(AccommodationReview::getCreateTime);
+        Page<AccommodationReview> page = accommodationReviewMapper.selectPage(new Page<>(currentPage, size), queryWrapper);
+        fillAccommodationReviewUserInfo(page.getRecords());
+        return page;
+    }
+
+    @Transactional
+    public void reviewAccommodationReview(Long reviewId, Integer status, Long reviewerId, String reviewerName, String comment) {
+        AccommodationReview review = accommodationReviewMapper.selectById(reviewId);
+        if (review == null) {
+            throw new ServiceException("住宿评价不存在");
+        }
+        if (review.getReviewStatus() != null && review.getReviewStatus() != STATUS_PENDING) {
+            throw new ServiceException("该住宿评价已审核过，无法重复审核");
+        }
+        if (status != STATUS_APPROVED && status != STATUS_REJECTED) {
+            throw new ServiceException("审核状态无效");
+        }
+
+        review.setReviewStatus(status);
+        review.setReviewerId(reviewerId);
+        review.setReviewerName(reviewerName);
+        review.setReviewTime(LocalDateTime.now());
+        review.setReviewComment(comment);
+        accommodationReviewMapper.updateById(review);
+        if (status == STATUS_APPROVED) {
+            updateAccommodationRating(review.getAccommodationId());
+        }
+
+        siteNotificationService.sendToUser(
+                review.getUserId(),
+                status == STATUS_APPROVED ? "住宿评价审核通过" : "住宿评价审核未通过",
+                status == STATUS_APPROVED ? "你的住宿评价已审核通过，现在可以在前台展示。" : "你的住宿评价未通过审核，原因：" + (comment == null ? "内容不符合平台规范" : comment),
+                "REVIEW",
+                "ACCOMMODATION_REVIEW",
+                String.valueOf(reviewId),
+                review.getAccommodationId() == null ? "/accommodation" : "/accommodation/" + review.getAccommodationId()
+        );
+        logger.info("住宿评价审核完成，评价ID: {}, 审核结果: {}, 审核人: {}",
+                reviewId, status == STATUS_APPROVED ? "通过" : "拒绝", reviewerName);
+    }
+
+    public long getPendingAccommodationReviewCount() {
+        return accommodationReviewMapper.selectCount(new LambdaQueryWrapper<AccommodationReview>()
+                .eq(AccommodationReview::getReviewStatus, STATUS_PENDING));
     }
     
     // ==================== 攻略审核 ====================
@@ -192,6 +273,15 @@ public class ContentReviewService {
         guide.setReviewComment(comment);
         
         travelGuideMapper.updateById(guide);
+        siteNotificationService.sendToUser(
+                guide.getUserId(),
+                status == STATUS_APPROVED ? "攻略审核通过" : "攻略审核未通过",
+                status == STATUS_APPROVED ? "你的攻略《" + guide.getTitle() + "》已审核通过。" : "你的攻略《" + guide.getTitle() + "》未通过审核，原因：" + (comment == null ? "内容不符合平台规范" : comment),
+                "REVIEW",
+                "GUIDE",
+                String.valueOf(guideId),
+                "/my-guide"
+        );
         logger.info("攻略审核完成，攻略ID: {}, 审核结果: {}, 审核人: {}", 
                 guideId, status == STATUS_APPROVED ? "通过" : "拒绝", reviewerName);
     }
@@ -214,11 +304,16 @@ public class ContentReviewService {
         
         stats.put("pendingCommentCount", getPendingCommentCount());
         stats.put("pendingGuideCount", getPendingGuideCount());
+        stats.put("pendingAccommodationReviewCount", getPendingAccommodationReviewCount());
         
         stats.put("approvedCommentCount", commentMapper.selectCount(
                 new LambdaQueryWrapper<Comment>().eq(Comment::getReviewStatus, STATUS_APPROVED)));
         stats.put("rejectedCommentCount", commentMapper.selectCount(
                 new LambdaQueryWrapper<Comment>().eq(Comment::getReviewStatus, STATUS_REJECTED)));
+        stats.put("approvedAccommodationReviewCount", accommodationReviewMapper.selectCount(
+                new LambdaQueryWrapper<AccommodationReview>().eq(AccommodationReview::getReviewStatus, STATUS_APPROVED)));
+        stats.put("rejectedAccommodationReviewCount", accommodationReviewMapper.selectCount(
+                new LambdaQueryWrapper<AccommodationReview>().eq(AccommodationReview::getReviewStatus, STATUS_REJECTED)));
         
         stats.put("approvedGuideCount", travelGuideMapper.selectCount(
                 new LambdaQueryWrapper<TravelGuide>().eq(TravelGuide::getReviewStatus, STATUS_APPROVED)));
@@ -290,6 +385,54 @@ public class ContentReviewService {
                 guide.setUserNickname(user.getNickname() != null ? user.getNickname() : user.getUsername());
                 guide.setUserAvatar(user.getAvatar());
             }
+        }
+    }
+
+    private void fillAccommodationReviewUserInfo(List<AccommodationReview> reviews) {
+        if (reviews == null || reviews.isEmpty()) {
+            return;
+        }
+        List<Long> userIds = reviews.stream()
+                .map(AccommodationReview::getUserId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+        if (userIds.isEmpty()) {
+            return;
+        }
+        List<User> users = userMapper.selectBatchIds(userIds);
+        Map<Long, User> userMap = users.stream()
+                .collect(java.util.stream.Collectors.toMap(User::getId, u -> u));
+        for (AccommodationReview review : reviews) {
+            if (review.getUserId() != null && userMap.containsKey(review.getUserId())) {
+                User user = userMap.get(review.getUserId());
+                review.setNickname(user.getNickname() != null ? user.getNickname() : user.getUsername());
+                review.setAvatar(user.getAvatar());
+            }
+        }
+    }
+
+    private void updateAccommodationRating(Integer accommodationId) {
+        if (accommodationId == null) {
+            return;
+        }
+        List<AccommodationReview> reviews = accommodationReviewMapper.selectList(new LambdaQueryWrapper<AccommodationReview>()
+                .eq(AccommodationReview::getAccommodationId, accommodationId)
+                .eq(AccommodationReview::getReviewStatus, STATUS_APPROVED));
+        if (reviews.isEmpty()) {
+            return;
+        }
+        BigDecimal totalRating = BigDecimal.ZERO;
+        for (AccommodationReview review : reviews) {
+            if (review.getRating() != null) {
+                totalRating = totalRating.add(review.getRating());
+            }
+        }
+        BigDecimal averageRating = totalRating.divide(new BigDecimal(reviews.size()), 1, RoundingMode.HALF_UP);
+        org.example.springboot.entity.Accommodation accommodation = accommodationMapper.selectById(accommodationId);
+        if (accommodation != null) {
+            accommodation.setStarLevel(averageRating);
+            accommodationMapper.updateById(accommodation);
         }
     }
 }

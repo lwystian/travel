@@ -15,7 +15,7 @@
               <el-icon><Clock /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ stats.pendingComment + stats.pendingGuide }}</div>
+              <div class="stat-value">{{ stats.pendingComment + stats.pendingGuide + stats.pendingAccommodation }}</div>
               <div class="stat-label">待审核</div>
             </div>
           </div>
@@ -54,7 +54,7 @@
               <el-icon><Finished /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ stats.approvedComment + stats.approvedGuide }}</div>
+              <div class="stat-value">{{ stats.approvedComment + stats.approvedGuide + stats.approvedAccommodation }}</div>
               <div class="stat-label">已通过</div>
             </div>
           </div>
@@ -132,6 +132,73 @@
               :page-size="commentPageSize"
               :total="commentTotal"
               @current-change="handleCommentPageChange"
+            />
+          </div>
+        </el-tab-pane>
+
+        <!-- 住宿评价审核 -->
+        <el-tab-pane label="住宿评价审核" name="accommodation">
+          <div class="tab-header">
+            <el-tag type="warning" size="large">待审核住宿评价 {{ stats.pendingAccommodation }}</el-tag>
+            <div class="tab-actions">
+              <el-button type="success" @click="batchApprove('accommodation')" :disabled="!multipleSelectionAccommodation.length">
+                <el-icon><Check /></el-icon> 批量通过
+              </el-button>
+              <el-button type="danger" @click="batchReject('accommodation')" :disabled="!multipleSelectionAccommodation.length">
+                <el-icon><Close /></el-icon> 批量拒绝
+              </el-button>
+            </div>
+          </div>
+
+          <el-table
+            :data="accommodationTableData"
+            v-loading="accommodationLoading"
+            border
+            stripe
+            @selection-change="handleAccommodationSelectionChange"
+            class="review-table"
+          >
+            <el-table-column type="selection" width="60" align="center" />
+            <el-table-column prop="id" label="评价ID" width="100" />
+            <el-table-column label="用户" width="140">
+              <template #default="scope">
+                <div class="user-cell">
+                  <el-avatar :src="scope.row.avatar" :size="32">
+                    {{ (scope.row.nickname || '用户').charAt(0) }}
+                  </el-avatar>
+                  <span class="user-name">{{ scope.row.nickname || '用户' }}</span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="content" label="评价内容" show-overflow-tooltip />
+            <el-table-column prop="rating" label="评分" width="140" align="center">
+              <template #default="scope">
+                <el-rate v-model="scope.row.rating" disabled text-color="#ff9900" size="large" />
+              </template>
+            </el-table-column>
+            <el-table-column prop="createTime" label="发布时间" width="160">
+              <template #default="scope">{{ formatDate(scope.row.createTime) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="180" fixed="right">
+              <template #default="scope">
+                <el-button type="success" size="small" @click="approveItem('accommodation', scope.row)">
+                  <el-icon><Check /></el-icon> 通过
+                </el-button>
+                <el-button type="danger" size="small" @click="rejectItem('accommodation', scope.row)">
+                  <el-icon><Close /></el-icon> 拒绝
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <div class="pagination-container">
+            <el-pagination
+              background
+              layout="total, prev, pager, next"
+              :current-page="accommodationPage"
+              :page-size="accommodationPageSize"
+              :total="accommodationTotal"
+              @current-change="handleAccommodationPageChange"
             />
           </div>
         </el-tab-pane>
@@ -302,6 +369,47 @@
                 />
               </div>
             </el-tab-pane>
+
+            <el-tab-pane label="住宿评价记录" name="accommodationHistory">
+              <el-table :data="accommodationHistoryData" border stripe v-loading="historyLoading" class="review-table">
+                <el-table-column prop="id" label="评价ID" width="100" />
+                <el-table-column label="用户" width="140">
+                  <template #default="scope">
+                    <div class="user-cell">
+                      <el-avatar :src="scope.row.avatar" :size="32">
+                        {{ (scope.row.nickname || '用户').charAt(0) }}
+                      </el-avatar>
+                      <span class="user-name">{{ scope.row.nickname || '用户' }}</span>
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="content" label="评价内容" show-overflow-tooltip />
+                <el-table-column label="审核结果" width="100" align="center">
+                  <template #default="scope">
+                    <el-tag :type="scope.row.reviewStatus === 1 ? 'success' : 'danger'" size="small">
+                      {{ scope.row.reviewStatus === 1 ? '通过' : '拒绝' }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="审核人" width="120">
+                  <template #default="scope">{{ scope.row.reviewerName || '-' }}</template>
+                </el-table-column>
+                <el-table-column prop="reviewTime" label="审核时间" width="160">
+                  <template #default="scope">{{ formatDate(scope.row.reviewTime) }}</template>
+                </el-table-column>
+                <el-table-column prop="reviewComment" label="审核意见" show-overflow-tooltip />
+              </el-table>
+              <div class="pagination-container">
+                <el-pagination
+                  background
+                  layout="total, prev, pager, next"
+                  :current-page="historyAccommodationPage"
+                  :page-size="historyPageSize"
+                  :total="historyAccommodationTotal"
+                  @current-change="handleHistoryAccommodationPageChange"
+                />
+              </div>
+            </el-tab-pane>
           </el-tabs>
         </el-tab-pane>
       </el-tabs>
@@ -334,10 +442,13 @@ const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const stats = ref({
   pendingComment: 0,
   pendingGuide: 0,
+  pendingAccommodation: 0,
   approvedComment: 0,
   approvedGuide: 0,
+  approvedAccommodation: 0,
   rejectedComment: 0,
-  rejectedGuide: 0
+  rejectedGuide: 0,
+  rejectedAccommodation: 0
 })
 
 // 标签页状态
@@ -352,6 +463,14 @@ const commentPageSize = ref(10)
 const commentTotal = ref(0)
 const multipleSelectionComment = ref([])
 
+// 住宿评价表格
+const accommodationTableData = ref([])
+const accommodationLoading = ref(false)
+const accommodationPage = ref(1)
+const accommodationPageSize = ref(10)
+const accommodationTotal = ref(0)
+const multipleSelectionAccommodation = ref([])
+
 // 攻略表格
 const guideTableData = ref([])
 const guideLoading = ref(false)
@@ -363,12 +482,15 @@ const multipleSelectionGuide = ref([])
 // 历史记录表格
 const commentHistoryData = ref([])
 const guideHistoryData = ref([])
+const accommodationHistoryData = ref([])
 const historyLoading = ref(false)
 const historyCommentPage = ref(1)
 const historyGuidePage = ref(1)
+const historyAccommodationPage = ref(1)
 const historyPageSize = ref(10)
 const historyCommentTotal = ref(0)
 const historyGuideTotal = ref(0)
+const historyAccommodationTotal = ref(0)
 
 // 拒绝对话框
 const rejectDialogVisible = ref(false)
@@ -385,15 +507,39 @@ const fetchStats = async () => {
         stats.value = {
           pendingComment: res.pendingCommentCount || 0,
           pendingGuide: res.pendingGuideCount || 0,
+          pendingAccommodation: res.pendingAccommodationReviewCount || 0,
           approvedComment: res.approvedCommentCount || 0,
           approvedGuide: res.approvedGuideCount || 0,
+          approvedAccommodation: res.approvedAccommodationReviewCount || 0,
           rejectedComment: res.rejectedCommentCount || 0,
-          rejectedGuide: res.rejectedGuideCount || 0
+          rejectedGuide: res.rejectedGuideCount || 0,
+          rejectedAccommodation: res.rejectedAccommodationReviewCount || 0
         }
       }
     })
   } catch (error) {
     console.error('获取统计数据失败:', error)
+  }
+}
+
+// 获取待审核住宿评价
+const fetchPendingAccommodationReviews = async () => {
+  accommodationLoading.value = true
+  try {
+    await request.get('/review/accommodation/pending', {
+      currentPage: accommodationPage.value,
+      size: accommodationPageSize.value
+    }, {
+      showDefaultMsg: false,
+      onSuccess: (res) => {
+        accommodationTableData.value = res.records || []
+        accommodationTotal.value = res.total || 0
+      }
+    })
+  } catch (error) {
+    console.error('获取待审核住宿评价失败:', error)
+  } finally {
+    accommodationLoading.value = false
   }
 }
 
@@ -415,6 +561,28 @@ const fetchPendingComments = async () => {
     console.error('获取待审核评论失败:', error)
   } finally {
     commentLoading.value = false
+  }
+}
+
+// 获取住宿评价历史
+const fetchAccommodationHistory = async () => {
+  historyLoading.value = true
+  try {
+    await request.get('/review/accommodation/all', {
+      reviewStatus: '',
+      currentPage: historyAccommodationPage.value,
+      size: historyPageSize.value
+    }, {
+      showDefaultMsg: false,
+      onSuccess: (res) => {
+        accommodationHistoryData.value = (res.records || []).filter(item => item.reviewStatus !== 0)
+        historyAccommodationTotal.value = res.total || 0
+      }
+    })
+  } catch (error) {
+    console.error('获取住宿评价历史失败:', error)
+  } finally {
+    historyLoading.value = false
   }
 }
 
@@ -494,6 +662,8 @@ const approveItem = async (type, item) => {
     // 刷新列表
     if (type === 'comment') {
       fetchPendingComments()
+    } else if (type === 'accommodation') {
+      fetchPendingAccommodationReviews()
     } else {
       fetchPendingGuides()
     }
@@ -522,6 +692,8 @@ const confirmReject = async () => {
     // 刷新列表
     if (currentRejectType.value === 'comment') {
       fetchPendingComments()
+    } else if (currentRejectType.value === 'accommodation') {
+      fetchPendingAccommodationReviews()
     } else {
       fetchPendingGuides()
     }
@@ -533,7 +705,7 @@ const confirmReject = async () => {
 
 // 批量审核
 const batchApprove = async (type) => {
-  const items = type === 'comment' ? multipleSelectionComment.value : multipleSelectionGuide.value
+  const items = type === 'comment' ? multipleSelectionComment.value : (type === 'accommodation' ? multipleSelectionAccommodation.value : multipleSelectionGuide.value)
   const ids = items.map(item => item.id)
   
   try {
@@ -553,6 +725,8 @@ const batchApprove = async (type) => {
     // 刷新列表
     if (type === 'comment') {
       fetchPendingComments()
+    } else if (type === 'accommodation') {
+      fetchPendingAccommodationReviews()
     } else {
       fetchPendingGuides()
     }
@@ -565,7 +739,7 @@ const batchApprove = async (type) => {
 }
 
 const batchReject = async (type) => {
-  const items = type === 'comment' ? multipleSelectionComment.value : multipleSelectionGuide.value
+  const items = type === 'comment' ? multipleSelectionComment.value : (type === 'accommodation' ? multipleSelectionAccommodation.value : multipleSelectionGuide.value)
   const ids = items.map(item => item.id)
   
   try {
@@ -586,6 +760,8 @@ const batchReject = async (type) => {
     // 刷新列表
     if (type === 'comment') {
       fetchPendingComments()
+    } else if (type === 'accommodation') {
+      fetchPendingAccommodationReviews()
     } else {
       fetchPendingGuides()
     }
@@ -602,6 +778,10 @@ const handleCommentSelectionChange = (selection) => {
   multipleSelectionComment.value = selection
 }
 
+const handleAccommodationSelectionChange = (selection) => {
+  multipleSelectionAccommodation.value = selection
+}
+
 const handleGuideSelectionChange = (selection) => {
   multipleSelectionGuide.value = selection
 }
@@ -610,11 +790,14 @@ const handleGuideSelectionChange = (selection) => {
 const handleTabChange = (tab) => {
   if (tab === 'comment') {
     fetchPendingComments()
+  } else if (tab === 'accommodation') {
+    fetchPendingAccommodationReviews()
   } else if (tab === 'guide') {
     fetchPendingGuides()
   } else if (tab === 'history') {
     fetchCommentHistory()
     fetchGuideHistory()
+    fetchAccommodationHistory()
   }
 }
 
@@ -629,6 +812,11 @@ const handleGuidePageChange = (page) => {
   fetchPendingGuides()
 }
 
+const handleAccommodationPageChange = (page) => {
+  accommodationPage.value = page
+  fetchPendingAccommodationReviews()
+}
+
 const handleHistoryCommentPageChange = (page) => {
   historyCommentPage.value = page
   fetchCommentHistory()
@@ -637,6 +825,11 @@ const handleHistoryCommentPageChange = (page) => {
 const handleHistoryGuidePageChange = (page) => {
   historyGuidePage.value = page
   fetchGuideHistory()
+}
+
+const handleHistoryAccommodationPageChange = (page) => {
+  historyAccommodationPage.value = page
+  fetchAccommodationHistory()
 }
 
 // 格式化日期

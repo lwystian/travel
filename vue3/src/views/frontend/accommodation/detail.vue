@@ -289,6 +289,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { useUserStore } from '@/store/user'
+import { shareCurrentPage } from '@/utils/share'
 import {
   Location, Star, Picture, Phone, Delete, House, MapLocation,
   Document, InfoFilled, Money, ChatDotRound, EditPen, Share
@@ -467,7 +468,7 @@ const submitReview = async () => {
   submittingReview.value = true
   try {
     await request.post('/accommodation/review', reviewForm, {
-      successMsg: '评价提交成功',
+      successMsg: '评价已提交，审核通过后展示',
       onSuccess: () => {
         showReviewDialog.value = false
         reviewForm.rating = 5
@@ -530,12 +531,9 @@ const goToAccommodation = (id) => {
 
 // 分享功能
 const handleShare = () => {
-  // 复制链接到剪贴板
-  const url = window.location.href
-  navigator.clipboard.writeText(url).then(() => {
-    ElMessage.success('链接已复制，快去分享吧！')
-  }).catch(() => {
-    ElMessage.error('复制失败，请手动复制地址栏链接')
+  shareCurrentPage({
+    title: accommodation.value?.name || '酒店详情',
+    text: accommodation.value?.description || accommodation.value?.address || ''
   })
 }
 

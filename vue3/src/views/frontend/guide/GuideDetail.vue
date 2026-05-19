@@ -120,6 +120,7 @@ import { formatDate } from '@/utils/dateUtils'
 import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
 import { View, Calendar, Star, StarFilled, Share, User, ArrowRight } from '@element-plus/icons-vue'
+import { shareCurrentPage } from '@/utils/share'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const route = useRoute()
@@ -241,12 +242,9 @@ const handleCollectionToggle = async () => {
 
 // 分享功能
 const handleShare = () => {
-  // 复制链接到剪贴板
-  const url = window.location.href
-  navigator.clipboard.writeText(url).then(() => {
-    ElMessage.success('链接已复制，快去分享吧！')
-  }).catch(() => {
-    ElMessage.error('复制失败，请手动复制地址栏链接')
+  shareCurrentPage({
+    title: guide.value?.title || '旅游攻略',
+    text: guide.value?.summary || guide.value?.destination || ''
   })
 }
 

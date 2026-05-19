@@ -22,6 +22,8 @@ public class TravelGuideService {
     private TravelGuideMapper travelGuideMapper;
     @Resource
     private UserMapper userMapper;
+    @Resource
+    private SensitiveWordService sensitiveWordService;
 
     public Page<TravelGuide> getGuidesByPage(String title, Long userId, Integer currentPage, Integer size) {
         LambdaQueryWrapper<TravelGuide> queryWrapper = new LambdaQueryWrapper<>();
@@ -74,6 +76,7 @@ public class TravelGuideService {
     }
 
     public void addGuide(TravelGuide guide) {
+        filterGuideContent(guide);
         // 设置默认审核状态为待审核
         if (guide.getReviewStatus() == null) {
             guide.setReviewStatus(0); // 0-待审核
@@ -82,7 +85,16 @@ public class TravelGuideService {
     }
 
     public void updateGuide(TravelGuide guide) {
+        filterGuideContent(guide);
+        guide.setReviewStatus(0);
         travelGuideMapper.updateById(guide);
+    }
+
+    private void filterGuideContent(TravelGuide guide) {
+        String objectId = guide.getId() == null ? null : String.valueOf(guide.getId());
+        guide.setTitle(sensitiveWordService.filterContent(guide.getTitle(), "GUIDE_TITLE", objectId));
+        guide.setDestination(sensitiveWordService.filterContent(guide.getDestination(), "GUIDE_DESTINATION", objectId));
+        guide.setContent(sensitiveWordService.filterContent(guide.getContent(), "GUIDE", objectId));
     }
 
     public void deleteGuide(Long id) {

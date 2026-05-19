@@ -43,6 +43,16 @@
           <el-icon><Checked /></el-icon>
           <span>内容审核</span>
         </el-menu-item>
+
+        <el-menu-item index="/back/sensitive-word" v-if="userStore.isAdmin">
+          <el-icon><Warning /></el-icon>
+          <span>敏感词过滤</span>
+        </el-menu-item>
+
+        <el-menu-item index="/back/notification" v-if="userStore.isAdmin">
+          <el-icon><Bell /></el-icon>
+          <span>站内消息</span>
+        </el-menu-item>
         
         <el-menu-item index="/back/comment" v-if="userStore.isAdmin">
           <el-icon><ChatDotRound /></el-icon>
@@ -119,8 +129,9 @@ import {
   Picture,
   PriceTag,
   Wallet,
-  Promotion,
-  Checked
+  Checked,
+  Warning,
+  Bell
 } from '@element-plus/icons-vue'
 
 const route = useRoute()

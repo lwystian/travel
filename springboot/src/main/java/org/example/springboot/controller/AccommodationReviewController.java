@@ -7,6 +7,7 @@ import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.AccommodationReview;
 import org.example.springboot.service.AccommodationReviewService;
+import org.example.springboot.util.JwtTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -40,6 +41,16 @@ public class AccommodationReviewController {
             LOGGER.error("查询住宿评价失败", e);
             return Result.error("查询住宿评价失败：" + e.getMessage());
         }
+    }
+
+    @Operation(summary = "获取我的住宿评价列表")
+    @GetMapping("/my")
+    public Result<?> getMyReviews(
+            @RequestParam(defaultValue = "1") Integer currentPage,
+            @RequestParam(defaultValue = "10") Integer size) {
+        Long userId = JwtTokenUtils.getCurrentUser().getId();
+        Page<AccommodationReview> page = reviewService.getMyReviews(userId, currentPage, size);
+        return Result.success(page);
     }
     
     @Operation(summary = "添加住宿评价")

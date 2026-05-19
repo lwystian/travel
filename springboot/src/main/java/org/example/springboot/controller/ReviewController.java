@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.example.springboot.annotation.OperationLog;
 import org.example.springboot.common.Result;
+import org.example.springboot.entity.AccommodationReview;
 import org.example.springboot.dto.ReviewRequestDTO;
 import org.example.springboot.entity.Comment;
 import org.example.springboot.entity.TravelGuide;
@@ -95,6 +96,65 @@ public class ReviewController {
         }
         return Result.success("批量审核完成");
     }
+
+    // ==================== 住宿评价审核 ====================
+
+    @Operation(summary = "分页查询待审核住宿评价")
+    @GetMapping("/accommodation/pending")
+    @OperationLog(operationType = "QUERY", description = "查询待审核住宿评价")
+    public Result<?> getPendingAccommodationReviews(
+            @RequestParam(defaultValue = "1") Integer currentPage,
+            @RequestParam(defaultValue = "10") Integer size) {
+        checkAdminPermission();
+        Page<AccommodationReview> page = contentReviewService.getPendingAccommodationReviews(currentPage, size);
+        return Result.success(page);
+    }
+
+    @Operation(summary = "分页查询所有住宿评价")
+    @GetMapping("/accommodation/all")
+    @OperationLog(operationType = "QUERY", description = "查询所有住宿评价")
+    public Result<?> getAllAccommodationReviews(
+            @RequestParam(required = false) Integer reviewStatus,
+            @RequestParam(defaultValue = "1") Integer currentPage,
+            @RequestParam(defaultValue = "10") Integer size) {
+        checkAdminPermission();
+        Page<AccommodationReview> page = contentReviewService.getAllAccommodationReviews(reviewStatus, currentPage, size);
+        return Result.success(page);
+    }
+
+    @Operation(summary = "审核住宿评价")
+    @PostMapping("/accommodation/{id}")
+    @OperationLog(operationType = "UPDATE", description = "审核住宿评价")
+    public Result<?> reviewAccommodationReview(
+            @PathVariable Long id,
+            @RequestBody ReviewRequestDTO request) {
+        User currentUser = checkAdminPermission();
+        contentReviewService.reviewAccommodationReview(id, request.getStatus(), currentUser.getId(),
+                currentUser.getUsername(), request.getReviewComment());
+        return Result.success("审核完成");
+    }
+
+    @Operation(summary = "批量审核住宿评价")
+    @PostMapping("/accommodation/batch")
+    @OperationLog(operationType = "UPDATE", description = "批量审核住宿评价")
+    public Result<?> batchReviewAccommodationReviews(@RequestBody Map<String, Object> request) {
+        User currentUser = checkAdminPermission();
+        Long[] ids = parseIds(request.get("ids"));
+        Integer status = request.get("status") != null ? Integer.valueOf(request.get("status").toString()) : null;
+        String reviewComment = request.get("reviewComment") != null ? request.get("reviewComment").toString() : null;
+
+        if (ids != null) {
+            for (Long id : ids) {
+                try {
+                    contentReviewService.reviewAccommodationReview(id, status, currentUser.getId(),
+                            currentUser.getUsername(), reviewComment);
+                } catch (Exception e) {
+                    // 继续处理其他住宿评价
+                }
+            }
+        }
+        return Result.success("批量审核完成");
+    }
     
     // ==================== 攻略审核 ====================
     
@@ -177,7 +237,9 @@ public class ReviewController {
         Map<String, Object> count = new java.util.HashMap<>();
         count.put("comment", contentReviewService.getPendingCommentCount());
         count.put("guide", contentReviewService.getPendingGuideCount());
-        count.put("total", contentReviewService.getPendingCommentCount() + contentReviewService.getPendingGuideCount());
+        count.put("accommodation", contentReviewService.getPendingAccommodationReviewCount());
+        count.put("total", contentReviewService.getPendingCommentCount() + contentReviewService.getPendingGuideCount()
+                + contentReviewService.getPendingAccommodationReviewCount());
         return Result.success(count);
     }
     

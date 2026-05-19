@@ -26,6 +26,8 @@ public class CommentService {
     
     @Resource
     private UserMapper userMapper;
+    @Resource
+    private SensitiveWordService sensitiveWordService;
 
     public Page<Comment> getCommentsByPage(Long scenicId, String scenicName, String userName, String content, Integer currentPage, Integer size) {
         LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
@@ -96,6 +98,7 @@ public class CommentService {
     }
 
     public void addComment(Comment comment) {
+        comment.setContent(sensitiveWordService.filterContent(comment.getContent(), "COMMENT", null));
         // 设置默认审核状态为待审核
         if (comment.getReviewStatus() == null) {
             comment.setReviewStatus(0); // 0-待审核

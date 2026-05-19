@@ -71,7 +71,7 @@
             <div class="content-preview" v-html="getContentPreview(scope.row.content)"></div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="260" fixed="right" align="center">
           <template #default="scope">
             <el-button 
               size="small" 
@@ -670,7 +670,18 @@ const handleDialogClose = () => {
   }
   
   .action-btn {
-    margin-right: 5px;
+    margin-right: 10px;
+    margin-left: 0;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .action-btn:last-child {
+    margin-right: 0;
+  }
+
+  :deep(.action-btn + .action-btn) {
+    margin-left: 0;
   }
   
   // 预览样式

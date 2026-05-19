@@ -43,88 +43,12 @@
     <!-- 快捷功能卡片 -->
     <div class="quick-actions">
       <el-row :gutter="20">
-        <el-col :span="6">
-          <el-card class="action-card scenic-card" @click="navigateTo('/back/scenic')">
+        <el-col v-for="item in quickActions" :key="item.path" :xs="24" :sm="12" :md="8" :lg="6">
+          <el-card class="action-card" :class="item.cardClass" @click="navigateTo(item.path)">
             <div class="action-content">
-              <el-icon class="action-icon"><MapLocation /></el-icon>
-              <h3>景点管理</h3>
-              <p>管理旅游景点信息</p>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="action-card accommodation-card" @click="navigateTo('/back/accommodation')">
-            <div class="action-content">
-              <el-icon class="action-icon"><House /></el-icon>
-              <h3>住宿管理</h3>
-              <p>管理酒店住宿信息</p>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="action-card guide-card" @click="navigateTo('/back/guide')">
-            <div class="action-content">
-              <el-icon class="action-icon"><Document /></el-icon>
-              <h3>攻略管理</h3>
-              <p>管理旅游攻略内容</p>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="action-card user-card" @click="navigateTo('/back/user')">
-            <div class="action-content">
-              <el-icon class="action-icon"><UserFilled /></el-icon>
-              <h3>用户管理</h3>
-              <p>管理系统用户信息</p>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
-      
-      <!-- 新增第二行管理功能 -->
-      <el-row :gutter="20" style="margin-top: 20px;">
-        <el-col :span="6">
-          <el-card class="action-card comment-card" @click="navigateTo('/back/comment')">
-            <div class="action-content">
-              <el-icon class="action-icon"><ChatDotRound /></el-icon>
-              <h3>评论管理</h3>
-              <p>管理用户评论信息</p>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="action-card ticket-card" @click="navigateTo('/back/ticket')">
-            <div class="action-content">
-              <el-icon class="action-icon"><Ticket /></el-icon>
-              <h3>行程管理</h3>
-              <p>管理景点行程信息</p>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="action-card carousel-card" @click="navigateTo('/back/carousel')">
-            <div class="action-content">
-              <el-icon class="action-icon"><Picture /></el-icon>
-              <h3>轮播图管理</h3>
-              <p>管理首页轮播图片</p>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="action-card collection-card" @click="navigateTo('/back/collection')">
-            <div class="action-content">
-              <el-icon class="action-icon"><Star /></el-icon>
-              <h3>收藏管理</h3>
-              <p>管理用户收藏信息</p>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="action-card log-card" @click="navigateTo('/back/log')">
-            <div class="action-content">
-              <el-icon class="action-icon"><Document /></el-icon>
-              <h3>日志审计</h3>
-              <p>系统操作日志记录</p>
+              <el-icon class="action-icon"><component :is="item.icon" /></el-icon>
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.desc }}</p>
             </div>
           </el-card>
         </el-col>
@@ -148,7 +72,14 @@ import {
   ChatDotRound,
   Ticket,
   Picture,
-  Star
+  Star,
+  PriceTag,
+  Menu,
+  Checked,
+  Warning,
+  Bell,
+  Wallet,
+  List
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -168,6 +99,27 @@ const roleLabel = computed(() => {
 const avatarUrl = computed(() => {
   return userInfo.value?.avatar ? baseAPI + userInfo.value.avatar : '';
 })
+
+const quickActions = [
+  { title: '用户管理', desc: '管理系统用户信息', path: '/back/user', icon: UserFilled, cardClass: 'user-card' },
+  { title: '个人信息', desc: '维护当前账号资料', path: '/back/profile', icon: User, cardClass: 'profile-card' },
+  { title: '景点管理', desc: '管理旅游景点信息', path: '/back/scenic', icon: MapLocation, cardClass: 'scenic-card' },
+  { title: '景点标签', desc: '维护景点标签体系', path: '/back/tag', icon: PriceTag, cardClass: 'tag-card' },
+  { title: '分类管理', desc: '维护内容分类目录', path: '/back/category', icon: Menu, cardClass: 'category-card' },
+  { title: '内容审核', desc: '审核评论与攻略内容', path: '/back/review', icon: Checked, cardClass: 'review-card' },
+  { title: '敏感词过滤', desc: '维护发布内容风控规则', path: '/back/sensitive-word', icon: Warning, cardClass: 'sensitive-card' },
+  { title: '站内消息', desc: '发送和管理系统通知', path: '/back/notification', icon: Bell, cardClass: 'notification-card' },
+  { title: '评论管理', desc: '管理用户评论信息', path: '/back/comment', icon: ChatDotRound, cardClass: 'comment-card' },
+  { title: '攻略管理', desc: '管理旅游攻略内容', path: '/back/guide', icon: Document, cardClass: 'guide-card' },
+  { title: '收藏管理', desc: '管理用户收藏信息', path: '/back/collection', icon: Star, cardClass: 'collection-card' },
+  { title: '行程管理', desc: '管理景点行程信息', path: '/back/ticket', icon: Ticket, cardClass: 'ticket-card' },
+  { title: '首页推荐', desc: '维护首页推荐内容', path: '/back/recommend', icon: Star, cardClass: 'recommend-card' },
+  { title: '订单管理', desc: '处理订单与退款流程', path: '/back/order', icon: List, cardClass: 'order-card' },
+  { title: '住宿管理', desc: '管理酒店住宿信息', path: '/back/accommodation', icon: House, cardClass: 'accommodation-card' },
+  { title: '轮播图管理', desc: '管理首页轮播图片', path: '/back/carousel', icon: Picture, cardClass: 'carousel-card' },
+  { title: '支付配置', desc: '管理支付方式和状态', path: '/back/payment', icon: Wallet, cardClass: 'payment-card' },
+  { title: '系统日志', desc: '系统操作日志记录', path: '/back/log', icon: Document, cardClass: 'log-card' }
+]
 
 // 当前时间
 const currentTime = ref('')
@@ -418,6 +370,10 @@ onUnmounted(() => {
     position: relative;
     z-index: 1;
 
+    :deep(.el-col) {
+      margin-bottom: 20px;
+    }
+
     .action-card {
       border-radius: 16px;
       border: none;
@@ -488,6 +444,42 @@ onUnmounted(() => {
 
       &.log-card .action-icon {
         color: #95a5a6;
+      }
+
+      &.profile-card .action-icon {
+        color: #16a085;
+      }
+
+      &.tag-card .action-icon {
+        color: #d35400;
+      }
+
+      &.category-card .action-icon {
+        color: #2c7be5;
+      }
+
+      &.review-card .action-icon {
+        color: #2ecc71;
+      }
+
+      &.sensitive-card .action-icon {
+        color: #e11d48;
+      }
+
+      &.notification-card .action-icon {
+        color: #dc2626;
+      }
+
+      &.recommend-card .action-icon {
+        color: #f97316;
+      }
+
+      &.order-card .action-icon {
+        color: #6366f1;
+      }
+
+      &.payment-card .action-icon {
+        color: #0ea5e9;
       }
     }
   }

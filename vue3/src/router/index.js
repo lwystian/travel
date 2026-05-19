@@ -110,6 +110,18 @@ export const backendRoutes = [
         name: 'ReviewManagement',
         component: () => import('@/views/backend/review/ReviewManager.vue'),
         meta: { title: '内容审核', icon: 'Checked' }
+      },
+      {
+        path: 'sensitive-word',
+        name: 'SensitiveWordManagement',
+        component: () => import('@/views/backend/sensitive/SensitiveWordManager.vue'),
+        meta: { title: '敏感词过滤', icon: 'Warning' }
+      },
+      {
+        path: 'notification',
+        name: 'NotificationManagement',
+        component: () => import('@/views/backend/notification/NotificationManager.vue'),
+        meta: { title: '站内消息', icon: 'Bell' }
       }
     ]
   }

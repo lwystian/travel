@@ -3,6 +3,7 @@ package org.example.springboot.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.annotation.Resource;
+import org.example.springboot.entity.Accommodation;
 import org.example.springboot.entity.AccommodationReview;
 import org.example.springboot.entity.User;
 import org.example.springboot.mapper.AccommodationMapper;
@@ -29,6 +30,8 @@ public class AccommodationReviewService {
     
     @Resource
     private AccommodationMapper accommodationMapper;
+    @Resource
+    private SensitiveWordService sensitiveWordService;
     
     /**
      * 分页查询住宿评价
@@ -44,6 +47,7 @@ public class AccommodationReviewService {
         if (accommodationId != null) {
             queryWrapper.eq(AccommodationReview::getAccommodationId, accommodationId);
         }
+        queryWrapper.eq(AccommodationReview::getReviewStatus, ContentReviewService.STATUS_APPROVED);
         
         // 按创建时间降序排序
         queryWrapper.orderByDesc(AccommodationReview::getCreateTime);
@@ -72,6 +76,16 @@ public class AccommodationReviewService {
         
         return page;
     }
+
+    public Page<AccommodationReview> getMyReviews(Long userId, Integer currentPage, Integer size) {
+        LambdaQueryWrapper<AccommodationReview> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AccommodationReview::getUserId, userId)
+                .orderByDesc(AccommodationReview::getCreateTime);
+
+        Page<AccommodationReview> page = reviewMapper.selectPage(new Page<>(currentPage, size), queryWrapper);
+        fillAccommodationInfo(page.getRecords());
+        return page;
+    }
     
     /**
      * 添加住宿评价
@@ -86,13 +100,15 @@ public class AccommodationReviewService {
         }
         
         review.setUserId((long) currentUser.getId().intValue());
+        review.setContent(sensitiveWordService.filterContent(review.getContent(), "ACCOMMODATION_REVIEW",
+                review.getAccommodationId() == null ? null : String.valueOf(review.getAccommodationId())));
+        review.setReviewStatus(ContentReviewService.STATUS_PENDING);
         review.setCreateTime(LocalDateTime.now());
         
         boolean result = reviewMapper.insert(review) > 0;
         
         if (result) {
-            // 更新住宿的平均评分
-            updateAccommodationRating(review.getAccommodationId());
+            // 通过敏感词过滤后进入人工审核，审核通过后再展示并计入评分
         }
         
         return result;
@@ -105,6 +121,7 @@ public class AccommodationReviewService {
     private void updateAccommodationRating(Integer accommodationId) {
         LambdaQueryWrapper<AccommodationReview> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(AccommodationReview::getAccommodationId, accommodationId);
+        queryWrapper.eq(AccommodationReview::getReviewStatus, ContentReviewService.STATUS_APPROVED);
         
         // 查询该住宿的所有评价
         List<AccommodationReview> reviews = reviewMapper.selectList(queryWrapper);
@@ -125,6 +142,34 @@ public class AccommodationReviewService {
                 accommodationMapper.updateById(accommodation);
             }
         }
+    }
+
+    private void fillAccommodationInfo(List<AccommodationReview> reviews) {
+        if (reviews == null || reviews.isEmpty()) {
+            return;
+        }
+        List<Long> accommodationIds = reviews.stream()
+                .map(AccommodationReview::getAccommodationId)
+                .filter(id -> id != null)
+                .map(Integer::longValue)
+                .distinct()
+                .collect(Collectors.toList());
+        if (accommodationIds.isEmpty()) {
+            return;
+        }
+
+        List<Accommodation> accommodations = accommodationMapper.selectBatchIds(accommodationIds);
+        Map<Long, Accommodation> accommodationMap = accommodations.stream()
+                .collect(Collectors.toMap(Accommodation::getId, item -> item));
+
+        reviews.forEach(review -> {
+            Accommodation accommodation = review.getAccommodationId() == null
+                    ? null
+                    : accommodationMap.get(review.getAccommodationId().longValue());
+            if (accommodation != null) {
+                review.setAccommodationName(accommodation.getName());
+            }
+        });
     }
     
     /**

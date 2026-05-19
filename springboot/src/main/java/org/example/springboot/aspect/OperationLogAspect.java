@@ -75,17 +75,18 @@ public class OperationLogAspect {
             HttpServletRequest request) {
         SysOperationLog auditLog = new SysOperationLog();
         String operationType = resolveOperationType(annotation, request);
-        String targetType = resolveTargetType(annotation, joinPoint);
+        String rawTargetType = resolveTargetType(annotation, joinPoint);
+        String targetName = humanTargetName(rawTargetType);
 
         auditLog.setOperationType(operationType);
         auditLog.setLogLevel("INFO");
-        auditLog.setOperationDesc(resolveOperationDesc(annotation, request, operationType, targetType));
+        auditLog.setOperationDesc(resolveOperationDesc(annotation, request, operationType, targetName));
         auditLog.setRequestMethod(request != null ? request.getMethod() : "");
         auditLog.setRequestUrl(request != null ? request.getRequestURI() : "");
         auditLog.setIpAddress(getClientIp(request));
         auditLog.setPort(request != null ? request.getRemotePort() : 0);
         auditLog.setUserAgent(getUserAgent(request));
-        auditLog.setTargetType(targetType);
+        auditLog.setTargetType(targetName);
         auditLog.setTargetId(extractTargetId(operationType, joinPoint.getArgs(), signature.getParameterNames()));
 
         User currentUser = getCurrentUser();
@@ -141,6 +142,27 @@ public class OperationLogAspect {
         if (path.contains("register")) {
             return "REGISTER";
         }
+        if (path.contains("/check") || path.contains("/test")) {
+            return "CHECK";
+        }
+        if (path.contains("/preview")) {
+            return "PREVIEW";
+        }
+        if (path.contains("/upload")) {
+            return "UPLOAD";
+        }
+        if (path.contains("/like")) {
+            return "LIKE";
+        }
+        if (path.contains("/status")) {
+            return "UPDATE_STATUS";
+        }
+        if (path.contains("resetpassword") || path.contains("password")) {
+            return "PASSWORD";
+        }
+        if (path.contains("/notify")) {
+            return "CALLBACK";
+        }
         if (path.contains("pay") || path.contains("payment")) {
             return "PAY";
         }
@@ -162,7 +184,7 @@ public class OperationLogAspect {
         return "QUERY";
     }
 
-    private String resolveOperationDesc(OperationLog annotation, HttpServletRequest request, String operationType, String targetType) {
+    private String resolveOperationDesc(OperationLog annotation, HttpServletRequest request, String operationType, String targetName) {
         if (annotation != null && annotation.description() != null && !annotation.description().isBlank()) {
             return annotation.description();
         }
@@ -171,6 +193,12 @@ public class OperationLogAspect {
         }
 
         String path = request.getRequestURI().toLowerCase(Locale.ROOT);
+        if (path.matches(".*/sensitive-word/check$")) {
+            return "测试敏感词规则";
+        }
+        if (path.matches(".*/notification/admin/send$")) {
+            return "发送站内消息";
+        }
         if (path.matches(".*/payment-config/[^/]+/toggle$")) {
             String enabled = request.getParameter("enabled");
             if ("true".equalsIgnoreCase(enabled)) {
@@ -182,7 +210,7 @@ public class OperationLogAspect {
             return "调整支付配置启用状态";
         }
 
-        return describeOperation(operationType, request.getMethod()) + humanTargetName(targetType);
+        return describeOperation(operationType, request.getMethod()) + targetName;
     }
 
     private String describeOperation(String operationType, String method) {
@@ -194,6 +222,27 @@ public class OperationLogAspect {
         }
         if ("REGISTER".equalsIgnoreCase(operationType)) {
             return "注册";
+        }
+        if ("CHECK".equalsIgnoreCase(operationType)) {
+            return "测试";
+        }
+        if ("PREVIEW".equalsIgnoreCase(operationType)) {
+            return "预览";
+        }
+        if ("UPLOAD".equalsIgnoreCase(operationType)) {
+            return "上传";
+        }
+        if ("LIKE".equalsIgnoreCase(operationType)) {
+            return "点赞";
+        }
+        if ("UPDATE_STATUS".equalsIgnoreCase(operationType)) {
+            return "调整";
+        }
+        if ("PASSWORD".equalsIgnoreCase(operationType)) {
+            return "修改密码";
+        }
+        if ("CALLBACK".equalsIgnoreCase(operationType)) {
+            return "处理回调";
         }
         if ("PAY".equalsIgnoreCase(operationType)) {
             return "支付";
@@ -216,37 +265,44 @@ public class OperationLogAspect {
         if ("QUERY".equalsIgnoreCase(operationType) || "GET".equalsIgnoreCase(method)) {
             return "查询";
         }
+        if ("EXPORT".equalsIgnoreCase(operationType)) {
+            return "导出";
+        }
         return "操作";
     }
 
     private String humanTargetName(String targetType) {
         if (targetType == null || targetType.isBlank()) {
-            return "数据";
+            return "业务数据";
         }
         return switch (targetType) {
             case "SysLog", "系统日志" -> "系统日志";
-            case "User" -> "用户";
-            case "ScenicSpot" -> "景点";
-            case "ScenicCategory" -> "分类";
-            case "ScenicTag" -> "标签";
-            case "TravelGuide" -> "攻略";
-            case "Comment" -> "评论";
-            case "Tour" -> "行程";
-            case "TourOrder" -> "订单";
+            case "SensitiveWord", "敏感词规则" -> "敏感词规则";
+            case "SensitiveLog", "敏感词日志" -> "敏感词日志";
+            case "SiteNotification", "Notification", "站内消息" -> "站内消息";
+            case "User", "用户" -> "用户";
+            case "ScenicSpot", "景点" -> "景点";
+            case "ScenicCategory", "分类" -> "分类";
+            case "ScenicTag", "标签" -> "标签";
+            case "TravelGuide", "攻略" -> "攻略";
+            case "Comment", "评论" -> "评论";
+            case "Tour", "行程" -> "行程";
+            case "TourOrder", "订单" -> "订单";
             case "PaymentConfig", "支付配置" -> "支付配置";
-            case "Review" -> "内容审核";
-            case "Carousel" -> "轮播图";
-            case "Accommodation" -> "住宿";
-            case "AccommodationReview" -> "住宿评价";
-            case "FrequentTraveler" -> "常用出行人";
-            case "File" -> "文件";
-            case "Collection" -> "收藏";
-            case "ScenicCollection" -> "景点收藏";
-            case "TourDetail" -> "行程明细";
-            case "TourHotel" -> "行程酒店";
-            case "TourOrderPay" -> "订单支付";
-            case "Traveler" -> "出行人";
-            default -> targetType;
+            case "Review", "内容审核" -> "内容审核";
+            case "Carousel", "轮播图" -> "轮播图";
+            case "Accommodation", "住宿" -> "住宿";
+            case "AccommodationReview", "住宿评价" -> "住宿评价";
+            case "FrequentTraveler", "常用出行人" -> "常用出行人";
+            case "File", "文件" -> "文件";
+            case "Collection", "收藏" -> "收藏";
+            case "ScenicCollection", "景点收藏" -> "景点收藏";
+            case "TourCollection", "行程收藏" -> "行程收藏";
+            case "TourDetail", "行程明细" -> "行程明细";
+            case "TourHotel", "行程酒店" -> "行程酒店";
+            case "TourOrderPay", "订单支付" -> "订单支付";
+            case "Traveler", "出行人" -> "出行人";
+            default -> "业务数据";
         };
     }
 

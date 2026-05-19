@@ -13,6 +13,9 @@
           <!-- 右侧：用户链接 -->
           <div class="top-links">
             <template v-if="isLoggedIn">
+              <span class="frontend-notice-bell">
+                <NotificationBell trigger="hover" click-to-center />
+              </span>
               <el-dropdown trigger="click" @command="handleCommand">
                 <span class="welcome-text user-dropdown">
                   <el-icon><User /></el-icon>
@@ -334,6 +337,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useUserStore } from '@/store/user'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import NotificationBell from '@/components/NotificationBell.vue'
 import request from '@/utils/request'
 import {
   HomeFilled,
@@ -942,6 +946,44 @@ onMounted(() => {
 .top-links {
   display: flex;
   align-items: center;
+
+  .frontend-notice-bell {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 2px;
+    transform: translateY(2px);
+
+    :deep(.notice-badge) {
+      margin-right: 2px;
+    }
+
+    :deep(.notice-trigger) {
+      width: 20px;
+      height: 20px;
+      color: #e94560;
+      transition: color 0.2s ease, transform 0.2s ease;
+    }
+
+    :deep(.notice-trigger:hover),
+    :deep(.notice-trigger:focus-visible) {
+      color: #ff5a72;
+      transform: translateY(-1px);
+    }
+
+    :deep(.notice-trigger:active) {
+      color: #c73e54;
+      transform: translateY(0);
+    }
+
+    :deep(.notice-trigger .el-icon) {
+      font-size: 15px;
+    }
+
+    :deep(.notice-trigger svg path) {
+      stroke: currentColor;
+      stroke-width: 2.6;
+    }
+  }
 
   .welcome-text {
     color: #ffd700;

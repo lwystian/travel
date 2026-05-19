@@ -221,6 +221,13 @@ const operationOptions = [
   { label: '退出', value: 'LOGOUT' },
   { label: '注册', value: 'REGISTER' },
   { label: '导出', value: 'EXPORT' },
+  { label: '测试', value: 'CHECK' },
+  { label: '预览', value: 'PREVIEW' },
+  { label: '上传', value: 'UPLOAD' },
+  { label: '点赞', value: 'LIKE' },
+  { label: '调整状态', value: 'UPDATE_STATUS' },
+  { label: '修改密码', value: 'PASSWORD' },
+  { label: '处理回调', value: 'CALLBACK' },
   { label: '支付', value: 'PAY' },
   { label: '取消', value: 'CANCEL' },
   { label: '审核', value: 'REVIEW' },
@@ -253,6 +260,13 @@ const operationTextMap = {
   LOGOUT: '退出',
   REGISTER: '注册',
   EXPORT: '导出',
+  CHECK: '测试',
+  PREVIEW: '预览',
+  UPLOAD: '上传',
+  LIKE: '点赞',
+  UPDATE_STATUS: '调整状态',
+  PASSWORD: '修改密码',
+  CALLBACK: '处理回调',
   PAY: '支付',
   CANCEL: '取消',
   REVIEW: '审核',
@@ -263,6 +277,13 @@ const operationTextMap = {
 const targetTextMap = {
   SysLog: '系统日志',
   系统日志: '系统日志',
+  SiteNotification: '站内消息',
+  Notification: '站内消息',
+  站内消息: '站内消息',
+  SensitiveWord: '敏感词规则',
+  敏感词规则: '敏感词规则',
+  SensitiveLog: '敏感词日志',
+  敏感词日志: '敏感词日志',
   User: '用户',
   ScenicSpot: '景点',
   ScenicCategory: '分类',
@@ -546,7 +567,7 @@ const formatOperationDesc = (row = {}) => {
     return buildReadableDesc(row)
   }
 
-  return row.operationDesc || '-'
+  return translateLogText(row.operationDesc) || '-'
 }
 
 const getOperationTagType = (type) => {
@@ -559,6 +580,13 @@ const getOperationTagType = (type) => {
     LOGOUT: 'info',
     REGISTER: 'success',
     EXPORT: 'info',
+    CHECK: 'primary',
+    PREVIEW: 'info',
+    UPLOAD: 'success',
+    LIKE: 'success',
+    UPDATE_STATUS: 'warning',
+    PASSWORD: 'warning',
+    CALLBACK: 'info',
     PAY: 'success',
     CANCEL: 'warning',
     REVIEW: 'warning',
@@ -571,6 +599,16 @@ const getOperationTagType = (type) => {
 const formatTarget = (row = {}) => {
   const type = targetTextMap[row.targetType] || row.targetType || '-'
   return type
+}
+
+const translateLogText = (text = '') => {
+  if (!text) return text
+  return String(text)
+    .replaceAll('SiteNotification', '站内消息')
+    .replaceAll('Notification', '站内消息')
+    .replaceAll('SensitiveWord', '敏感词规则')
+    .replaceAll('SensitiveLog', '敏感词日志')
+    .replaceAll('SysLog', '系统日志')
 }
 
 const isPaymentConfigToggle = (row = {}) => {

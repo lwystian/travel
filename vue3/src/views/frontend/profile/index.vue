@@ -236,11 +236,16 @@
                     <div class="comment-header">
                       <div class="scenic-info">
                         <el-icon><Location /></el-icon>
-                        <span>{{ comment.scenicName || '景点评论' }}</span>
+                        <span>{{ comment.targetName }}</span>
                       </div>
-                      <el-tag :type="getReviewStatusType(comment.reviewStatus)" size="small">
-                        {{ getReviewStatusText(comment.reviewStatus) }}
-                      </el-tag>
+                      <div class="comment-tags">
+                        <el-tag :type="comment.commentType === 'hotel' ? 'success' : 'primary'" size="small" effect="plain">
+                          {{ comment.commentType === 'hotel' ? '酒店评论' : '景区评论' }}
+                        </el-tag>
+                        <el-tag :type="getReviewStatusType(comment.reviewStatus)" size="small">
+                          {{ getReviewStatusText(comment.reviewStatus) }}
+                        </el-tag>
+                      </div>
                     </div>
                     <div class="comment-body">
                       <div class="comment-rating">
@@ -273,6 +278,74 @@
                 </div>
               </div>
             </el-tab-pane>
+
+            <el-tab-pane label="站内消息" name="notifications">
+              <template #label>
+                <div class="tab-label">
+                  <el-icon><Bell /></el-icon>
+                  <span>站内消息</span>
+                </div>
+              </template>
+
+              <div class="notifications-content">
+                <div class="notification-toolbar">
+                  <el-radio-group v-model="notificationReadStatus" @change="handleNotificationFilterChange" size="large">
+                    <el-radio-button label="">全部</el-radio-button>
+                    <el-radio-button :label="0">未读</el-radio-button>
+                    <el-radio-button :label="1">已读</el-radio-button>
+                  </el-radio-group>
+                  <el-button type="primary" plain @click="markAllNotificationsRead" :disabled="notificationUnreadCount === 0">
+                    全部标为已读
+                  </el-button>
+                </div>
+
+                <div v-if="notificationLoading" class="loading-state">
+                  <el-skeleton :rows="5" animated />
+                </div>
+                <el-empty v-else-if="notifications.length === 0" description="暂无站内消息" />
+                <div v-else class="notification-list">
+                  <div
+                    v-for="item in notifications"
+                    :key="item.id"
+                    class="notification-card"
+                    :class="{ unread: item.readStatus === 0 }"
+                    @click="openNotification(item)"
+                  >
+                    <div class="notification-main">
+                      <div class="notification-title-row">
+                        <h3>{{ item.title }}</h3>
+                        <el-tag v-if="item.readStatus === 0" type="danger" size="small">未读</el-tag>
+                        <el-tag v-else type="info" size="small">已读</el-tag>
+                      </div>
+                      <p>{{ item.content }}</p>
+                      <div class="notification-meta">
+                        <span>发送人：{{ item.senderName || '系统' }}</span>
+                        <span>{{ formatDate(item.createTime) }}</span>
+                      </div>
+                    </div>
+                    <div class="notification-actions">
+                      <el-button v-if="item.readStatus === 0" text type="primary" @click.stop="markNotificationRead(item)">
+                        标为已读
+                      </el-button>
+                      <el-button v-if="item.linkUrl" text type="primary" @click.stop="openNotification(item)">
+                        查看详情
+                      </el-button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pagination-wrapper" v-if="notificationTotal > 0">
+                  <el-pagination
+                    background
+                    layout="total, prev, pager, next"
+                    :total="notificationTotal"
+                    :page-size="notificationPageSize"
+                    :current-page="notificationPage"
+                    @current-change="handleNotificationPageChange"
+                  />
+                </div>
+              </div>
+            </el-tab-pane>
           </el-tabs>
         </div>
       </div>
@@ -284,12 +357,15 @@
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useUserStore } from "@/store/user";
+import { useRoute, useRouter } from "vue-router";
 import request from "@/utils/request";
-import {User,Edit,Lock,Key,Check,Camera,Male,Female,Phone,Message,EditPen,ChatDotRound,Location} from '@element-plus/icons-vue'
+import {User,Edit,Lock,Key,Check,Camera,Male,Female,Phone,Message,EditPen,ChatDotRound,Location,Bell} from '@element-plus/icons-vue'
 import { formatDate } from '@/utils/dateUtils'
 
 const baseAPI = process.env.VUE_APP_BASE_API || "/api";
 const userStore = useUserStore();
+const route = useRoute();
+const router = useRouter();
 const activeTab = ref("basic");
 
 // 我的评论相关
@@ -298,6 +374,15 @@ const myCommentsLoading = ref(false)
 const commentPage = ref(1)
 const commentPageSize = ref(10)
 const commentTotal = ref(0)
+
+// 站内消息相关
+const notifications = ref([])
+const notificationLoading = ref(false)
+const notificationPage = ref(1)
+const notificationPageSize = ref(10)
+const notificationTotal = ref(0)
+const notificationUnreadCount = ref(0)
+const notificationReadStatus = ref('')
 
 // 表单引用
 const userFormRef = ref(null);
@@ -596,16 +681,29 @@ watch(
 const fetchMyComments = async () => {
   myCommentsLoading.value = true
   try {
-    await request.get('/comment/my', {
-      currentPage: commentPage.value,
-      size: commentPageSize.value
-    }, {
-      showDefaultMsg: false,
-      onSuccess: (res) => {
-        myComments.value = res.records || []
-        commentTotal.value = res.total || 0
-      }
+    const [scenicRes, hotelRes] = await Promise.all([
+      request.get('/comment/my', { currentPage: 1, size: 1000 }, { showDefaultMsg: false }),
+      request.get('/accommodation/review/my', { currentPage: 1, size: 1000 }, { showDefaultMsg: false })
+    ])
+
+    const scenicComments = (scenicRes?.records || []).map(item => ({
+      ...item,
+      rating: Number(item.rating || 0),
+      commentType: 'scenic',
+      targetName: item.scenicName || '景区评论'
+    }))
+    const hotelComments = (hotelRes?.records || []).map(item => ({
+      ...item,
+      rating: Number(item.rating || 0),
+      commentType: 'hotel',
+      targetName: item.accommodationName || '酒店评论'
+    }))
+    const allComments = [...scenicComments, ...hotelComments].sort((a, b) => {
+      return new Date(b.createTime || 0).getTime() - new Date(a.createTime || 0).getTime()
     })
+    commentTotal.value = allComments.length
+    const start = (commentPage.value - 1) * commentPageSize.value
+    myComments.value = allComments.slice(start, start + commentPageSize.value)
   } catch (error) {
     console.error('获取我的评论失败', error)
   } finally {
@@ -613,12 +711,79 @@ const fetchMyComments = async () => {
   }
 }
 
+const fetchNotificationUnreadCount = async () => {
+  try {
+    notificationUnreadCount.value = await request.get('/notification/unread-count', {}, { showDefaultMsg: false })
+  } catch (error) {
+    notificationUnreadCount.value = 0
+  }
+}
+
+const fetchNotifications = async () => {
+  notificationLoading.value = true
+  try {
+    const params = {
+      currentPage: notificationPage.value,
+      size: notificationPageSize.value
+    }
+    if (notificationReadStatus.value !== '') {
+      params.readStatus = notificationReadStatus.value
+    }
+    const res = await request.get('/notification/page', params, { showDefaultMsg: false })
+    notifications.value = res?.records || []
+    notificationTotal.value = res?.total || 0
+    fetchNotificationUnreadCount()
+  } catch (error) {
+    console.error('获取站内消息失败', error)
+  } finally {
+    notificationLoading.value = false
+  }
+}
+
+const handleNotificationFilterChange = () => {
+  notificationPage.value = 1
+  fetchNotifications()
+}
+
+const handleNotificationPageChange = (page) => {
+  notificationPage.value = page
+  fetchNotifications()
+}
+
+const markNotificationRead = async (item) => {
+  await request.put(`/notification/${item.id}/read`, {}, { showDefaultMsg: false })
+  item.readStatus = 1
+  fetchNotificationUnreadCount()
+}
+
+const markAllNotificationsRead = async () => {
+  await request.put('/notification/read-all', {}, { showDefaultMsg: false })
+  await fetchNotifications()
+}
+
+const openNotification = async (item) => {
+  if (item.readStatus === 0) {
+    await markNotificationRead(item)
+  }
+  if (item.linkUrl) {
+    router.push(item.linkUrl)
+  }
+}
+
 // 监听标签页切换
 watch(activeTab, (newTab) => {
   if (newTab === 'mycomments') {
     fetchMyComments()
+  } else if (newTab === 'notifications') {
+    fetchNotifications()
   }
 })
+
+watch(() => route.query.tab, (tab) => {
+  if (tab === 'notifications') {
+    activeTab.value = 'notifications'
+  }
+}, { immediate: true })
 
 // 评论分页变化
 const handleCommentPageChange = (page) => {
@@ -649,7 +814,10 @@ const getReviewStatusType = (status) => {
 // 删除我的评论
 const deleteMyComment = async (comment) => {
   try {
-    await request.delete(`/comment/delete/${comment.id}`, {
+    const url = comment.commentType === 'hotel'
+      ? `/accommodation/review/${comment.id}`
+      : `/comment/delete/${comment.id}`
+    await request.delete(url, {
       successMsg: '删除成功',
       onSuccess: () => fetchMyComments()
     })
@@ -661,6 +829,9 @@ const deleteMyComment = async (comment) => {
 // 组件挂载时获取用户信息
 onMounted(() => {
   getUserInfo();
+  if (activeTab.value === 'notifications') {
+    fetchNotifications()
+  }
 })
 </script>
 
@@ -1109,6 +1280,13 @@ onMounted(() => {
             font-size: 16px;
           }
         }
+
+        .comment-tags {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+        }
       }
 
       .comment-body {
@@ -1141,6 +1319,88 @@ onMounted(() => {
       display: flex;
       justify-content: center;
       margin-top: 24px;
+    }
+  }
+
+  .notifications-content {
+    padding: 24px;
+
+    .notification-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .notification-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 640px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+
+    .notification-card {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 16px 18px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #fff;
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+      &:hover {
+        border-color: #93c5fd;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      }
+
+      &.unread {
+        background: #fff7f7;
+        border-color: #fecaca;
+      }
+    }
+
+    .notification-main {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .notification-title-row,
+    .notification-meta,
+    .notification-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .notification-title-row {
+      justify-content: space-between;
+
+      h3 {
+        margin: 0;
+        font-size: 16px;
+        color: #1f2937;
+      }
+    }
+
+    .notification-card p {
+      margin: 8px 0;
+      color: #4b5563;
+      line-height: 1.6;
+    }
+
+    .notification-meta {
+      color: #94a3b8;
+      font-size: 13px;
+    }
+
+    .notification-actions {
+      flex-shrink: 0;
+      align-self: center;
     }
   }
 }

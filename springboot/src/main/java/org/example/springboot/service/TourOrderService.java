@@ -43,6 +43,8 @@ public class TourOrderService {
 
     @Resource
     private TourBatchMapper tourBatchMapper;
+    @Resource
+    private SiteNotificationService siteNotificationService;
 
     /**
      * 创建行程订单
@@ -224,6 +226,23 @@ public class TourOrderService {
 
             logger.info("行程订单创建成功：订单号={}, 用户={}, 行程={}, 总价={}, 锁定人数={}",
                 order.getOrderNo(), currentUser.getUsername(), tour.getTitle(), totalAmount, totalPeople);
+            siteNotificationService.sendToUser(
+                    currentUser.getId(),
+                    "订单已创建，请及时付款",
+                    "你已成功提交订单 " + order.getOrderNo() + "，请在订单有效期内完成支付。",
+                    "ORDER",
+                    "TOUR_ORDER",
+                    String.valueOf(order.getId()),
+                    "/orders"
+            );
+            siteNotificationService.sendToAdmins(
+                    "新的待付款订单",
+                    currentUser.getUsername() + " 提交了行程订单 " + order.getOrderNo() + "。",
+                    "ORDER",
+                    "TOUR_ORDER",
+                    String.valueOf(order.getId()),
+                    "/back/order"
+            );
 
             return order;
 
@@ -349,6 +368,9 @@ public class TourOrderService {
         order.setUpdateTime(LocalDateTime.now());
 
         tourOrderMapper.updateById(order);
+        siteNotificationService.sendToUser(order.getUserId(), "订单支付成功",
+                "订单 " + order.getOrderNo() + " 已支付成功，我们会为你保留出行名额。",
+                "ORDER", "TOUR_ORDER", String.valueOf(order.getId()), "/orders");
         logger.info("行程订单支付成功：订单号={}", order.getOrderNo());
     }
 
@@ -387,6 +409,9 @@ public class TourOrderService {
         order.setUpdateTime(LocalDateTime.now());
 
         tourOrderMapper.updateById(order);
+        siteNotificationService.sendToUser(order.getUserId(), "订单已取消",
+                "订单 " + order.getOrderNo() + " 已取消，如需出行可重新下单。",
+                "ORDER", "TOUR_ORDER", String.valueOf(order.getId()), "/orders");
         logger.info("行程订单取消成功：订单号={}", order.getOrderNo());
     }
 
@@ -427,6 +452,9 @@ public class TourOrderService {
         order.setUpdateTime(LocalDateTime.now());
 
         tourOrderMapper.updateById(order);
+        siteNotificationService.sendToUser(order.getUserId(), "订单已退款",
+                "订单 " + order.getOrderNo() + " 已完成退款处理，请留意原支付账户到账情况。",
+                "ORDER", "TOUR_ORDER", String.valueOf(order.getId()), "/orders");
         logger.info("行程订单退款成功：订单号={}", order.getOrderNo());
     }
 

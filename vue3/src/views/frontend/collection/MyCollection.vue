@@ -234,6 +234,106 @@
                 />
               </div>
             </el-tab-pane>
+
+            <el-tab-pane label="行程收藏" name="tour">
+              <template #label>
+                <div class="tab-label">
+                  <el-icon><Tickets /></el-icon>
+                  <span>行程收藏</span>
+                  <span class="tab-count">{{ tourTotal }}</span>
+                </div>
+              </template>
+
+              <div v-if="tourLoading" class="loading-state">
+                <el-skeleton :rows="8" animated />
+              </div>
+
+              <div v-else-if="tourCollections.length === 0" class="empty-state">
+                <div class="empty-icon">🧳</div>
+                <h3 class="empty-title">暂无收藏行程</h3>
+                <p class="empty-desc">快去发现适合出行的行程并收藏吧</p>
+                <el-button type="primary" @click="goToTourList" class="empty-action">
+                  <el-icon><Search /></el-icon>
+                  浏览行程
+                </el-button>
+              </div>
+
+              <div v-else class="collection-grid">
+                <div
+                  v-for="(collection, index) in tourCollections"
+                  :key="collection.id"
+                  class="collection-card tour-collection hover-lift"
+                  :class="`delay-${(index % 6 + 1) * 100}`"
+                  @click="goToTourBooking(collection.tourId)"
+                >
+                  <div class="card-image">
+                    <img :src="getImageUrl(getTourImage(collection.tourInfo))" :alt="collection.tourInfo?.title" />
+                    <div class="image-overlay">
+                      <div class="overlay-content">
+                        <div class="collection-time">
+                          <el-icon><Clock /></el-icon>
+                          {{ formatDate(collection.createTime) }}
+                        </div>
+                      </div>
+                    </div>
+                    <div class="card-badges">
+                      <span class="badge guide">行程预订</span>
+                      <span v-if="collection.tourInfo?.minPrice" class="badge price">¥{{ collection.tourInfo.minPrice }}</span>
+                    </div>
+                  </div>
+
+                  <div class="card-content">
+                    <h3 class="item-name">{{ collection.tourInfo?.title || '行程预订' }}</h3>
+                    <div class="guide-meta">
+                      <div class="meta-item">
+                        <el-icon><Location /></el-icon>
+                        <span>{{ collection.tourInfo?.destination || collection.tourInfo?.city || '目的地' }}</span>
+                      </div>
+                      <div class="meta-item">
+                        <el-icon><Clock /></el-icon>
+                        <span>{{ collection.tourInfo?.days || 1 }} 天</span>
+                      </div>
+                    </div>
+
+                    <div class="card-footer">
+                      <div class="collection-date">
+                        收藏于 {{ formatDate(collection.createTime) }}
+                      </div>
+                      <div class="card-actions">
+                        <el-button
+                          type="primary"
+                          size="small"
+                          @click.stop="goToTourBooking(collection.tourId)"
+                          class="detail-btn"
+                        >
+                          去预订
+                        </el-button>
+                        <el-button
+                          type="danger"
+                          size="small"
+                          @click.stop="handleCancelTourCollection(collection.tourId)"
+                          class="cancel-btn"
+                        >
+                          <el-icon><Delete /></el-icon>
+                        </el-button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pagination-wrapper" v-if="tourTotal > 0">
+                <el-pagination
+                  background
+                  layout="total, prev, pager, next"
+                  :total="tourTotal"
+                  :page-size="tourPageSize"
+                  :current-page="tourCurrentPage"
+                  @current-change="handleTourPageChange"
+                  class="modern-pagination"
+                />
+              </div>
+            </el-tab-pane>
           </el-tabs>
         </div>
       </div>
@@ -255,7 +355,8 @@ import {
   Location,
   Delete,
   View,
-  User
+  User,
+  Tickets
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -278,6 +379,13 @@ const guideCollections = ref([])
 const guideCurrentPage = ref(1)
 const guidePageSize = ref(12)
 const guideTotal = ref(0)
+
+// 行程收藏相关数据
+const tourLoading = ref(false)
+const tourCollections = ref([])
+const tourCurrentPage = ref(1)
+const tourPageSize = ref(12)
+const tourTotal = ref(0)
 
 // 获取用户收藏的景点
 const fetchScenicCollections = async () => {
@@ -323,6 +431,28 @@ const fetchGuideCollections = async () => {
   }
 }
 
+// 获取用户收藏的行程
+const fetchTourCollections = async () => {
+  tourLoading.value = true
+  try {
+    await request.get('/tour-collection/user', {
+      currentPage: tourCurrentPage.value,
+      size: tourPageSize.value,
+      userId: userStore.userInfo.id
+    }, {
+      showDefaultMsg: false,
+      onSuccess: (data) => {
+        tourCollections.value = data.records || []
+        tourTotal.value = data.total || 0
+      }
+    })
+  } catch (error) {
+    console.error('获取收藏行程失败:', error)
+  } finally {
+    tourLoading.value = false
+  }
+}
+
 // 标签页切换
 const handleTabChange = (tabName) => {
   activeTab.value = tabName
@@ -330,6 +460,8 @@ const handleTabChange = (tabName) => {
     fetchScenicCollections()
   } else if (tabName === 'guide' && guideCollections.value.length === 0) {
     fetchGuideCollections()
+  } else if (tabName === 'tour' && tourCollections.value.length === 0) {
+    fetchTourCollections()
   }
 }
 
@@ -345,6 +477,12 @@ const handleGuidePageChange = (page) => {
   fetchGuideCollections()
 }
 
+// 行程收藏分页
+const handleTourPageChange = (page) => {
+  tourCurrentPage.value = page
+  fetchTourCollections()
+}
+
 // 跳转到景点详情
 const goToScenicDetail = (scenicId) => {
   router.push(`/scenic/${scenicId}`)
@@ -355,6 +493,11 @@ const goToGuideDetail = (guideId) => {
   router.push(`/guide/detail/${guideId}`)
 }
 
+// 跳转到行程预订
+const goToTourBooking = (tourId) => {
+  router.push(`/ticket/booking/${tourId}`)
+}
+
 // 跳转到景点列表
 const goToScenicList = () => {
   router.push('/scenic')
@@ -363,6 +506,11 @@ const goToScenicList = () => {
 // 跳转到攻略列表
 const goToGuideList = () => {
   router.push('/guide')
+}
+
+// 跳转到行程列表
+const goToTourList = () => {
+  router.push('/ticket')
 }
 
 // 取消景点收藏
@@ -407,6 +555,43 @@ const handleCancelGuideCollection = (guideId) => {
   }).catch(() => {
     // 用户取消操作
   })
+}
+
+// 取消行程收藏
+const handleCancelTourCollection = (tourId) => {
+  ElMessageBox.confirm('确认取消收藏该行程?', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      await request.delete(`/tour-collection/${tourId}`, {
+        successMsg: '取消收藏成功',
+        onSuccess: () => {
+          fetchTourCollections()
+        }
+      })
+    } catch (error) {
+      console.error('取消行程收藏失败:', error)
+    }
+  }).catch(() => {
+    // 用户取消操作
+  })
+}
+
+const getTourImage = (tour) => {
+  if (!tour?.mainImage) {
+    return ''
+  }
+  try {
+    const images = JSON.parse(tour.mainImage)
+    if (Array.isArray(images) && images.length > 0) {
+      return images[0]
+    }
+  } catch (error) {
+    // 普通字符串图片地址
+  }
+  return tour.mainImage
 }
 
 // 获取图片完整URL

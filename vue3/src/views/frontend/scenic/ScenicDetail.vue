@@ -260,6 +260,7 @@ import CommentList from '@/views/frontend/comment/CommentList.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import axios from 'axios'
+import { shareCurrentPage } from '@/utils/share'
 import {
   Location, CollectionTag, Timer, Sunny, Loading, Star, StarFilled,
   Document, InfoFilled, CopyDocument, Share, ChatDotRound, Tickets
@@ -763,12 +764,9 @@ const copyCoordinates = () => {
 
 // 分享功能
 const handleShare = () => {
-  // 复制链接到剪贴板
-  const url = window.location.href
-  navigator.clipboard.writeText(url).then(() => {
-    ElMessage.success('链接已复制，快去分享吧！')
-  }).catch(() => {
-    ElMessage.error('复制失败，请手动复制地址栏链接')
+  shareCurrentPage({
+    title: scenic.value.name || '景点详情',
+    text: scenic.value.description || ''
   })
 }
 

@@ -172,7 +172,7 @@
           <div class="meta-right">
             <span class="enrolled"><strong>{{ productInfo.enrolledCount }}</strong> 人已报名</span>
             <span class="action-link" @click="handleCopy">[复制]</span>
-            <span class="action-link" @click="handleFavorite">☆收藏</span>
+            <span class="action-link" @click="handleFavorite">{{ isTourCollected ? '★已收藏' : '☆收藏' }}</span>
           </div>
         </div>
 
@@ -525,6 +525,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getTourDetailFull } from '@/api/tour'
 import { createTourOrder, checkPendingOrder } from '@/api/tourOrder'
+import request from '@/utils/request'
 
 // =============================================
 // 常量定义
@@ -617,6 +618,8 @@ const productTags = ref([])
 const productFeatures = ref([])
 const supplierInfo = ref({ name: '' })
 const refundPolicy = ref({ support: '', special: '' })
+const isTourCollected = ref(false)
+const favoriteLoading = ref(false)
 
 // =============================================
 // 媒体数据配置（从后端获取）
@@ -1131,6 +1134,7 @@ const fetchProductDetail = async () => {
           notice: data.tour.notice || ''
         }
       }
+      await checkTourCollectionStatus()
 
       // 标签
       productTags.value = data.tags || []
@@ -1383,8 +1387,45 @@ const handleCopy = () => {
   ElMessage.success('已复制')
 }
 
-const handleFavorite = () => {
-  ElMessage.info('收藏功能开发中')
+const checkTourCollectionStatus = async () => {
+  if (!localStorage.getItem('token')) {
+    isTourCollected.value = false
+    return
+  }
+  try {
+    const collected = await request.get(`/tour-collection/is-collected/${route.params.id}`, {}, { showDefaultMsg: false })
+    isTourCollected.value = Boolean(collected)
+  } catch (error) {
+    isTourCollected.value = false
+  }
+}
+
+const handleFavorite = async () => {
+  if (!localStorage.getItem('token')) {
+    const goLogin = await ElMessageBox.confirm('收藏行程需要登录，是否前往登录页？', '提示', {
+      confirmButtonText: '去登录',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }).catch(() => false)
+    if (goLogin) {
+      router.push(`/login?redirect=${encodeURIComponent(route.fullPath)}`)
+    }
+    return
+  }
+
+  if (favoriteLoading.value) return
+  favoriteLoading.value = true
+  try {
+    if (isTourCollected.value) {
+      await request.delete(`/tour-collection/${route.params.id}`, { successMsg: '取消收藏成功' })
+      isTourCollected.value = false
+    } else {
+      await request.post(`/tour-collection/${route.params.id}`, null, { successMsg: '收藏成功' })
+      isTourCollected.value = true
+    }
+  } finally {
+    favoriteLoading.value = false
+  }
 }
 
 const showPriceDetail = () => {
