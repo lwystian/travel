@@ -29,6 +29,9 @@ public class SysOperationLog {
     
     @Schema(description = "操作类型: LOGIN/LOGOUT/CREATE/UPDATE/DELETE/QUERY")
     private String operationType;
+
+    @Schema(description = "日志等级: INFO/WARN/ERROR")
+    private String logLevel;
     
     @Schema(description = "操作描述")
     private String operationDesc;

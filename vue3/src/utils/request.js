@@ -4,6 +4,7 @@ import router from '@/router'
 import logger from '@/utils/logger'
 
 let isHandlingTokenExpired = false
+const TOKEN_EXPIRE_TIME = 48 * 60 * 60 * 1000
 
 const clearAuthStorage = () => {
   localStorage.removeItem('userInfo')
@@ -18,10 +19,16 @@ const handleTokenExpired = () => {
   isHandlingTokenExpired = true
 
   clearAuthStorage()
-  ElMessage.error('登录已过期，请重新登录')
+  const currentRoute = router.currentRoute.value
+  const needsLogin = currentRoute.path.startsWith('/back') ||
+    currentRoute.matched.some(record => record.meta.requiresAuth)
+
+  if (needsLogin) {
+    ElMessage.error('登录已过期，请重新登录')
+  }
 
   setTimeout(() => {
-    if (router.currentRoute.value.path !== '/login') {
+    if (needsLogin && router.currentRoute.value.path !== '/login') {
       router.push({
         path: '/login',
         query: { redirect: router.currentRoute.value.fullPath }
@@ -68,8 +75,22 @@ const refreshTokenExpire = () => {
 
   const remaining = Number(tokenExpire) - Date.now()
   if (remaining < 60 * 60 * 1000) {
-    const newExpire = Date.now() + 12 * 60 * 60 * 1000
+    const newExpire = Date.now() + TOKEN_EXPIRE_TIME
     localStorage.setItem('tokenExpire', newExpire.toString())
+  }
+}
+
+const syncAuthFromHeaders = (response) => {
+  const refreshedToken = response.headers?.['x-refresh-token']
+  const tokenExpire = response.headers?.['x-token-expire']
+
+  if (refreshedToken) {
+    localStorage.setItem('token', refreshedToken)
+  }
+  if (tokenExpire) {
+    localStorage.setItem('tokenExpire', tokenExpire)
+  } else if (refreshedToken) {
+    localStorage.setItem('tokenExpire', String(Date.now() + TOKEN_EXPIRE_TIME))
   }
 }
 
@@ -127,6 +148,8 @@ const getHttpErrorMessage = (error, config) => {
 
 service.interceptors.response.use(
   response => {
+    syncAuthFromHeaders(response)
+
     if (response.config?.responseType === 'blob') {
       refreshTokenExpire()
       return response

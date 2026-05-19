@@ -38,9 +38,10 @@ public class JwtTokenUtils {
     
     public static final Logger LOGGER = LoggerFactory.getLogger(JwtTokenUtils.class);
     
-    private static final String USER_TOKEN_KEY_PREFIX = "user:token:";
-    private static final String USER_ID_KEY_PREFIX = "user:id:";
-    private static final long TOKEN_EXPIRE = 43200; // 12小时
+    public static final String USER_TOKEN_KEY_PREFIX = "user:token:";
+    public static final String USER_ID_KEY_PREFIX = "user:id:";
+    public static final long TOKEN_EXPIRE = 48 * 60 * 60; // 48小时
+    public static final int TOKEN_EXPIRE_HOURS = 48;
     
     @PostConstruct
     public void setServices() {
@@ -52,7 +53,7 @@ public class JwtTokenUtils {
     public static String genToken(String userId, String sign) {
         String token = JWT.create()
                 .withAudience(userId)
-                .withExpiresAt(DateUtil.offsetHour(new Date(), 12))
+                .withExpiresAt(DateUtil.offsetHour(new Date(), TOKEN_EXPIRE_HOURS))
                 .sign(Algorithm.HMAC256(sign));
         
         // 将token和用户ID的映射关系存入Redis，方便后续查询和管理
@@ -79,7 +80,13 @@ public class JwtTokenUtils {
             
             // 如果Redis中没有，则从JWT中解析
             if (StringUtils.isBlank(userId)) {
-                userId = JWT.decode(token).getAudience().get(0);
+                var decodedJwt = JWT.decode(token);
+                Date expiresAt = decodedJwt.getExpiresAt();
+                if (expiresAt != null && expiresAt.before(new Date())) {
+                    LOGGER.warn("Token has expired, token: {}", token);
+                    return null;
+                }
+                userId = decodedJwt.getAudience().get(0);
                 if (StringUtils.isBlank(userId)) {
                     LOGGER.error("从token中解析用户ID失败，token: {}", token);
                     return null;
@@ -139,6 +146,29 @@ public class JwtTokenUtils {
         if (user != null && user.getId() != null) {
             String userKey = USER_ID_KEY_PREFIX + user.getId();
             staticRedisUtil.set(userKey, user, TOKEN_EXPIRE);
+        }
+    }
+
+    public static String refreshToken(String oldToken, User user) {
+        if (user == null || user.getId() == null || StringUtils.isBlank(user.getPassword())) {
+            return null;
+        }
+        String newToken = genToken(String.valueOf(user.getId()), user.getPassword());
+        if (StringUtils.isNotBlank(oldToken)) {
+            staticRedisUtil.del(USER_TOKEN_KEY_PREFIX + oldToken);
+        }
+        updateUserCache(user);
+        return newToken;
+    }
+
+    public static void renewTokenTtl(String token, String userId) {
+        if (StringUtils.isBlank(token) || StringUtils.isBlank(userId)) {
+            return;
+        }
+        staticRedisUtil.set(USER_TOKEN_KEY_PREFIX + token, userId, TOKEN_EXPIRE);
+        Object cachedUser = staticRedisUtil.get(USER_ID_KEY_PREFIX + userId);
+        if (cachedUser != null) {
+            staticRedisUtil.set(USER_ID_KEY_PREFIX + userId, cachedUser, TOKEN_EXPIRE);
         }
     }
     

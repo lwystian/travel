@@ -4,7 +4,7 @@ import { login, register } from '@/api/user'
 // import { setToken, removeToken } from '@/utils/auth'
 
 const TOKEN_EXPIRE_KEY = 'tokenExpire'
-const TOKEN_EXPIRE_TIME = 12 * 60 * 60 * 1000 // 12小时
+const TOKEN_EXPIRE_TIME = 48 * 60 * 60 * 1000 // 48小时
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -53,6 +53,18 @@ export const useUserStore = defineStore('user', {
       const expireTime = Date.now() + TOKEN_EXPIRE_TIME
       this.tokenExpire = expireTime
       localStorage.setItem(TOKEN_EXPIRE_KEY, expireTime.toString())
+    },
+    syncFromStorage() {
+      this.token = localStorage.getItem('token') || ''
+      this.role = localStorage.getItem('role') || ''
+      this.tokenExpire = localStorage.getItem(TOKEN_EXPIRE_KEY) || null
+      try {
+        this.userInfo = JSON.parse(localStorage.getItem('userInfo')) || null
+        this.menus = JSON.parse(localStorage.getItem('menus')) || []
+      } catch {
+        this.userInfo = null
+        this.menus = []
+      }
     },
     clearUserInfo() {
       this.userInfo = null

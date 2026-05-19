@@ -39,6 +39,7 @@ public class SysLogController {
     public Result<?> getLogsByPage(
             @RequestParam(defaultValue = "") String username,
             @RequestParam(defaultValue = "") String operationType,
+            @RequestParam(defaultValue = "") String logLevel,
             @RequestParam(defaultValue = "") String startTime,
             @RequestParam(defaultValue = "") String endTime,
             @RequestParam(defaultValue = "1") Integer currentPage,
@@ -49,7 +50,7 @@ public class SysLogController {
         }
 
         Page<SysOperationLog> page = sysOperationLogService.getLogsByPage(
-                username, operationType, startTime, endTime, currentPage, size);
+                username, operationType, logLevel, startTime, endTime, currentPage, size);
         return Result.success(page);
     }
 
@@ -59,8 +60,12 @@ public class SysLogController {
     public void exportLogs(
             @RequestParam(defaultValue = "") String username,
             @RequestParam(defaultValue = "") String operationType,
+            @RequestParam(defaultValue = "") String logLevel,
             @RequestParam(defaultValue = "") String startTime,
             @RequestParam(defaultValue = "") String endTime,
+            @RequestParam(required = false) List<Long> ids,
+            @RequestParam(defaultValue = "true") boolean includeUserAgent,
+            @RequestParam(defaultValue = "true") boolean includeParams,
             HttpServletResponse response) throws IOException {
 
         if (!isAdmin()) {
@@ -71,7 +76,7 @@ public class SysLogController {
         }
 
         List<SysOperationLog> logs = sysOperationLogService.getAllLogs(
-                username, operationType, startTime, endTime);
+                username, operationType, logLevel, startTime, endTime, ids);
         String filename = "系统日志备份_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".csv";
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType("text/csv;charset=UTF-8");
@@ -80,10 +85,10 @@ public class SysLogController {
 
         StringBuilder content = new StringBuilder();
         content.append('\ufeff')
-                .append("日志ID,时间,操作人,操作类型,操作说明,操作对象,请求方法,请求地址,IP,端口,结果,耗时(ms),错误信息,User-Agent,请求参数")
+                .append(buildCsvHeader(includeUserAgent, includeParams))
                 .append(CSV_LINE_SEPARATOR);
         for (SysOperationLog log : logs) {
-            content.append(toCsvLine(log));
+            content.append(toCsvLine(log, includeUserAgent, includeParams));
         }
         response.getOutputStream().write(content.toString().getBytes(StandardCharsets.UTF_8));
         response.flushBuffer();
@@ -126,23 +131,53 @@ public class SysLogController {
         return Result.success("已清理 " + count + " 条过期日志");
     }
 
-    private String toCsvLine(SysOperationLog log) {
-        return csv(log.getId())
-                + "," + csv(log.getCreateTime())
-                + "," + csv(log.getUsername())
-                + "," + csv(log.getOperationType())
-                + "," + csv(log.getOperationDesc())
-                + "," + csv(log.getTargetType())
-                + "," + csv(log.getRequestMethod())
-                + "," + csv(log.getRequestUrl())
-                + "," + csv(log.getIpAddress())
-                + "," + csv(log.getPort())
-                + "," + csv(log.getStatus() != null && log.getStatus() == 1 ? "成功" : "失败")
-                + "," + csv(log.getExecutionTime())
-                + "," + csv(log.getErrorMessage())
-                + "," + csv(log.getUserAgent())
-                + "," + csv(log.getRequestParams())
-                + CSV_LINE_SEPARATOR;
+    private String buildCsvHeader(boolean includeUserAgent, boolean includeParams) {
+        StringBuilder header = new StringBuilder("日志ID,时间,等级,操作人,操作类型,操作说明,操作对象,请求方法,请求地址,IP,端口,结果,耗时(ms),错误信息");
+        if (includeUserAgent) {
+            header.append(",User-Agent");
+        }
+        if (includeParams) {
+            header.append(",请求参数");
+        }
+        return header.toString();
+    }
+
+    private String toCsvLine(SysOperationLog log, boolean includeUserAgent, boolean includeParams) {
+        StringBuilder line = new StringBuilder();
+        line.append(csv(log.getId()))
+                .append(",").append(csv(log.getCreateTime()))
+                .append(",").append(csv(normalizeLogLevel(log)))
+                .append(",").append(csv(log.getUsername()))
+                .append(",").append(csv(log.getOperationType()))
+                .append(",").append(csv(log.getOperationDesc()))
+                .append(",").append(csv(log.getTargetType()))
+                .append(",").append(csv(log.getRequestMethod()))
+                .append(",").append(csv(log.getRequestUrl()))
+                .append(",").append(csv(log.getIpAddress()))
+                .append(",").append(csv(log.getPort()))
+                .append(",").append(csv(log.getStatus() != null && log.getStatus() == 1 ? "成功" : "失败"))
+                .append(",").append(csv(log.getExecutionTime()))
+                .append(",").append(csv(log.getErrorMessage()));
+        if (includeUserAgent) {
+            line.append(",").append(csv(log.getUserAgent()));
+        }
+        if (includeParams) {
+            line.append(",").append(csv(log.getRequestParams()));
+        }
+        return line.append(CSV_LINE_SEPARATOR).toString();
+    }
+
+    private String normalizeLogLevel(SysOperationLog log) {
+        if (log.getLogLevel() != null && !log.getLogLevel().isBlank()) {
+            return log.getLogLevel();
+        }
+        if (log.getErrorMessage() != null && !log.getErrorMessage().isBlank()) {
+            return "ERROR";
+        }
+        if (log.getStatus() != null && log.getStatus() == 0) {
+            return "WARN";
+        }
+        return "INFO";
     }
 
     private String csv(Object value) {

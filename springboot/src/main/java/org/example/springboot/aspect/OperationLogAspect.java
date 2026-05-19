@@ -59,6 +59,7 @@ public class OperationLogAspect {
             return result;
         } catch (Throwable e) {
             auditLog.setStatus(0);
+            auditLog.setLogLevel("ERROR");
             auditLog.setErrorMessage(LogSanitizer.sanitizeThrowable(e));
             throw e;
         } finally {
@@ -77,6 +78,7 @@ public class OperationLogAspect {
         String targetType = resolveTargetType(annotation, joinPoint);
 
         auditLog.setOperationType(operationType);
+        auditLog.setLogLevel("INFO");
         auditLog.setOperationDesc(resolveOperationDesc(annotation, request, operationType, targetType));
         auditLog.setRequestMethod(request != null ? request.getMethod() : "");
         auditLog.setRequestUrl(request != null ? request.getRequestURI() : "");
@@ -115,8 +117,10 @@ public class OperationLogAspect {
 
     private void fillResult(SysOperationLog auditLog, Object result) {
         auditLog.setStatus(1);
+        auditLog.setLogLevel("INFO");
         if (result instanceof Result<?> response && !"200".equals(response.getCode())) {
             auditLog.setStatus(0);
+            auditLog.setLogLevel("WARN");
             auditLog.setErrorMessage(LogSanitizer.truncate(response.getMsg(), 500));
         }
     }

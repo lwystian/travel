@@ -71,42 +71,36 @@ public class SysOperationLogService {
     /**
      * 分页查询日志
      */
-    public Page<SysOperationLog> getLogsByPage(String username, String operationType, 
+    public Page<SysOperationLog> getLogsByPage(String username, String operationType, String logLevel,
             String startTime, String endTime, Integer currentPage, Integer size) {
-        LambdaQueryWrapper<SysOperationLog> queryWrapper = new LambdaQueryWrapper<>();
-        
-        if (StringUtils.isNotBlank(username)) {
-            queryWrapper.like(SysOperationLog::getUsername, username);
-        }
-        if (StringUtils.isNotBlank(operationType)) {
-            queryWrapper.eq(SysOperationLog::getOperationType, operationType);
-        }
-        LocalDateTime parsedStartTime = parseDateTime(startTime);
-        LocalDateTime parsedEndTime = parseDateTime(endTime);
-        if (parsedStartTime != null) {
-            queryWrapper.ge(SysOperationLog::getCreateTime, parsedStartTime);
-        }
-        if (parsedEndTime != null) {
-            queryWrapper.le(SysOperationLog::getCreateTime, parsedEndTime);
-        }
-        
-        queryWrapper.orderByDesc(SysOperationLog::getCreateTime);
-        
+        LambdaQueryWrapper<SysOperationLog> queryWrapper = buildQueryWrapper(username, operationType, logLevel, startTime, endTime, null);
         return sysOperationLogMapper.selectPage(new Page<>(currentPage, size), queryWrapper);
     }
     
     /**
      * 获取所有日志（用于导出）
      */
-    public List<SysOperationLog> getAllLogs(String username, String operationType, 
-            String startTime, String endTime) {
+    public List<SysOperationLog> getAllLogs(String username, String operationType, String logLevel,
+            String startTime, String endTime, List<Long> ids) {
+        LambdaQueryWrapper<SysOperationLog> queryWrapper = buildQueryWrapper(username, operationType, logLevel, startTime, endTime, ids);
+        return sysOperationLogMapper.selectList(queryWrapper);
+    }
+
+    private LambdaQueryWrapper<SysOperationLog> buildQueryWrapper(String username, String operationType, String logLevel,
+            String startTime, String endTime, List<Long> ids) {
         LambdaQueryWrapper<SysOperationLog> queryWrapper = new LambdaQueryWrapper<>();
         
+        if (ids != null && !ids.isEmpty()) {
+            queryWrapper.in(SysOperationLog::getId, ids);
+        }
         if (StringUtils.isNotBlank(username)) {
             queryWrapper.like(SysOperationLog::getUsername, username);
         }
         if (StringUtils.isNotBlank(operationType)) {
             queryWrapper.eq(SysOperationLog::getOperationType, operationType);
+        }
+        if (StringUtils.isNotBlank(logLevel)) {
+            queryWrapper.eq(SysOperationLog::getLogLevel, logLevel.toUpperCase());
         }
         LocalDateTime parsedStartTime = parseDateTime(startTime);
         LocalDateTime parsedEndTime = parseDateTime(endTime);
@@ -118,8 +112,7 @@ public class SysOperationLogService {
         }
         
         queryWrapper.orderByDesc(SysOperationLog::getCreateTime);
-        
-        return sysOperationLogMapper.selectList(queryWrapper);
+        return queryWrapper;
     }
     
     /**

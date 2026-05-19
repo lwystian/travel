@@ -292,6 +292,7 @@ router.beforeEach((to, from, next) => {
   document.title = to.meta.title ? `${to.meta.title} - 侠客行国旅` : '侠客行国旅'
 
   const userStore = useUserStore()
+  userStore.syncFromStorage()
 
   if (userStore.token && userStore.isTokenExpired) {
     userStore.clearUserInfo()

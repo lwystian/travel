@@ -6,7 +6,7 @@
         <p>记录关键业务操作、访问来源与执行结果，用于审计追踪和生产排障。</p>
       </div>
       <div class="header-actions">
-        <el-button :loading="downloadLoading" @click="handleDownload">
+        <el-button :loading="downloadLoading" @click="openExportDialog">
           <el-icon><Download /></el-icon>
           下载备份
         </el-button>
@@ -25,6 +25,11 @@
         <el-form-item label="操作类型">
           <el-select v-model="queryForm.operationType" placeholder="全部类型" clearable>
             <el-option v-for="item in operationOptions" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="日志等级">
+          <el-select v-model="queryForm.logLevel" placeholder="全部等级" clearable>
+            <el-option v-for="item in logLevelOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="时间范围">
@@ -54,6 +59,13 @@
       <el-table :data="tableData" v-loading="loading" row-key="id" stripe @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="48" />
         <el-table-column prop="createTime" label="时间" width="170" />
+        <el-table-column label="等级" width="90">
+          <template #default="{ row }">
+            <el-tag size="small" :type="getLogLevelTagType(row)">
+              {{ formatLogLevel(row) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="操作人" width="130">
           <template #default="{ row }">{{ row.username || '系统' }}</template>
         </el-table-column>
@@ -114,6 +126,7 @@
       <el-descriptions :column="2" border>
         <el-descriptions-item label="日志ID">{{ detailData.id }}</el-descriptions-item>
         <el-descriptions-item label="时间">{{ detailData.createTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="日志等级">{{ formatLogLevel(detailData) }}</el-descriptions-item>
         <el-descriptions-item label="操作人">{{ detailData.username || '系统' }}</el-descriptions-item>
         <el-descriptions-item label="操作类型">{{ formatOperationType(detailData.operationType) }}</el-descriptions-item>
         <el-descriptions-item label="操作说明" :span="2">{{ formatOperationDesc(detailData) }}</el-descriptions-item>
@@ -137,11 +150,34 @@
         </el-descriptions-item>
       </el-descriptions>
     </el-dialog>
+
+    <el-dialog v-model="exportVisible" title="导出系统日志" width="520px">
+      <el-form :model="exportForm" label-width="110px">
+        <el-form-item label="导出范围">
+          <el-radio-group v-model="exportForm.scope">
+            <el-radio-button label="filtered">当前筛选</el-radio-button>
+            <el-radio-button label="selected" :disabled="selectedRows.length === 0">选中日志</el-radio-button>
+            <el-radio-button label="all">全部日志</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="文件内容">
+          <el-checkbox v-model="exportForm.includeUserAgent">包含 User-Agent</el-checkbox>
+          <el-checkbox v-model="exportForm.includeParams">包含请求参数</el-checkbox>
+        </el-form-item>
+        <el-form-item label="说明">
+          <span class="export-tip">{{ exportTip }}</span>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="exportVisible = false">取消</el-button>
+        <el-button type="primary" :loading="downloadLoading" @click="handleDownload">导出 CSV</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, Download, Refresh, Search } from '@element-plus/icons-vue'
 import request from '@/utils/request'
@@ -154,12 +190,20 @@ const downloadLoading = ref(false)
 const tableData = ref([])
 const selectedRows = ref([])
 const detailVisible = ref(false)
+const exportVisible = ref(false)
 const detailData = ref({})
 const dateRange = ref([])
 
 const queryForm = reactive({
   username: '',
-  operationType: ''
+  operationType: '',
+  logLevel: ''
+})
+
+const exportForm = reactive({
+  scope: 'filtered',
+  includeUserAgent: true,
+  includeParams: true
 })
 
 const pagination = reactive({
@@ -183,6 +227,22 @@ const operationOptions = [
   { label: '审核通过', value: 'REVIEW_PASS' },
   { label: '审核拒绝', value: 'REVIEW_REJECT' }
 ]
+
+const logLevelOptions = [
+  { label: 'INFO', value: 'INFO' },
+  { label: 'WARN', value: 'WARN' },
+  { label: 'ERROR', value: 'ERROR' }
+]
+
+const exportTip = computed(() => {
+  if (exportForm.scope === 'selected') {
+    return `将导出选中的 ${selectedRows.value.length} 条日志。`
+  }
+  if (exportForm.scope === 'all') {
+    return '将忽略当前筛选条件，导出全部系统日志。'
+  }
+  return '将按当前操作人、操作类型、日志等级和时间范围导出。'
+})
 
 const operationTextMap = {
   QUERY: '查询',
@@ -235,7 +295,8 @@ const loadData = async () => {
       currentPage: pagination.currentPage,
       size: pagination.size,
       username: queryForm.username,
-      operationType: queryForm.operationType
+      operationType: queryForm.operationType,
+      logLevel: queryForm.logLevel
     }
 
     if (dateRange.value && dateRange.value.length === 2) {
@@ -262,6 +323,7 @@ const handleQuery = () => {
 const handleReset = () => {
   queryForm.username = ''
   queryForm.operationType = ''
+  queryForm.logLevel = ''
   dateRange.value = []
   handleQuery()
 }
@@ -324,6 +386,13 @@ const handleBatchDelete = async () => {
   }
 }
 
+const openExportDialog = () => {
+  if (selectedRows.value.length === 0 && exportForm.scope === 'selected') {
+    exportForm.scope = 'filtered'
+  }
+  exportVisible.value = true
+}
+
 const handleDownload = async () => {
   downloadLoading.value = true
   try {
@@ -332,6 +401,7 @@ const handleDownload = async () => {
     const blob = await normalizeDownloadBlob(response)
     downloadBlob(blob, `系统日志备份_${formatFileTime(new Date())}.csv`)
     ElMessage.success('系统日志备份已下载')
+    exportVisible.value = false
   } catch (error) {
     logger.error('Download system logs failed:', error)
     ElMessage.error('下载备份失败')
@@ -369,10 +439,13 @@ const normalizeDownloadBlob = async (response) => {
 }
 
 const buildCsvBlob = (logs) => {
-  const headers = ['日志ID', '时间', '操作人', '操作类型', '操作说明', '操作对象', '请求方法', '请求地址', 'IP', '端口', '结果', '耗时(ms)', '错误信息', 'User-Agent', '请求参数']
+  const headers = ['日志ID', '时间', '等级', '操作人', '操作类型', '操作说明', '操作对象', '请求方法', '请求地址', 'IP', '端口', '结果', '耗时(ms)', '错误信息']
+  if (exportForm.includeUserAgent) headers.push('User-Agent')
+  if (exportForm.includeParams) headers.push('请求参数')
   const rows = logs.map(log => [
     log.id,
     log.createTime,
+    formatLogLevel(log),
     log.username,
     formatOperationType(log.operationType),
     formatOperationDesc(log),
@@ -383,10 +456,9 @@ const buildCsvBlob = (logs) => {
     log.port,
     log.status === 1 ? '成功' : '失败',
     log.executionTime,
-    log.errorMessage,
-    log.userAgent,
-    log.requestParams
-  ])
+    log.errorMessage
+  ].concat(exportForm.includeUserAgent ? [log.userAgent] : [])
+    .concat(exportForm.includeParams ? [log.requestParams] : []))
 
   const csv = `\ufeff${[headers, ...rows].map(row => row.map(csvCell).join(',')).join('\r\n')}\r\n`
   return new Blob([csv], { type: 'text/csv;charset=utf-8' })
@@ -410,9 +482,22 @@ const downloadBlob = (blob, filename) => {
 
 const buildQueryParams = () => {
   const params = {
-    username: queryForm.username,
-    operationType: queryForm.operationType
+    includeUserAgent: exportForm.includeUserAgent,
+    includeParams: exportForm.includeParams
   }
+
+  if (exportForm.scope === 'selected') {
+    params.ids = selectedRows.value.map(row => row.id).join(',')
+    return params
+  }
+
+  if (exportForm.scope === 'all') {
+    return params
+  }
+
+  params.username = queryForm.username
+  params.operationType = queryForm.operationType
+  params.logLevel = queryForm.logLevel
 
   if (dateRange.value && dateRange.value.length === 2) {
     params.startTime = dateRange.value[0]
@@ -429,6 +514,20 @@ const formatFileTime = (date) => {
 
 const formatOperationType = (type) => {
   return operationTextMap[type] || type || '-'
+}
+
+const formatLogLevel = (row = {}) => {
+  if (row.logLevel) return String(row.logLevel).toUpperCase()
+  if (row.errorMessage) return 'ERROR'
+  if (row.status === 0) return 'WARN'
+  return 'INFO'
+}
+
+const getLogLevelTagType = (row = {}) => {
+  const level = formatLogLevel(row)
+  if (level === 'ERROR') return 'danger'
+  if (level === 'WARN') return 'warning'
+  return 'info'
 }
 
 const formatOperationDesc = (row = {}) => {
@@ -609,6 +708,11 @@ onMounted(() => {
 
 .error-text {
   color: #dc2626;
+}
+
+.export-tip {
+  color: #6b7280;
+  font-size: 13px;
 }
 
 .pagination-container {
