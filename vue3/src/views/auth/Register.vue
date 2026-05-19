@@ -61,7 +61,7 @@
 
       <section class="visual-panel">
         <div class="brand">
-          <div class="brand-logo">旅</div>
+          <div class="brand-logo">侠客行</div>
           <div>
             <h1>旅游服务平台</h1>
             <p>Travel Service Platform</p>
@@ -386,14 +386,17 @@ const submitRegister = async () => {
 }
 
 .brand-logo {
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
+  min-width: 86px;
+  height: 44px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.2);
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .brand h1,
