@@ -13,6 +13,7 @@ import org.example.springboot.mapper.CommentMapper;
 import org.example.springboot.mapper.ScenicCategoryMapper;
 import org.example.springboot.mapper.ScenicSpotMapper;
 import org.example.springboot.mapper.ScenicTagMapper;
+import org.example.springboot.security.SecurityValidationUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -40,6 +41,8 @@ public class ScenicSpotService {
     private ScenicTagService scenicTagService;
 
     public Page<ScenicSpot> getScenicSpotsByPage(String name, String location, Long categoryId, Integer currentPage, Integer size, String orderBy, String order) {
+        currentPage = SecurityValidationUtil.clampPage(currentPage);
+        size = SecurityValidationUtil.clampLimit(size, 10, 100);
         LambdaQueryWrapper<ScenicSpot> queryWrapper = new LambdaQueryWrapper<>();
 
         // 如果有名称搜索，进行综合搜索（名称、地区、描述）
@@ -249,6 +252,7 @@ public class ScenicSpotService {
      * @return 热门景点列表
      */
     public List<ScenicSpot> getHotScenics(Integer limit) {
+        limit = SecurityValidationUtil.clampLimit(limit, 4, 50);
         // 这里可以根据实际需求定义热门景点的获取逻辑
         // 例如根据评分、访问量、价格等条件排序
         LambdaQueryWrapper<ScenicSpot> queryWrapper = new LambdaQueryWrapper<>();
@@ -292,6 +296,7 @@ public class ScenicSpotService {
      * @return 搜索建议列表
      */
     public List<Map<String, Object>> getSearchSuggestions(String keyword, Integer limit) {
+        limit = SecurityValidationUtil.clampLimit(limit, 5, 20);
         List<Map<String, Object>> result = new ArrayList<>();
 
         if (StringUtils.isBlank(keyword)) {

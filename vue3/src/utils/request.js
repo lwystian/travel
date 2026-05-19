@@ -45,7 +45,8 @@ const service = axios.create({
   baseURL: process.env.VUE_APP_BASE_API || '/api',
   timeout: 15000,
   headers: {
-    'Content-Type': 'application/json;charset=utf-8'
+    'Content-Type': 'application/json;charset=utf-8',
+    'X-Requested-With': 'XMLHttpRequest'
   }
 })
 
@@ -262,7 +263,8 @@ const request = {
     return service.post(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
-        token
+        token,
+        'X-Requested-With': 'XMLHttpRequest'
       },
       ...config
     })

@@ -8,6 +8,7 @@ import org.example.springboot.entity.TravelGuide;
 import org.example.springboot.entity.User;
 import org.example.springboot.mapper.TravelGuideMapper;
 import org.example.springboot.mapper.UserMapper;
+import org.example.springboot.security.SecurityValidationUtil;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -26,6 +27,8 @@ public class TravelGuideService {
     private SensitiveWordService sensitiveWordService;
 
     public Page<TravelGuide> getGuidesByPage(String title, Long userId, Integer currentPage, Integer size) {
+        currentPage = SecurityValidationUtil.clampPage(currentPage);
+        size = SecurityValidationUtil.clampLimit(size, 10, 100);
         LambdaQueryWrapper<TravelGuide> queryWrapper = new LambdaQueryWrapper<>();
 
         // 只查询已审核通过的内容
@@ -106,6 +109,8 @@ public class TravelGuideService {
     }
 
     public Page<TravelGuide> getMyGuides(Integer currentPage, Integer size) {
+        currentPage = SecurityValidationUtil.clampPage(currentPage);
+        size = SecurityValidationUtil.clampLimit(size, 10, 100);
         Long userId = JwtTokenUtils.getCurrentUser().getId();
         LambdaQueryWrapper<TravelGuide> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(TravelGuide::getUserId, userId);
@@ -119,6 +124,7 @@ public class TravelGuideService {
      * @return 热门攻略列表
      */
     public List<Map<String, Object>> getHotGuides(Integer limit) {
+        limit = SecurityValidationUtil.clampLimit(limit, 3, 50);
         // 根据浏览量倒序排序获取热门攻略
         LambdaQueryWrapper<TravelGuide> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.orderByDesc(TravelGuide::getViews);
@@ -158,6 +164,7 @@ public class TravelGuideService {
      * @return 搜索建议列表
      */
     public List<Map<String, Object>> getGuideSuggestions(String keyword, Integer limit) {
+        limit = SecurityValidationUtil.clampLimit(limit, 5, 20);
         List<Map<String, Object>> result = new ArrayList<>();
 
         if (StringUtils.isBlank(keyword)) {
