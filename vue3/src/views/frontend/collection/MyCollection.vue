@@ -391,17 +391,14 @@ const tourTotal = ref(0)
 const fetchScenicCollections = async () => {
   scenicLoading.value = true
   try {
-    await request.get('/scenic-collection/user', {
-      currentPage: scenicCurrentPage.value,
-      size: scenicPageSize.value,
-      userId: userStore.userInfo.id
-    }, {
-      showDefaultMsg: false,
-      onSuccess: (data) => {
-        scenicCollections.value = data.records || []
-        scenicTotal.value = data.total || 0
-      }
-    })
+    const params = new URLSearchParams()
+    params.append('currentPage', scenicCurrentPage.value)
+    params.append('size', scenicPageSize.value)
+    const res = await request.get('/scenic-collection/user?' + params.toString(), null, { showDefaultMsg: false })
+    if (res) {
+      scenicCollections.value = res.records || []
+      scenicTotal.value = res.total || 0
+    }
   } catch (error) {
     console.error('获取收藏景点失败:', error)
   } finally {
@@ -413,17 +410,14 @@ const fetchScenicCollections = async () => {
 const fetchGuideCollections = async () => {
   guideLoading.value = true
   try {
-    await request.get('/collection/page', {
-      currentPage: guideCurrentPage.value,
-      size: guidePageSize.value,
-      userId: userStore.userInfo.id
-    }, {
-      showDefaultMsg: false,
-      onSuccess: (data) => {
-        guideCollections.value = data.records || []
-        guideTotal.value = data.total || 0
-      }
-    })
+    const params = new URLSearchParams()
+    params.append('currentPage', guideCurrentPage.value)
+    params.append('size', guidePageSize.value)
+    const res = await request.get('/collection/page?' + params.toString(), null, { showDefaultMsg: false })
+    if (res) {
+      guideCollections.value = res.records || []
+      guideTotal.value = res.total || 0
+    }
   } catch (error) {
     console.error('获取收藏攻略失败:', error)
   } finally {
@@ -435,22 +429,29 @@ const fetchGuideCollections = async () => {
 const fetchTourCollections = async () => {
   tourLoading.value = true
   try {
-    await request.get('/tour-collection/user', {
-      currentPage: tourCurrentPage.value,
-      size: tourPageSize.value,
-      userId: userStore.userInfo.id
-    }, {
-      showDefaultMsg: false,
-      onSuccess: (data) => {
-        tourCollections.value = data.records || []
-        tourTotal.value = data.total || 0
-      }
-    })
+    const params = new URLSearchParams()
+    params.append('currentPage', tourCurrentPage.value)
+    params.append('size', tourPageSize.value)
+    const res = await request.get('/tour-collection/user?' + params.toString(), null, { showDefaultMsg: false })
+    if (res) {
+      tourCollections.value = res.records || []
+      tourTotal.value = res.total || 0
+    }
   } catch (error) {
     console.error('获取收藏行程失败:', error)
   } finally {
     tourLoading.value = false
   }
+}
+
+// 加载所有收藏数量
+const fetchAllCollectionCounts = async () => {
+  // 同时加载三个标签页的数据以获取总数
+  await Promise.all([
+    fetchScenicCollections(),
+    fetchGuideCollections(),
+    fetchTourCollections()
+  ])
 }
 
 // 标签页切换
@@ -521,14 +522,19 @@ const handleCancelScenicCollection = (scenicId) => {
     type: 'warning'
   }).then(async () => {
     try {
-      await request.delete(`/scenic-collection/${scenicId}`, {}, {
-        successMsg: '取消收藏成功',
-        onSuccess: () => {
-          fetchScenicCollections()
-        }
-      })
+      await request.delete(`/scenic-collection/${scenicId}`)
+      ElMessage.success('取消收藏成功')
+      // 删除后刷新列表并重新获取所有数量
+      scenicTotal.value--
+      scenicCollections.value = scenicCollections.value.filter(item => item.scenicInfo?.id !== scenicId)
+      // 如果当前页数据空了，刷新列表
+      if (scenicCollections.value.length === 0 && scenicCurrentPage.value > 1) {
+        scenicCurrentPage.value--
+        fetchScenicCollections()
+      }
     } catch (error) {
       console.error('取消景点收藏失败:', error)
+      ElMessage.error('取消收藏失败')
     }
   }).catch(() => {
     // 用户取消操作
@@ -543,14 +549,21 @@ const handleCancelGuideCollection = (guideId) => {
     type: 'warning'
   }).then(async () => {
     try {
-      await request.delete(`/collection/cancel?guideId=${guideId}`, {}, {
-        successMsg: '取消收藏成功',
-        onSuccess: () => {
-          fetchGuideCollections()
-        }
-      })
+      const params = new URLSearchParams()
+      params.append('guideId', guideId)
+      await request.delete(`/collection/cancel?${params.toString()}`)
+      ElMessage.success('取消收藏成功')
+      // 删除后刷新列表并重新获取所有数量
+      guideTotal.value--
+      guideCollections.value = guideCollections.value.filter(item => item.guideId !== guideId)
+      // 如果当前页数据空了，刷新列表
+      if (guideCollections.value.length === 0 && guideCurrentPage.value > 1) {
+        guideCurrentPage.value--
+        fetchGuideCollections()
+      }
     } catch (error) {
       console.error('取消攻略收藏失败:', error)
+      ElMessage.error('取消收藏失败')
     }
   }).catch(() => {
     // 用户取消操作
@@ -565,14 +578,19 @@ const handleCancelTourCollection = (tourId) => {
     type: 'warning'
   }).then(async () => {
     try {
-      await request.delete(`/tour-collection/${tourId}`, {
-        successMsg: '取消收藏成功',
-        onSuccess: () => {
-          fetchTourCollections()
-        }
-      })
+      await request.delete(`/tour-collection/${tourId}`)
+      ElMessage.success('取消收藏成功')
+      // 删除后刷新列表并重新获取所有数量
+      tourTotal.value--
+      tourCollections.value = tourCollections.value.filter(item => item.tourId !== tourId)
+      // 如果当前页数据空了，刷新列表
+      if (tourCollections.value.length === 0 && tourCurrentPage.value > 1) {
+        tourCurrentPage.value--
+        fetchTourCollections()
+      }
     } catch (error) {
       console.error('取消行程收藏失败:', error)
+      ElMessage.error('取消收藏失败')
     }
   }).catch(() => {
     // 用户取消操作
@@ -608,8 +626,8 @@ const formatDate = (dateStr) => {
 }
 
 onMounted(() => {
-  // 默认加载景点收藏
-  fetchScenicCollections()
+  // 加载所有收藏数量
+  fetchAllCollectionCounts()
 })
 </script>
 

@@ -125,7 +125,7 @@ public class ContentReviewService {
         siteNotificationService.sendToUser(
                 commentEntity.getUserId(),
                 status == STATUS_APPROVED ? "评论审核通过" : "评论审核未通过",
-                status == STATUS_APPROVED ? "你的评论已审核通过，现在可以在前台展示。" : "你的评论未通过审核，原因：" + (comment == null ? "内容不符合平台规范" : comment),
+                status == STATUS_APPROVED ? "你的评论审核通过，已在评论区展示。" : "你的评论未通过审核，原因：" + (comment == null ? "内容不符合平台规范" : comment),
                 "REVIEW",
                 "COMMENT",
                 String.valueOf(commentId),
@@ -189,7 +189,7 @@ public class ContentReviewService {
         siteNotificationService.sendToUser(
                 review.getUserId(),
                 status == STATUS_APPROVED ? "住宿评价审核通过" : "住宿评价审核未通过",
-                status == STATUS_APPROVED ? "你的住宿评价已审核通过，现在可以在前台展示。" : "你的住宿评价未通过审核，原因：" + (comment == null ? "内容不符合平台规范" : comment),
+                status == STATUS_APPROVED ? "你的住宿评价审核通过，已在评论区展示。" : "你的住宿评价未通过审核，原因：" + (comment == null ? "内容不符合平台规范" : comment),
                 "REVIEW",
                 "ACCOMMODATION_REVIEW",
                 String.valueOf(reviewId),
