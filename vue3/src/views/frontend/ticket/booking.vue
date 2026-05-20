@@ -516,6 +516,101 @@
         </div>
       </div>
     </div>
+
+    <el-dialog
+      v-model="bookingConfirmVisible"
+      width="720px"
+      align-center
+      :close-on-click-modal="false"
+      class="booking-modern-dialog"
+    >
+      <section class="booking-dialog-content">
+        <header class="booking-dialog-head">
+          <span>Order Preview</span>
+          <h2>确认订单信息</h2>
+          <p>请核对行程、出发日期、出行人数与预计金额，提交后将为你锁定当前名额。</p>
+        </header>
+
+        <div class="booking-dialog-grid">
+          <div>
+            <span>行程套餐</span>
+            <strong>{{ selectedTripPackage?.name || '-' }}</strong>
+          </div>
+          <div>
+            <span>批次套餐</span>
+            <strong>{{ selectedBatchPackageData?.name || '标准套餐' }}</strong>
+          </div>
+          <div>
+            <span>出发日期</span>
+            <strong>{{ selectedBatchDate || '-' }}</strong>
+          </div>
+          <div>
+            <span>成人</span>
+            <strong>{{ adultCount }} 人 x ¥{{ currentFinalAdultPrice }}</strong>
+          </div>
+          <div v-if="hasChildPrice">
+            <span>儿童</span>
+            <strong>{{ childCount }} 人 x ¥{{ currentFinalChildPrice }}</strong>
+          </div>
+          <div v-if="selectedHotel" class="wide">
+            <span>酒店住宿</span>
+            <strong>{{ selectedHotel.name }} · {{ hotelBookingDays }} 晚 x ¥{{ hotelPricePerNight }}</strong>
+          </div>
+        </div>
+
+        <div class="booking-dialog-total">
+          <span>预计总额</span>
+          <strong>¥{{ totalPrice }}</strong>
+        </div>
+      </section>
+
+      <template #footer>
+        <el-button @click="bookingConfirmVisible = false" :disabled="bookingSubmitting">返回修改</el-button>
+        <el-button type="primary" @click="confirmCreateOrder" :loading="bookingSubmitting">确认提交</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="orderSuccessVisible"
+      width="640px"
+      align-center
+      :close-on-click-modal="false"
+      :show-close="false"
+      class="booking-modern-dialog"
+    >
+      <section v-if="createdOrder" class="booking-success-content">
+        <div class="success-mark">
+          <el-icon><Check /></el-icon>
+        </div>
+        <span>Order Created</span>
+        <h2>订单创建成功</h2>
+        <p>请继续填写联系人与出行人信息，确认无误后即可选择支付方式。</p>
+
+        <div class="booking-dialog-grid compact">
+          <div>
+            <span>订单号</span>
+            <strong>{{ createdOrder.orderNo }}</strong>
+          </div>
+          <div>
+            <span>行程名称</span>
+            <strong>{{ createdOrder.tourName || '-' }}</strong>
+          </div>
+          <div>
+            <span>出发日期</span>
+            <strong>{{ createdOrder.departureDate || '-' }}</strong>
+          </div>
+          <div>
+            <span>订单金额</span>
+            <strong>¥{{ createdOrder.totalAmount }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <template #footer>
+        <el-button @click="goCreatedOrderLater">稍后处理</el-button>
+        <el-button type="primary" @click="goCreatedOrderConfirm">立即填写</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -523,6 +618,7 @@
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Check } from '@element-plus/icons-vue'
 import { getTourDetailFull } from '@/api/tour'
 import { createTourOrder, checkPendingOrder } from '@/api/tourOrder'
 import request from '@/utils/request'
@@ -700,6 +796,11 @@ const isHotelExpanded = ref(false)
 
 // 加载状态
 const loading = ref(false)
+const bookingConfirmVisible = ref(false)
+const bookingSubmitting = ref(false)
+const pendingOrderData = ref(null)
+const createdOrder = ref(null)
+const orderSuccessVisible = ref(false)
 
 // =============================================
 // 计算属性 - 最低价
@@ -1302,86 +1403,53 @@ const handleBooking = async () => {
     orderData.hotelPricePerNight = hotelPricePerNight.value
   }
 
-  // 构建确认信息
-  let hotelInfoStr = ''
-  if (selectedHotel.value) {
-    hotelInfoStr = `酒店住宿：${selectedHotel.value.name}\n` +
-      `预订天数：${hotelBookingDays.value}晚 × ¥${hotelPricePerNight.value}/晚\n` +
-      `酒店费用：¥${hotelTotalPrice.value}\n`
-  }
+  pendingOrderData.value = orderData
+  createdOrder.value = null
+  bookingConfirmVisible.value = true
+}
 
+const confirmCreateOrder = async () => {
+  if (!pendingOrderData.value || bookingSubmitting.value) return
+
+  bookingSubmitting.value = true
   try {
-    await ElMessageBox.confirm(
-      `请确认订单信息：\n\n` +
-      `行程套餐：${selectedTripPackage.value?.name}\n` +
-      `批次套餐：${selectedBatchPackageData.value?.name || '标准'}\n` +
-      `出发日期：${selectedBatchDate.value}\n` +
-      `成人：${adultCount.value}人 × ¥${currentFinalAdultPrice.value}\n` +
-      `${hasChildPrice.value ? `儿童：${childCount.value}人 × ¥${currentFinalChildPrice.value}\n` : ''}` +
-      `${hotelInfoStr}` +
-      `────────────────\n` +
-      `预计总额：¥${totalPrice.value}\n\n` +
-      `（最终价格以系统计算为准）`,
-      '确认订单信息',
-      {
-        confirmButtonText: '确认提交',
-        cancelButtonText: '返回修改',
-        type: 'info'
-      }
-    )
+    const order = await createTourOrder(pendingOrderData.value, { showDefaultMsg: false })
+    createdOrder.value = order
+    bookingConfirmVisible.value = false
+    orderSuccessVisible.value = true
+  } catch (err) {
+    const errorMsg = err?.message || err?.msg || '订单创建失败'
+    console.error('订单创建失败:', errorMsg, err)
 
-    // 调用后端API创建订单
-    ElMessage.info('正在提交订单...')
-    let order
-    try {
-      order = await createTourOrder(orderData, { showDefaultMsg: false })
-    } catch (err) {
-      // 从错误对象中提取错误消息
-      const errorMsg = err?.message || err?.msg || '订单创建失败'
-      console.error('订单创建失败:', errorMsg, err)
-      
-      // 如果是未支付/待支付订单错误，提供跳转选项
-      if (errorMsg.includes('待支付订单')) {
-        const goToOrders = await ElMessageBox.confirm(
-          errorMsg + '\n\n是否前往订单页面处理？',
-          '提示',
-          {
-            confirmButtonText: '前往订单',
-            cancelButtonText: '留在本页',
-            type: 'warning'
-          }
-        ).catch(() => false)
-        if (goToOrders) {
-          router.push('/orders')
-        }
-      } else {
-        // 其他错误，显示错误消息
-        ElMessage.error(errorMsg)
-      }
-      return
-    }
-    // 询问用户是否立即支付
-    await ElMessageBox.confirm(
-        `预订成功！\n\n订单号：${order.orderNo}\n行程名称：${order.tourName}\n出发日期：${order.departureDate}\n总金额：¥${order.totalAmount}\n\n是否立即跳转到填写订单信息页面？`,
-        '订单创建成功',
+    if (errorMsg.includes('待支付订单')) {
+      const goToOrders = await ElMessageBox.confirm(
+        `${errorMsg}\n\n是否前往订单页面处理？`,
+        '提示',
         {
-          confirmButtonText: '立即填写',
-          cancelButtonText: '稍后支付',
-          type: 'success'
+          confirmButtonText: '前往订单',
+          cancelButtonText: '留在本页',
+          type: 'warning'
         }
-      ).then(() => {
-        // 跳转到订单确认页面
-        router.push('/tour-order-confirm/' + order.id)
-      }).catch(() => {
-        // 稍后支付，跳转到订单列表
+      ).catch(() => false)
+      if (goToOrders) {
         router.push('/orders')
-      })
-
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('订单创建失败:', error)
+      }
+    } else {
+      ElMessage.error(errorMsg)
     }
+  } finally {
+    bookingSubmitting.value = false
   }
+}
+
+const goCreatedOrderConfirm = () => {
+  if (createdOrder.value?.id) {
+    router.push('/tour-order-confirm/' + createdOrder.value.id)
+  }
+}
+
+const goCreatedOrderLater = () => {
+  router.push('/orders')
 }
 
 const handleCopy = () => {
@@ -2881,6 +2949,145 @@ onMounted(() => {
   color: #52c41a;
 }
 
+.booking-modern-dialog :deep(.el-dialog) {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(16, 24, 40, 0.2);
+}
+
+.booking-modern-dialog :deep(.el-dialog__header) {
+  display: none;
+}
+
+.booking-modern-dialog :deep(.el-dialog__body) {
+  padding: 0;
+}
+
+.booking-modern-dialog :deep(.el-dialog__footer) {
+  padding: 16px 24px 22px;
+  border-top: 1px solid #eef2f7;
+  background: #fff;
+}
+
+.booking-modern-dialog :deep(.el-dialog__footer .el-button) {
+  min-width: 108px;
+  height: 42px;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.booking-dialog-content,
+.booking-success-content {
+  padding: 26px 24px 22px;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+}
+
+.booking-dialog-head,
+.booking-success-content {
+  text-align: left;
+}
+
+.booking-dialog-head span,
+.booking-success-content > span {
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #e8f2ff;
+  color: #155eef;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.booking-dialog-head h2,
+.booking-success-content h2 {
+  margin: 12px 0 8px;
+  color: #101828;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.booking-dialog-head p,
+.booking-success-content p {
+  margin: 0;
+  color: #667085;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.booking-dialog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.booking-dialog-grid.compact {
+  margin-top: 20px;
+}
+
+.booking-dialog-grid div {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e4eaf3;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.booking-dialog-grid .wide {
+  grid-column: span 2;
+}
+
+.booking-dialog-grid span,
+.booking-dialog-total span {
+  display: block;
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.booking-dialog-grid strong {
+  display: block;
+  margin-top: 8px;
+  color: #344054;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.booking-dialog-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-top: 14px;
+  padding: 18px;
+  border-radius: 8px;
+  background: #101828;
+}
+
+.booking-dialog-total strong {
+  color: #fff;
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.success-mark {
+  width: 52px;
+  height: 52px;
+  margin-bottom: 16px;
+  border-radius: 999px;
+  background: #dcfae6;
+  color: #079455;
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* 响应式适配 */
 @media (max-width: 480px) {
   .hotel-config {
@@ -2900,6 +3107,14 @@ onMounted(() => {
   .hotel-thumb-placeholder {
     width: 100%;
     height: 80px;
+  }
+
+  .booking-dialog-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-dialog-grid .wide {
+    grid-column: auto;
   }
 }
 </style>

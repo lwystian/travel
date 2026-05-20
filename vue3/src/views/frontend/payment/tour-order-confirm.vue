@@ -1,218 +1,192 @@
 <template>
-  <div class="tour-order-confirm-container">
-    <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
-      <div class="loading-spinner"></div>
+  <main class="checkout-page">
+    <section v-if="loading" class="state-panel">
+      <el-skeleton :rows="10" animated />
       <p>正在加载订单信息...</p>
-    </div>
+    </section>
 
-    <!-- 错误状态 -->
-    <div v-else-if="error" class="error-container">
+    <section v-else-if="error" class="state-panel">
       <el-result icon="error" title="加载失败" :sub-title="error">
         <template #extra>
           <el-button type="primary" @click="goBack">返回</el-button>
         </template>
       </el-result>
-    </div>
+    </section>
 
-    <!-- 订单确认表单 -->
-    <div v-else-if="order" class="confirm-container">
-      <!-- 步骤条 -->
-      <div class="steps-container">
-        <el-steps :active="currentStep" align-center finish-status="success">
-          <el-step title="填写信息" description="填写出行人和联系人信息" />
-          <el-step title="选择支付" description="选择支付方式完成付款" />
-          <el-step title="完成预订" description="支付成功完成预订" />
-        </el-steps>
-      </div>
-
-      <div class="content-wrapper">
-        <!-- 左侧：表单区域 -->
-        <div class="form-section">
-          <!-- 产品信息 -->
-          <div class="info-card">
-            <div class="card-header">
-              <span class="card-title">产品信息</span>
-            </div>
-            <div class="card-body">
-              <div class="info-row">
-                <span class="label">行程名称</span>
-                <span class="value">{{ order.tourName }}</span>
-              </div>
-              <div class="info-row" v-if="order.packageName">
-                <span class="label">批次套餐</span>
-                <span class="value">{{ order.batchPackageName || order.packageName }}</span>
-              </div>
-              <div class="info-row" v-if="order.departureDate">
-                <span class="label">出行日期</span>
-                <span class="value">{{ formatDate(order.departureDate) }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">行程套餐</span>
-                <span class="value">
-                  <template v-if="order.hotelName">
-                    {{ order.tourName }} + {{ order.hotelName }} ({{ order.hotelDays }}晚)
-                  </template>
-                  <template v-else>
-                    {{ order.tourName }}
-                  </template>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 联系人信息 -->
-          <div class="info-card">
-            <div class="card-header">
-              <span class="card-title">联系人信息</span>
-              <span class="card-subtitle">（合同签署及出团通知接收）</span>
-            </div>
-            <div class="card-body">
-              <el-form ref="contactFormRef" :model="contactForm" :rules="contactRules" label-width="100px">
-                <el-row :gutter="20">
-                  <el-col :span="12">
-                    <el-form-item label="姓名" prop="name">
-                      <el-input v-model="contactForm.name" placeholder="请输入联系人姓名" clearable />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="手机号" prop="phone">
-                      <el-input v-model="contactForm.phone" placeholder="请输入手机号" clearable maxlength="11" />
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-              </el-form>
-            </div>
-          </div>
-
-          <!-- 出行人信息 -->
-          <div class="info-card">
-            <div class="card-header">
-              <span class="card-title">出行人信息</span>
-              <span class="card-subtitle">（需 {{ order.adultCount }} 成人{{ order.childCount > 0 ? `, ${order.childCount} 儿童` : '' }}）</span>
-            </div>
-            <div class="card-body">
-              <!-- 常用出行人选择区域 -->
-              <div class="frequent-travelers-section">
-                <div class="section-title">
-                  <span>从常用出行人中选择</span>
-                  <el-button type="primary" size="small" @click="showAddTravelerDialog">
-                    <el-icon><Plus /></el-icon>
-                    添加常用出行人
-                  </el-button>
-                </div>
-                
-                <!-- 已保存的常用出行人列表 -->
-                <div v-if="frequentTravelers.length > 0" class="frequent-traveler-list">
-                  <div
-                    v-for="traveler in frequentTravelers"
-                    :key="traveler.id"
-                    :class="['frequent-traveler-item', { selected: selectedFrequentTravelerIds.includes(traveler.id) }]"
-                    @click="toggleFrequentTraveler(traveler)"
-                  >
-                    <el-checkbox
-                      :model-value="selectedFrequentTravelerIds.includes(traveler.id)"
-                      @click.stop
-                      @change="toggleFrequentTraveler(traveler)"
-                    />
-                    <div class="traveler-info" @click.stop="toggleFrequentTraveler(traveler)">
-                      <div class="traveler-main">
-                        <span class="traveler-name">{{ traveler.name }}</span>
-                        <el-tag :type="traveler.travelerType === 'ADULT' ? 'success' : 'warning'" size="small">
-                          {{ traveler.travelerType === 'ADULT' ? '成人' : '儿童' }}
-                        </el-tag>
-                        <span class="traveler-phone">{{ maskPhone(traveler.phone, '未填写电话') }}</span>
-                      </div>
-                      <div class="traveler-detail">
-                        <span>证件类型：{{ getIdTypeLabel(traveler.idType) }}</span>
-                        <span>证件号码：{{ maskIdNumber(traveler.idNumber) }}</span>
-                        <span v-if="traveler.birthDate">出生日期：{{ formatDate(traveler.birthDate) }}</span>
-                      </div>
-                    </div>
-                    <div class="traveler-actions" @click.stop>
-                      <el-button type="primary" link size="small" @click="editFrequentTraveler(traveler)">编辑</el-button>
-                      <el-button type="danger" link size="small" @click="handleDeleteFrequentTraveler(traveler.id)">删除</el-button>
-                    </div>
-                  </div>
-                </div>
-                <div v-else class="no-frequent-travelers">
-                  <span>暂无常用出行人，点击上方按钮添加</span>
-                </div>
-              </div>
-
-              <!-- 已选择的出行人列表 -->
-              <div v-if="selectedTravelers.length > 0" class="selected-travelers-section">
-                <div class="section-title selected-title">
-                  <span>已选择的出行人（{{ selectedTravelers.length }}/{{ totalRequired }}）</span>
-                  <span v-if="selectedTravelers.length < totalRequired" class="require-hint">还需选择 {{ totalRequired - selectedTravelers.length }} 人</span>
-                </div>
-                <div class="selected-traveler-list">
-                  <div v-for="(traveler, index) in selectedTravelers" :key="index" class="selected-traveler-item">
-                    <div class="selected-main">
-                      <el-tag :type="traveler.travelerType === 'ADULT' ? 'success' : 'warning'" size="small">
-                        {{ traveler.travelerType === 'ADULT' ? '成人' : '儿童' }}
-                      </el-tag>
-                      <span class="selected-name">{{ traveler.name }}</span>
-                      <span class="selected-phone">{{ maskPhone(traveler.phone, '-') }}</span>
-                    </div>
-                    <el-button type="danger" link size="small" @click="removeSelectedTraveler(index)">移除</el-button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+    <section v-else-if="order" class="checkout-shell">
+      <header class="checkout-hero">
+        <div>
+          <span class="eyebrow">Checkout</span>
+          <h1>确认订单信息</h1>
+          <p>请核对行程、联系人和出行人信息。提交后将进入支付方式选择。</p>
         </div>
+        <div class="step-strip">
+          <span class="active">1 确认信息</span>
+          <span>2 选择支付</span>
+          <span>3 完成预订</span>
+        </div>
+      </header>
 
-        <!-- 右侧：结算信息（固定定位） -->
-        <div class="summary-section" :class="{ 'is-fixed': isSummaryFixed }" ref="summarySection">
+      <div class="checkout-layout">
+        <section class="main-flow">
+          <article class="panel-card">
+            <header class="panel-head">
+              <div>
+                <span>Product</span>
+                <strong>行程信息</strong>
+              </div>
+            </header>
+            <div class="product-grid">
+              <div>
+                <span>行程名称</span>
+                <strong>{{ order.tourName || '-' }}</strong>
+              </div>
+              <div>
+                <span>套餐</span>
+                <strong>{{ order.batchPackageName || order.packageName || '标准套餐' }}</strong>
+              </div>
+              <div>
+                <span>出发日期</span>
+                <strong>{{ formatDate(order.departureDate) || '-' }}</strong>
+              </div>
+              <div>
+                <span>出行人数</span>
+                <strong>成人 {{ order.adultCount || 0 }} 人<span v-if="order.childCount">，儿童 {{ order.childCount }} 人</span></strong>
+              </div>
+              <div v-if="order.hotelName" class="wide">
+                <span>住宿酒店</span>
+                <strong>{{ order.hotelName }}（{{ order.hotelDays || 0 }} 晚）</strong>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel-card">
+            <header class="panel-head">
+              <div>
+                <span>Contact</span>
+                <strong>联系人信息</strong>
+              </div>
+              <p>用于接收出团通知、合同签署和订单服务提醒。</p>
+            </header>
+            <el-form ref="contactFormRef" :model="contactForm" :rules="contactRules" label-position="top" class="contact-form">
+              <el-form-item label="联系人姓名" prop="name">
+                <el-input v-model="contactForm.name" placeholder="请输入联系人姓名" clearable />
+              </el-form-item>
+              <el-form-item label="联系人手机号" prop="phone">
+                <el-input v-model="contactForm.phone" placeholder="请输入 11 位手机号" clearable maxlength="11" />
+              </el-form-item>
+            </el-form>
+          </article>
+
+          <article class="panel-card">
+            <header class="panel-head">
+              <div>
+                <span>Travelers</span>
+                <strong>出行人信息</strong>
+              </div>
+              <el-button type="primary" @click="showAddTravelerDialog">
+                <el-icon><Plus /></el-icon>
+                添加出行人
+              </el-button>
+            </header>
+
+            <div class="quota-row">
+              <span>需要成人 {{ adultRequired }} 人</span>
+              <span v-if="childRequired">需要儿童 {{ childRequired }} 人</span>
+              <strong>已选择 {{ selectedTravelers.length }}/{{ totalRequired }} 人</strong>
+            </div>
+
+            <div v-if="frequentTravelers.length > 0" class="traveler-list">
+              <div
+                v-for="traveler in frequentTravelers"
+                :key="traveler.id"
+                class="traveler-card"
+                :class="{ selected: selectedFrequentTravelerIds.includes(traveler.id) }"
+                @click="toggleFrequentTraveler(traveler)"
+              >
+                <el-checkbox :model-value="selectedFrequentTravelerIds.includes(traveler.id)" @click.stop @change="toggleFrequentTraveler(traveler)" />
+                <div class="traveler-info">
+                  <div class="traveler-title">
+                    <strong>{{ traveler.name }}</strong>
+                    <el-tag :type="traveler.travelerType === 'ADULT' ? 'success' : 'warning'" size="small">
+                      {{ traveler.travelerType === 'ADULT' ? '成人' : '儿童' }}
+                    </el-tag>
+                  </div>
+                  <p>{{ maskPhone(traveler.phone, '未填写电话') }} · {{ getIdTypeLabel(traveler.idType) }} {{ maskIdNumber(traveler.idNumber) }}</p>
+                </div>
+                <div class="traveler-actions" @click.stop>
+                  <el-button link type="primary" @click="editFrequentTraveler(traveler)">编辑</el-button>
+                  <el-button link type="danger" @click="handleDeleteFrequentTraveler(traveler.id)">删除</el-button>
+                </div>
+              </div>
+            </div>
+
+            <div v-else class="empty-inline">
+              暂无常用出行人，请先添加后再选择。
+            </div>
+
+            <div v-if="selectedTravelers.length > 0" class="selected-box">
+              <header>
+                <strong>已选出行人</strong>
+                <span v-if="selectedTravelers.length < totalRequired">还需选择 {{ totalRequired - selectedTravelers.length }} 人</span>
+              </header>
+              <div class="selected-list">
+                <div v-for="(traveler, index) in selectedTravelers" :key="index" class="selected-item">
+                  <span>{{ index + 1 }}</span>
+                  <strong>{{ traveler.name }}</strong>
+                  <em>{{ traveler.travelerType === 'ADULT' ? '成人' : '儿童' }}</em>
+                  <small>{{ maskPhone(traveler.phone, '-') }}</small>
+                  <el-button link type="danger" @click="removeSelectedTraveler(index)">移除</el-button>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <aside class="summary-panel">
           <div class="summary-card">
-            <div class="summary-header">
-              <span>结算信息</span>
-            </div>
-            <div class="summary-body">
-              <div class="fee-item" v-if="order.adultCount > 0">
-                <span class="fee-label">成人</span>
-                <span class="fee-value">
-                  ¥{{ formatPrice(order.adultUnitPrice) }} × {{ order.adultCount }}
-                </span>
+            <header>
+              <span>Settlement</span>
+              <strong>结算信息</strong>
+            </header>
+            <div class="fee-list">
+              <div v-if="order.adultCount > 0">
+                <span>成人</span>
+                <strong>¥{{ formatPrice(order.adultUnitPrice) }} x {{ order.adultCount }}</strong>
               </div>
-              <div class="fee-item" v-if="order.childCount > 0">
-                <span class="fee-label">儿童</span>
-                <span class="fee-value">
-                  ¥{{ formatPrice(order.childUnitPrice) }} × {{ order.childCount }}
-                </span>
+              <div v-if="order.childCount > 0">
+                <span>儿童</span>
+                <strong>¥{{ formatPrice(order.childUnitPrice) }} x {{ order.childCount }}</strong>
               </div>
-              <div class="fee-item" v-if="order.hotelAmount">
-                <span class="fee-label">酒店住宿</span>
-                <span class="fee-value">¥{{ formatPrice(order.hotelAmount) }}</span>
-              </div>
-              <div class="fee-total">
-                <span class="total-label">应付总额</span>
-                <span class="total-value">¥{{ formatPrice(order.totalAmount) }}</span>
+              <div v-if="order.hotelAmount">
+                <span>酒店住宿</span>
+                <strong>¥{{ formatPrice(order.hotelAmount) }}</strong>
               </div>
             </div>
-            <div class="summary-footer">
-              <!-- 操作按钮 -->
-              <div class="action-buttons">
-                <el-button @click="goBack" size="large">返回</el-button>
-                <el-button type="primary" @click="handlePay" :loading="submitting" size="large">
-                  去支付
-                </el-button>
-              </div>
+            <div class="total-row">
+              <span>应付总额</span>
+              <strong>¥{{ formatPrice(order.totalAmount) }}</strong>
+            </div>
+            <div class="security-note">订单信息提交前会进行联系人、出行人数量和证件信息校验。</div>
+            <div class="summary-actions">
+              <el-button @click="goBack" :disabled="submitting">返回</el-button>
+              <el-button type="primary" @click="handlePay" :loading="submitting">
+                去选择支付方式
+              </el-button>
             </div>
           </div>
-        </div>
+        </aside>
       </div>
-    </div>
+    </section>
 
-    <!-- 添加/编辑常用出行人弹窗 -->
     <el-dialog
       v-model="travelerDialogVisible"
       :title="editingTraveler ? '编辑出行人' : '添加出行人'"
-      width="600px"
+      width="620px"
       :close-on-click-modal="false"
+      class="traveler-dialog"
     >
-      <el-form ref="travelerFormRef" :model="travelerForm" :rules="travelerRules" label-width="100px">
+      <el-form ref="travelerFormRef" :model="travelerForm" :rules="travelerRules" label-position="top" class="traveler-form">
         <el-form-item label="姓名" prop="name">
           <el-input v-model="travelerForm.name" placeholder="请输入出行人姓名" clearable />
         </el-form-item>
@@ -228,8 +202,8 @@
             <el-radio value="CHILD">儿童</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="手机号码" prop="phone">
-          <el-input v-model="travelerForm.phone" placeholder="请输入手机号码" clearable maxlength="11" />
+        <el-form-item label="手机号" prop="phone">
+          <el-input v-model="travelerForm.phone" placeholder="请输入手机号" clearable maxlength="11" />
         </el-form-item>
         <el-form-item label="证件类型" prop="idType">
           <el-select v-model="travelerForm.idType" placeholder="请选择证件类型" style="width: 100%">
@@ -243,7 +217,7 @@
           <el-date-picker
             v-model="travelerForm.birthDate"
             type="date"
-            placeholder="选择出生日期"
+            placeholder="请选择出生日期"
             style="width: 100%"
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
@@ -253,66 +227,54 @@
       </el-form>
       <template #footer>
         <el-button @click="travelerDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveTraveler">确定</el-button>
+        <el-button type="primary" @click="saveTraveler">保存</el-button>
       </template>
     </el-dialog>
-  </div>
+  </main>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { getTourOrderDetail, updateOrderContact } from '@/api/tourOrder'
 import { getFrequentTravelers, saveFrequentTraveler, updateFrequentTraveler, deleteFrequentTraveler as deleteFrequentTravelerApi } from '@/api/frequentTraveler'
 import { saveTravelers } from '@/api/traveler'
-import { ElMessageBox } from 'element-plus'
 import { maskPhone } from '@/utils/mask'
 
 const route = useRoute()
 const router = useRouter()
 
-// 状态
 const loading = ref(true)
 const submitting = ref(false)
 const order = ref(null)
 const error = ref(null)
-const currentStep = ref(0)
 const contactFormRef = ref(null)
 const travelerFormRef = ref(null)
-const summarySection = ref(null)
-const isSummaryFixed = ref(false)
-let summaryTop = 0
-let summaryWidth = 320
-let summaryLeft = 0 // 记录元素左边缘到视口左边缘的距离
 
-// 联系人表单
 const contactForm = reactive({
   name: '',
   phone: ''
 })
 
-// 联系人验证规则
 const contactRules = {
   name: [
     { required: true, message: '请输入联系人姓名', trigger: 'blur' },
-    { min: 2, max: 20, message: '姓名长度为2-20个字符', trigger: 'blur' }
+    { min: 2, max: 20, message: '姓名长度为 2-20 个字符', trigger: 'blur' }
   ],
   phone: [
     { required: true, message: '请输入手机号', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的11位手机号', trigger: 'blur' }
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的 11 位手机号', trigger: 'blur' }
   ]
 }
 
-// 常用出行人相关
 const frequentTravelers = ref([])
 const selectedFrequentTravelerIds = ref([])
 const selectedTravelers = ref([])
 const travelerDialogVisible = ref(false)
 const editingTraveler = ref(null)
 
-// 出行人表单
 const travelerForm = reactive({
   name: '',
   gender: 'MALE',
@@ -323,25 +285,18 @@ const travelerForm = reactive({
   birthDate: ''
 })
 
-// 出行人验证规则
 const travelerRules = computed(() => ({
   name: [
     { required: true, message: '请输入出行人姓名', trigger: 'blur' },
-    { min: 2, max: 20, message: '姓名长度为2-20个字符', trigger: 'blur' }
+    { min: 2, max: 20, message: '姓名长度为 2-20 个字符', trigger: 'blur' }
   ],
-  gender: [
-    { required: true, message: '请选择性别', trigger: 'change' }
-  ],
-  travelerType: [
-    { required: true, message: '请选择类型', trigger: 'change' }
-  ],
+  gender: [{ required: true, message: '请选择性别', trigger: 'change' }],
+  travelerType: [{ required: true, message: '请选择类型', trigger: 'change' }],
   phone: [
-    { required: true, message: '请输入手机号码', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的11位手机号', trigger: 'blur' }
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的 11 位手机号', trigger: 'blur' }
   ],
-  idType: [
-    { required: true, message: '请选择证件类型', trigger: 'change' }
-  ],
+  idType: [{ required: true, message: '请选择证件类型', trigger: 'change' }],
   idNumber: [
     { required: true, message: '请输入证件号码', trigger: 'blur' },
     {
@@ -355,70 +310,21 @@ const travelerRules = computed(() => ({
       trigger: 'blur'
     }
   ],
-  birthDate: [
-    { required: true, message: '请选择出生日期', trigger: 'change' }
-  ]
+  birthDate: [{ required: true, message: '请选择出生日期', trigger: 'change' }]
 }))
 
-// 计算属性
-const totalRequired = computed(() => {
-  return (order.value?.adultCount || 0) + (order.value?.childCount || 0)
-})
-
+const totalRequired = computed(() => (order.value?.adultCount || 0) + (order.value?.childCount || 0))
 const adultRequired = computed(() => order.value?.adultCount || 0)
 const childRequired = computed(() => order.value?.childCount || 0)
+const selectedAdultCount = computed(() => selectedTravelers.value.filter(t => t.travelerType === 'ADULT').length)
+const selectedChildCount = computed(() => selectedTravelers.value.filter(t => t.travelerType === 'CHILD').length)
+const idNumberPlaceholder = computed(() => '请输入 18 位身份证号码')
 
-const selectedAdultCount = computed(() => {
-  return selectedTravelers.value.filter(t => t.travelerType === 'ADULT').length
-})
-
-const selectedChildCount = computed(() => {
-  return selectedTravelers.value.filter(t => t.travelerType === 'CHILD').length
-})
-
-const canSubmit = computed(() => {
-  // 检查联系人信息
-  if (!contactForm.name || !contactForm.phone) return false
-  if (!/^1[3-9]\d{9}$/.test(contactForm.phone)) return false
-  
-  // 检查出行人数量
-  if (selectedTravelers.value.length < totalRequired.value) return false
-  
-  // 检查成人数量
-  if (selectedAdultCount.value < adultRequired.value) return false
-  
-  // 检查儿童数量
-  if (childRequired.value > 0 && selectedChildCount.value < childRequired.value) return false
-  
-  // 检查每个出行人的信息完整性
-  for (const traveler of selectedTravelers.value) {
-    if (!traveler.name) return false
-    if (!traveler.phone || !/^1[3-9]\d{9}$/.test(traveler.phone)) return false
-    if (!traveler.idType) return false
-    if (!traveler.idNumber) return false
-    if (!traveler.birthDate) return false
-    if (!traveler.gender) return false
-    if (!traveler.travelerType) return false
-  }
-  
-  return true
-})
-
-// 证件号码提示
-const idNumberPlaceholder = computed(() => {
-  return '请输入18位身份证号码'
-})
-
-// 方法
-const getIdTypeLabel = (type) => {
-  return '身份证'
-}
+const getIdTypeLabel = () => '身份证'
 
 const maskIdNumber = (idNumber) => {
   if (!idNumber) return ''
-  if (idNumber.length > 8) {
-    return idNumber.substring(0, 4) + '****' + idNumber.substring(idNumber.length - 4)
-  }
+  if (idNumber.length > 8) return `${idNumber.substring(0, 4)}****${idNumber.substring(idNumber.length - 4)}`
   return idNumber
 }
 
@@ -427,77 +333,62 @@ const formatDate = (dateStr) => {
   return String(dateStr).split('T')[0]
 }
 
-const formatPrice = (price) => {
-  if (!price) return '0.00'
-  return Number(price).toFixed(2)
-}
+const formatPrice = (price) => Number(price || 0).toFixed(2)
+const disableFutureDate = (date) => date.getTime() > Date.now()
 
-const disableFutureDate = (date) => {
-  return date.getTime() > Date.now()
-}
-
-// 加载常用出行人列表
 const loadFrequentTravelers = async () => {
   try {
     const data = await getFrequentTravelers()
     frequentTravelers.value = data || []
   } catch (err) {
-    console.error('获取常用出行人失败:', err)
+    console.error('获取常用出行人失败', err)
   }
 }
 
-// 切换常用出行人选择
 const toggleFrequentTraveler = (traveler) => {
   const index = selectedFrequentTravelerIds.value.indexOf(traveler.id)
   if (index > -1) {
-    // 取消选择
     selectedFrequentTravelerIds.value.splice(index, 1)
     selectedTravelers.value = selectedTravelers.value.filter(t => t.frequentTravelerId !== traveler.id)
-  } else {
-    // 检查类型和数量限制
-    if (traveler.travelerType === 'ADULT' && selectedAdultCount.value >= adultRequired.value) {
-      ElMessage.warning(`成人数量已满足要求（需要${adultRequired.value}人）`)
-      return
-    }
-    if (traveler.travelerType === 'CHILD' && childRequired.value > 0 && selectedChildCount.value >= childRequired.value) {
-      ElMessage.warning(`儿童数量已满足要求（需要${childRequired.value}人）`)
-      return
-    }
-    if (traveler.travelerType === 'CHILD' && childRequired.value === 0) {
-      ElMessage.warning('该订单不需要儿童')
-      return
-    }
-    
-    // 添加选择
-    selectedFrequentTravelerIds.value.push(traveler.id)
-    selectedTravelers.value.push({
-      frequentTravelerId: traveler.id,
-      name: traveler.name,
-      phone: traveler.phone,
-      idType: traveler.idType,
-      idNumber: traveler.idNumber,
-      birthDate: traveler.birthDate ? String(traveler.birthDate).split('T')[0] : '',
-      gender: traveler.gender,
-      travelerType: traveler.travelerType
-    })
+    return
   }
+
+  if (traveler.travelerType === 'ADULT' && selectedAdultCount.value >= adultRequired.value) {
+    ElMessage.warning(`成人数量已满足要求（需要 ${adultRequired.value} 人）`)
+    return
+  }
+  if (traveler.travelerType === 'CHILD' && childRequired.value === 0) {
+    ElMessage.warning('该订单不需要儿童出行人')
+    return
+  }
+  if (traveler.travelerType === 'CHILD' && selectedChildCount.value >= childRequired.value) {
+    ElMessage.warning(`儿童数量已满足要求（需要 ${childRequired.value} 人）`)
+    return
+  }
+
+  selectedFrequentTravelerIds.value.push(traveler.id)
+  selectedTravelers.value.push({
+    frequentTravelerId: traveler.id,
+    name: traveler.name,
+    phone: traveler.phone,
+    idType: traveler.idType,
+    idNumber: traveler.idNumber,
+    birthDate: traveler.birthDate ? String(traveler.birthDate).split('T')[0] : '',
+    gender: traveler.gender,
+    travelerType: traveler.travelerType
+  })
 }
 
-// 移除已选出行人
 const removeSelectedTraveler = (index) => {
   const traveler = selectedTravelers.value[index]
   if (traveler.frequentTravelerId) {
     const idIndex = selectedFrequentTravelerIds.value.indexOf(traveler.frequentTravelerId)
-    if (idIndex > -1) {
-      selectedFrequentTravelerIds.value.splice(idIndex, 1)
-    }
+    if (idIndex > -1) selectedFrequentTravelerIds.value.splice(idIndex, 1)
   }
   selectedTravelers.value.splice(index, 1)
 }
 
-// 显示添加出行人弹窗
-const showAddTravelerDialog = () => {
-  editingTraveler.value = null
+const resetTravelerForm = () => {
   Object.assign(travelerForm, {
     name: '',
     gender: 'MALE',
@@ -507,10 +398,14 @@ const showAddTravelerDialog = () => {
     idNumber: '',
     birthDate: ''
   })
+}
+
+const showAddTravelerDialog = () => {
+  editingTraveler.value = null
+  resetTravelerForm()
   travelerDialogVisible.value = true
 }
 
-// 编辑常用出行人
 const editFrequentTraveler = (traveler) => {
   editingTraveler.value = traveler
   Object.assign(travelerForm, {
@@ -526,11 +421,9 @@ const editFrequentTraveler = (traveler) => {
   travelerDialogVisible.value = true
 }
 
-// 保存出行人
 const saveTraveler = async () => {
   try {
     await travelerFormRef.value?.validate()
-    
     const data = {
       name: travelerForm.name,
       gender: travelerForm.gender,
@@ -540,101 +433,57 @@ const saveTraveler = async () => {
       idNumber: travelerForm.idNumber,
       birthDate: travelerForm.birthDate
     }
-    
+
     if (editingTraveler.value) {
       await updateFrequentTraveler(editingTraveler.value.id, data)
       ElMessage.success('出行人信息已更新')
-
-      // 更新本地常用出行人列表中的数据
       const index = frequentTravelers.value.findIndex(t => t.id === editingTraveler.value.id)
-      if (index > -1) {
-        frequentTravelers.value[index] = {
-          ...frequentTravelers.value[index],
-          ...data
-        }
-      }
-
-      // 如果该出行人已被选中，同时更新已选择列表中的数据
+      if (index > -1) frequentTravelers.value[index] = { ...frequentTravelers.value[index], ...data }
       const selectedIndex = selectedTravelers.value.findIndex(t => t.frequentTravelerId === editingTraveler.value.id)
-      if (selectedIndex > -1) {
-        selectedTravelers.value[selectedIndex] = {
-          ...selectedTravelers.value[selectedIndex],
-          ...data
-        }
-      }
+      if (selectedIndex > -1) selectedTravelers.value[selectedIndex] = { ...selectedTravelers.value[selectedIndex], ...data }
     } else {
       const result = await saveFrequentTraveler(data)
-      ElMessage.success('出行人已添加到常用列表')
-      
-      // 自动选中新增的出行人
-      if (result && result.id) {
-        const newTraveler = {
-          id: result.id,
-          ...data
-        }
+      ElMessage.success('出行人已添加')
+      if (result?.id) {
+        const newTraveler = { id: result.id, ...data }
         frequentTravelers.value.unshift(newTraveler)
-        
-        // 自动勾选
         toggleFrequentTraveler(newTraveler)
       }
     }
-    
     travelerDialogVisible.value = false
   } catch (err) {
-    if (err !== false) {
-      console.error('保存出行人失败:', err)
-    }
+    if (err !== false) console.error('保存出行人失败', err)
   }
 }
 
-// 删除常用出行人
 const handleDeleteFrequentTraveler = async (id) => {
   try {
-    await ElMessageBox.confirm('确定要删除该常用出行人吗？', '提示', {
-      confirmButtonText: '确定',
+    await ElMessageBox.confirm('确定要删除该常用出行人吗？', '删除确认', {
+      confirmButtonText: '确认删除',
       cancelButtonText: '取消',
       type: 'warning'
     })
-    
     await deleteFrequentTravelerApi(id)
-    
-    // 从列表中移除
-    const index = frequentTravelers.value.findIndex(t => t.id === id)
-    if (index > -1) {
-      frequentTravelers.value.splice(index, 1)
-    }
-    
-    // 从已选中列表中移除
-    const selectedIndex = selectedFrequentTravelerIds.value.indexOf(id)
-    if (selectedIndex > -1) {
-      selectedFrequentTravelerIds.value.splice(selectedIndex, 1)
-      selectedTravelers.value = selectedTravelers.value.filter(t => t.frequentTravelerId !== id)
-    }
-    
+    frequentTravelers.value = frequentTravelers.value.filter(t => t.id !== id)
+    selectedFrequentTravelerIds.value = selectedFrequentTravelerIds.value.filter(item => item !== id)
+    selectedTravelers.value = selectedTravelers.value.filter(t => t.frequentTravelerId !== id)
     ElMessage.success('已删除')
   } catch (err) {
-    if (err !== 'cancel') {
-      console.error('删除出行人失败:', err)
-    }
+    if (err !== 'cancel') console.error('删除出行人失败', err)
   }
 }
 
-// 加载订单信息
 const loadOrderInfo = async () => {
   try {
     loading.value = true
     error.value = null
-
     const orderId = route.params.id
     if (!orderId) {
       error.value = '订单信息不存在'
       return
     }
-
     const data = await getTourOrderDetail(orderId)
     order.value = data
-
-    // 设置联系人信息
     contactForm.name = data.contactName || ''
     contactForm.phone = data.contactPhone || ''
   } catch (err) {
@@ -645,77 +494,47 @@ const loadOrderInfo = async () => {
   }
 }
 
-// 去支付
+const validateTravelers = () => {
+  if (selectedTravelers.value.length < totalRequired.value) {
+    ElMessage.warning(`请选择至少 ${totalRequired.value} 位出行人`)
+    return false
+  }
+  if (selectedAdultCount.value < adultRequired.value) {
+    ElMessage.warning(`请选择至少 ${adultRequired.value} 位成人`)
+    return false
+  }
+  if (childRequired.value > 0 && selectedChildCount.value < childRequired.value) {
+    ElMessage.warning(`请选择至少 ${childRequired.value} 位儿童`)
+    return false
+  }
+  for (let i = 0; i < selectedTravelers.value.length; i++) {
+    const t = selectedTravelers.value[i]
+    if (!t.name || !t.phone || !/^1[3-9]\d{9}$/.test(t.phone) || !t.idType || !t.idNumber || !t.birthDate) {
+      ElMessage.warning(`第 ${i + 1} 位出行人信息不完整`)
+      return false
+    }
+  }
+  return true
+}
+
 const handlePay = async () => {
-  // 验证联系人表单
   try {
     await contactFormRef.value?.validate()
   } catch {
     ElMessage.warning('请完善联系人信息')
     return
   }
-  
-  // 检查出行人数量
-  if (selectedTravelers.value.length < totalRequired.value) {
-    ElMessage.warning(`请选择至少 ${totalRequired.value} 位出行人`)
-    return
-  }
-  
-  // 检查成人数量
-  if (selectedAdultCount.value < adultRequired.value) {
-    ElMessage.warning(`请选择至少 ${adultRequired.value} 位成人`)
-    return
-  }
-  
-  // 检查儿童数量
-  if (childRequired.value > 0 && selectedChildCount.value < childRequired.value) {
-    ElMessage.warning(`请选择至少 ${childRequired.value} 位儿童`)
-    return
-  }
-  
-  // 检查每个出行人的信息
-  for (let i = 0; i < selectedTravelers.value.length; i++) {
-    const t = selectedTravelers.value[i]
-    if (!t.name) {
-      ElMessage.warning(`第 ${i + 1} 位出行人姓名不能为空`)
-      return
-    }
-    if (!t.phone || !/^1[3-9]\d{9}$/.test(t.phone)) {
-      ElMessage.warning(`第 ${i + 1} 位出行人手机号格式不正确`)
-      return
-    }
-    if (!t.idType) {
-      ElMessage.warning(`第 ${i + 1} 位出行人证件类型不能为空`)
-      return
-    }
-    if (!t.idNumber) {
-      ElMessage.warning(`第 ${i + 1} 位出行人证件号码不能为空`)
-      return
-    }
-    if (!t.birthDate) {
-      ElMessage.warning(`第 ${i + 1} 位出行人出生日期不能为空`)
-      return
-    }
-  }
+  if (!validateTravelers()) return
 
   submitting.value = true
-
   try {
-    // 先更新联系人信息到订单
     await updateOrderContact(order.value.id, contactForm.name, contactForm.phone)
-
-    // 保存出行人信息（移除前端用的 frequentTravelerId 字段）
     const travelersData = selectedTravelers.value.map((t, index) => {
-      const { frequentTravelerId, ...traveler } = t
-      return {
-        ...traveler,
-        travelerIndex: index + 1
-      }
+      const traveler = { ...t }
+      delete traveler.frequentTravelerId
+      return { ...traveler, travelerIndex: index + 1 }
     })
-    
     await saveTravelers(order.value.id, order.value.orderNo, travelersData)
-
-    // 跳转到支付页面
     router.push(`/tour-order-pay/${order.value.id}`)
   } catch (err) {
     console.error('保存信息失败:', err)
@@ -725,293 +544,339 @@ const handlePay = async () => {
   }
 }
 
-// 返回
-const goBack = () => {
-  router.back()
-}
+const goBack = () => router.back()
 
 onMounted(async () => {
   await loadOrderInfo()
   await loadFrequentTravelers()
-
-  // 等待 DOM 渲染完成后获取结算栏位置并添加滚动监听
-  setTimeout(() => {
-    updateSummaryPosition()
-    window.addEventListener('scroll', handleScroll)
-    window.addEventListener('resize', updateSummaryPosition)
-  }, 100)
 })
-
-onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll)
-  window.removeEventListener('resize', updateSummaryPosition)
-})
-
-// 获取结算栏的初始位置
-const updateSummaryPosition = () => {
-  if (summarySection.value) {
-    const rect = summarySection.value.getBoundingClientRect()
-    summaryTop = rect.top + window.scrollY
-    // 获取初始的宽度
-    summaryWidth = rect.width
-    // 记录元素左边缘到视口左边缘的距离（用于固定时精确定位）
-    summaryLeft = rect.left
-  }
-}
-
-// 处理滚动事件
-const handleScroll = () => {
-  const scrollTop = window.scrollY
-
-  // 只在结算模块的顶部即将到达视口顶部时开始固定
-  // 这样结算模块会紧贴窗口顶部，不再有提前固定的问题
-  if (scrollTop >= summaryTop) {
-    if (!isSummaryFixed.value) {
-      isSummaryFixed.value = true
-      // 创建占位元素
-      createPlaceholder()
-      // 固定时设置位置 - 使用 left 精确定位，完全避免偏移
-      if (summarySection.value) {
-        summarySection.value.style.width = summaryWidth + 'px'
-        summarySection.value.style.left = summaryLeft + 'px'
-        summarySection.value.style.right = 'auto'
-        summarySection.value.style.top = '0'
-      }
-    }
-  } else {
-    if (isSummaryFixed.value) {
-      isSummaryFixed.value = false
-      // 移除占位元素
-      removePlaceholder()
-      // 恢复样式
-      if (summarySection.value) {
-        summarySection.value.style.left = ''
-        summarySection.value.style.right = ''
-        summarySection.value.style.width = ''
-        summarySection.value.style.top = ''
-      }
-    }
-  }
-}
-
-// 创建占位元素
-let placeholderEl = null
-const createPlaceholder = () => {
-  if (!placeholderEl && summarySection.value) {
-    placeholderEl = document.createElement('div')
-    placeholderEl.className = 'summary-placeholder'
-    placeholderEl.style.width = summaryWidth + 'px'
-    placeholderEl.style.flexShrink = '0'
-    summarySection.value.parentNode.insertBefore(placeholderEl, summarySection.value)
-  }
-}
-
-// 移除占位元素
-const removePlaceholder = () => {
-  if (placeholderEl) {
-    placeholderEl.parentNode.removeChild(placeholderEl)
-    placeholderEl = null
-  }
-}
 </script>
 
 <style scoped>
-.tour-order-confirm-container {
-  width: 100%;
-  min-height: calc(100vh - 200px);
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
-  padding: 40px 20px;
+.checkout-page {
+  min-height: 100vh;
+  background: #f3f6fb;
+  color: #101828;
+  font-family: "Source Han Sans", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+  padding: 36px 20px 64px;
 }
 
-.loading-container,
-.error-container {
-  max-width: 800px;
+.state-panel {
+  max-width: 900px;
   margin: 0 auto;
-  background: white;
-  border-radius: 16px;
-  padding: 60px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 34px;
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.state-panel p {
+  color: #667085;
   text-align: center;
 }
 
-.loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #409EFF;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.confirm-container {
-  max-width: 1200px;
+.checkout-shell {
+  width: min(1220px, 100%);
   margin: 0 auto;
 }
 
-.steps-container {
-  background: white;
-  border-radius: 16px;
-  padding: 30px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-.content-wrapper {
+.checkout-hero {
   display: flex;
-  gap: 20px;
-  align-items: flex-start;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 26px 28px;
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 44px rgba(16, 24, 40, 0.06);
 }
 
-.form-section {
+.checkout-hero > div:first-child {
   flex: 1;
   min-width: 0;
+  text-align: left;
 }
 
-.summary-section {
-  width: 320px;
-  flex-shrink: 0;
-  transition: opacity 0.3s ease;
-}
-
-.summary-section.is-fixed {
-  position: fixed;
-  z-index: 100;
-  left: auto;
-}
-
-.info-card {
-  background: white;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-}
-
-.card-header {
-  display: flex;
+.eyebrow {
+  display: inline-flex;
+  height: 24px;
   align-items: center;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #e8f2ff;
+  color: #155eef;
+  font-size: 12px;
+  font-weight: 800;
 }
 
-.card-title {
-  font-weight: 600;
-  font-size: 16px;
+.checkout-hero h1 {
+  margin: 12px 0 8px;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 
-.card-subtitle {
-  margin-left: 10px;
+.checkout-hero p {
+  margin: 0;
+  color: #667085;
+  max-width: 650px;
+}
+
+.step-strip {
+  display: flex;
+  flex-shrink: 0;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  padding: 10px;
+  border: 1px solid #e4eaf3;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.step-strip span {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 8px;
+  background: #eef2f7;
+  color: #667085;
   font-size: 13px;
-  opacity: 0.8;
+  font-weight: 900;
+  line-height: 42px;
+  white-space: nowrap;
 }
 
-.card-body {
+.step-strip .active {
+  background: #155eef;
+  color: #fff;
+}
+
+.checkout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+  margin-top: 16px;
+  align-items: start;
+}
+
+.main-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.panel-card,
+.summary-card {
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.panel-card {
   padding: 20px;
 }
 
-.info-row {
+.panel-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 10px 0;
-  border-bottom: 1px dashed #eee;
-}
-
-.info-row:last-child {
-  border-bottom: none;
-}
-
-.info-row .label {
-  color: #666;
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.info-row .value {
-  color: #333;
-  font-size: 14px;
-  text-align: right;
-  max-width: 60%;
-}
-
-.frequent-travelers-section {
-  margin-bottom: 20px;
-}
-
-.section-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 12px;
-  font-weight: 600;
-  color: #333;
-}
-
-.frequent-traveler-list {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.frequent-traveler-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.frequent-traveler-item:hover {
-  border-color: #409EFF;
-  background: #f6faff;
-}
-
-.frequent-traveler-item.selected {
-  border-color: #409EFF;
-  background: #ecf5ff;
-}
-
-.traveler-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.traveler-main {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-}
-
-.traveler-name {
-  font-weight: 600;
-  color: #333;
-  font-size: 15px;
-}
-
-.traveler-phone {
-  color: #999;
-  font-size: 13px;
-  margin-left: 8px;
-}
-
-.traveler-detail {
-  display: flex;
   gap: 16px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.panel-head > div {
+  text-align: left;
+}
+
+.panel-head span,
+.summary-card header span,
+.product-grid span,
+.fee-list span,
+.total-row span {
+  display: block;
+  color: #98a2b3;
   font-size: 12px;
-  color: #666;
+  font-weight: 800;
+}
+
+.panel-head strong,
+.summary-card header strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.panel-head p {
+  max-width: 360px;
+  margin: 0;
+  color: #667085;
+  font-size: 13px;
+  text-align: left;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.product-grid div,
+.fee-list div {
+  padding: 13px 14px;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.product-grid .wide {
+  grid-column: span 2;
+}
+
+.product-grid strong {
+  display: block;
+  margin-top: 8px;
+  color: #344054;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.contact-form,
+.traveler-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.traveler-dialog :deep(.el-dialog) {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 28px 70px rgba(16, 24, 40, 0.18);
+}
+
+.traveler-dialog :deep(.el-dialog__header) {
+  padding: 22px 24px 14px;
+  border-bottom: 1px solid #eef2f7;
+  margin-right: 0;
+}
+
+.traveler-dialog :deep(.el-dialog__title) {
+  color: #101828;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.traveler-dialog :deep(.el-dialog__body) {
+  padding: 22px 24px 8px;
+  background: linear-gradient(180deg, #fff 0%, #fbfcfe 100%);
+}
+
+.traveler-dialog :deep(.el-dialog__footer) {
+  padding: 16px 24px 22px;
+  border-top: 1px solid #eef2f7;
+  background: #fff;
+}
+
+.traveler-dialog :deep(.el-dialog__footer .el-button) {
+  min-width: 104px;
+  height: 42px;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.traveler-form :deep(.el-form-item) {
+  margin-bottom: 0;
+}
+
+.traveler-form :deep(.el-form-item__label) {
+  margin-bottom: 8px;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.traveler-form :deep(.el-input__wrapper),
+.traveler-form :deep(.el-select__wrapper) {
+  min-height: 46px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 0 0 1px #d6deeb inset;
+}
+
+.traveler-form :deep(.el-input__wrapper.is-focus),
+.traveler-form :deep(.el-select__wrapper.is-focused) {
+  box-shadow: 0 0 0 1px #155eef inset, 0 0 0 3px rgba(21, 94, 239, 0.12);
+}
+
+.traveler-form :deep(.el-radio-group) {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid #d6deeb;
+  border-radius: 8px;
+  background: #fff;
+  gap: 18px;
+}
+
+.quota-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.quota-row span,
+.quota-row strong {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 30px;
+}
+
+.quota-row strong {
+  background: #eff4ff;
+  color: #155eef;
+}
+
+.traveler-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.traveler-card {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid #e4eaf3;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.traveler-card.selected {
+  border-color: #155eef;
+  background: #edf5ff;
+}
+
+.traveler-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.traveler-info p {
+  margin: 6px 0 0;
+  color: #667085;
+  font-size: 13px;
 }
 
 .traveler-actions {
@@ -1019,161 +884,182 @@ const removePlaceholder = () => {
   gap: 8px;
 }
 
-.no-frequent-travelers {
+.empty-inline {
+  padding: 28px;
+  border: 1px dashed #d6deeb;
+  border-radius: 8px;
+  background: #fbfcfe;
+  color: #667085;
   text-align: center;
-  padding: 30px;
-  color: #999;
-  background: #fafafa;
+}
+
+.selected-box {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #dbeafe;
   border-radius: 8px;
+  background: #f8fbff;
 }
 
-.selected-travelers-section {
-  background: #fffbf0;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 20px;
-}
-
-.selected-title {
-  border-bottom-color: #ffe0b2;
-}
-
-.require-hint {
-  color: #ff4d4f;
-  font-size: 13px;
-  font-weight: normal;
-}
-
-.selected-traveler-list {
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.selected-traveler-item {
+.selected-box header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 10px 12px;
-  background: #f5f5f5;
-  border-radius: 6px;
-  margin-top: 8px;
+  margin-bottom: 10px;
 }
 
-.selected-main {
+.selected-box header span {
+  color: #b54708;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.selected-list {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selected-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 54px 120px auto;
   align-items: center;
   gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff;
 }
 
-.selected-name {
-  font-weight: 500;
-  color: #333;
+.selected-item span {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #eff4ff;
+  color: #155eef;
+  font-weight: 900;
+  line-height: 28px;
+  text-align: center;
+}
+
+.selected-item em,
+.selected-item small {
+  color: #667085;
+  font-style: normal;
   font-size: 13px;
 }
 
-.selected-phone {
-  color: #666;
-  font-size: 13px;
+.summary-panel {
+  position: sticky;
+  top: 16px;
 }
 
 .summary-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-.summary-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
-  color: white;
-  border-radius: 12px 12px 0 0;
-}
-
-.summary-header span:first-child {
-  font-weight: 600;
-}
-
-.summary-body {
   padding: 20px;
 }
 
-.fee-item {
+.fee-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.fee-list div {
   display: flex;
   justify-content: space-between;
-  padding: 8px 0;
-  font-size: 14px;
-}
-
-.fee-label {
-  color: #666;
-}
-
-.fee-value {
-  color: #333;
-}
-
-.fee-total {
-  display: flex;
-  justify-content: space-between;
-  padding-top: 15px;
-  margin-top: 10px;
-  border-top: 2px dashed #e0d5b0;
-}
-
-.total-label {
-  font-weight: 600;
-  color: #333;
-  font-size: 15px;
-}
-
-.total-value {
-  font-weight: bold;
-  color: #ff4d4f;
-  font-size: 20px;
-}
-
-.summary-footer {
-  padding: 20px;
-  border-top: 1px solid #eee;
-}
-
-.action-buttons {
-  display: flex;
-  flex-direction: row;
   gap: 12px;
 }
 
-.action-buttons .el-button {
-  flex: 1;
-  height: 48px;
-  font-size: 15px;
+.fee-list strong {
+  color: #344054;
 }
 
-.action-buttons .el-button--primary {
-  background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
-  border: none;
+.total-row {
+  padding-top: 16px;
+  border-top: 1px solid #eef2f7;
 }
 
-@media (max-width: 768px) {
-  .content-wrapper {
+.total-row strong {
+  display: block;
+  margin-top: 8px;
+  color: #d92d20;
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.security-note {
+  margin: 14px 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.summary-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 10px;
+}
+
+.summary-actions .el-button {
+  height: 44px;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-select__wrapper) {
+  min-height: 42px;
+  border-radius: 8px;
+}
+
+@media (max-width: 980px) {
+  .checkout-hero,
+  .panel-head {
+    align-items: flex-start;
     flex-direction: column;
   }
 
-  .summary-section {
-    width: 100%;
+  .panel-head p {
+    text-align: left;
+  }
+
+  .checkout-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-panel {
     position: static;
   }
+}
 
-  .traveler-detail {
-    flex-wrap: wrap;
-    gap: 8px;
+@media (max-width: 640px) {
+  .checkout-page {
+    padding: 24px 12px 48px;
   }
 
-  .traveler-phone {
-    display: none;
+  .checkout-hero h1 {
+    font-size: 28px;
+  }
+
+  .product-grid,
+  .contact-form,
+  .traveler-form {
+    grid-template-columns: 1fr;
+  }
+
+  .product-grid .wide {
+    grid-column: auto;
+  }
+
+  .traveler-card,
+  .selected-item {
+    grid-template-columns: 1fr;
+  }
+
+  .traveler-actions {
+    justify-content: flex-start;
   }
 }
 </style>

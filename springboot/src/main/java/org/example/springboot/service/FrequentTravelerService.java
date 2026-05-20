@@ -65,7 +65,14 @@ public class FrequentTravelerService extends ServiceImpl<FrequentTravelerMapper,
     /**
      * 设置默认出行人
      */
-    public void setDefault(Long userId, Long travelerId) {
+    public boolean setDefault(Long userId, Long travelerId) {
+        QueryWrapper<FrequentTraveler> ownerWrapper = new QueryWrapper<>();
+        ownerWrapper.eq("id", travelerId);
+        ownerWrapper.eq("user_id", userId);
+        if (getOne(ownerWrapper) == null) {
+            return false;
+        }
+
         // 先取消所有默认
         QueryWrapper<FrequentTraveler> updateWrapper = new QueryWrapper<>();
         updateWrapper.eq("user_id", userId);
@@ -76,7 +83,8 @@ public class FrequentTravelerService extends ServiceImpl<FrequentTravelerMapper,
         // 设置新的默认
         FrequentTraveler traveler = new FrequentTraveler();
         traveler.setId(travelerId);
+        traveler.setUserId(userId);
         traveler.setIsDefault(true);
-        updateById(traveler);
+        return update(traveler, ownerWrapper);
     }
 }

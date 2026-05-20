@@ -237,6 +237,89 @@
               </div>
             </el-tab-pane>
 
+            <el-tab-pane label="常用出行人" name="travelers">
+              <template #label>
+                <div class="tab-label">
+                  <el-icon><User /></el-icon>
+                  <span>常用出行人</span>
+                </div>
+              </template>
+
+              <div class="traveler-center">
+                <section class="traveler-hero">
+                  <div>
+                    <span>Travelers</span>
+                    <h3>常用出行人</h3>
+                    <p>维护本人或同行人的实名资料，预订行程时可直接选择，避免重复填写。</p>
+                  </div>
+                  <el-button type="primary" size="large" @click="openTravelerDialog()">
+                    <el-icon><Plus /></el-icon>
+                    新增出行人
+                  </el-button>
+                </section>
+
+                <div v-if="travelerLoading" class="loading-state">
+                  <el-skeleton :rows="5" animated />
+                </div>
+                <el-empty v-else-if="frequentTravelers.length === 0" description="暂无常用出行人">
+                  <el-button type="primary" @click="openTravelerDialog()">添加出行人</el-button>
+                </el-empty>
+                <div v-else class="traveler-profile-grid">
+                  <article
+                    v-for="traveler in frequentTravelers"
+                    :key="traveler.id"
+                    class="traveler-profile-card"
+                    :class="{ default: traveler.isDefault }"
+                  >
+                    <div class="traveler-card-top">
+                      <div class="traveler-avatar">{{ traveler.name?.charAt(0) || '旅' }}</div>
+                      <div class="traveler-main">
+                        <div class="traveler-name-row">
+                          <h4>{{ traveler.name }}</h4>
+                          <el-tag v-if="traveler.isDefault" type="success" effect="plain">
+                            <el-icon><StarFilled /></el-icon>
+                            默认
+                          </el-tag>
+                        </div>
+                        <p>{{ traveler.travelerType === 'CHILD' ? '儿童' : '成人' }} · {{ traveler.gender === 'FEMALE' ? '女' : '男' }}</p>
+                      </div>
+                    </div>
+
+                    <div class="traveler-fields">
+                      <div>
+                        <span>手机号码</span>
+                        <strong>{{ maskPhone(traveler.phone, '未填写') }}</strong>
+                      </div>
+                      <div>
+                        <span>证件类型</span>
+                        <strong>{{ getTravelerIdTypeLabel(traveler.idType) }}</strong>
+                      </div>
+                      <div class="wide">
+                        <span>证件号码</span>
+                        <strong>{{ maskTravelerIdNumber(traveler.idNumber) }}</strong>
+                      </div>
+                      <div>
+                        <span>出生日期</span>
+                        <strong>{{ formatTravelerDate(traveler.birthDate) || '-' }}</strong>
+                      </div>
+                    </div>
+
+                    <div class="traveler-card-actions">
+                      <el-button v-if="!traveler.isDefault" plain @click="setTravelerDefault(traveler)">设为默认</el-button>
+                      <el-button plain @click="openTravelerDialog(traveler)">
+                        <el-icon><EditPen /></el-icon>
+                        编辑
+                      </el-button>
+                      <el-button type="danger" plain @click="removeTraveler(traveler)">
+                        <el-icon><Delete /></el-icon>
+                        删除
+                      </el-button>
+                    </div>
+                  </article>
+                </div>
+              </div>
+            </el-tab-pane>
+
             <!-- 我的评论标签页 -->
             <el-tab-pane label="我的评论" name="mycomments">
               <template #label>
@@ -432,6 +515,65 @@
         <el-button type="primary" :loading="phoneBinding" @click="confirmPhoneChange">确认变更</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="travelerDialogVisible"
+      :title="editingTraveler ? '编辑出行人' : '新增出行人'"
+      width="640px"
+      class="secure-dialog traveler-profile-dialog"
+      :close-on-click-modal="false"
+    >
+      <el-form
+        ref="travelerFormRef"
+        :model="travelerForm"
+        :rules="travelerRules"
+        label-position="top"
+        class="secure-form traveler-manage-form"
+        hide-required-asterisk
+      >
+        <div class="traveler-form-grid">
+          <el-form-item label="姓名" prop="name">
+            <el-input v-model="travelerForm.name" placeholder="请输入出行人真实姓名" clearable />
+          </el-form-item>
+          <el-form-item label="手机号码" prop="phone">
+            <el-input v-model="travelerForm.phone" placeholder="请输入 11 位手机号码" clearable maxlength="11" />
+          </el-form-item>
+          <el-form-item label="性别" prop="gender">
+            <el-segmented v-model="travelerForm.gender" :options="travelerGenderOptions" />
+          </el-form-item>
+          <el-form-item label="出行人类型" prop="travelerType">
+            <el-segmented v-model="travelerForm.travelerType" :options="travelerTypeOptions" />
+          </el-form-item>
+          <el-form-item label="证件类型" prop="idType">
+            <el-select v-model="travelerForm.idType" placeholder="请选择证件类型">
+              <el-option label="身份证" value="ID_CARD" />
+              <el-option label="护照" value="PASSPORT" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="出生日期" prop="birthDate">
+            <el-date-picker
+              v-model="travelerForm.birthDate"
+              type="date"
+              placeholder="请选择出生日期"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
+              :disabled-date="disableFutureDate"
+              style="width: 100%"
+            />
+          </el-form-item>
+          <el-form-item label="证件号码" prop="idNumber" class="wide">
+            <el-input v-model="travelerForm.idNumber" placeholder="请输入证件号码" clearable maxlength="32" />
+          </el-form-item>
+          <el-form-item class="wide traveler-default-switch">
+            <el-checkbox v-model="travelerForm.isDefault">设为默认出行人</el-checkbox>
+          </el-form-item>
+        </div>
+      </el-form>
+      <template #footer>
+        <el-button @click="travelerDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="travelerSaving" @click="saveTravelerProfile">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -442,9 +584,10 @@ import { useUserStore } from "@/store/user";
 import { useRoute, useRouter } from "vue-router";
 import request from "@/utils/request";
 import GeetestBox from '@/components/auth/GeetestBox.vue'
-import {User,Lock,Key,Check,Camera,Phone,Message,EditPen,ChatDotRound,Location,Bell} from '@element-plus/icons-vue'
+import {User,Lock,Key,Check,Camera,Phone,Message,EditPen,ChatDotRound,Location,Bell,Plus,Delete,StarFilled} from '@element-plus/icons-vue'
 import { formatDate } from '@/utils/dateUtils'
 import { maskEmail, maskPhone } from '@/utils/mask'
+import { getFrequentTravelers, saveFrequentTraveler, updateFrequentTraveler, deleteFrequentTraveler, setDefaultTraveler } from '@/api/frequentTraveler'
 
 const baseAPI = process.env.VUE_APP_BASE_API || "/api";
 const userStore = useUserStore();
@@ -467,6 +610,14 @@ const notificationPageSize = ref(10)
 const notificationTotal = ref(0)
 const notificationUnreadCount = ref(0)
 const notificationReadStatus = ref('')
+
+// 常用出行人
+const frequentTravelers = ref([])
+const travelerLoading = ref(false)
+const travelerSaving = ref(false)
+const travelerDialogVisible = ref(false)
+const editingTraveler = ref(null)
+const travelerFormRef = ref(null)
 
 // 表单引用
 const userFormRef = ref(null);
@@ -518,7 +669,26 @@ const phoneBindForm = reactive({
   smsCode: "",
 });
 
+const travelerForm = reactive({
+  name: '',
+  gender: 'MALE',
+  travelerType: 'ADULT',
+  phone: '',
+  idType: 'ID_CARD',
+  idNumber: '',
+  birthDate: '',
+  isDefault: false
+})
+
 const genderOptions = ["男", "女"];
+const travelerGenderOptions = [
+  { label: '男', value: 'MALE' },
+  { label: '女', value: 'FEMALE' }
+]
+const travelerTypeOptions = [
+  { label: '成人', value: 'ADULT' },
+  { label: '儿童', value: 'CHILD' }
+]
 
 const displayName = computed(() => userForm.nickname || userForm.username || "用户");
 const securityLevelText = computed(() => {
@@ -605,6 +775,25 @@ const passwordRules = {
     { required: true, message: "请输入当前手机验证码", trigger: "blur" },
     { pattern: /^\d{6}$/, message: "验证码为6位数字", trigger: "blur" },
   ],
+};
+
+const travelerRules = {
+  name: [
+    { required: true, message: '请输入出行人姓名', trigger: 'blur' },
+    { min: 2, max: 20, message: '姓名长度为 2-20 个字符', trigger: 'blur' }
+  ],
+  phone: [
+    { required: true, message: '请输入手机号码', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的 11 位手机号码', trigger: ['blur', 'change'] }
+  ],
+  gender: [{ required: true, message: '请选择性别', trigger: 'change' }],
+  travelerType: [{ required: true, message: '请选择出行人类型', trigger: 'change' }],
+  idType: [{ required: true, message: '请选择证件类型', trigger: 'change' }],
+  idNumber: [
+    { required: true, message: '请输入证件号码', trigger: 'blur' },
+    { min: 6, max: 32, message: '证件号码长度为 6-32 个字符', trigger: 'blur' }
+  ],
+  birthDate: [{ required: true, message: '请选择出生日期', trigger: 'change' }]
 };
 
 // 获取用户信息
@@ -1092,10 +1281,140 @@ const openNotification = async (item) => {
   }
 }
 
+const formatTravelerDate = (dateStr) => {
+  if (!dateStr) return ''
+  return String(dateStr).split('T')[0]
+}
+
+const getTravelerIdTypeLabel = (type) => {
+  const labels = {
+    ID_CARD: '身份证',
+    PASSPORT: '护照'
+  }
+  return labels[type] || '证件'
+}
+
+const maskTravelerIdNumber = (idNumber) => {
+  if (!idNumber) return '未填写'
+  const value = String(idNumber)
+  if (value.length <= 8) return `${value.slice(0, 2)}****`
+  return `${value.slice(0, 4)}****${value.slice(-4)}`
+}
+
+const disableFutureDate = (date) => date.getTime() > Date.now()
+
+const fetchFrequentTravelers = async () => {
+  travelerLoading.value = true
+  try {
+    const data = await getFrequentTravelers()
+    frequentTravelers.value = Array.isArray(data) ? data : []
+  } catch (error) {
+    console.error('获取常用出行人失败', error)
+    ElMessage.error(error.message || '获取常用出行人失败')
+  } finally {
+    travelerLoading.value = false
+  }
+}
+
+const resetTravelerForm = () => {
+  Object.assign(travelerForm, {
+    name: '',
+    gender: 'MALE',
+    travelerType: 'ADULT',
+    phone: '',
+    idType: 'ID_CARD',
+    idNumber: '',
+    birthDate: '',
+    isDefault: false
+  })
+  travelerFormRef.value?.clearValidate?.()
+}
+
+const openTravelerDialog = (traveler = null) => {
+  editingTraveler.value = traveler
+  if (traveler) {
+    Object.assign(travelerForm, {
+      name: traveler.name || '',
+      gender: traveler.gender || 'MALE',
+      travelerType: traveler.travelerType || 'ADULT',
+      phone: traveler.phone || '',
+      idType: traveler.idType || 'ID_CARD',
+      idNumber: traveler.idNumber || '',
+      birthDate: formatTravelerDate(traveler.birthDate),
+      isDefault: Boolean(traveler.isDefault)
+    })
+  } else {
+    resetTravelerForm()
+  }
+  travelerDialogVisible.value = true
+}
+
+const saveTravelerProfile = async () => {
+  try {
+    await travelerFormRef.value?.validate()
+  } catch {
+    return
+  }
+
+  travelerSaving.value = true
+  try {
+    const payload = { ...travelerForm }
+    let saved
+    if (editingTraveler.value) {
+      saved = await updateFrequentTraveler(editingTraveler.value.id, payload)
+      ElMessage.success('出行人信息已更新')
+    } else {
+      saved = await saveFrequentTraveler(payload)
+      ElMessage.success('出行人已添加')
+    }
+    if (payload.isDefault && (saved?.id || editingTraveler.value?.id)) {
+      await setDefaultTraveler(saved?.id || editingTraveler.value.id)
+    }
+    travelerDialogVisible.value = false
+    await fetchFrequentTravelers()
+  } catch (error) {
+    console.error('保存常用出行人失败', error)
+    ElMessage.error(error.message || '保存常用出行人失败')
+  } finally {
+    travelerSaving.value = false
+  }
+}
+
+const setTravelerDefault = async (traveler) => {
+  try {
+    await setDefaultTraveler(traveler.id)
+    ElMessage.success('默认出行人已更新')
+    await fetchFrequentTravelers()
+  } catch (error) {
+    console.error('设置默认出行人失败', error)
+    ElMessage.error(error.message || '设置默认出行人失败')
+  }
+}
+
+const removeTraveler = async (traveler) => {
+  try {
+    await ElMessageBox.confirm(`确定要删除出行人“${traveler.name}”吗？`, '删除确认', {
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await deleteFrequentTraveler(traveler.id)
+    ElMessage.success('出行人已删除')
+    await fetchFrequentTravelers()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除常用出行人失败', error)
+      ElMessage.error(error.message || '删除常用出行人失败')
+    }
+  }
+}
+
 // 监听标签页切换
 watch(activeTab, (newTab) => {
   if (newTab === 'mycomments') {
     fetchMyComments()
+  } else if (newTab === 'travelers') {
+    fetchFrequentTravelers()
   } else if (newTab === 'notifications') {
     fetchNotifications()
   }
@@ -1104,6 +1423,8 @@ watch(activeTab, (newTab) => {
 watch(() => route.query.tab, (tab) => {
   if (tab === 'notifications') {
     activeTab.value = 'notifications'
+  } else if (tab === 'travelers') {
+    activeTab.value = 'travelers'
   }
 }, { immediate: true })
 
@@ -1153,6 +1474,8 @@ onMounted(() => {
   getUserInfo();
   if (activeTab.value === 'notifications') {
     fetchNotifications()
+  } else if (activeTab.value === 'travelers') {
+    fetchFrequentTravelers()
   }
 })
 
@@ -2368,6 +2691,201 @@ onUnmounted(() => {
     }
   }
 
+  .traveler-center {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .traveler-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 26px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.07);
+    text-align: left;
+
+    span {
+      display: block;
+      margin-bottom: 8px;
+      color: #0f766e;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    h3 {
+      margin: 0 0 8px;
+      color: #0f172a;
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    p {
+      max-width: 620px;
+      margin: 0;
+      color: #64748b;
+      line-height: 1.7;
+    }
+
+    .el-button {
+      height: 46px;
+      border-radius: 8px;
+      font-weight: 800;
+    }
+  }
+
+  .traveler-profile-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .traveler-profile-card {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+
+    &.default {
+      border-color: #99f6e4;
+      background: linear-gradient(180deg, #ffffff 0%, #f0fdfa 100%);
+    }
+  }
+
+  .traveler-card-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .traveler-avatar {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 8px;
+    background: #0f766e;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 900;
+  }
+
+  .traveler-main {
+    min-width: 0;
+
+    p {
+      margin: 6px 0 0;
+      color: #64748b;
+      font-size: 13px;
+    }
+  }
+
+  .traveler-name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    h4 {
+      margin: 0;
+      color: #0f172a;
+      font-size: 18px;
+      font-weight: 900;
+    }
+  }
+
+  .traveler-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+
+    div {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid #eef2f7;
+      border-radius: 8px;
+      background: #fbfdff;
+    }
+
+    .wide {
+      grid-column: span 2;
+    }
+
+    span,
+    strong {
+      display: block;
+    }
+
+    span {
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    strong {
+      margin-top: 7px;
+      color: #334155;
+      font-size: 14px;
+      line-height: 1.4;
+      word-break: break-all;
+    }
+  }
+
+  .traveler-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #eef2f7;
+
+    .el-button {
+      border-radius: 8px;
+      font-weight: 800;
+    }
+  }
+
+  .traveler-profile-dialog {
+    .traveler-form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 2px 16px;
+
+      .wide {
+        grid-column: span 2;
+      }
+    }
+
+    :deep(.el-select__wrapper) {
+      min-height: 46px;
+      border-radius: 12px;
+      box-shadow: 0 0 0 1px #e2e8f0 inset;
+    }
+
+    :deep(.el-segmented) {
+      width: 100%;
+      min-height: 46px;
+      border-radius: 12px;
+      background: #f1f5f9;
+      padding: 4px;
+    }
+
+    .traveler-default-switch {
+      padding: 12px 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+  }
+
   :deep(.secure-dialog) {
     border-radius: 8px;
     overflow: hidden;
@@ -2488,7 +3006,8 @@ onUnmounted(() => {
 
         .overview-metrics,
         .profile-grid,
-        .field-stack {
+        .field-stack,
+        .traveler-profile-grid {
           grid-template-columns: 1fr;
           width: 100%;
         }
@@ -2519,6 +3038,21 @@ onUnmounted(() => {
         .el-button {
           grid-column: 2;
           justify-self: start;
+        }
+      }
+    }
+
+    .traveler-hero {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .traveler-profile-dialog {
+      .traveler-form-grid {
+        grid-template-columns: 1fr;
+
+        .wide {
+          grid-column: auto;
         }
       }
     }

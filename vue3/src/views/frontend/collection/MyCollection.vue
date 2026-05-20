@@ -135,7 +135,6 @@ import {
   Clock,
   Delete,
   Document,
-  Location,
   MapLocation,
   Refresh,
   Search,

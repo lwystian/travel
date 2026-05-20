@@ -70,7 +70,10 @@ public class FrequentTravelerController {
     public Result<Void> setDefault(
             @RequestAttribute Long userId,
             @PathVariable Long id) {
-        frequentTravelerService.setDefault(userId, id);
+        boolean success = frequentTravelerService.setDefault(userId, id);
+        if (!success) {
+            return Result.error("无权设置该出行人为默认");
+        }
         return Result.success();
     }
 }

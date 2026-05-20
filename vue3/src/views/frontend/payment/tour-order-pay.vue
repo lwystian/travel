@@ -1,165 +1,164 @@
 <template>
-  <div class="tour-order-pay-container">
-    <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
-      <div class="loading-spinner"></div>
+  <main class="pay-page">
+    <section v-if="loading" class="state-panel">
+      <el-skeleton :rows="9" animated />
       <p>正在准备支付，请稍候...</p>
-    </div>
+    </section>
 
-    <!-- 错误状态 -->
-    <div v-else-if="error" class="error-container">
-      <el-result
-        icon="error"
-        title="加载失败"
-        :sub-title="error"
-      >
+    <section v-else-if="error" class="state-panel">
+      <el-result icon="error" title="加载失败" :sub-title="error">
         <template #extra>
           <el-button type="primary" @click="goToOrders">返回订单列表</el-button>
         </template>
       </el-result>
-    </div>
+    </section>
 
-    <!-- 支付信息确认 -->
-    <div v-else-if="order" class="payment-container">
-      <div class="payment-header">
-        <div class="payment-logo">
-          <el-icon :size="40" color="#1677FF"><Wallet /></el-icon>
+    <section v-else-if="order" class="pay-shell">
+      <header class="pay-hero">
+        <div>
+          <span class="eyebrow">Secure Payment</span>
+          <h1>选择支付方式</h1>
+          <p>请确认订单金额与支付方式，系统将通过当前窗口跳转至支付渠道。</p>
         </div>
-        <p class="payment-tip">请选择支付方式并确认支付</p>
-      </div>
-
-      <!-- 订单信息 -->
-      <div class="order-info-card">
-        <div class="info-header">
-          <span class="info-label">订单信息</span>
-          <span class="order-no">{{ order.orderNo }}</span>
+        <div class="step-strip">
+          <span>1 确认信息</span>
+          <span class="active">2 选择支付</span>
+          <span>3 完成预订</span>
         </div>
+      </header>
 
-        <div class="info-item">
-          <span class="label">行程名称</span>
-          <span class="value">{{ order.tourName }}</span>
-        </div>
+      <div class="pay-layout">
+        <section class="pay-main">
+          <article class="panel-card">
+            <header class="panel-head">
+              <div>
+                <span>Order</span>
+                <strong>订单信息</strong>
+              </div>
+              <code>{{ order.orderNo }}</code>
+            </header>
 
-        <div class="info-item" v-if="order.packageName">
-          <span class="label">套餐类型</span>
-          <span class="value">{{ order.packageName }}</span>
-        </div>
+            <div class="order-grid">
+              <div>
+                <span>行程名称</span>
+                <strong>{{ order.tourName || '-' }}</strong>
+              </div>
+              <div>
+                <span>套餐类型</span>
+                <strong>{{ order.packageName || '标准套餐' }}</strong>
+              </div>
+              <div>
+                <span>出发日期</span>
+                <strong>{{ formatDate(order.departureDate) || '-' }}</strong>
+              </div>
+              <div>
+                <span>出行人数</span>
+                <strong>成人 {{ order.adultCount || 0 }} 人<span v-if="order.childCount">，儿童 {{ order.childCount }} 人</span></strong>
+              </div>
+              <div v-if="order.hotelName">
+                <span>住宿酒店</span>
+                <strong>{{ order.hotelName }}（{{ order.hotelDays || 0 }} 晚）</strong>
+              </div>
+              <div>
+                <span>联系人</span>
+                <strong>{{ order.contactName || '-' }} {{ maskPhone(order.contactPhone, '-') }}</strong>
+              </div>
+            </div>
+          </article>
 
-        <div class="info-item" v-if="order.departureDate">
-          <span class="label">出发日期</span>
-          <span class="value">{{ formatDate(order.departureDate) }}</span>
-        </div>
+          <article class="panel-card">
+            <header class="panel-head">
+              <div>
+                <span>Payment Method</span>
+                <strong>支付方式</strong>
+              </div>
+            </header>
 
-        <div class="info-item">
-          <span class="label">出行人数</span>
-          <span class="value">
-            成人 {{ order.adultCount }} 人
-            <span v-if="order.childCount > 0">，儿童 {{ order.childCount }} 人</span>
-          </span>
-        </div>
+            <div v-if="availableMethods.length > 0" class="method-grid">
+              <button
+                v-for="method in availableMethods"
+                :key="method.id || method.paymentType"
+                type="button"
+                class="method-card"
+                :class="{ active: selectedMethod === method.paymentType, disabled: !method.configured }"
+                @click="selectMethod(method)"
+              >
+                <span class="method-icon" :style="{ color: getPaymentColor(method.paymentType) }">
+                  <el-icon><component :is="getPaymentIcon(method.paymentType)" /></el-icon>
+                </span>
+                <span class="method-copy">
+                  <strong>{{ method.paymentName }}</strong>
+                  <small>{{ method.configured ? '可用于当前订单支付' : '后台未完成配置' }}</small>
+                </span>
+                <span v-if="method.isSandbox" class="sandbox-chip">沙箱</span>
+                <el-icon v-if="selectedMethod === method.paymentType" class="check-icon"><Check /></el-icon>
+                <el-icon v-else-if="!method.configured" class="lock-icon"><Lock /></el-icon>
+              </button>
+            </div>
 
-        <div class="info-item" v-if="order.hotelName">
-          <span class="label">住宿酒店</span>
-          <span class="value">{{ order.hotelName }} ({{ order.hotelDays }}晚)</span>
-        </div>
+            <el-empty v-else description="暂无可用的支付方式，请联系管理员配置" />
+          </article>
 
-        <div class="info-item">
-          <span class="label">联系人</span>
-          <span class="value">{{ order.contactName }} {{ maskPhone(order.contactPhone, '-') }}</span>
-        </div>
-      </div>
-
-      <!-- 支付方式选择 -->
-      <div class="payment-methods-section">
-        <div class="section-title">
-          <span>选择支付方式</span>
-        </div>
-
-        <div class="payment-methods-grid">
-          <div
-            v-for="method in availableMethods"
-            :key="method.id"
-            class="payment-method-card"
-            :class="{ active: selectedMethod === method.paymentType, disabled: !method.configured }"
-            @click="selectMethod(method)"
+          <el-alert
+            v-if="showDebugTip"
+            title="调试模式"
+            type="info"
+            :closable="false"
+            show-icon
+            class="debug-alert"
           >
-            <el-icon :size="32" :color="getPaymentColor(method.paymentType)">
-              <component :is="getPaymentIcon(method.paymentType)" />
-            </el-icon>
-            <span class="method-name">{{ method.paymentName }}</span>
-            <span class="method-badge" v-if="method.isSandbox">沙箱</span>
-            <el-icon v-if="!method.configured" class="unconfigured-icon" color="#909399"><Lock /></el-icon>
-            <div v-if="selectedMethod === method.paymentType" class="selected-check">
-              <el-icon color="#fff"><Check /></el-icon>
+            <template #default>
+              <p>如果无法跳转至真实支付页面，可使用模拟支付进行测试。</p>
+              <el-button type="warning" size="small" @click="handleMockPay" :loading="paying" plain>
+                模拟支付
+              </el-button>
+            </template>
+          </el-alert>
+        </section>
+
+        <aside class="amount-panel">
+          <div class="amount-card">
+            <header>
+              <span>Payable</span>
+              <strong>支付确认</strong>
+            </header>
+            <div class="amount-value">
+              <span>应付金额</span>
+              <strong>¥{{ formatPrice(order.totalAmount) }}</strong>
+            </div>
+            <div class="selected-method">
+              <span>当前支付方式</span>
+              <strong>{{ selectedMethod ? selectedMethodConfig.paymentName : '未选择' }}</strong>
+            </div>
+            <div class="pay-actions">
+              <el-button @click="cancelPayment" :disabled="paying">取消支付</el-button>
+              <el-button
+                type="primary"
+                @click="handlePay"
+                :loading="paying"
+                :disabled="!selectedMethod || !selectedMethodConfig.configured"
+              >
+                {{ selectedMethod ? `使用${selectedMethodConfig.paymentName}支付` : '请选择支付方式' }}
+              </el-button>
             </div>
           </div>
-        </div>
-
-        <div v-if="availableMethods.length === 0" class="no-methods">
-          <el-empty description="暂无可用的支付方式，请联系管理员配置" />
-        </div>
+        </aside>
       </div>
 
-      <!-- 支付金额 -->
-      <div class="amount-section">
-        <span class="amount-label">应付金额</span>
-        <span class="amount-value">¥ {{ formatPrice(order.totalAmount) }}</span>
-      </div>
-
-      <!-- 按钮区域 -->
-      <div class="button-section">
-        <el-button @click="cancelPayment" :disabled="paying">取消支付</el-button>
-        <el-button
-          type="primary"
-          @click="handlePay"
-          :loading="paying"
-          :disabled="!selectedMethod || !selectedMethodConfig.configured"
-          size="large"
-        >
-          <span v-if="!paying">
-            {{ selectedMethod ? `使用${selectedMethodConfig.paymentName}支付` : '请选择支付方式' }}
-          </span>
-          <span v-else>正在跳转...</span>
-        </el-button>
-      </div>
-
-      <!-- 调试模式提示 -->
-      <div class="debug-mode-tip" v-if="showDebugTip">
-        <el-alert
-          title="提示"
-          type="info"
-          :closable="false"
-          show-icon
-        >
-          <template #default>
-            <p>如果无法跳转到支付页面，可点击下方按钮进行模拟支付测试</p>
-            <el-button type="warning" size="small" @click="handleMockPay" :loading="paying" plain>
-              模拟支付（调试用）
-            </el-button>
-          </template>
-        </el-alert>
-      </div>
-    </div>
-
-    <!-- 隐藏的支付表单 -->
-    <form
-      ref="payFormRef"
-      name="paysubmit"
-      method="post"
-      style="display: none;"
-    >
-      <input type="hidden" name="biz_content" />
-      <input type="hidden" name="charset" value="UTF-8" />
-      <input type="hidden" name="sign_type" value="RSA2" />
-    </form>
-  </div>
+      <form ref="payFormRef" name="paysubmit" method="post" style="display: none;">
+        <input type="hidden" name="biz_content" />
+        <input type="hidden" name="charset" value="UTF-8" />
+        <input type="hidden" name="sign_type" value="RSA2" />
+      </form>
+    </section>
+  </main>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Wallet, Check, Lock, Aliwangwang, Wechat } from '@element-plus/icons-vue'
+import { Wallet, Check, Lock, CreditCard, ChatDotRound } from '@element-plus/icons-vue'
 import { getTourOrderDetail } from '@/api/tourOrder'
 import { generatePayForm as generatePayFormApi, mockPay as mockPayApi, getOrderByOrderNo, getAvailablePaymentMethods } from '@/api/tourOrderPay'
 import { maskPhone } from '@/utils/mask'
@@ -167,7 +166,6 @@ import { maskPhone } from '@/utils/mask'
 const route = useRoute()
 const router = useRouter()
 
-// 状态
 const loading = ref(true)
 const paying = ref(false)
 const order = ref(null)
@@ -176,12 +174,8 @@ const payFormRef = ref(null)
 const availableMethods = ref([])
 const selectedMethod = ref('alipay')
 
-// 是否显示调试提示
-const showDebugTip = computed(() => {
-  return route.query.debug === 'true'
-})
+const showDebugTip = computed(() => route.query.debug === 'true')
 
-// 选中的支付方式配置
 const selectedMethodConfig = computed(() => {
   return availableMethods.value.find(m => m.paymentType === selectedMethod.value) || {
     paymentName: '未知',
@@ -189,25 +183,22 @@ const selectedMethodConfig = computed(() => {
   }
 })
 
-// 获取支付方式图标
 const getPaymentIcon = (type) => {
   const icons = {
-    alipay: Aliwangwang,
-    wechat: Wechat
+    alipay: CreditCard,
+    wechat: ChatDotRound
   }
   return icons[type] || Wallet
 }
 
-// 获取支付方式颜色
 const getPaymentColor = (type) => {
   const colors = {
-    alipay: '#1677FF',
-    wechat: '#07C160'
+    alipay: '#1677ff',
+    wechat: '#07c160'
   }
-  return colors[type] || '#666'
+  return colors[type] || '#344054'
 }
 
-// 选择支付方式
 const selectMethod = (method) => {
   if (!method.configured) {
     ElMessage.warning(`${method.paymentName} 未配置，请选择其他支付方式`)
@@ -216,26 +207,17 @@ const selectMethod = (method) => {
   selectedMethod.value = method.paymentType
 }
 
-// 格式化日期
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
-  return dateStr
+  return String(dateStr).split('T')[0]
 }
 
-// 格式化价格
-const formatPrice = (price) => {
-  if (!price) return '0.00'
-  return Number(price).toFixed(2)
-}
+const formatPrice = (price) => Number(price || 0).toFixed(2)
 
-// 加载可用的支付方式
 const loadAvailableMethods = async () => {
   try {
     const res = await getAvailablePaymentMethods()
-    // 响应拦截器已返回 res.data，直接使用
-    availableMethods.value = Array.isArray(res) ? res : (res.data || [])
-
-    // 默认选择第一个已配置的支付方式
+    availableMethods.value = Array.isArray(res) ? res : (res?.data || [])
     const configuredMethod = availableMethods.value.find(m => m.configured)
     if (configuredMethod) {
       selectedMethod.value = configuredMethod.paymentType
@@ -247,7 +229,6 @@ const loadAvailableMethods = async () => {
   }
 }
 
-// 获取订单信息
 const fetchOrderInfo = async () => {
   try {
     loading.value = true
@@ -255,19 +236,15 @@ const fetchOrderInfo = async () => {
 
     const orderId = route.params.id
     const orderNo = route.query.orderNo
-
     if (orderId) {
-      const data = await getTourOrderDetail(orderId)
-      order.value = data
+      order.value = await getTourOrderDetail(orderId)
     } else if (orderNo) {
-      const data = await getOrderByOrderNo(orderNo)
-      order.value = data
+      order.value = await getOrderByOrderNo(orderNo)
     } else {
       error.value = '订单信息不存在'
       return
     }
 
-    // 检查订单状态
     if (order.value && order.value.status !== 0) {
       if (order.value.status === 1) {
         ElMessage.warning('该订单已支付')
@@ -285,13 +262,11 @@ const fetchOrderInfo = async () => {
   }
 }
 
-// 处理支付
 const handlePay = async () => {
   if (!order.value) {
     ElMessage.error('订单信息不存在')
     return
   }
-
   if (!selectedMethod.value) {
     ElMessage.error('请选择支付方式')
     return
@@ -300,32 +275,22 @@ const handlePay = async () => {
   try {
     paying.value = true
     ElMessage.info('正在准备支付...')
-
-    // 调用后端生成支付表单
     const formHtml = await generatePayFormApi(order.value.id, selectedMethod.value)
-
-    // 创建临时容器
     const container = document.createElement('div')
     container.innerHTML = formHtml
     container.style.display = 'none'
     document.body.appendChild(container)
 
-    // 获取表单并自动提交 - 在当前窗口打开
     const form = container.querySelector('form')
-    if (form) {
-      form.target = '_self' // 在当前窗口提交，不打开新窗口
-      form.method = 'post'
-      form.acceptCharset = 'UTF-8'
-      form.submit()
-    } else {
-      throw new Error('支付表单生成失败')
-    }
+    if (!form) throw new Error('支付表单生成失败')
+    form.target = '_self'
+    form.method = 'post'
+    form.acceptCharset = 'UTF-8'
+    form.submit()
 
-    // 清理临时容器
     setTimeout(() => {
-      document.body.removeChild(container)
+      if (document.body.contains(container)) document.body.removeChild(container)
     }, 100)
-
   } catch (err) {
     console.error('准备支付失败:', err)
     ElMessage.error(err.message || '准备支付失败，请重试')
@@ -333,7 +298,6 @@ const handlePay = async () => {
   }
 }
 
-// 模拟支付（测试用）
 const handleMockPay = async () => {
   if (!order.value) {
     ElMessage.error('订单信息不存在')
@@ -345,18 +309,15 @@ const handleMockPay = async () => {
       `确定要模拟支付订单 ${order.value.orderNo} 吗？\n金额：¥${formatPrice(order.value.totalAmount)}`,
       '模拟支付',
       {
-        confirmButtonText: '确定模拟支付',
+        confirmButtonText: '确认模拟支付',
         cancelButtonText: '取消',
         type: 'warning'
       }
     )
-
     paying.value = true
     await mockPayApi(order.value.id, { showDefaultMsg: false })
-
     ElMessage.success('模拟支付成功')
     router.replace(`/payment/result?out_trade_no=${order.value.orderNo}&status=success`)
-
   } catch (err) {
     if (err !== 'cancel') {
       console.error('模拟支付失败:', err)
@@ -367,293 +328,396 @@ const handleMockPay = async () => {
   }
 }
 
-// 取消支付
 const cancelPayment = () => {
-  ElMessageBox.confirm('确定要取消支付吗？订单将保留但不会自动完成支付。', '提示', {
-    confirmButtonText: '确定取消',
+  ElMessageBox.confirm('确定要取消支付吗？订单将保留但不会自动完成支付。', '取消支付', {
+    confirmButtonText: '确认取消',
     cancelButtonText: '继续支付',
     type: 'warning'
   }).then(() => {
     router.push('/orders')
-  }).catch(() => {
-    // 用户选择继续支付
-  })
+  }).catch(() => {})
 }
 
-// 返回订单列表
-const goToOrders = () => {
-  router.push('/orders')
-}
+const goToOrders = () => router.push('/orders')
 
 onMounted(async () => {
-  await Promise.all([
-    fetchOrderInfo(),
-    loadAvailableMethods()
-  ])
+  await Promise.all([fetchOrderInfo(), loadAvailableMethods()])
 })
 </script>
 
 <style scoped>
-.tour-order-pay-container {
-  width: 100%;
-  min-height: calc(100vh - 200px);
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
-  padding: 40px 20px;
+.pay-page {
+  min-height: 100vh;
+  background: #f3f6fb;
+  color: #101828;
+  font-family: "Source Han Sans", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+  padding: 36px 20px 64px;
 }
 
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-}
-
-.loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #409EFF;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.loading-container p {
-  color: #666;
-  font-size: 16px;
-}
-
-.error-container {
-  max-width: 600px;
+.state-panel {
+  max-width: 900px;
   margin: 0 auto;
-  background: white;
-  border-radius: 12px;
-  padding: 40px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-.payment-container {
-  max-width: 700px;
-  margin: 0 auto;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-}
-
-.payment-header {
-  background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
-  color: white;
-  padding: 30px;
-  text-align: center;
-}
-
-.payment-logo {
-  margin-bottom: 15px;
-}
-
-.payment-header .payment-tip {
-  font-size: 14px;
-  opacity: 0.9;
-  margin: 0;
-}
-
-.order-info-card {
-  padding: 20px 30px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.info-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px dashed #e8e8e8;
-}
-
-.info-label {
-  font-weight: 600;
-  color: #333;
-  font-size: 16px;
-}
-
-.order-no {
-  color: #999;
-  font-size: 13px;
-  font-family: monospace;
-}
-
-.info-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 10px 0;
-}
-
-.info-item .label {
-  color: #666;
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.info-item .value {
-  color: #333;
-  font-size: 14px;
-  text-align: right;
-  max-width: 60%;
-}
-
-.payment-methods-section {
-  padding: 20px 30px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 15px;
-}
-
-.payment-methods-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 15px;
-}
-
-.payment-method-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 15px;
-  border: 2px solid #e8e8e8;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  padding: 34px;
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
   background: #fff;
 }
 
-.payment-method-card:hover:not(.disabled) {
-  border-color: #409EFF;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.15);
+.state-panel p {
+  color: #667085;
+  text-align: center;
 }
 
-.payment-method-card.active {
-  border-color: #1677FF;
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.05) 0%, rgba(9, 88, 217, 0.08) 100%);
+.pay-shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
 }
 
-.payment-method-card.disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.method-name {
-  margin-top: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-}
-
-.method-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  font-size: 10px;
-  padding: 2px 6px;
-  background: #ff9800;
-  color: white;
-  border-radius: 4px;
-}
-
-.unconfigured-icon {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-}
-
-.selected-check {
-  position: absolute;
-  bottom: -1px;
-  right: -1px;
-  width: 24px;
-  height: 24px;
-  background: #1677FF;
-  border-radius: 50%;
+.pay-hero {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px 28px;
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 44px rgba(16, 24, 40, 0.06);
 }
 
-.no-methods {
+.pay-hero > div:first-child {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.eyebrow {
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #e8f2ff;
+  color: #155eef;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pay-hero h1 {
+  margin: 12px 0 8px;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.pay-hero p {
+  margin: 0;
+  color: #667085;
+  max-width: 650px;
+}
+
+.step-strip {
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #e4eaf3;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.step-strip span {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 8px;
+  background: #eef2f7;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 42px;
+  white-space: nowrap;
+}
+
+.step-strip .active {
+  background: #155eef;
+  color: #fff;
+}
+
+.pay-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+  margin-top: 16px;
+  align-items: start;
+}
+
+.pay-main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.panel-card,
+.amount-card {
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.panel-card {
   padding: 20px;
 }
 
-.amount-section {
+.panel-head {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.panel-head > div {
+  text-align: left;
+}
+
+.panel-head span,
+.amount-card header span,
+.order-grid span,
+.amount-value span,
+.selected-method span {
+  display: block;
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.panel-head strong,
+.amount-card header strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.panel-head p {
+  max-width: 360px;
+  margin: 0;
+  color: #667085;
+  font-size: 13px;
+  text-align: left;
+}
+
+.panel-head code {
+  align-self: start;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: #f2f4f7;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.order-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.order-grid div {
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.order-grid strong {
+  display: block;
+  margin-top: 8px;
+  color: #344054;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.method-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.method-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
-  padding: 25px 30px;
-  background: #fffbf0;
-  border-bottom: 1px solid #f0f0f0;
+  gap: 12px;
+  min-height: 82px;
+  padding: 14px;
+  border: 1px solid #e4eaf3;
+  border-radius: 8px;
+  background: #fff;
+  color: #101828;
+  text-align: left;
+  cursor: pointer;
 }
 
-.amount-label {
-  font-size: 16px;
-  color: #666;
+.method-card.active {
+  border-color: #155eef;
+  background: #edf5ff;
 }
 
-.amount-value {
-  font-size: 32px;
-  font-weight: bold;
-  color: #ff4d4f;
+.method-card.disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
 }
 
-.button-section {
-  display: flex;
-  gap: 15px;
-  padding: 25px 30px;
+.method-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 8px;
+  background: #f2f4f7;
+  font-size: 24px;
 }
 
-.button-section .el-button {
-  flex: 1;
-  height: 48px;
-  font-size: 16px;
+.method-copy strong,
+.method-copy small {
+  display: block;
 }
 
-.button-section .el-button--primary {
-  background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
-  border: none;
+.method-copy strong {
+  font-size: 15px;
+  font-weight: 900;
 }
 
-.button-section .el-button--primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #409eff 0%, #1677ff 100%);
+.method-copy small {
+  margin-top: 5px;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.button-section .el-button:disabled {
-  background: #f5f5f5;
-  border-color: #d9d9d9;
-  color: #bfbfbf;
+.sandbox-chip {
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #b54708;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 24px;
 }
 
-.debug-mode-tip {
-  padding: 0 30px 30px;
+.check-icon {
+  color: #155eef;
 }
 
-.debug-mode-tip .el-alert {
+.lock-icon {
+  color: #98a2b3;
+}
+
+.debug-alert {
   border-radius: 8px;
 }
 
-.debug-mode-tip p {
-  margin: 0 0 10px 0;
-  color: #666;
+.debug-alert p {
+  margin: 0 0 10px;
+}
+
+.amount-panel {
+  position: sticky;
+  top: 16px;
+}
+
+.amount-card {
+  padding: 20px;
+  text-align: left;
+}
+
+.amount-value {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 8px;
+  background: #fff8f6;
+}
+
+.amount-value strong {
+  display: block;
+  margin-top: 8px;
+  color: #d92d20;
+  font-size: 34px;
+  font-weight: 900;
+}
+
+.selected-method {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.selected-method strong {
+  display: block;
+  margin-top: 8px;
+  color: #344054;
+}
+
+.pay-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eef2f7;
+}
+
+.pay-actions .el-button {
+  height: 44px;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .pay-hero,
+  .panel-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .panel-head p {
+    text-align: left;
+  }
+
+  .pay-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .amount-panel {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .pay-page {
+    padding: 24px 12px 48px;
+  }
+
+  .pay-hero h1 {
+    font-size: 28px;
+  }
+
+  .order-grid,
+  .method-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pay-actions {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
