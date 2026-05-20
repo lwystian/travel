@@ -55,7 +55,7 @@
                     <div class="person-copy">
                       <span class="status-pill">当前账户</span>
                       <h2>{{ displayName }}</h2>
-                      <p>{{ userForm.phone ? `登录手机号 ${userForm.phone}` : '请绑定手机号以保护账户安全' }}</p>
+                      <p>{{ userForm.phone ? `登录手机号 ${maskedPhone}` : '请绑定手机号以保护账户安全' }}</p>
                     </div>
                   </div>
                   <div class="overview-metrics">
@@ -125,7 +125,7 @@
                             <h4>电子邮箱</h4>
                             <span :class="{ verified: userForm.email }">{{ userForm.email ? '已验证' : '未绑定' }}</span>
                           </div>
-                          <p>{{ userForm.email || '绑定后可用于接收验证码、安全提醒与重要通知' }}</p>
+                          <p>{{ maskedEmail }}</p>
                         </div>
                         <el-button plain @click="openEmailDialog">
                           {{ userForm.email ? '更换' : '绑定' }}
@@ -141,7 +141,7 @@
                             <h4>手机号码</h4>
                             <span :class="{ verified: userForm.phone }">{{ userForm.phone ? '已验证' : '待验证' }}</span>
                           </div>
-                          <p>{{ userForm.phone || '手机号是当前主要登录凭证，变更时必须验证新号码' }}</p>
+                          <p>{{ maskedPhone }}</p>
                         </div>
                         <el-button plain @click="openPhoneDialog">
                           {{ userForm.phone ? '更换' : '绑定' }}
@@ -165,52 +165,71 @@
               <div class="password-content">
                 <div class="password-card">
                   <div class="password-header">
-                    <div class="security-icon">🔐</div>
-                    <h3 class="password-title">账户安全</h3>
-                    <p class="password-desc">定期更换密码，保护账户安全</p>
+                    <div class="password-icon">
+                      <el-icon><Lock /></el-icon>
+                    </div>
+                    <div>
+                      <span>Security Check</span>
+                      <h3 class="password-title">修改登录密码</h3>
+                      <p class="password-desc">修改前需要完成极验，并验证当前绑定手机号。</p>
+                    </div>
                   </div>
 
                   <el-form
                     ref="passwordFormRef"
                     :model="passwordForm"
                     :rules="passwordRules"
-                    label-width="120px"
-                    class="password-form"
+                    label-position="top"
+                    class="password-form secure-form"
+                    hide-required-asterisk
                   >
-                    <el-form-item label="旧密码" prop="oldPassword" class="form-item">
-                      <el-input
-                        v-model="passwordForm.oldPassword"
-                        show-password
-                        placeholder="请输入旧密码"
-                        class="form-input"
-                        :prefix-icon="Lock"
-                      />
-                    </el-form-item>
+                    <div class="password-grid">
+                      <div class="password-fields">
+                        <el-form-item label="当前密码" prop="oldPassword">
+                          <el-input v-model="passwordForm.oldPassword" show-password placeholder="请输入当前密码" :prefix-icon="Lock" />
+                        </el-form-item>
 
-                    <el-form-item label="新密码" prop="newPassword" class="form-item">
-                      <el-input
-                        v-model="passwordForm.newPassword"
-                        show-password
-                        placeholder="请输入新密码"
-                        class="form-input"
-                        :prefix-icon="Key"
-                      />
-                    </el-form-item>
+                        <el-form-item label="新密码" prop="newPassword">
+                          <el-input v-model="passwordForm.newPassword" show-password placeholder="请输入新密码" :prefix-icon="Key" />
+                        </el-form-item>
 
-                    <el-form-item label="确认新密码" prop="confirmPassword" class="form-item">
-                      <el-input
-                        v-model="passwordForm.confirmPassword"
-                        show-password
-                        placeholder="请再次输入新密码"
-                        class="form-input"
-                        :prefix-icon="Key"
-                      />
-                    </el-form-item>
+                        <el-form-item label="确认新密码" prop="confirmPassword">
+                          <el-input v-model="passwordForm.confirmPassword" show-password placeholder="请再次输入新密码" :prefix-icon="Key" />
+                        </el-form-item>
 
-                    <div class="form-actions">
+                        <el-form-item label="当前手机验证码" prop="currentPhoneCode">
+                          <div class="code-row password-code-row">
+                            <el-input v-model="passwordForm.currentPhoneCode" :prefix-icon="Phone" placeholder="请输入6位验证码" maxlength="6" clearable />
+                            <el-button :loading="passwordCodeSending" :disabled="passwordCountdown > 0" @click="sendPasswordCode">
+                              {{ passwordCountdown > 0 ? `${passwordCountdown}s` : '发送验证码' }}
+                            </el-button>
+                          </div>
+                        </el-form-item>
+                      </div>
+
+                      <aside class="password-verify">
+                        <div class="verify-card">
+                          <span>手机验证</span>
+                          <strong>{{ maskedPhone }}</strong>
+                          <p>验证码将发送到当前绑定手机号。若手机号不可用，请先在基本信息中完成换绑。</p>
+                        </div>
+                        <div class="captcha-shell password-captcha">
+                          <GeetestBox
+                            ref="passwordCaptchaRef"
+                            success-text="验证已通过，可以发送手机验证码"
+                            @verified="handlePasswordGeetestVerified"
+                            @error="handlePasswordGeetestError"
+                            @unavailable="handlePasswordGeetestUnavailable"
+                          />
+                        </div>
+                      </aside>
+                    </div>
+
+                    <div class="form-actions password-actions">
+                      <span>密码修改成功后需要重新登录。</span>
                       <el-button type="primary" @click="submitPassword" class="save-btn" size="large">
                         <el-icon><Check /></el-icon>
-                        修改密码
+                        确认修改
                       </el-button>
                     </div>
                   </el-form>
@@ -356,8 +375,8 @@
       </div>
     </div>
 
-    <el-dialog v-model="emailDialogVisible" :title="userForm.email ? '更换邮箱' : '绑定邮箱'" width="460px" class="secure-dialog">
-      <el-form :model="emailBindForm" :rules="emailBindRules" ref="emailBindFormRef" label-position="top">
+    <el-dialog v-model="emailDialogVisible" :title="userForm.email ? '更换邮箱' : '绑定邮箱'" width="520px" class="secure-dialog">
+      <el-form :model="emailBindForm" :rules="emailBindRules" ref="emailBindFormRef" label-position="top" class="secure-form" hide-required-asterisk>
         <el-form-item label="电子邮箱" prop="email">
           <el-input v-model="emailBindForm.email" :prefix-icon="Message" placeholder="请输入需要绑定的邮箱" clearable />
         </el-form-item>
@@ -385,8 +404,8 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="phoneDialogVisible" :title="userForm.phone ? '更换手机号' : '绑定手机号'" width="460px" class="secure-dialog">
-      <el-form :model="phoneBindForm" :rules="phoneBindRules" ref="phoneBindFormRef" label-position="top">
+    <el-dialog v-model="phoneDialogVisible" :title="userForm.phone ? '更换手机号' : '绑定手机号'" width="520px" class="secure-dialog">
+      <el-form :model="phoneBindForm" :rules="phoneBindRules" ref="phoneBindFormRef" label-position="top" class="secure-form" hide-required-asterisk>
         <el-form-item label="手机号码" prop="phone">
           <el-input v-model="phoneBindForm.phone" :prefix-icon="Phone" placeholder="请输入新的手机号码" maxlength="11" clearable />
         </el-form-item>
@@ -425,6 +444,7 @@ import request from "@/utils/request";
 import GeetestBox from '@/components/auth/GeetestBox.vue'
 import {User,Lock,Key,Check,Camera,Phone,Message,EditPen,ChatDotRound,Location,Bell} from '@element-plus/icons-vue'
 import { formatDate } from '@/utils/dateUtils'
+import { maskEmail, maskPhone } from '@/utils/mask'
 
 const baseAPI = process.env.VUE_APP_BASE_API || "/api";
 const userStore = useUserStore();
@@ -455,21 +475,27 @@ const emailBindFormRef = ref(null);
 const phoneBindFormRef = ref(null);
 const emailCaptchaRef = ref(null);
 const phoneCaptchaRef = ref(null);
+const passwordCaptchaRef = ref(null);
 const savingProfile = ref(false);
 const emailDialogVisible = ref(false);
 const phoneDialogVisible = ref(false);
 const emailCodeSending = ref(false);
 const phoneCodeSending = ref(false);
+const passwordCodeSending = ref(false);
 const emailBinding = ref(false);
 const phoneBinding = ref(false);
 const emailCountdown = ref(0);
 const phoneCountdown = ref(0);
+const passwordCountdown = ref(0);
 const emailGeetestValidate = ref(null);
 const phoneGeetestValidate = ref(null);
+const passwordGeetestValidate = ref(null);
 const emailGeetestRequired = ref(true);
 const phoneGeetestRequired = ref(true);
+const passwordGeetestRequired = ref(true);
 let emailTimer = null;
 let phoneTimer = null;
+let passwordTimer = null;
 
 // 用户表单数据
 const userForm = reactive({
@@ -500,6 +526,12 @@ const securityLevelText = computed(() => {
   if (userForm.phone || userForm.email) return "基础保护";
   return "待完善";
 });
+const maskedPhone = computed(() => {
+  return maskPhone(userForm.phone, "未绑定手机号");
+});
+const maskedEmail = computed(() => {
+  return maskEmail(userForm.email, "绑定后可用于接收验证码、安全提醒与重要通知");
+});
 
 // 头像地址
 const avatarUrl = computed(() => {
@@ -512,6 +544,7 @@ const passwordForm = reactive({
   oldPassword: "",
   newPassword: "",
   confirmPassword: "",
+  currentPhoneCode: "",
 });
 
 // 表单校验规则
@@ -567,6 +600,10 @@ const passwordRules = {
       },
       trigger: ["blur", "change"],
     },
+  ],
+  currentPhoneCode: [
+    { required: true, message: "请输入当前手机验证码", trigger: "blur" },
+    { pattern: /^\d{6}$/, message: "验证码为6位数字", trigger: "blur" },
   ],
 };
 
@@ -728,9 +765,10 @@ const submitUserInfo = async () => {
 };
 
 const startCountdown = (target) => {
-  const countdown = target === "email" ? emailCountdown : phoneCountdown;
+  const countdown = target === "email" ? emailCountdown : target === "phone" ? phoneCountdown : passwordCountdown;
   if (target === "email" && emailTimer) clearInterval(emailTimer);
   if (target === "phone" && phoneTimer) clearInterval(phoneTimer);
+  if (target === "password" && passwordTimer) clearInterval(passwordTimer);
   countdown.value = 60;
   const timer = setInterval(() => {
     countdown.value -= 1;
@@ -740,6 +778,7 @@ const startCountdown = (target) => {
   }, 1000);
   if (target === "email") emailTimer = timer;
   if (target === "phone") phoneTimer = timer;
+  if (target === "password") passwordTimer = timer;
 };
 
 const openEmailDialog = () => {
@@ -784,6 +823,21 @@ const handlePhoneGeetestError = () => {
 const handlePhoneGeetestUnavailable = () => {
   phoneGeetestValidate.value = null;
   phoneGeetestRequired.value = false;
+};
+
+const handlePasswordGeetestVerified = (validate) => {
+  passwordGeetestValidate.value = validate;
+  passwordGeetestRequired.value = Boolean(validate) || passwordGeetestRequired.value;
+};
+
+const handlePasswordGeetestError = (message) => {
+  passwordGeetestValidate.value = null;
+  ElMessage.error(message || "极验验证失败");
+};
+
+const handlePasswordGeetestUnavailable = () => {
+  passwordGeetestValidate.value = null;
+  passwordGeetestRequired.value = false;
 };
 
 const sendEmailBindCode = async () => {
@@ -870,9 +924,40 @@ const confirmPhoneChange = async () => {
   }
 };
 
+const sendPasswordCode = async () => {
+  if (!userForm.phone) {
+    ElMessage.warning("请先绑定手机号后再修改密码");
+    return;
+  }
+  if (passwordGeetestRequired.value && !passwordGeetestValidate.value) {
+    ElMessage.warning("请先完成极验安全验证");
+    return;
+  }
+  passwordCodeSending.value = true;
+  try {
+    await request.post("/user/phone/current/code", {
+      geetest: passwordGeetestValidate.value
+    }, { showDefaultMsg: false });
+    ElMessage.success("手机验证码已发送");
+    startCountdown("password");
+    passwordGeetestValidate.value = null;
+    passwordCaptchaRef.value?.resetCaptcha();
+  } catch (error) {
+    ElMessage.error(error.message || "验证码发送失败");
+    passwordGeetestValidate.value = null;
+    passwordCaptchaRef.value?.resetCaptcha();
+  } finally {
+    passwordCodeSending.value = false;
+  }
+};
+
 // 提交密码修改
 const submitPassword = async () => {
   if (!passwordFormRef.value) return;
+  if (!userForm.phone) {
+    ElMessage.warning("请先绑定手机号后再修改密码");
+    return;
+  }
 
   try {
     // 表单验证
@@ -883,6 +968,7 @@ const submitPassword = async () => {
       {
         oldPassword: passwordForm.oldPassword,
         newPassword: passwordForm.newPassword,
+        currentPhoneCode: passwordForm.currentPhoneCode,
       },
       {
         showDefaultMsg: false,
@@ -892,6 +978,7 @@ const submitPassword = async () => {
           passwordForm.oldPassword = "";
           passwordForm.newPassword = "";
           passwordForm.confirmPassword = "";
+          passwordForm.currentPhoneCode = "";
 
           // 提示用户重新登录
           ElMessageBox.confirm("密码已修改，需要重新登录", "提示", {
@@ -1072,6 +1159,7 @@ onMounted(() => {
 onUnmounted(() => {
   if (emailTimer) clearInterval(emailTimer);
   if (phoneTimer) clearInterval(phoneTimer);
+  if (passwordTimer) clearInterval(passwordTimer);
 })
 </script>
 
@@ -1100,11 +1188,12 @@ onUnmounted(() => {
 
   // 页面头部
   .page-header {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     justify-content: space-between;
     align-items: center;
     gap: 24px;
-    padding: 26px 30px;
+    padding: 30px;
     border: 1px solid rgba(203, 213, 225, 0.85);
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.88);
@@ -1113,7 +1202,8 @@ onUnmounted(() => {
   }
 
   .header-content {
-    flex: 1;
+    grid-column: 2;
+    text-align: center;
   }
 
   .eyebrow {
@@ -1138,12 +1228,14 @@ onUnmounted(() => {
   }
 
   .header-summary {
-    min-width: 148px;
-    border: 1px solid #dbeafe;
-    border-radius: 8px;
-    padding: 14px 18px;
-    background: #eff6ff;
-    text-align: right;
+    grid-column: 3;
+    justify-self: end;
+    min-width: 150px;
+    border: 1px solid #d1fae5;
+    border-radius: 999px;
+    padding: 10px 16px;
+    background: #ecfdf5;
+    text-align: center;
 
     span,
     strong {
@@ -1151,14 +1243,15 @@ onUnmounted(() => {
     }
 
     span {
-      color: #64748b;
-      font-size: 13px;
+      color: #047857;
+      font-size: 12px;
+      font-weight: 700;
     }
 
     strong {
-      margin-top: 4px;
-      color: #1d4ed8;
-      font-size: 20px;
+      margin-top: 2px;
+      color: #065f46;
+      font-size: 16px;
     }
   }
 
@@ -1957,31 +2050,51 @@ onUnmounted(() => {
 
   // 密码修改内容
   .password-content {
-    max-width: 600px;
+    max-width: 980px;
     margin: 0 auto;
 
     .password-card {
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border-radius: 8px;
+      box-shadow: 0 18px 46px rgba(15, 23, 42, 0.08);
       border: 1px solid #e2e8f0;
       overflow: hidden;
     }
 
     .password-header {
-      text-align: center;
-      padding: 40px 24px 24px;
-      background: linear-gradient(135deg, #FFFFFF 0%, #e2e8f0 100%);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 28px 30px;
+      background:
+        linear-gradient(135deg, rgba(14, 165, 233, 0.11), rgba(16, 185, 129, 0.08)),
+        #ffffff;
+      border-bottom: 1px solid #e2e8f0;
 
-      .security-icon {
-        font-size: 48px;
-        margin-bottom: 16px;
+      .password-icon {
+        width: 56px;
+        height: 56px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        background: #0f766e;
+        color: #ffffff;
+        font-size: 26px;
+        box-shadow: 0 14px 30px rgba(15, 118, 110, 0.24);
+      }
+
+      span {
+        display: block;
+        margin-bottom: 6px;
+        color: #0f766e;
+        font-size: 12px;
+        font-weight: 800;
       }
 
       .password-title {
-        font-size: 24px;
+        font-size: 26px;
         font-weight: 700;
-        color: #2d3748;
+        color: #0f172a;
         margin: 0 0 8px;
       }
 
@@ -1993,56 +2106,81 @@ onUnmounted(() => {
     }
 
     .password-form {
-      padding: 24px;
-
-      .form-item {
-        margin-bottom: 24px;
-
-        :deep(.el-form-item__label) {
-          font-weight: 600;
-          color: #2d3748;
-          margin-bottom: 8px;
-          font-size: 14px;
-        }
-
-        .form-input {
-          :deep(.el-input__wrapper) {
-            border-radius: 8px;
-            border: 2px solid #e2e8f0;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-
-            &:hover {
-              border-color: #667eea;
-            }
-
-            &.is-focus {
-              border-color: #667eea;
-              box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-            }
-          }
-        }
-      }
+      padding: 30px;
 
       .form-actions {
         display: flex;
-        justify-content: center;
-        margin-top: 32px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 24px;
+        padding-top: 22px;
+        border-top: 1px solid #e2e8f0;
+
+        span {
+          color: #64748b;
+          font-size: 13px;
+        }
 
         .save-btn {
-          background: linear-gradient(45deg, #667eea, #764ba2);
+          min-width: 150px;
+          height: 46px;
+          background: #0f766e;
           border: none;
           border-radius: 12px;
-          font-weight: 600;
-          padding: 12px 32px;
-          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+          font-weight: 700;
+          box-shadow: 0 12px 24px rgba(15, 118, 110, 0.2);
           transition: all 0.3s ease;
 
           &:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+            box-shadow: 0 16px 30px rgba(15, 118, 110, 0.28);
           }
         }
+      }
+    }
+
+    .password-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .password-verify {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .verify-card {
+      padding: 18px;
+      border: 1px solid #d1fae5;
+      border-radius: 8px;
+      background: #ecfdf5;
+
+      span,
+      strong {
+        display: block;
+      }
+
+      span {
+        color: #047857;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      strong {
+        margin-top: 8px;
+        color: #064e3b;
+        font-size: 20px;
+      }
+
+      p {
+        margin: 10px 0 0;
+        color: #047857;
+        font-size: 13px;
+        line-height: 1.7;
       }
     }
   }
@@ -2245,11 +2383,41 @@ onUnmounted(() => {
     }
 
     .el-dialog__body {
-      padding: 22px 24px 8px;
+      padding: 24px 26px 10px;
     }
 
     .el-dialog__footer {
       padding: 16px 24px 22px;
+    }
+  }
+
+  .secure-form {
+    :deep(.el-form-item) {
+      margin-bottom: 18px;
+    }
+
+    :deep(.el-form-item__label) {
+      margin-bottom: 8px;
+      color: #334155;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    :deep(.el-input__wrapper) {
+      min-height: 46px;
+      border-radius: 12px;
+      background: #ffffff;
+      box-shadow: 0 0 0 1px #e2e8f0 inset;
+      transition: box-shadow 0.18s ease;
+
+      &:hover {
+        box-shadow: 0 0 0 1px #7dd3fc inset;
+      }
+
+      &.is-focus {
+        box-shadow: 0 0 0 1px #0ea5e9 inset, 0 0 0 3px rgba(14, 165, 233, 0.12);
+      }
     }
   }
 
@@ -2258,6 +2426,12 @@ onUnmounted(() => {
     grid-template-columns: minmax(0, 1fr) 118px;
     gap: 10px;
     width: 100%;
+
+    .el-button {
+      height: 46px;
+      border-radius: 12px;
+      font-weight: 700;
+    }
   }
 
   .captcha-shell {
@@ -2271,18 +2445,35 @@ onUnmounted(() => {
       margin-bottom: 0;
     }
   }
+
+  .password-captcha {
+    margin-bottom: 0;
+  }
 }
 
 @media (max-width: 900px) {
   .profile-container {
     .page-header {
+      display: flex;
       align-items: flex-start;
       flex-direction: column;
     }
 
     .header-summary {
       width: 100%;
-      text-align: left;
+      text-align: center;
+    }
+
+    .password-content {
+      .password-header,
+      .password-form .form-actions {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .password-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     .profile-content {

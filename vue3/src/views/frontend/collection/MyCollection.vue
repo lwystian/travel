@@ -1,393 +1,255 @@
 <template>
-  <div class="my-collection-container">
-    <!-- 页面头部容器 -->
-    <div class="page-header-wrapper">
-    <!-- 现代化页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="page-title">
-          <span class="title-icon">❤️</span>
-          我的收藏
-        </h1>
-        <p class="page-subtitle">
-          管理您收藏的景点和攻略，随时查看心仪的旅游内容
-        </p>
-      </div>
-    </div>
-    </div>
-
-    <!-- 现代化标签页区域 -->
-    <div class="collection-section">
-      <div class="section-container">
-        <div class="collection-tabs">
-          <el-tabs
-            v-model="activeTab"
-            @tab-change="handleTabChange"
-            class="modern-tabs"
-          >
-            <!-- 景点收藏标签页 -->
-            <el-tab-pane label="景点收藏" name="scenic">
-              <template #label>
-                <div class="tab-label">
-                  <el-icon><MapLocation /></el-icon>
-                  <span>景点收藏</span>
-                  <span class="tab-count">{{ scenicTotal }}</span>
-                </div>
-              </template>
-
-              <!-- 加载状态 -->
-              <div v-if="scenicLoading" class="loading-state">
-                <el-skeleton :rows="8" animated />
-              </div>
-
-              <!-- 空状态 -->
-              <div v-else-if="scenicCollections.length === 0" class="empty-state">
-                <div class="empty-icon">🏞️</div>
-                <h3 class="empty-title">暂无收藏景点</h3>
-                <p class="empty-desc">快去发现心仪的景点并收藏吧</p>
-                <el-button type="primary" @click="goToScenicList" class="empty-action">
-                  <el-icon><Search /></el-icon>
-                  浏览景点
-                </el-button>
-              </div>
-
-              <!-- 景点收藏网格 -->
-              <div v-else class="collection-grid">
-                <div
-                  v-for="(collection, index) in scenicCollections"
-                  :key="collection.id"
-                  class="collection-card scenic-collection hover-lift"
-                  :class="`delay-${(index % 6 + 1) * 100}`"
-                  @click="goToScenicDetail(collection.scenicInfo.id)"
-                >
-                  <div class="card-image">
-                    <img :src="getImageUrl(collection.scenicInfo.imageUrl)" :alt="collection.scenicInfo.name" />
-                    <div class="image-overlay">
-                      <div class="overlay-content">
-                        <div class="collection-time">
-                          <el-icon><Clock /></el-icon>
-                          {{ formatDate(collection.createTime) }}
-                        </div>
-                      </div>
-                    </div>
-                    <div class="card-badges">
-                      <span v-if="collection.scenicInfo.categoryInfo" class="badge category">
-                        {{ collection.scenicInfo.categoryInfo.name }}
-                      </span>
-                      <span v-if="collection.scenicInfo.price === 0" class="badge free">免费</span>
-                      <span v-else-if="collection.scenicInfo.price > 0" class="badge price">
-                        ¥{{ collection.scenicInfo.price }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="card-content">
-                    <h3 class="item-name">{{ collection.scenicInfo.name }}</h3>
-
-                    <div class="item-location">
-                      <el-icon><Location /></el-icon>
-                      <span>{{ collection.scenicInfo.location }}</span>
-                    </div>
-
-                    <div class="card-footer">
-                      <div class="collection-date">
-                        收藏于 {{ formatDate(collection.createTime) }}
-                      </div>
-                      <div class="card-actions">
-                        <el-button
-                          type="primary"
-                          size="small"
-                          @click.stop="goToScenicDetail(collection.scenicInfo.id)"
-                          class="detail-btn"
-                        >
-                          查看详情
-                        </el-button>
-                        <el-button
-                          type="danger"
-                          size="small"
-                          @click.stop="handleCancelScenicCollection(collection.scenicInfo.id)"
-                          class="cancel-btn"
-                        >
-                          <el-icon><Delete /></el-icon>
-                        </el-button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 景点收藏分页 -->
-              <div class="pagination-wrapper" v-if="scenicTotal > 0">
-                <el-pagination
-                  background
-                  layout="total, prev, pager, next"
-                  :total="scenicTotal"
-                  :page-size="scenicPageSize"
-                  :current-page="scenicCurrentPage"
-                  @current-change="handleScenicPageChange"
-                  class="modern-pagination"
-                />
-              </div>
-            </el-tab-pane>
-
-            <!-- 攻略收藏标签页 -->
-            <el-tab-pane label="攻略收藏" name="guide">
-              <template #label>
-                <div class="tab-label">
-                  <el-icon><Document /></el-icon>
-                  <span>攻略收藏</span>
-                  <span class="tab-count">{{ guideTotal }}</span>
-                </div>
-              </template>
-
-              <!-- 加载状态 -->
-              <div v-if="guideLoading" class="loading-state">
-                <el-skeleton :rows="8" animated />
-              </div>
-
-              <!-- 空状态 -->
-              <div v-else-if="guideCollections.length === 0" class="empty-state">
-                <div class="empty-icon">📖</div>
-                <h3 class="empty-title">暂无收藏攻略</h3>
-                <p class="empty-desc">快去发现精彩的旅游攻略并收藏吧</p>
-                <el-button type="primary" @click="goToGuideList" class="empty-action">
-                  <el-icon><Search /></el-icon>
-                  浏览攻略
-                </el-button>
-              </div>
-
-              <!-- 攻略收藏网格 -->
-              <div v-else class="collection-grid">
-                <div
-                  v-for="(collection, index) in guideCollections"
-                  :key="collection.id"
-                  class="collection-card guide-collection hover-lift"
-                  :class="`delay-${(index % 6 + 1) * 100}`"
-                  @click="goToGuideDetail(collection.guideId)"
-                >
-                  <div class="card-image">
-                    <img :src="getImageUrl(collection.guideCoverImage)" :alt="collection.guideTitle" />
-                    <div class="image-overlay">
-                      <div class="overlay-content">
-                        <div class="guide-views">
-                          <el-icon><View /></el-icon>
-                          {{ collection.guideViews || 0 }}
-                        </div>
-                      </div>
-                    </div>
-                    <div class="card-badges">
-                      <span class="badge guide">攻略</span>
-                    </div>
-                  </div>
-
-                  <div class="card-content">
-                    <h3 class="item-name">{{ collection.guideTitle }}</h3>
-
-                    <div class="guide-meta">
-                      <div class="meta-item">
-                        <el-icon><View /></el-icon>
-                        <span>{{ collection.guideViews || 0 }} 浏览</span>
-                      </div>
-                      <div class="meta-item">
-                        <el-icon><User /></el-icon>
-                        <span>{{ collection.username || collection.userNickname }}</span>
-                      </div>
-                    </div>
-
-                    <div class="card-footer">
-                      <div class="collection-date">
-                        收藏于 {{ formatDate(collection.createTime) }}
-                      </div>
-                      <div class="card-actions">
-                        <el-button
-                          type="primary"
-                          size="small"
-                          @click.stop="goToGuideDetail(collection.guideId)"
-                          class="detail-btn"
-                        >
-                          查看详情
-                        </el-button>
-                        <el-button
-                          type="danger"
-                          size="small"
-                          @click.stop="handleCancelGuideCollection(collection.guideId)"
-                          class="cancel-btn"
-                        >
-                          <el-icon><Delete /></el-icon>
-                        </el-button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 攻略收藏分页 -->
-              <div class="pagination-wrapper" v-if="guideTotal > 0">
-                <el-pagination
-                  background
-                  layout="total, prev, pager, next"
-                  :total="guideTotal"
-                  :page-size="guidePageSize"
-                  :current-page="guideCurrentPage"
-                  @current-change="handleGuidePageChange"
-                  class="modern-pagination"
-                />
-              </div>
-            </el-tab-pane>
-
-            <el-tab-pane label="行程收藏" name="tour">
-              <template #label>
-                <div class="tab-label">
-                  <el-icon><Tickets /></el-icon>
-                  <span>行程收藏</span>
-                  <span class="tab-count">{{ tourTotal }}</span>
-                </div>
-              </template>
-
-              <div v-if="tourLoading" class="loading-state">
-                <el-skeleton :rows="8" animated />
-              </div>
-
-              <div v-else-if="tourCollections.length === 0" class="empty-state">
-                <div class="empty-icon">🧳</div>
-                <h3 class="empty-title">暂无收藏行程</h3>
-                <p class="empty-desc">快去发现适合出行的行程并收藏吧</p>
-                <el-button type="primary" @click="goToTourList" class="empty-action">
-                  <el-icon><Search /></el-icon>
-                  浏览行程
-                </el-button>
-              </div>
-
-              <div v-else class="collection-grid">
-                <div
-                  v-for="(collection, index) in tourCollections"
-                  :key="collection.id"
-                  class="collection-card tour-collection hover-lift"
-                  :class="`delay-${(index % 6 + 1) * 100}`"
-                  @click="goToTourBooking(collection.tourId)"
-                >
-                  <div class="card-image">
-                    <img :src="getImageUrl(getTourImage(collection.tourInfo))" :alt="collection.tourInfo?.title" />
-                    <div class="image-overlay">
-                      <div class="overlay-content">
-                        <div class="collection-time">
-                          <el-icon><Clock /></el-icon>
-                          {{ formatDate(collection.createTime) }}
-                        </div>
-                      </div>
-                    </div>
-                    <div class="card-badges">
-                      <span class="badge guide">行程预订</span>
-                      <span v-if="collection.tourInfo?.minPrice" class="badge price">¥{{ collection.tourInfo.minPrice }}</span>
-                    </div>
-                  </div>
-
-                  <div class="card-content">
-                    <h3 class="item-name">{{ collection.tourInfo?.title || '行程预订' }}</h3>
-                    <div class="guide-meta">
-                      <div class="meta-item">
-                        <el-icon><Location /></el-icon>
-                        <span>{{ collection.tourInfo?.destination || collection.tourInfo?.city || '目的地' }}</span>
-                      </div>
-                      <div class="meta-item">
-                        <el-icon><Clock /></el-icon>
-                        <span>{{ collection.tourInfo?.days || 1 }} 天</span>
-                      </div>
-                    </div>
-
-                    <div class="card-footer">
-                      <div class="collection-date">
-                        收藏于 {{ formatDate(collection.createTime) }}
-                      </div>
-                      <div class="card-actions">
-                        <el-button
-                          type="primary"
-                          size="small"
-                          @click.stop="goToTourBooking(collection.tourId)"
-                          class="detail-btn"
-                        >
-                          去预订
-                        </el-button>
-                        <el-button
-                          type="danger"
-                          size="small"
-                          @click.stop="handleCancelTourCollection(collection.tourId)"
-                          class="cancel-btn"
-                        >
-                          <el-icon><Delete /></el-icon>
-                        </el-button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="pagination-wrapper" v-if="tourTotal > 0">
-                <el-pagination
-                  background
-                  layout="total, prev, pager, next"
-                  :total="tourTotal"
-                  :page-size="tourPageSize"
-                  :current-page="tourCurrentPage"
-                  @current-change="handleTourPageChange"
-                  class="modern-pagination"
-                />
-              </div>
-            </el-tab-pane>
-          </el-tabs>
+  <main class="collection-page">
+    <section class="page-shell">
+      <header class="page-hero">
+        <div>
+          <span class="eyebrow">Collection Center</span>
+          <h1>我的收藏</h1>
+          <p>集中管理已收藏的景点、攻略和行程，快速回到感兴趣的内容。</p>
         </div>
-      </div>
-    </div>
-  </div>
+        <div class="hero-stats">
+          <div>
+            <span>全部收藏</span>
+            <strong>{{ totalCollections }}</strong>
+          </div>
+          <div>
+            <span>景点</span>
+            <strong>{{ scenicTotal }}</strong>
+          </div>
+          <div>
+            <span>攻略</span>
+            <strong>{{ guideTotal }}</strong>
+          </div>
+          <div>
+            <span>行程</span>
+            <strong>{{ tourTotal }}</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="content-panel">
+        <div class="segment-bar">
+          <button
+            v-for="tab in tabs"
+            :key="tab.name"
+            type="button"
+            class="segment-item"
+            :class="{ active: activeTab === tab.name }"
+            @click="handleTabChange(tab.name)"
+          >
+            <el-icon><component :is="tab.icon" /></el-icon>
+            <span>{{ tab.label }}</span>
+            <strong>{{ tab.count }}</strong>
+          </button>
+        </div>
+
+        <div class="panel-toolbar">
+          <div>
+            <span>当前分类</span>
+            <strong>{{ activeTabInfo.label }}</strong>
+          </div>
+          <el-button class="ghost-btn" @click="activeTabInfo.refresh">
+            <el-icon><Refresh /></el-icon>
+            刷新
+          </el-button>
+        </div>
+
+        <div v-if="activeTabInfo.loading" class="state-box">
+          <el-skeleton :rows="8" animated />
+        </div>
+
+        <div v-else-if="activeTabInfo.items.length === 0" class="empty-state">
+          <div class="empty-icon">
+            <el-icon><Star /></el-icon>
+          </div>
+          <h2>{{ activeTabInfo.emptyTitle }}</h2>
+          <p>{{ activeTabInfo.emptyDesc }}</p>
+          <el-button type="primary" @click="activeTabInfo.browse">
+            <el-icon><Search /></el-icon>
+            {{ activeTabInfo.browseText }}
+          </el-button>
+        </div>
+
+        <div v-else class="collection-grid">
+          <article
+            v-for="item in activeTabInfo.items"
+            :key="item.id"
+            class="collection-card"
+            @click="activeTabInfo.open(item)"
+          >
+            <div class="cover-wrap">
+              <img :src="activeTabInfo.image(item)" :alt="activeTabInfo.title(item)" />
+              <span class="type-chip">{{ activeTabInfo.cardType }}</span>
+              <span v-if="activeTabInfo.price(item)" class="price-chip">{{ activeTabInfo.price(item) }}</span>
+            </div>
+
+            <div class="card-body">
+              <h2>{{ activeTabInfo.title(item) }}</h2>
+              <p>{{ activeTabInfo.subtitle(item) }}</p>
+
+              <div class="meta-row">
+                <span>
+                  <el-icon><Clock /></el-icon>
+                  收藏于 {{ formatDate(item.createTime) || '-' }}
+                </span>
+                <span v-if="activeTabInfo.metric(item)">
+                  <el-icon><View /></el-icon>
+                  {{ activeTabInfo.metric(item) }}
+                </span>
+              </div>
+
+              <div class="card-actions">
+                <el-button type="primary" @click.stop="activeTabInfo.open(item)">
+                  {{ activeTabInfo.primaryText }}
+                </el-button>
+                <el-button plain type="danger" @click.stop="activeTabInfo.remove(item)">
+                  <el-icon><Delete /></el-icon>
+                  取消收藏
+                </el-button>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="pagination-wrap" v-if="activeTabInfo.total > 0">
+          <el-pagination
+            background
+            layout="total, prev, pager, next"
+            :total="activeTabInfo.total"
+            :page-size="activeTabInfo.pageSize"
+            :current-page="activeTabInfo.currentPage"
+            @current-change="activeTabInfo.pageChange"
+          />
+        </div>
+      </section>
+    </section>
+  </main>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
-import { useUserStore } from '@/store/user'
 import {
-  MapLocation,
-  Document,
-  Search,
   Clock,
-  Location,
   Delete,
-  View,
-  User,
-  Tickets
+  Document,
+  Location,
+  MapLocation,
+  Refresh,
+  Search,
+  Star,
+  Tickets,
+  View
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
-const userStore = useUserStore()
 
-// 当前活跃标签页
 const activeTab = ref('scenic')
 
-// 景点收藏相关数据
 const scenicLoading = ref(false)
 const scenicCollections = ref([])
 const scenicCurrentPage = ref(1)
-const scenicPageSize = ref(12)
+const scenicPageSize = ref(9)
 const scenicTotal = ref(0)
 
-// 攻略收藏相关数据
 const guideLoading = ref(false)
 const guideCollections = ref([])
 const guideCurrentPage = ref(1)
-const guidePageSize = ref(12)
+const guidePageSize = ref(9)
 const guideTotal = ref(0)
 
-// 行程收藏相关数据
 const tourLoading = ref(false)
 const tourCollections = ref([])
 const tourCurrentPage = ref(1)
-const tourPageSize = ref(12)
+const tourPageSize = ref(9)
 const tourTotal = ref(0)
 
-// 获取用户收藏的景点
+const totalCollections = computed(() => scenicTotal.value + guideTotal.value + tourTotal.value)
+
+const tabs = computed(() => [
+  { name: 'scenic', label: '景点收藏', count: scenicTotal.value, icon: MapLocation },
+  { name: 'guide', label: '攻略收藏', count: guideTotal.value, icon: Document },
+  { name: 'tour', label: '行程收藏', count: tourTotal.value, icon: Tickets }
+])
+
+const activeTabInfo = computed(() => {
+  const configs = {
+    scenic: {
+      label: '景点收藏',
+      loading: scenicLoading.value,
+      items: scenicCollections.value,
+      total: scenicTotal.value,
+      pageSize: scenicPageSize.value,
+      currentPage: scenicCurrentPage.value,
+      cardType: '景点',
+      primaryText: '查看景点',
+      emptyTitle: '暂无收藏景点',
+      emptyDesc: '发现喜欢的目的地后，可以收藏到这里集中管理。',
+      browseText: '浏览景点',
+      refresh: fetchScenicCollections,
+      browse: goToScenicList,
+      pageChange: handleScenicPageChange,
+      open: (item) => goToScenicDetail(item.scenicInfo?.id),
+      remove: (item) => handleCancelScenicCollection(item.scenicInfo?.id),
+      image: (item) => getImageUrl(item.scenicInfo?.imageUrl),
+      title: (item) => item.scenicInfo?.name || '未命名景点',
+      subtitle: (item) => item.scenicInfo?.location || '暂无位置信息',
+      metric: (item) => item.scenicInfo?.categoryInfo?.name || '',
+      price: (item) => item.scenicInfo?.price === 0 ? '免费' : (item.scenicInfo?.price > 0 ? `¥${item.scenicInfo.price}` : '')
+    },
+    guide: {
+      label: '攻略收藏',
+      loading: guideLoading.value,
+      items: guideCollections.value,
+      total: guideTotal.value,
+      pageSize: guidePageSize.value,
+      currentPage: guideCurrentPage.value,
+      cardType: '攻略',
+      primaryText: '查看攻略',
+      emptyTitle: '暂无收藏攻略',
+      emptyDesc: '收藏优质攻略后，可以从这里快速回看。',
+      browseText: '浏览攻略',
+      refresh: fetchGuideCollections,
+      browse: goToGuideList,
+      pageChange: handleGuidePageChange,
+      open: (item) => goToGuideDetail(item.guideId),
+      remove: (item) => handleCancelGuideCollection(item.guideId),
+      image: (item) => getImageUrl(item.guideCoverImage),
+      title: (item) => item.guideTitle || '未命名攻略',
+      subtitle: (item) => item.username || item.userNickname || '作者未展示',
+      metric: (item) => `${item.guideViews || 0} 浏览`,
+      price: () => ''
+    },
+    tour: {
+      label: '行程收藏',
+      loading: tourLoading.value,
+      items: tourCollections.value,
+      total: tourTotal.value,
+      pageSize: tourPageSize.value,
+      currentPage: tourCurrentPage.value,
+      cardType: '行程',
+      primaryText: '去预订',
+      emptyTitle: '暂无收藏行程',
+      emptyDesc: '把感兴趣的行程收藏起来，之后可以快速预订。',
+      browseText: '浏览行程',
+      refresh: fetchTourCollections,
+      browse: goToTourList,
+      pageChange: handleTourPageChange,
+      open: (item) => goToTourBooking(item.tourId),
+      remove: (item) => handleCancelTourCollection(item.tourId),
+      image: (item) => getImageUrl(getTourImage(item.tourInfo)),
+      title: (item) => item.tourInfo?.title || '行程预订',
+      subtitle: (item) => item.tourInfo?.destination || item.tourInfo?.city || '目的地待确认',
+      metric: (item) => `${item.tourInfo?.days || 1} 天`,
+      price: (item) => item.tourInfo?.minPrice ? `¥${item.tourInfo.minPrice}` : ''
+    }
+  }
+  return configs[activeTab.value]
+})
+
 const fetchScenicCollections = async () => {
   scenicLoading.value = true
   try {
@@ -395,10 +257,8 @@ const fetchScenicCollections = async () => {
     params.append('currentPage', scenicCurrentPage.value)
     params.append('size', scenicPageSize.value)
     const res = await request.get('/scenic-collection/user?' + params.toString(), null, { showDefaultMsg: false })
-    if (res) {
-      scenicCollections.value = res.records || []
-      scenicTotal.value = res.total || 0
-    }
+    scenicCollections.value = res?.records || []
+    scenicTotal.value = res?.total || 0
   } catch (error) {
     console.error('获取收藏景点失败:', error)
   } finally {
@@ -406,7 +266,6 @@ const fetchScenicCollections = async () => {
   }
 }
 
-// 获取用户收藏的攻略
 const fetchGuideCollections = async () => {
   guideLoading.value = true
   try {
@@ -414,10 +273,8 @@ const fetchGuideCollections = async () => {
     params.append('currentPage', guideCurrentPage.value)
     params.append('size', guidePageSize.value)
     const res = await request.get('/collection/page?' + params.toString(), null, { showDefaultMsg: false })
-    if (res) {
-      guideCollections.value = res.records || []
-      guideTotal.value = res.total || 0
-    }
+    guideCollections.value = res?.records || []
+    guideTotal.value = res?.total || 0
   } catch (error) {
     console.error('获取收藏攻略失败:', error)
   } finally {
@@ -425,7 +282,6 @@ const fetchGuideCollections = async () => {
   }
 }
 
-// 获取用户收藏的行程
 const fetchTourCollections = async () => {
   tourLoading.value = true
   try {
@@ -433,10 +289,8 @@ const fetchTourCollections = async () => {
     params.append('currentPage', tourCurrentPage.value)
     params.append('size', tourPageSize.value)
     const res = await request.get('/tour-collection/user?' + params.toString(), null, { showDefaultMsg: false })
-    if (res) {
-      tourCollections.value = res.records || []
-      tourTotal.value = res.total || 0
-    }
+    tourCollections.value = res?.records || []
+    tourTotal.value = res?.total || 0
   } catch (error) {
     console.error('获取收藏行程失败:', error)
   } finally {
@@ -444,613 +298,494 @@ const fetchTourCollections = async () => {
   }
 }
 
-// 加载所有收藏数量
 const fetchAllCollectionCounts = async () => {
-  // 同时加载三个标签页的数据以获取总数
-  await Promise.all([
-    fetchScenicCollections(),
-    fetchGuideCollections(),
-    fetchTourCollections()
-  ])
+  await Promise.all([fetchScenicCollections(), fetchGuideCollections(), fetchTourCollections()])
 }
 
-// 标签页切换
 const handleTabChange = (tabName) => {
   activeTab.value = tabName
-  if (tabName === 'scenic' && scenicCollections.value.length === 0) {
-    fetchScenicCollections()
-  } else if (tabName === 'guide' && guideCollections.value.length === 0) {
-    fetchGuideCollections()
-  } else if (tabName === 'tour' && tourCollections.value.length === 0) {
-    fetchTourCollections()
-  }
 }
 
-// 景点收藏分页
 const handleScenicPageChange = (page) => {
   scenicCurrentPage.value = page
   fetchScenicCollections()
 }
 
-// 攻略收藏分页
 const handleGuidePageChange = (page) => {
   guideCurrentPage.value = page
   fetchGuideCollections()
 }
 
-// 行程收藏分页
 const handleTourPageChange = (page) => {
   tourCurrentPage.value = page
   fetchTourCollections()
 }
 
-// 跳转到景点详情
 const goToScenicDetail = (scenicId) => {
-  router.push(`/scenic/${scenicId}`)
+  if (scenicId) router.push(`/scenic/${scenicId}`)
 }
 
-// 跳转到攻略详情
 const goToGuideDetail = (guideId) => {
-  router.push(`/guide/detail/${guideId}`)
+  if (guideId) router.push(`/guide/detail/${guideId}`)
 }
 
-// 跳转到行程预订
 const goToTourBooking = (tourId) => {
-  router.push(`/ticket/booking/${tourId}`)
+  if (tourId) router.push(`/ticket/booking/${tourId}`)
 }
 
-// 跳转到景点列表
-const goToScenicList = () => {
-  router.push('/scenic')
-}
+const goToScenicList = () => router.push('/scenic')
+const goToGuideList = () => router.push('/guide')
+const goToTourList = () => router.push('/tickets')
 
-// 跳转到攻略列表
-const goToGuideList = () => {
-  router.push('/guide')
-}
-
-// 跳转到行程列表
-const goToTourList = () => {
-  router.push('/ticket')
-}
-
-// 取消景点收藏
 const handleCancelScenicCollection = (scenicId) => {
-  ElMessageBox.confirm('确认取消收藏该景点?', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  if (!scenicId) return
+  ElMessageBox.confirm('确认取消收藏该景点吗？', '取消收藏', {
+    confirmButtonText: '确认取消',
+    cancelButtonText: '再想想',
     type: 'warning'
   }).then(async () => {
     try {
       await request.delete(`/scenic-collection/${scenicId}`)
-      ElMessage.success('取消收藏成功')
-      // 删除后刷新列表并重新获取所有数量
-      scenicTotal.value--
+      ElMessage.success('已取消收藏')
       scenicCollections.value = scenicCollections.value.filter(item => item.scenicInfo?.id !== scenicId)
-      // 如果当前页数据空了，刷新列表
+      scenicTotal.value = Math.max(0, scenicTotal.value - 1)
       if (scenicCollections.value.length === 0 && scenicCurrentPage.value > 1) {
         scenicCurrentPage.value--
         fetchScenicCollections()
       }
     } catch (error) {
       console.error('取消景点收藏失败:', error)
-      ElMessage.error('取消收藏失败')
     }
-  }).catch(() => {
-    // 用户取消操作
-  })
+  }).catch(() => {})
 }
 
-// 取消攻略收藏
 const handleCancelGuideCollection = (guideId) => {
-  ElMessageBox.confirm('确认取消收藏该攻略?', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  if (!guideId) return
+  ElMessageBox.confirm('确认取消收藏该攻略吗？', '取消收藏', {
+    confirmButtonText: '确认取消',
+    cancelButtonText: '再想想',
     type: 'warning'
   }).then(async () => {
     try {
       const params = new URLSearchParams()
       params.append('guideId', guideId)
       await request.delete(`/collection/cancel?${params.toString()}`)
-      ElMessage.success('取消收藏成功')
-      // 删除后刷新列表并重新获取所有数量
-      guideTotal.value--
+      ElMessage.success('已取消收藏')
       guideCollections.value = guideCollections.value.filter(item => item.guideId !== guideId)
-      // 如果当前页数据空了，刷新列表
+      guideTotal.value = Math.max(0, guideTotal.value - 1)
       if (guideCollections.value.length === 0 && guideCurrentPage.value > 1) {
         guideCurrentPage.value--
         fetchGuideCollections()
       }
     } catch (error) {
       console.error('取消攻略收藏失败:', error)
-      ElMessage.error('取消收藏失败')
     }
-  }).catch(() => {
-    // 用户取消操作
-  })
+  }).catch(() => {})
 }
 
-// 取消行程收藏
 const handleCancelTourCollection = (tourId) => {
-  ElMessageBox.confirm('确认取消收藏该行程?', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  if (!tourId) return
+  ElMessageBox.confirm('确认取消收藏该行程吗？', '取消收藏', {
+    confirmButtonText: '确认取消',
+    cancelButtonText: '再想想',
     type: 'warning'
   }).then(async () => {
     try {
       await request.delete(`/tour-collection/${tourId}`)
-      ElMessage.success('取消收藏成功')
-      // 删除后刷新列表并重新获取所有数量
-      tourTotal.value--
+      ElMessage.success('已取消收藏')
       tourCollections.value = tourCollections.value.filter(item => item.tourId !== tourId)
-      // 如果当前页数据空了，刷新列表
+      tourTotal.value = Math.max(0, tourTotal.value - 1)
       if (tourCollections.value.length === 0 && tourCurrentPage.value > 1) {
         tourCurrentPage.value--
         fetchTourCollections()
       }
     } catch (error) {
       console.error('取消行程收藏失败:', error)
-      ElMessage.error('取消收藏失败')
     }
-  }).catch(() => {
-    // 用户取消操作
-  })
+  }).catch(() => {})
 }
 
 const getTourImage = (tour) => {
-  if (!tour?.mainImage) {
-    return ''
-  }
+  if (!tour?.mainImage) return ''
   try {
     const images = JSON.parse(tour.mainImage)
-    if (Array.isArray(images) && images.length > 0) {
-      return images[0]
-    }
+    if (Array.isArray(images) && images.length > 0) return images[0]
   } catch (error) {
-    // 普通字符串图片地址
+    // mainImage may already be a plain URL.
   }
   return tour.mainImage
 }
 
-// 获取图片完整URL
 const getImageUrl = (url) => {
   if (!url) return '/default-image.jpg'
   return url.startsWith('http') ? url : baseAPI + url
 }
 
-// 格式化日期
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-onMounted(() => {
-  // 加载所有收藏数量
-  fetchAllCollectionCounts()
-})
+onMounted(fetchAllCollectionCounts)
 </script>
 
 <style lang="scss" scoped>
-.my-collection-container {
+.collection-page {
   min-height: 100vh;
-  background: #FFFFFF;
-  font-family: "思源黑体", "Source Han Sans", "Noto Sans CJK SC", sans-serif;
-  color: #333;
+  background: #f3f6fb;
+  color: #101828;
+  font-family: "Source Han Sans", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+}
 
-  // 通用容器样式
-  .section-container {
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 40px 20px;
+.page-shell {
+  width: min(1240px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 36px 0 64px;
+}
+
+.page-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 520px);
+  gap: 28px;
+  align-items: end;
+  padding: 26px 28px;
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 44px rgba(16, 24, 40, 0.06);
+}
+
+.eyebrow {
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #e8f2ff;
+  color: #155eef;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.page-hero h1 {
+  margin: 12px 0 8px;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.page-hero p {
+  margin: 0;
+  color: #667085;
+  font-size: 15px;
+}
+
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.hero-stats div {
+  min-height: 82px;
+  padding: 14px;
+  border: 1px solid #e4eaf3;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.hero-stats span {
+  display: block;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.hero-stats strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.content-panel {
+  margin-top: 16px;
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.segment-bar {
+  display: flex;
+  gap: 8px;
+  padding: 14px;
+  border-bottom: 1px solid #e4eaf3;
+  background: #fbfcfe;
+  overflow-x: auto;
+}
+
+.segment-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: max-content;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d6deeb;
+  border-radius: 8px;
+  background: #fff;
+  color: #344054;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.segment-item strong {
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #eef2f7;
+  font-size: 12px;
+  line-height: 22px;
+  text-align: center;
+}
+
+.segment-item.active {
+  border-color: #155eef;
+  background: #155eef;
+  color: #fff;
+}
+
+.segment-item.active strong {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.panel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+}
+
+.panel-toolbar span {
+  display: block;
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.panel-toolbar strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.ghost-btn {
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.state-box {
+  padding: 24px;
+}
+
+.empty-state {
+  display: flex;
+  min-height: 420px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.empty-icon {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  margin-bottom: 18px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #155eef;
+  font-size: 34px;
+}
+
+.empty-state h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.empty-state p {
+  max-width: 460px;
+  margin: 0 0 22px;
+  color: #667085;
+  line-height: 1.7;
+}
+
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding: 0 20px 20px;
+}
+
+.collection-card {
+  min-width: 0;
+  border: 1px solid #e4eaf3;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.collection-card:hover {
+  border-color: #b9d6ff;
+  box-shadow: 0 16px 34px rgba(16, 24, 40, 0.08);
+  transform: translateY(-2px);
+}
+
+.cover-wrap {
+  position: relative;
+  height: 178px;
+  overflow: hidden;
+  background: #eef2f7;
+}
+
+.cover-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.type-chip,
+.price-chip {
+  position: absolute;
+  top: 12px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: rgba(16, 24, 40, 0.76);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 26px;
+}
+
+.type-chip {
+  left: 12px;
+}
+
+.price-chip {
+  right: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #101828;
+}
+
+.card-body {
+  padding: 16px;
+}
+
+.card-body h2 {
+  display: -webkit-box;
+  min-height: 48px;
+  margin: 0 0 10px;
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.42;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.card-body p {
+  overflow: hidden;
+  margin: 0 0 14px;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-height: 24px;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.meta-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.card-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.card-actions :deep(.el-button) {
+  margin-left: 0;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 10px 20px 24px;
+}
+
+.pagination-wrap :deep(.el-pagination.is-background .el-pager li),
+.pagination-wrap :deep(.el-pagination.is-background .btn-prev),
+.pagination-wrap :deep(.el-pagination.is-background .btn-next) {
+  border-radius: 8px;
+}
+
+@media (max-width: 980px) {
+  .page-shell {
+    width: min(100% - 24px, 1240px);
+    padding-top: 24px;
   }
 
-  // 页面头部容器
-  .page-header-wrapper {
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 40px 20px 0;
+  .page-hero {
+    grid-template-columns: 1fr;
   }
 
-  // 页面头部
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0;
-    padding: 0;
-    border-bottom: none;
-  }
-
-  .header-content {
-    flex: 1;
-  }
-
-  .page-title {
-    font-size: 36px;
-    font-weight: 700;
-    margin: 0 0 8px;
-    color: #2d3748;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .title-icon {
-      font-size: 32px;
-    }
-  }
-
-  .page-subtitle {
-    font-size: 16px;
-    color: #64748b;
-    text-align: left;
-    margin: 0;
-  }
-
-  .header-stats {
-    display: flex;
-    gap: 24px;
-  }
-
-
-
-  // 收藏区域
-  .collection-section {
-    background: white;
-    margin: 0;
-    padding-top: 20px;
-  }
-
-  .collection-tabs {
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-    border: 1px solid #e2e8f0;
-  }
-
-  // 现代化标签页样式
-  .modern-tabs {
-    :deep(.el-tabs__header) {
-      margin: 0;
-      background: #FFFFFF;
-      border-bottom: 1px solid #e2e8f0;
-    }
-
-    :deep(.el-tabs__nav-wrap) {
-      padding: 0 24px;
-    }
-
-    :deep(.el-tabs__item) {
-      padding: 20px 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: #64748b;
-      border: none;
-      margin-right: 40px;
-
-      &.is-active {
-        color: #667eea;
-      }
-
-      &:hover {
-        color: #667eea;
-      }
-    }
-
-    :deep(.el-tabs__active-bar) {
-      background: linear-gradient(45deg, #667eea, #764ba2);
-      height: 3px;
-    }
-
-    :deep(.el-tabs__content) {
-      padding: 40px 24px;
-    }
-
-    .tab-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-
-      .tab-count {
-        background: #667eea;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 600;
-      }
-    }
-  }
-
-  // 加载状态
-  .loading-state {
-    padding: 40px 20px;
-  }
-
-  // 空状态
-  .empty-state {
-    text-align: center;
-    padding: 80px 20px;
-
-    .empty-icon {
-      font-size: 64px;
-      margin-bottom: 20px;
-    }
-
-    .empty-title {
-      font-size: 24px;
-      font-weight: 600;
-      color: #2d3748;
-      margin: 0 0 8px;
-    }
-
-    .empty-desc {
-      font-size: 16px;
-      color: #64748b;
-      margin: 0 0 24px;
-    }
-
-    .empty-action {
-      background: linear-gradient(45deg, #667eea, #764ba2);
-      border: none;
-      border-radius: 20px;
-      padding: 12px 24px;
-      font-weight: 600;
-    }
-  }
-
-  // 收藏网格布局
   .collection-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-    margin-bottom: 40px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .page-hero h1 {
+    font-size: 28px;
   }
 
-  .collection-card {
-    border-radius: 16px;
-    overflow: hidden;
-    background: #fff;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    transition: all 0.4s ease;
-    cursor: pointer;
-    position: relative;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-
-    &:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-
-      .card-image img {
-        transform: scale(1.1);
-      }
-
-      .image-overlay {
-        opacity: 1;
-      }
-    }
+  .hero-stats,
+  .collection-grid {
+    grid-template-columns: 1fr;
   }
 
-  .card-image {
-    height: 220px;
-    overflow: hidden;
-    position: relative;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.6s ease;
-    }
-  }
-
-  .image-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    display: flex;
-    align-items: flex-end;
-    padding: 20px;
-  }
-
-  .overlay-content {
-    color: white;
-
-    .collection-time,
-    .guide-views {
-      display: flex;
-      align-items: center;
-      font-size: 14px;
-      font-weight: 600;
-      gap: 4px;
-
-      .el-icon {
-        color: #ffd700;
-      }
-    }
-  }
-
-  .card-badges {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .badge {
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    backdrop-filter: blur(10px);
-
-    &.category {
-      background: linear-gradient(45deg, #667eea, #764ba2);
-      color: white;
-    }
-
-    &.free {
-      background: linear-gradient(45deg, #10b981, #059669);
-      color: white;
-    }
-
-    &.price {
-      background: rgba(255, 255, 255, 0.9);
-      color: #333;
-    }
-
-    &.guide {
-      background: linear-gradient(45deg, #f59e0b, #d97706);
-      color: white;
-    }
-  }
-
-  .card-content {
-    padding: 20px;
-    flex: 1;
-    display: flex;
+  .panel-toolbar {
+    align-items: flex-start;
     flex-direction: column;
   }
-
-  .item-name {
-    margin: 0 0 12px;
-    font-size: 18px;
-    font-weight: 700;
-    color: #2d3748;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    line-height: 1.3;
-  }
-
-  .item-location {
-    display: flex;
-    align-items: center;
-    font-size: 14px;
-    color: #64748b;
-    margin-bottom: 12px;
-    gap: 4px;
-
-    .el-icon {
-      color: #667eea;
-    }
-  }
-
-  .guide-meta {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 12px;
-
-    .meta-item {
-      display: flex;
-      align-items: center;
-      font-size: 12px;
-      color: #64748b;
-      gap: 4px;
-
-      .el-icon {
-        color: #667eea;
-      }
-    }
-  }
-
-  .card-footer {
-    margin-top: auto;
-    padding-top: 16px;
-
-    .collection-date {
-      font-size: 12px;
-      color: #94a3b8;
-      margin-bottom: 12px;
-    }
-
-    .card-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-
-      .detail-btn {
-        border-radius: 20px;
-        background: linear-gradient(45deg, #667eea, #764ba2);
-        border: none;
-        font-weight: 600;
-        padding: 8px 16px;
-        flex: 1;
-
-        &:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-      }
-
-      .cancel-btn {
-        border-radius: 50%;
-        width: 36px;
-        height: 36px;
-        padding: 0;
-        background: #f56565;
-        border: none;
-        color: white;
-
-        &:hover {
-          background: #e53e3e;
-          transform: scale(1.1);
-        }
-      }
-    }
-  }
-
-  // 分页样式
-  .pagination-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-top: 40px;
-  }
-
-  .modern-pagination {
-    :deep(.el-pagination) {
-      .el-pager li {
-        border-radius: 8px;
-        margin: 0 4px;
-        transition: all 0.3s ease;
-
-        &:hover {
-          background: #667eea;
-          color: white;
-        }
-
-        &.is-active {
-          background: linear-gradient(45deg, #667eea, #764ba2);
-          color: white;
-        }
-      }
-
-      .btn-prev,
-      .btn-next {
-        border-radius: 8px;
-        transition: all 0.3s ease;
-
-        &:hover {
-          background: #667eea;
-          color: white;
-        }
-      }
-    }
-  }
-
-
-
 }
 </style>

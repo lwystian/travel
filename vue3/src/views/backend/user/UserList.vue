@@ -80,12 +80,12 @@
         </el-table-column>
         <el-table-column prop="phone" label="手机号" width="130">
           <template #default="scope">
-            <span>{{ scope.row.phone || '未绑定' }}</span>
+            <span>{{ maskPhone(scope.row.phone) }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="email" label="邮箱" width="180">
           <template #default="scope">
-            <span class="muted-text">{{ scope.row.email || '未绑定' }}</span>
+            <span class="muted-text">{{ maskEmail(scope.row.email) }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="sex" label="性别" width="80" align="center">
@@ -240,6 +240,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
 import { useUserStore } from '@/store/user'
+import { maskEmail, maskPhone } from '@/utils/mask'
 
 const userStore = useUserStore()
 const currentUserId = computed(() => userStore.userInfo?.id)

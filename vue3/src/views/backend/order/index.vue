@@ -66,7 +66,11 @@
           </template>
         </el-table-column>
         <el-table-column prop="contactName" label="联系人" width="100" />
-        <el-table-column prop="contactPhone" label="联系电话" width="120" />
+        <el-table-column label="联系电话" width="120">
+          <template #default="scope">
+            {{ maskPhone(scope.row.contactPhone, '-') }}
+          </template>
+        </el-table-column>
         <el-table-column prop="totalAmount" label="总金额" width="100">
           <template #default="scope">
             <span class="amount">¥{{ scope.row.totalAmount }}</span>
@@ -160,7 +164,7 @@
 
         <el-descriptions title="联系人信息" :column="1" border style="margin-top: 20px">
           <el-descriptions-item label="联系人">{{ currentOrder.contactName }}</el-descriptions-item>
-          <el-descriptions-item label="联系电话">{{ currentOrder.contactPhone }}</el-descriptions-item>
+          <el-descriptions-item label="联系电话">{{ maskPhone(currentOrder.contactPhone, '-') }}</el-descriptions-item>
           <el-descriptions-item label="备注">{{ currentOrder.remark || '无' }}</el-descriptions-item>
         </el-descriptions>
 
@@ -175,7 +179,11 @@
               style="width: 100%"
             >
               <el-table-column prop="name" label="姓名" width="100" />
-              <el-table-column prop="phone" label="手机号" width="130" />
+              <el-table-column label="手机号" width="130">
+                <template #default="scope">
+                  {{ maskPhone(scope.row.phone, '-') }}
+                </template>
+              </el-table-column>
               <el-table-column label="类型" width="80">
                 <template #default="scope">
                   <el-tag :type="scope.row.travelerType === 'ADULT' ? 'success' : 'warning'" size="small">
@@ -233,6 +241,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { getTravelersByOrderId } from '@/api/traveler'
+import { maskPhone } from '@/utils/mask'
 
 // 分页参数
 const currentPage = ref(1)

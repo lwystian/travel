@@ -121,7 +121,7 @@
                         <el-tag :type="traveler.travelerType === 'ADULT' ? 'success' : 'warning'" size="small">
                           {{ traveler.travelerType === 'ADULT' ? '成人' : '儿童' }}
                         </el-tag>
-                        <span class="traveler-phone">{{ traveler.phone || '未填写电话' }}</span>
+                        <span class="traveler-phone">{{ maskPhone(traveler.phone, '未填写电话') }}</span>
                       </div>
                       <div class="traveler-detail">
                         <span>证件类型：{{ getIdTypeLabel(traveler.idType) }}</span>
@@ -153,7 +153,7 @@
                         {{ traveler.travelerType === 'ADULT' ? '成人' : '儿童' }}
                       </el-tag>
                       <span class="selected-name">{{ traveler.name }}</span>
-                      <span class="selected-phone">{{ traveler.phone }}</span>
+                      <span class="selected-phone">{{ maskPhone(traveler.phone, '-') }}</span>
                     </div>
                     <el-button type="danger" link size="small" @click="removeSelectedTraveler(index)">移除</el-button>
                   </div>
@@ -268,6 +268,7 @@ import { getTourOrderDetail, updateOrderContact } from '@/api/tourOrder'
 import { getFrequentTravelers, saveFrequentTraveler, updateFrequentTraveler, deleteFrequentTraveler as deleteFrequentTravelerApi } from '@/api/frequentTraveler'
 import { saveTravelers } from '@/api/traveler'
 import { ElMessageBox } from 'element-plus'
+import { maskPhone } from '@/utils/mask'
 
 const route = useRoute()
 const router = useRouter()

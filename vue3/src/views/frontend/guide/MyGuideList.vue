@@ -1,148 +1,126 @@
 <template>
-  <div class="my-guide-container">
-    <!-- 页面头部容器 -->
-    <div class="page-header-wrapper">
-    <!-- 现代化页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="page-title">
-          <span class="title-icon">📖</span>
-          我的攻略
-        </h1>
-        <p class="page-subtitle">
-          管理您已发布的旅游攻略内容，分享您的旅行经验
-        </p>
-      </div>
-    </div>
-    </div>
-
-    <!-- 操作区域 -->
-    <div class="action-section">
-      <div class="section-container">
-        <div class="action-bar">
-          <div class="action-left">
-            <h3 class="section-title">
-              <el-icon><Document /></el-icon>
-              攻略管理
-            </h3>
-          </div>
-          <div class="action-right">
-            <el-button
-              type="primary"
-              @click="goEdit"
-              :icon="Edit"
-              class="publish-btn"
-              size="large"
-            >
-              发布新攻略
-            </el-button>
-          </div>
+  <main class="guide-page">
+    <section class="page-shell">
+      <header class="page-hero">
+        <div>
+          <span class="eyebrow">Guide Studio</span>
+          <h1>我的攻略</h1>
+          <p>管理已发布的旅行攻略，跟踪审核状态、浏览数据和内容维护动作。</p>
         </div>
-      </div>
-    </div>
+        <el-button type="primary" class="publish-btn" @click="goEdit()">
+          <el-icon><Edit /></el-icon>
+          发布新攻略
+        </el-button>
+      </header>
 
-    <!-- 攻略列表区域 -->
-    <div class="guide-list-section">
-      <div class="section-container">
-        <!-- 加载状态 -->
-        <div v-if="loading" class="loading-state">
+      <section class="stats-row">
+        <div class="stat-card dark">
+          <span>攻略总数</span>
+          <strong>{{ total }}</strong>
+        </div>
+        <div class="stat-card">
+          <span>本页浏览量</span>
+          <strong>{{ totalViews }}</strong>
+        </div>
+        <div class="stat-card">
+          <span>本月新增</span>
+          <strong>{{ newGuideCount }}</strong>
+        </div>
+        <div class="stat-card">
+          <span>待审核</span>
+          <strong>{{ pendingCount }}</strong>
+        </div>
+      </section>
+
+      <section class="guide-panel">
+        <div class="panel-head">
+          <div>
+            <span>内容管理</span>
+            <strong>攻略列表</strong>
+          </div>
+          <el-button class="ghost-btn" @click="fetchGuides">
+            <el-icon><Refresh /></el-icon>
+            刷新
+          </el-button>
+        </div>
+
+        <div v-if="loading" class="state-box">
           <el-skeleton :rows="8" animated />
         </div>
 
-        <!-- 空状态 -->
         <div v-else-if="tableData.length === 0" class="empty-state">
-          <div class="empty-icon">📝</div>
-          <h3 class="empty-title">您还没有发布任何攻略</h3>
-          <p class="empty-desc">分享您的旅行经验，帮助更多人发现美好</p>
-          <el-button type="primary" @click="goEdit" class="empty-action">
+          <div class="empty-icon">
+            <el-icon><Document /></el-icon>
+          </div>
+          <h2>还没有发布攻略</h2>
+          <p>分享你的旅行经验，让更多用户发现值得去的地方。</p>
+          <el-button type="primary" @click="goEdit()">
             <el-icon><Edit /></el-icon>
             立即发布
           </el-button>
         </div>
 
-        <!-- 攻略网格 -->
-        <div v-else class="guide-grid">
-          <div
-            v-for="(guide, index) in tableData"
+        <div v-else class="guide-list">
+          <article
+            v-for="guide in tableData"
             :key="guide.id"
             class="guide-card"
-            :class="`delay-${(index % 6 + 1) * 100}`"
             @click="viewGuide(guide)"
           >
-            <div class="card-image">
+            <div class="cover-wrap">
               <img :src="getImageUrl(guide.coverImage)" :alt="guide.title" />
-              <div class="image-overlay">
-                <div class="overlay-content">
-                  <div class="guide-views">
-                    <el-icon><View /></el-icon>
-                    {{ guide.views || 0 }}
-                  </div>
+              <el-tag :type="getReviewStatusType(guide.reviewStatus)" size="small" class="status-tag">
+                {{ getReviewStatusText(guide.reviewStatus) }}
+              </el-tag>
+            </div>
+
+            <div class="guide-main">
+              <div class="guide-title-row">
+                <div>
+                  <span class="guide-id">攻略 ID {{ guide.id }}</span>
+                  <h2>{{ guide.title || '未命名攻略' }}</h2>
                 </div>
+                <span class="fresh-chip" v-if="isNew(guide.createTime)">新发布</span>
               </div>
-              <div class="card-badges">
-                <el-tag
-                  :type="getReviewStatusType(guide.reviewStatus)"
-                  size="small"
-                  class="status-tag"
-                >
-                  {{ getReviewStatusText(guide.reviewStatus) }}
-                </el-tag>
+
+              <div class="meta-grid">
+                <div>
+                  <span>浏览量</span>
+                  <strong>{{ guide.views || 0 }}</strong>
+                </div>
+                <div>
+                  <span>发布时间</span>
+                  <strong>{{ formatDate(guide.createTime) || '-' }}</strong>
+                </div>
+                <div>
+                  <span>审核状态</span>
+                  <strong>{{ getReviewStatusText(guide.reviewStatus) }}</strong>
+                </div>
               </div>
             </div>
 
-            <div class="card-content">
-              <h3 class="guide-title">{{ guide.title }}</h3>
-
-              <div class="guide-meta">
-                <div class="meta-item">
-                  <el-icon><View /></el-icon>
-                  <span>{{ guide.views || 0 }} 浏览</span>
-                </div>
-                <div class="meta-item">
-                  <el-icon><Calendar /></el-icon>
-                  <span>{{ formatDate(guide.createTime) }}</span>
-                </div>
-              </div>
-
-              <div class="card-footer">
-                <div class="guide-status">
-                  <el-tag :type="getReviewStatusType(guide.reviewStatus)" size="small">
-                    {{ getReviewStatusText(guide.reviewStatus) }}
-                  </el-tag>
-                </div>
-                <div class="card-actions">
-                  <el-button
-                    type="primary"
-                    size="small"
-                    @click.stop="viewGuide(guide)"
-                    class="view-btn"
-                  >
-                    查看
-                  </el-button>
-                  <el-button
-                    size="small"
-                    @click.stop="goEdit(guide)"
-                    class="edit-btn"
-                    v-if="guide.reviewStatus !== 1"
-                  >
-                    <el-icon><Edit /></el-icon>
-                  </el-button>
-                  <el-button
-                    type="danger"
-                    size="small"
-                    @click.stop="deleteGuide(guide)"
-                    class="delete-btn"
-                  >
-                    <el-icon><Delete /></el-icon>
-                  </el-button>
-                </div>
-              </div>
+            <div class="guide-actions">
+              <el-button type="primary" @click.stop="viewGuide(guide)">
+                <el-icon><View /></el-icon>
+                查看
+              </el-button>
+              <el-button
+                v-if="guide.reviewStatus !== 1"
+                plain
+                @click.stop="goEdit(guide)"
+              >
+                <el-icon><Edit /></el-icon>
+                编辑
+              </el-button>
+              <el-button plain type="danger" @click.stop="deleteGuide(guide)">
+                <el-icon><Delete /></el-icon>
+                删除
+              </el-button>
             </div>
-          </div>
+          </article>
         </div>
 
-        <!-- 现代化分页 -->
-        <div class="pagination-wrapper" v-if="total > 0">
+        <div class="pagination-wrap" v-if="total > 0">
           <el-pagination
             background
             layout="total, prev, pager, next"
@@ -150,43 +128,43 @@
             :page-size="pageSize"
             :current-page="currentPage"
             @current-change="handleCurrentChange"
-            class="modern-pagination"
           />
         </div>
-      </div>
-    </div>
-  </div>
+      </section>
+    </section>
+  </main>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
-import { useUserStore } from '@/store/user'
-import {Edit,View,Calendar,Delete,EditPen} from '@element-plus/icons-vue'
+import {
+  Delete,
+  Document,
+  Edit,
+  Refresh,
+  View
+} from '@element-plus/icons-vue'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const router = useRouter()
-const userStore = useUserStore()
 const tableData = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
-const pageSize = ref(12)
+const pageSize = ref(10)
 const total = ref(0)
 
-// 计算总浏览量
 const totalViews = computed(() => {
   return tableData.value.reduce((sum, guide) => sum + (guide.views || 0), 0)
 })
 
-// 计算本月新增攻略数量
 const newGuideCount = computed(() => {
   const now = new Date()
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
-
   return tableData.value.filter(guide => {
     if (!guide.createTime) return false
     const createDate = new Date(guide.createTime)
@@ -194,13 +172,15 @@ const newGuideCount = computed(() => {
   }).length
 })
 
-// 获取图片完整URL
+const pendingCount = computed(() => {
+  return tableData.value.filter(guide => guide.reviewStatus === 0).length
+})
+
 const getImageUrl = (url) => {
   if (!url) return '/default-guide-cover.jpg'
   return url.startsWith('http') ? url : baseAPI + url
 }
 
-// 判断是否是新发布的攻略（7天内）
 const isNew = (dateString) => {
   if (!dateString) return false
   const publishDate = new Date(dateString)
@@ -210,7 +190,6 @@ const isNew = (dateString) => {
   return diffDays < 7
 }
 
-// 获取审核状态文本
 const getReviewStatusText = (status) => {
   switch (status) {
     case 0: return '待审核'
@@ -220,7 +199,6 @@ const getReviewStatusText = (status) => {
   }
 }
 
-// 获取审核状态标签类型
 const getReviewStatusType = (status) => {
   switch (status) {
     case 0: return 'warning'
@@ -239,8 +217,8 @@ const fetchGuides = async () => {
     }, {
       showDefaultMsg: false,
       onSuccess: (res) => {
-        tableData.value = res.records||[]
-        total.value = res.total||0
+        tableData.value = res.records || []
+        total.value = res.total || 0
       }
     })
   } catch (error) {
@@ -250,21 +228,9 @@ const fetchGuides = async () => {
   }
 }
 
-onMounted(fetchGuides)
-
 const handleCurrentChange = (page) => {
   currentPage.value = page
   fetchGuides()
-}
-
-const handleSizeChange = (size) => {
-  pageSize.value = size
-  currentPage.value = 1
-  fetchGuides()
-}
-
-const handleRowClick = (row) => {
-  viewGuide(row)
 }
 
 const viewGuide = (row) => {
@@ -280,8 +246,8 @@ const goEdit = (row) => {
 }
 
 const deleteGuide = (row) => {
-  ElMessageBox.confirm('确定要删除该攻略吗？删除后无法恢复！', '删除确认', {
-    confirmButtonText: '确定删除',
+  ElMessageBox.confirm('确定要删除该攻略吗？删除后无法恢复。', '删除确认', {
+    confirmButtonText: '确认删除',
     cancelButtonText: '取消',
     type: 'warning',
     closeOnClickModal: false
@@ -296,401 +262,378 @@ const deleteGuide = (row) => {
     }
   }).catch(() => {})
 }
+
+onMounted(fetchGuides)
 </script>
 
 <style lang="scss" scoped>
-.my-guide-container {
+.guide-page {
   min-height: 100vh;
-  background: #FFFFFF;
-  font-family: "思源黑体", "Source Han Sans", "Noto Sans CJK SC", sans-serif;
-  color: #333;
+  background: #f3f6fb;
+  color: #101828;
+  font-family: "Source Han Sans", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+}
 
-  // 通用容器样式
-  .section-container {
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 40px 20px;
+.page-shell {
+  width: min(1240px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 36px 0 64px;
+}
+
+.page-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px 28px;
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 44px rgba(16, 24, 40, 0.06);
+}
+
+.eyebrow {
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #e8f2ff;
+  color: #155eef;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.page-hero h1 {
+  margin: 12px 0 8px;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.page-hero p {
+  margin: 0;
+  color: #667085;
+  font-size: 15px;
+}
+
+.publish-btn,
+.ghost-btn {
+  height: 42px;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.publish-btn {
+  background: #155eef;
+  border-color: #155eef;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: 1.25fr repeat(3, 1fr);
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.stat-card {
+  min-height: 102px;
+  padding: 18px;
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.stat-card span {
+  display: block;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.stat-card strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.stat-card.dark {
+  background: #101828;
+  border-color: #101828;
+  color: #fff;
+}
+
+.stat-card.dark span {
+  color: #fff;
+}
+
+.guide-panel {
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #e4eaf3;
+  background: #fbfcfe;
+}
+
+.panel-head span {
+  display: block;
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.panel-head strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.state-box {
+  padding: 24px;
+}
+
+.empty-state {
+  display: flex;
+  min-height: 420px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.empty-icon {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  margin-bottom: 18px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #155eef;
+  font-size: 34px;
+}
+
+.empty-state h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.empty-state p {
+  max-width: 460px;
+  margin: 0 0 22px;
+  color: #667085;
+  line-height: 1.7;
+}
+
+.guide-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+.guide-card {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 180px;
+  gap: 18px;
+  padding: 14px;
+  border: 1px solid #e4eaf3;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.guide-card:hover {
+  border-color: #b9d6ff;
+  box-shadow: 0 16px 34px rgba(16, 24, 40, 0.08);
+  transform: translateY(-2px);
+}
+
+.cover-wrap {
+  position: relative;
+  height: 142px;
+  border-radius: 8px;
+  background: #eef2f7;
+  overflow: hidden;
+}
+
+.cover-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.status-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+
+.guide-main {
+  min-width: 0;
+}
+
+.guide-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.guide-id {
+  display: block;
+  margin-bottom: 8px;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.guide-title-row h2 {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1.38;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.fresh-chip {
+  flex-shrink: 0;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #ecfdf3;
+  color: #027a48;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 26px;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.meta-grid div {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.meta-grid span {
+  display: block;
+  margin-bottom: 6px;
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.meta-grid strong {
+  display: block;
+  overflow: hidden;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guide-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.guide-actions :deep(.el-button) {
+  width: 100%;
+  margin-left: 0;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 10px 20px 24px;
+}
+
+.pagination-wrap :deep(.el-pagination.is-background .el-pager li),
+.pagination-wrap :deep(.el-pagination.is-background .btn-prev),
+.pagination-wrap :deep(.el-pagination.is-background .btn-next) {
+  border-radius: 8px;
+}
+
+@media (max-width: 980px) {
+  .page-shell {
+    width: min(100% - 24px, 1240px);
+    padding-top: 24px;
   }
 
-  // 页面头部容器
-  .page-header-wrapper {
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 40px 20px 0;
+  .page-hero {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
-  // 页面头部
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0;
-    padding: 0;
-    border-bottom: none;
-  }
-
-  .header-content {
-    flex: 1;
-  }
-
-  .page-title {
-    font-size: 36px;
-    font-weight: 700;
-    margin: 0 0 8px;
-    color: #2d3748;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .title-icon {
-      font-size: 32px;
-    }
-  }
-
-  .page-subtitle {
-    text-align: left;
-    font-size: 16px;
-    color: #64748b;
-    margin: 0;
-  }
-
-
-
-  // 操作区域
-  .action-section {
-    background: white;
-    margin: 0;
-    padding-top: 20px;
-  }
-
-  .action-bar {
-    background: white;
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    margin-bottom: 30px;
-    border: 1px solid #e2e8f0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    .action-left {
-      .section-title {
-        font-size: 20px;
-        font-weight: 700;
-        color: #2d3748;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-
-        .el-icon {
-          color: #667eea;
-        }
-      }
-    }
-
-    .publish-btn {
-      background: linear-gradient(45deg, #667eea, #764ba2);
-      border: none;
-      border-radius: 12px;
-      font-weight: 600;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-      transition: all 0.3s ease;
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-      }
-    }
-  }
-
-  // 攻略列表区域
-  .guide-list-section {
-    background: white;
-    margin: 0;
-    padding-top: 20px;
-  }
-
-  // 加载状态
-  .loading-state {
-    padding: 40px 20px;
-  }
-
-  // 空状态
-  .empty-state {
-    text-align: center;
-    padding: 80px 20px;
-
-    .empty-icon {
-      font-size: 64px;
-      margin-bottom: 20px;
-    }
-
-    .empty-title {
-      font-size: 24px;
-      font-weight: 600;
-      color: #2d3748;
-      margin: 0 0 8px;
-    }
-
-    .empty-desc {
-      font-size: 16px;
-      color: #64748b;
-      margin: 0 0 24px;
-    }
-
-    .empty-action {
-      background: linear-gradient(45deg, #667eea, #764ba2);
-      border: none;
-      border-radius: 20px;
-      padding: 12px 24px;
-      font-weight: 600;
-    }
-  }
-
-  // 攻略网格布局
-  .guide-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-    margin-bottom: 40px;
+  .stats-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .guide-card {
-    border-radius: 16px;
-    overflow: hidden;
-    background: #fff;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    transition: all 0.4s ease;
-    cursor: pointer;
-    position: relative;
-    height: 100%;
-    display: flex;
+    grid-template-columns: 180px minmax(0, 1fr);
+  }
+
+  .guide-actions {
+    grid-column: span 2;
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+
+  .guide-actions :deep(.el-button) {
+    width: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-hero h1 {
+    font-size: 28px;
+  }
+
+  .stats-row,
+  .guide-card,
+  .meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-actions {
+    grid-column: auto;
     flex-direction: column;
-
-    &:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-
-      .card-image img {
-        transform: scale(1.1);
-      }
-
-      .image-overlay {
-        opacity: 1;
-      }
-    }
   }
 
-  .card-image {
-    height: 220px;
-    overflow: hidden;
-    position: relative;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.6s ease;
-    }
-  }
-
-  .image-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
+  .guide-actions :deep(.el-button) {
     width: 100%;
-    height: 100%;
-    background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    display: flex;
-    align-items: flex-end;
-    padding: 20px;
   }
-
-  .overlay-content {
-    color: white;
-
-    .guide-views {
-      display: flex;
-      align-items: center;
-      font-size: 14px;
-      font-weight: 600;
-      gap: 4px;
-
-      .el-icon {
-        color: #ffd700;
-      }
-    }
-  }
-
-  .card-badges {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-
-    .status-tag {
-      backdrop-filter: blur(10px);
-    }
-  }
-
-  .badge {
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    backdrop-filter: blur(10px);
-
-    &.new {
-      background: linear-gradient(45deg, #10b981, #059669);
-      color: white;
-    }
-
-    &.guide {
-      background: linear-gradient(45deg, #f59e0b, #d97706);
-      color: white;
-    }
-  }
-
-  .card-content {
-    padding: 20px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .guide-title {
-    margin: 0 0 12px;
-    font-size: 18px;
-    font-weight: 700;
-    color: #2d3748;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    line-height: 1.3;
-  }
-
-  .guide-meta {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 12px;
-
-    .meta-item {
-      display: flex;
-      align-items: center;
-      font-size: 12px;
-      color: #64748b;
-      gap: 4px;
-
-      .el-icon {
-        color: #667eea;
-      }
-    }
-  }
-
-  .card-footer {
-    margin-top: auto;
-    padding-top: 16px;
-
-    .guide-status {
-      margin-bottom: 12px;
-    }
-
-    .card-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-
-      .view-btn {
-        border-radius: 20px;
-        background: linear-gradient(45deg, #667eea, #764ba2);
-        border: none;
-        font-weight: 600;
-        padding: 8px 16px;
-        flex: 1;
-
-        &:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-      }
-
-      .edit-btn {
-        border-radius: 50%;
-        width: 36px;
-        height: 36px;
-        padding: 0;
-        background: #f59e0b;
-        border: none;
-        color: white;
-
-        &:hover {
-          background: #d97706;
-          transform: scale(1.1);
-        }
-      }
-
-      .delete-btn {
-        border-radius: 50%;
-        width: 36px;
-        height: 36px;
-        padding: 0;
-        background: #f56565;
-        border: none;
-        color: white;
-
-        &:hover {
-          background: #e53e3e;
-          transform: scale(1.1);
-        }
-      }
-    }
-  }
-
-  // 分页样式
-  .pagination-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-top: 40px;
-  }
-
-  .modern-pagination {
-    :deep(.el-pagination) {
-      .el-pager li {
-        border-radius: 8px;
-        margin: 0 4px;
-        transition: all 0.3s ease;
-
-        &:hover {
-          background: #667eea;
-          color: white;
-        }
-
-        &.is-active {
-          background: linear-gradient(45deg, #667eea, #764ba2);
-          color: white;
-        }
-      }
-
-      .btn-prev,
-      .btn-next {
-        border-radius: 8px;
-        transition: all 0.3s ease;
-
-        &:hover {
-          background: #667eea;
-          color: white;
-        }
-      }
-    }
-  }
-
 }
 </style>

@@ -227,6 +227,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import request from '@/utils/request'
 import GeetestBox from '@/components/auth/GeetestBox.vue'
+import { maskEmail, maskPhone } from '@/utils/mask'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const userStore = useUserStore()
@@ -263,15 +264,10 @@ const roleLabel = computed(() => {
 const displayName = computed(() => form.nickname || form.username || '账户资料')
 const avatarInitial = computed(() => (displayName.value || '用').slice(0, 1))
 const maskedPhone = computed(() => {
-  if (!form.phone) return '未绑定手机号'
-  return form.phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
+  return maskPhone(form.phone, '未绑定手机号')
 })
 const maskedEmail = computed(() => {
-  if (!form.email) return '未绑定邮箱'
-  const [name, domain] = form.email.split('@')
-  if (!domain) return form.email
-  const prefix = name.length <= 2 ? `${name[0] || '*'}*` : `${name.slice(0, 2)}***`
-  return `${prefix}@${domain}`
+  return maskEmail(form.email, '未绑定邮箱')
 })
 
 // 表单数据

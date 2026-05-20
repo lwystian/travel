@@ -177,7 +177,7 @@ public class UserService {
     }
 
     private String generatePhoneUsername(String phone) {
-        String base = "u" + phone.substring(phone.length() - 4);
+        String base = "user" + phone.substring(phone.length() - 4);
         String username = base;
         int index = 1;
         while (userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getUsername, username)) > 0) {
@@ -551,12 +551,10 @@ public class UserService {
         if (!bCryptPasswordEncoder.matches(update.getOldPassword(), user.getPassword())) {
             throw new ServiceException("原密码错误");
         }
-        if (RolePermission.isSuperAdmin(user)) {
-            if (StringUtils.isBlank(user.getPhone())) {
-                throw new ServiceException("超级管理员必须先绑定手机号后才能修改密码");
-            }
-            smsCodeService.verifyCode(user.getPhone(), "VERIFY_CURRENT", update.getCurrentPhoneCode());
+        if (StringUtils.isBlank(user.getPhone())) {
+            throw new ServiceException("请先绑定手机号后再修改密码");
         }
+        smsCodeService.verifyCode(user.getPhone(), "VERIFY_CURRENT", update.getCurrentPhoneCode(), "USER:" + id);
 
         user.setPassword(bCryptPasswordEncoder.encode(update.getNewPassword()));
         if (userMapper.updateById(user) <= 0) {

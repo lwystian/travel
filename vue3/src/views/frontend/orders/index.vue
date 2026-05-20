@@ -1,290 +1,249 @@
 <template>
-  <div class="orders-container">
-    <!-- 页面头部容器 -->
-    <div class="page-header-wrapper">
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="page-title">
-          <span class="title-icon">🎫</span>
-          我的订单
-        </h1>
-        <p class="page-subtitle">
-          查看和管理您的行程订单
-        </p>
-      </div>
-    </div>
-    </div>
+  <main class="orders-page">
+    <section class="orders-shell">
+      <header class="orders-header">
+        <div>
+          <span class="kicker">Order Center</span>
+          <h1>我的订单</h1>
+          <p>查看行程订单、支付状态、联系人与出行信息。</p>
+        </div>
+        <div class="header-actions">
+          <el-button class="light-btn" @click="resetOrders">
+            <el-icon><Refresh /></el-icon>
+            刷新
+          </el-button>
+          <el-button type="primary" class="primary-btn" @click="goToTicketList">
+            <el-icon><Ticket /></el-icon>
+            预订行程
+          </el-button>
+        </div>
+      </header>
 
-    <!-- 标签页区域 -->
-    <div class="orders-section">
-      <div class="section-container">
-        <div class="orders-tabs">
-          <el-tabs
-            v-model="activeTab"
-            @tab-click="handleTabClick"
-            class="modern-tabs"
+      <section class="stats-row">
+        <div class="stat-card dark">
+          <span>全部订单</span>
+          <strong>{{ orderStats.total || 0 }}</strong>
+        </div>
+        <div class="stat-card">
+          <span>待支付</span>
+          <strong>{{ orderStats.pending || 0 }}</strong>
+        </div>
+        <div class="stat-card">
+          <span>已支付</span>
+          <strong>{{ orderStats.paid || 0 }}</strong>
+        </div>
+        <div class="stat-card">
+          <span>已完成</span>
+          <strong>{{ orderStats.completed || 0 }}</strong>
+        </div>
+      </section>
+
+      <section class="orders-layout">
+        <aside class="status-nav">
+          <button
+            v-for="item in statusFilters"
+            :key="item.name"
+            type="button"
+            class="status-item"
+            :class="{ active: activeTab === item.name }"
+            @click="selectStatus(item.name)"
           >
-            <el-tab-pane label="全部" name="all">
-              <template #label>
-                <div class="tab-label">
-                  <el-icon><List /></el-icon>
-                  <span>全部</span>
-                  <span class="tab-count">{{ orderStats.total || 0 }}</span>
-                </div>
-              </template>
-            </el-tab-pane>
-            <el-tab-pane label="待支付" name="0">
-              <template #label>
-                <div class="tab-label">
-                  <el-icon><Clock /></el-icon>
-                  <span>待支付</span>
-                  <span class="tab-count">{{ orderStats.pending || 0 }}</span>
-                </div>
-              </template>
-            </el-tab-pane>
-            <el-tab-pane label="已支付" name="1">
-              <template #label>
-                <div class="tab-label">
-                  <el-icon><Check /></el-icon>
-                  <span>已支付</span>
-                  <span class="tab-count">{{ orderStats.paid || 0 }}</span>
-                </div>
-              </template>
-            </el-tab-pane>
-            <el-tab-pane label="已取消" name="2">
-              <template #label>
-                <div class="tab-label">
-                  <el-icon><Close /></el-icon>
-                  <span>已取消</span>
-                  <span class="tab-count">{{ orderStats.cancelled || 0 }}</span>
-                </div>
-              </template>
-            </el-tab-pane>
-            <el-tab-pane label="已退款" name="3">
-              <template #label>
-                <div class="tab-label">
-                  <el-icon><RefreshLeft /></el-icon>
-                  <span>已退款</span>
-                  <span class="tab-count">{{ orderStats.refunded || 0 }}</span>
-                </div>
-              </template>
-            </el-tab-pane>
-            <el-tab-pane label="已完成" name="4">
-              <template #label>
-                <div class="tab-label">
-                  <el-icon><CircleCheck /></el-icon>
-                  <span>已完成</span>
-                  <span class="tab-count">{{ orderStats.completed || 0 }}</span>
-                </div>
-              </template>
-            </el-tab-pane>
-          </el-tabs>
+            <el-icon><component :is="item.icon" /></el-icon>
+            <span>{{ item.label }}</span>
+            <strong>{{ item.count }}</strong>
+          </button>
+        </aside>
 
-          <!-- 加载状态 -->
-          <div v-if="loading" class="loading-state">
-            <el-skeleton :rows="6" animated />
+        <section class="orders-panel">
+          <div class="panel-title">
+            <div>
+              <span>当前视图</span>
+              <strong>{{ currentFilterLabel }}</strong>
+            </div>
+            <p>每次显示约 4 条订单高度，继续下滑自动加载更多。</p>
           </div>
 
-          <!-- 空状态 -->
-          <div v-else-if="orderList.length === 0" class="empty-state">
-            <div class="empty-icon">📋</div>
-            <h3 class="empty-title">暂无订单</h3>
-            <p class="empty-desc">您还没有任何订单，快去预订行程吧</p>
-            <el-button type="primary" @click="goToTicketList" class="empty-action">
+          <div v-if="loading" class="loading-box">
+            <el-skeleton :rows="8" animated />
+          </div>
+
+          <div v-else-if="orderList.length === 0" class="empty-box">
+            <el-icon><Document /></el-icon>
+            <h2>暂无匹配订单</h2>
+            <p>当前筛选条件下还没有订单，可以切换状态或去预订新的行程。</p>
+            <el-button type="primary" @click="goToTicketList">
               <el-icon><Ticket /></el-icon>
-              浏览行程
+              去预订行程
             </el-button>
           </div>
 
-          <!-- 订单列表 -->
-          <div v-else class="orders-list">
-            <div
-              v-for="(order, index) in orderList"
+          <div v-else ref="orderScrollRef" class="orders-scroll">
+            <article
+              v-for="order in orderList"
               :key="order.id"
               class="order-card"
-              :class="`delay-${(index % 4 + 1) * 100}`"
+              :class="getStatusClass(order.status)"
             >
-              <div class="order-header">
-                <div class="order-info">
-                  <div class="order-no">
-                    <el-icon><Document /></el-icon>
-                    <span>{{ order.orderNo }}</span>
-                  </div>
-                  <div class="order-time">{{ formatTime(order.createTime) }}</div>
+              <header class="card-head">
+                <div class="order-title">
+                  <span class="order-no">{{ order.orderNo || '-' }}</span>
+                  <h2>{{ order.tourName || '未命名行程' }}</h2>
                 </div>
-                <div class="order-status-badge" :class="getStatusClass(order.status)">
+                <span class="status-pill" :class="getStatusClass(order.status)">
                   {{ getOrderStatusText(order.status) }}
+                </span>
+              </header>
+
+              <div class="info-grid">
+                <div class="info-cell">
+                  <span>出发日期</span>
+                  <strong>{{ formatDate(order.departureDate) }}</strong>
+                </div>
+                <div class="info-cell">
+                  <span>套餐</span>
+                  <strong>{{ order.packageName || '标准套餐' }}</strong>
+                </div>
+                <div class="info-cell">
+                  <span>出行人数</span>
+                  <strong>成人 {{ order.adultCount || 0 }} 人<span v-if="order.childCount">，儿童 {{ order.childCount }} 人</span></strong>
+                </div>
+                <div class="info-cell">
+                  <span>联系人</span>
+                  <strong>{{ order.contactName || '-' }}</strong>
+                </div>
+                <div class="info-cell">
+                  <span>联系电话</span>
+                  <strong>{{ maskPhone(order.contactPhone, '-') }}</strong>
+                </div>
+                <div class="info-cell">
+                  <span>{{ order.paymentTime ? '支付时间' : '下单时间' }}</span>
+                  <strong>{{ formatTime(order.paymentTime || order.createTime) }}</strong>
                 </div>
               </div>
 
-              <div class="order-content">
-                <div class="ticket-section">
-                  <div class="ticket-main">
-                    <h3 class="ticket-name">{{ order.tourName }}</h3>
-                    <div class="scenic-info" v-if="order.packageName">
-                      <el-icon><Collection /></el-icon>
-                      <span>{{ order.packageName }}</span>
-                    </div>
-                  </div>
-
-                  <div class="order-details">
-                    <div class="detail-row">
-                      <div class="detail-item">
-                        <el-icon><Calendar /></el-icon>
-                        <span>出发日期</span>
-                        <strong>{{ formatDate(order.departureDate) }}</strong>
-                      </div>
-                      <div class="detail-item">
-                        <el-icon><User /></el-icon>
-                        <span>出行人数</span>
-                        <strong>成人 {{ order.adultCount }} 人<span v-if="order.childCount">，儿童 {{ order.childCount }} 人</span></strong>
-                      </div>
-                    </div>
-                    <div class="detail-row">
-                      <div class="detail-item">
-                        <el-icon><UserFilled /></el-icon>
-                        <span>联系人</span>
-                        <strong>{{ order.contactName }}</strong>
-                      </div>
-                      <div class="detail-item">
-                        <el-icon><Phone /></el-icon>
-                        <span>联系电话</span>
-                        <strong>{{ order.contactPhone }}</strong>
-                      </div>
-                    </div>
-                  </div>
+              <footer class="card-foot">
+                <div class="amount-box">
+                  <span>订单金额</span>
+                  <strong>¥{{ formatPrice(order.totalAmount) }}</strong>
                 </div>
-
-                <div class="price-section">
-                  <div class="price-label">订单总额</div>
-                  <div class="price-amount">¥{{ order.totalAmount }}</div>
-                </div>
-              </div>
-
-              <div class="order-footer">
-                <div class="payment-info" v-if="order.paymentTime">
+                <div class="pay-state" :class="{ waiting: !order.paymentTime }">
                   <el-icon><CreditCard /></el-icon>
-                  <span>支付时间: {{ formatTime(order.paymentTime) }}</span>
+                  <span>{{ order.paymentTime ? '付款已确认' : '等待付款确认' }}</span>
                 </div>
-                <div class="order-actions">
+                <div class="action-box">
                   <el-button
                     v-if="order.status === 0"
                     type="primary"
                     @click="goToConfirm(order)"
-                    class="action-btn pay-btn"
                   >
                     <el-icon><Edit /></el-icon>
-                    填写订单信息
+                    完善订单
                   </el-button>
                   <el-button
                     v-if="order.status === 0"
+                    plain
                     type="danger"
                     @click="cancelOrder(order.id)"
-                    class="action-btn cancel-btn"
                   >
                     <el-icon><Close /></el-icon>
                     取消订单
                   </el-button>
-                  <el-button
-                    @click="viewOrderDetail(order)"
-                    class="action-btn detail-btn"
-                  >
+                  <el-button plain @click="viewOrderDetail(order)">
                     <el-icon><View /></el-icon>
                     查看详情
                   </el-button>
                 </div>
-              </div>
-            </div>
+              </footer>
+            </article>
 
-            <!-- 分页 -->
-            <div class="pagination-wrapper" v-if="total > 0">
-              <el-pagination
-                background
-                layout="total, prev, pager, next"
-                :total="total"
-                :page-size="pageSize"
-                :current-page="currentPage"
-                @current-change="handleCurrentChange"
-                class="modern-pagination"
-              />
+            <div ref="loadMoreTrigger" class="load-more">
+              <template v-if="loadingMore">
+                <el-icon class="is-loading"><Loading /></el-icon>
+                <span>正在加载更多订单</span>
+              </template>
+              <template v-else-if="hasMoreOrders">
+                <span>下滑加载更多订单</span>
+              </template>
+              <template v-else>
+                <span>已展示全部 {{ total }} 条订单</span>
+              </template>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </section>
+      </section>
+    </section>
 
-    <!-- 详情对话框 -->
     <el-dialog
-      title="订单详情"
       v-model="detailDialogVisible"
-      width="600px"
+      title="订单详情"
+      width="780px"
+      class="order-detail-dialog"
     >
-      <div class="order-detail" v-if="currentOrder">
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="订单号">{{ currentOrder.orderNo }}</el-descriptions-item>
-          <el-descriptions-item label="行程名称">{{ currentOrder.tourName }}</el-descriptions-item>
-          <el-descriptions-item label="套餐类型">{{ currentOrder.packageName || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="批次套餐">{{ currentOrder.batchPackageName || '标准' }}</el-descriptions-item>
-          <el-descriptions-item label="出发日期">{{ formatDate(currentOrder.departureDate) }}</el-descriptions-item>
-          <el-descriptions-item label="成人人数">{{ currentOrder.adultCount }} 人</el-descriptions-item>
-          <el-descriptions-item label="儿童人数">{{ currentOrder.childCount || 0 }} 人</el-descriptions-item>
-          <el-descriptions-item label="成人单价">¥{{ currentOrder.adultUnitPrice }}</el-descriptions-item>
-          <el-descriptions-item label="儿童单价">¥{{ currentOrder.childUnitPrice || 0 }}</el-descriptions-item>
-          <el-descriptions-item label="行程费用">¥{{ currentOrder.tourAmount }}</el-descriptions-item>
-          <el-descriptions-item label="酒店费用">
-            <template v-if="currentOrder.hotelAmount && currentOrder.hotelAmount > 0">
-              ¥{{ currentOrder.hotelAmount }}（{{ currentOrder.hotelName }} {{ currentOrder.hotelDays }}晚）
-            </template>
-            <template v-else>-</template>
-          </el-descriptions-item>
-          <el-descriptions-item label="订单金额">
-            <span style="color: #e53e3e; font-weight: bold; font-size: 18px;">¥{{ currentOrder.totalAmount }}</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="联系人">{{ currentOrder.contactName }}</el-descriptions-item>
-          <el-descriptions-item label="联系电话">{{ currentOrder.contactPhone }}</el-descriptions-item>
-          <el-descriptions-item label="备注">{{ currentOrder.remark || '无' }}</el-descriptions-item>
-          <el-descriptions-item label="订单状态">
-            <el-tag :type="getStatusTagType(currentOrder.status)">
-              {{ getOrderStatusText(currentOrder.status) }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="下单时间">{{ formatTime(currentOrder.createTime) }}</el-descriptions-item>
-          <el-descriptions-item label="支付时间" v-if="currentOrder.paymentTime">
-            {{ formatTime(currentOrder.paymentTime) }}
-          </el-descriptions-item>
-          <el-descriptions-item label="支付方式" v-if="currentOrder.paymentMethod">
-            {{ currentOrder.paymentMethod }}
-          </el-descriptions-item>
-        </el-descriptions>
+      <div v-if="currentOrder" class="detail-view">
+        <section class="detail-head">
+          <div>
+            <span>{{ currentOrder.orderNo || '-' }}</span>
+            <h2>{{ currentOrder.tourName || '未命名行程' }}</h2>
+            <p>{{ currentOrder.packageName || '标准套餐' }} · {{ formatDate(currentOrder.departureDate) }}</p>
+          </div>
+          <div class="detail-price">
+            <span>订单金额</span>
+            <strong>¥{{ formatPrice(currentOrder.totalAmount) }}</strong>
+          </div>
+        </section>
+
+        <section class="detail-grid">
+          <div><span>订单状态</span><strong>{{ getOrderStatusText(currentOrder.status) }}</strong></div>
+          <div><span>出行人数</span><strong>成人 {{ currentOrder.adultCount || 0 }} 人，儿童 {{ currentOrder.childCount || 0 }} 人</strong></div>
+          <div><span>联系人</span><strong>{{ currentOrder.contactName || '-' }}</strong></div>
+          <div><span>联系电话</span><strong>{{ maskPhone(currentOrder.contactPhone, '-') }}</strong></div>
+          <div><span>下单时间</span><strong>{{ formatTime(currentOrder.createTime) }}</strong></div>
+          <div><span>支付时间</span><strong>{{ currentOrder.paymentTime ? formatTime(currentOrder.paymentTime) : '-' }}</strong></div>
+          <div><span>支付方式</span><strong>{{ currentOrder.paymentMethod || '-' }}</strong></div>
+          <div class="wide"><span>备注</span><strong>{{ currentOrder.remark || '无' }}</strong></div>
+        </section>
       </div>
     </el-dialog>
-  </div>
+  </main>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Check,
+  CircleCheck,
+  Clock,
+  Close,
+  CreditCard,
+  Document,
+  Edit,
+  List,
+  Loading,
+  Refresh,
+  RefreshLeft,
+  Ticket,
+  View
+} from '@element-plus/icons-vue'
 import { getUserTourOrders, cancelTourOrder as cancelTourOrderApi } from '@/api/tourOrder'
-import { Edit, Close, View, CreditCard } from '@element-plus/icons-vue'
+import { maskPhone } from '@/utils/mask'
 
 const router = useRouter()
 
-// 分页参数
 const currentPage = ref(1)
-const pageSize = ref(12)
+const pageSize = ref(4)
 const total = ref(0)
-
-// 订单列表数据
 const orderList = ref([])
 const loading = ref(false)
+const loadingMore = ref(false)
 const activeTab = ref('all')
-
-// 对话框控制
 const detailDialogVisible = ref(false)
 const currentOrder = ref(null)
+const orderScrollRef = ref(null)
+const loadMoreTrigger = ref(null)
+let loadMoreObserver = null
 
-// 订单统计数据
 const orderStats = ref({
   total: 0,
   pending: 0,
@@ -294,13 +253,25 @@ const orderStats = ref({
   completed: 0
 })
 
-// 获取用户订单统计信息
+const statusFilters = computed(() => [
+  { name: 'all', label: '全部订单', count: orderStats.value.total || 0, icon: List },
+  { name: '0', label: '待支付', count: orderStats.value.pending || 0, icon: Clock },
+  { name: '1', label: '已支付', count: orderStats.value.paid || 0, icon: Check },
+  { name: '2', label: '已取消', count: orderStats.value.cancelled || 0, icon: Close },
+  { name: '3', label: '已退款', count: orderStats.value.refunded || 0, icon: RefreshLeft },
+  { name: '4', label: '已完成', count: orderStats.value.completed || 0, icon: CircleCheck }
+])
+
+const currentFilterLabel = computed(() => {
+  return statusFilters.value.find(item => item.name === activeTab.value)?.label || '全部订单'
+})
+
+const hasMoreOrders = computed(() => orderList.value.length < total.value)
+
 const fetchOrderStats = async () => {
   try {
-    // 获取全部订单用于统计
     const allRes = await getUserTourOrders({ currentPage: 1, size: 1000 })
     const allOrders = allRes?.records || []
-
     orderStats.value = {
       total: allRes?.total || 0,
       pending: allOrders.filter(o => o.status === 0).length,
@@ -314,7 +285,6 @@ const fetchOrderStats = async () => {
   }
 }
 
-// 获取状态样式类
 const getStatusClass = (status) => {
   const statusMap = {
     0: 'pending',
@@ -323,62 +293,9 @@ const getStatusClass = (status) => {
     3: 'refunded',
     4: 'completed'
   }
-  return statusMap[status] || 'default'
+  return statusMap[status] || 'unknown'
 }
 
-// 获取状态标签类型
-const getStatusTagType = (status) => {
-  const typeMap = {
-    0: 'warning',
-    1: 'success',
-    2: 'info',
-    3: 'danger',
-    4: 'primary'
-  }
-  return typeMap[status] || 'info'
-}
-
-// 跳转到行程列表
-const goToTicketList = () => {
-  router.push('/ticket')
-}
-
-// 获取订单列表
-const fetchOrders = async () => {
-  loading.value = true
-  try {
-    // 根据标签页筛选状态
-    const status = activeTab.value === 'all' ? null : parseInt(activeTab.value)
-
-    const res = await getUserTourOrders({
-      status: status,
-      currentPage: currentPage.value,
-      size: pageSize.value
-    })
-    orderList.value = res?.records || []
-    total.value = res?.total || 0
-  } catch (error) {
-    console.error('获取订单列表失败:', error)
-    orderList.value = []
-    total.value = 0
-  } finally {
-    loading.value = false
-  }
-}
-
-// 分页变化事件
-const handleCurrentChange = (page) => {
-  currentPage.value = page
-  fetchOrders()
-}
-
-// 标签页切换事件
-const handleTabClick = () => {
-  currentPage.value = 1
-  fetchOrders()
-}
-
-// 获取订单状态文本
 const getOrderStatusText = (status) => {
   const statusMap = {
     0: '待支付',
@@ -390,42 +307,111 @@ const getOrderStatusText = (status) => {
   return statusMap[status] || '未知状态'
 }
 
-// 格式化日期
+const goToTicketList = () => {
+  router.push('/tickets')
+}
+
+const fetchOrders = async ({ append = false } = {}) => {
+  if (append) {
+    if (loading.value || loadingMore.value || !hasMoreOrders.value) return
+    loadingMore.value = true
+  } else {
+    loading.value = true
+  }
+
+  try {
+    const status = activeTab.value === 'all' ? null : parseInt(activeTab.value)
+    const res = await getUserTourOrders({
+      status,
+      currentPage: currentPage.value,
+      size: pageSize.value
+    })
+    const records = res?.records || []
+    orderList.value = append ? [...orderList.value, ...records] : records
+    total.value = res?.total || 0
+  } catch (error) {
+    console.error('获取订单列表失败:', error)
+    if (!append) {
+      orderList.value = []
+      total.value = 0
+    }
+  } finally {
+    loading.value = false
+    loadingMore.value = false
+  }
+}
+
+const setupLoadMoreObserver = () => {
+  if (loadMoreObserver) {
+    loadMoreObserver.disconnect()
+    loadMoreObserver = null
+  }
+  if (!orderScrollRef.value || !loadMoreTrigger.value) return
+
+  loadMoreObserver = new IntersectionObserver((entries) => {
+    if (entries[0]?.isIntersecting) {
+      loadMoreOrders()
+    }
+  }, {
+    root: orderScrollRef.value,
+    rootMargin: '32px 0px',
+    threshold: 0.1
+  })
+
+  loadMoreObserver.observe(loadMoreTrigger.value)
+}
+
+const loadMoreOrders = () => {
+  if (!hasMoreOrders.value || loading.value || loadingMore.value) return
+  currentPage.value += 1
+  fetchOrders({ append: true })
+}
+
+const resetOrders = () => {
+  currentPage.value = 1
+  fetchOrders().then(() => {
+    if (orderScrollRef.value) orderScrollRef.value.scrollTop = 0
+    nextTick(setupLoadMoreObserver)
+  })
+}
+
+const selectStatus = (name) => {
+  if (activeTab.value === name) return
+  activeTab.value = name
+  resetOrders()
+}
+
 const formatDate = (dateStr) => {
   if (!dateStr) return '-'
   const date = new Date(dateStr)
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-// 格式化时间
 const formatTime = (timeStr) => {
   if (!timeStr) return '-'
   const date = new Date(timeStr)
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
-// 跳转到订单确认页面
+const formatPrice = (price) => {
+  return Number(price || 0).toFixed(2)
+}
+
 const goToConfirm = (order) => {
   router.push('/tour-order-confirm/' + order.id)
 }
 
-// 跳转到支付页面
-const goToPay = (order) => {
-  router.push('/tour-order-pay/' + order.id)
-}
-
-// 取消订单
 const cancelOrder = async (orderId) => {
-  ElMessageBox.confirm('确定要取消该订单吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  ElMessageBox.confirm('确定要取消该订单吗？取消后将无法继续支付。', '取消订单', {
+    confirmButtonText: '确认取消',
+    cancelButtonText: '再想想',
     type: 'warning'
   }).then(async () => {
     loading.value = true
     try {
       await cancelTourOrderApi(orderId, { showDefaultMsg: false })
       ElMessage.success('订单已取消')
-      fetchOrders()
+      resetOrders()
       fetchOrderStats()
     } catch (error) {
       console.error('取消订单失败:', error)
@@ -435,442 +421,643 @@ const cancelOrder = async (orderId) => {
   }).catch(() => {})
 }
 
-// 查看订单详情
-const viewOrderDetail = async (order) => {
+const viewOrderDetail = (order) => {
   currentOrder.value = order
   detailDialogVisible.value = true
 }
 
-// 页面加载时获取订单列表
 onMounted(() => {
   fetchOrderStats()
-  fetchOrders()
+  fetchOrders().then(() => nextTick(setupLoadMoreObserver))
+})
+
+onUnmounted(() => {
+  if (loadMoreObserver) {
+    loadMoreObserver.disconnect()
+    loadMoreObserver = null
+  }
 })
 </script>
 
 <style lang="scss" scoped>
-.orders-container {
+.orders-page {
   min-height: 100vh;
-  background: #FFFFFF;
-  font-family: "思源黑体", "Source Han Sans", "Noto Sans CJK SC", sans-serif;
-  color: #333;
+  background: #f3f6fb;
+  color: #101828;
+  font-family: "Source Han Sans", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+}
 
-  .section-container {
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 40px 20px;
+.orders-shell {
+  width: min(1240px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 36px 0 64px;
+}
+
+.orders-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px 28px;
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 44px rgba(16, 24, 40, 0.06);
+}
+
+.kicker {
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #e8f2ff;
+  color: #155eef;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.orders-header h1 {
+  margin: 12px 0 8px;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.orders-header p {
+  margin: 0;
+  color: #667085;
+  font-size: 15px;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.light-btn,
+.primary-btn {
+  height: 42px;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.light-btn {
+  background: #fff;
+  border-color: #d6deeb;
+  color: #344054;
+}
+
+.primary-btn {
+  background: #155eef;
+  border-color: #155eef;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: 1.25fr repeat(3, 1fr);
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.stat-card {
+  min-height: 102px;
+  padding: 18px;
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.stat-card span {
+  display: block;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.stat-card strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.stat-card.dark {
+  background: #101828;
+  border-color: #101828;
+  color: #fff;
+}
+
+.stat-card.dark span {
+  color: #fff;
+}
+
+.orders-layout {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.status-nav {
+  position: sticky;
+  top: 18px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.status-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #344054;
+  text-align: left;
+  cursor: pointer;
+}
+
+.status-item.active {
+  background: #edf5ff;
+  border-color: #b9d6ff;
+  color: #155eef;
+}
+
+.status-item span {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-item strong {
+  min-width: 26px;
+  height: 22px;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #344054;
+  font-size: 12px;
+  line-height: 22px;
+  text-align: center;
+}
+
+.orders-panel {
+  min-width: 0;
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #e4eaf3;
+  background: #fbfcfe;
+}
+
+.panel-title span {
+  display: block;
+  margin-bottom: 4px;
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.panel-title strong {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.panel-title p {
+  margin: 0;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.loading-box {
+  padding: 22px;
+}
+
+.empty-box {
+  display: flex;
+  min-height: 420px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.empty-box > .el-icon {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  margin-bottom: 18px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #155eef;
+  font-size: 34px;
+}
+
+.empty-box h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.empty-box p {
+  max-width: 460px;
+  margin: 0 0 22px;
+  color: #667085;
+  line-height: 1.7;
+}
+
+.orders-scroll {
+  display: flex;
+  max-height: 928px;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #a8b4c5 transparent;
+}
+
+.orders-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.orders-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.orders-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #a8b4c5;
+}
+
+.order-card {
+  position: relative;
+  display: grid;
+  min-height: 216px;
+  grid-template-rows: auto 1fr auto;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #e4eaf3;
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.order-card.pending {
+  border-left-color: #f59e0b;
+}
+
+.order-card.paid {
+  border-left-color: #12b76a;
+}
+
+.order-card.cancelled {
+  border-left-color: #98a2b3;
+}
+
+.order-card.refunded {
+  border-left-color: #f04438;
+}
+
+.order-card.completed {
+  border-left-color: #155eef;
+}
+
+.card-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+}
+
+.order-no {
+  display: block;
+  margin-bottom: 6px;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.order-title h2 {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: #101828;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.38;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.status-pill {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 28px;
+  white-space: nowrap;
+}
+
+.status-pill.pending {
+  background: #fff7ed;
+  color: #b54708;
+}
+
+.status-pill.paid {
+  background: #ecfdf3;
+  color: #027a48;
+}
+
+.status-pill.cancelled {
+  background: #f2f4f7;
+  color: #667085;
+}
+
+.status-pill.refunded {
+  background: #fef3f2;
+  color: #b42318;
+}
+
+.status-pill.completed {
+  background: #eff4ff;
+  color: #155eef;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.info-cell {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.info-cell span {
+  display: block;
+  margin-bottom: 6px;
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.info-cell strong {
+  display: block;
+  overflow: hidden;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-foot {
+  display: grid;
+  grid-template-columns: auto minmax(130px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid #eef2f7;
+}
+
+.amount-box span {
+  display: block;
+  margin-bottom: 4px;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.amount-box strong {
+  color: #d92d20;
+  font-size: 24px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.pay-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #027a48;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.pay-state.waiting {
+  color: #b54708;
+}
+
+.action-box {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.action-box :deep(.el-button) {
+  margin-left: 0;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.load-more {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed #d6deeb;
+  border-radius: 8px;
+  background: #fbfcfe;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.detail-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid #dde5f0;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.detail-head span,
+.detail-price span,
+.detail-grid span {
+  display: block;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.detail-head h2 {
+  margin: 8px 0;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.detail-head p {
+  margin: 0;
+  color: #667085;
+}
+
+.detail-price {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.detail-price strong {
+  display: block;
+  margin-top: 8px;
+  color: #d92d20;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.detail-grid div {
+  min-height: 72px;
+  padding: 14px;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+}
+
+.detail-grid .wide {
+  grid-column: span 2;
+}
+
+.detail-grid strong {
+  display: block;
+  margin-top: 8px;
+  color: #344054;
+  font-size: 14px;
+  font-weight: 900;
+  word-break: break-word;
+}
+
+@media (max-width: 980px) {
+  .orders-shell {
+    width: min(100% - 24px, 1240px);
+    padding-top: 24px;
   }
 
-  .page-header-wrapper {
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 40px 20px 0;
-  }
-
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0;
-    padding: 0;
-    border-bottom: none;
-  }
-
-  .header-content {
-    flex: 1;
-  }
-
-  .page-title {
-    font-size: 36px;
-    font-weight: 700;
-    margin: 0 0 8px;
-    color: #2d3748;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .title-icon {
-      font-size: 32px;
-    }
-  }
-
-  .page-subtitle {
-    font-size: 16px;
-    color: #64748b;
-    text-align: left;
-    margin: 0;
-  }
-
-  .orders-section {
-    background: white;
-    margin: 0;
-    padding-top: 20px;
-  }
-
-  .orders-tabs {
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-    border: 1px solid #e2e8f0;
-  }
-
-  .modern-tabs {
-    :deep(.el-tabs__header) {
-      margin: 0;
-      background: #FFFFFF;
-      border-bottom: 1px solid #e2e8f0;
-    }
-
-    :deep(.el-tabs__nav-wrap) {
-      padding: 0 24px;
-    }
-
-    :deep(.el-tabs__item) {
-      padding: 20px 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: #64748b;
-      border: none;
-      margin-right: 40px;
-
-      &.is-active {
-        color: #667eea;
-      }
-
-      &:hover {
-        color: #667eea;
-      }
-    }
-
-    :deep(.el-tabs__active-bar) {
-      background: linear-gradient(45deg, #667eea, #764ba2);
-      height: 3px;
-    }
-
-    :deep(.el-tabs__content) {
-      padding: 40px 24px;
-    }
-
-    .tab-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-
-      .tab-count {
-        background: #667eea;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 600;
-      }
-    }
-  }
-
-  .loading-state {
-    padding: 40px 20px;
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 80px 20px;
-
-    .empty-icon {
-      font-size: 64px;
-      margin-bottom: 20px;
-    }
-
-    .empty-title {
-      font-size: 24px;
-      font-weight: 600;
-      color: #2d3748;
-      margin: 0 0 8px;
-    }
-
-    .empty-desc {
-      font-size: 16px;
-      color: #64748b;
-      margin: 0 0 24px;
-    }
-
-    .empty-action {
-      background: linear-gradient(45deg, #667eea, #764ba2);
-      border: none;
-      border-radius: 20px;
-      padding: 12px 24px;
-      font-weight: 600;
-    }
-  }
-
-  .orders-list {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .order-card {
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e2e8f0;
-    overflow: hidden;
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-    }
-  }
-
-  .order-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 24px;
-    background: #FFFFFF;
-    border-bottom: 1px solid #e2e8f0;
-
-    .order-info {
-      .order-no {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 16px;
-        font-weight: 600;
-        color: #2d3748;
-        margin-bottom: 4px;
-
-        .el-icon {
-          color: #667eea;
-        }
-      }
-
-      .order-time {
-        font-size: 12px;
-        color: #64748b;
-      }
-    }
-
-    .order-status-badge {
-      padding: 6px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-
-      &.pending {
-        background: linear-gradient(45deg, #f59e0b, #d97706);
-        color: white;
-      }
-
-      &.paid {
-        background: linear-gradient(45deg, #10b981, #059669);
-        color: white;
-      }
-
-      &.cancelled {
-        background: linear-gradient(45deg, #ef4444, #dc2626);
-        color: white;
-      }
-
-      &.refunded {
-        background: linear-gradient(45deg, #8b5cf6, #7c3aed);
-        color: white;
-      }
-
-      &.completed {
-        background: linear-gradient(45deg, #06b6d4, #0891b2);
-        color: white;
-      }
-    }
-  }
-
-  .order-content {
-    padding: 24px;
-    display: flex;
-    justify-content: space-between;
+  .orders-header,
+  .panel-title {
     align-items: flex-start;
-    gap: 24px;
+    flex-direction: column;
   }
 
-  .ticket-section {
-    flex: 1;
-
-    .ticket-main {
-      margin-bottom: 16px;
-
-      .ticket-name {
-        font-size: 20px;
-        font-weight: 700;
-        color: #2d3748;
-        margin: 0 0 8px;
-        line-height: 1.3;
-      }
-
-      .scenic-info {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 14px;
-        color: #64748b;
-
-        .el-icon {
-          color: #667eea;
-        }
-      }
-    }
-
-    .order-details {
-      .detail-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px;
-        margin-bottom: 12px;
-
-        &:last-child {
-          margin-bottom: 0;
-        }
-      }
-
-      .detail-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 14px;
-        color: #64748b;
-
-        .el-icon {
-          color: #667eea;
-          flex-shrink: 0;
-        }
-
-        strong {
-          color: #2d3748;
-          font-weight: 600;
-          margin-left: auto;
-        }
-      }
-    }
+  .panel-title p {
+    text-align: left;
   }
 
-  .price-section {
-    text-align: right;
-    flex-shrink: 0;
-
-    .price-label {
-      font-size: 14px;
-      color: #64748b;
-      margin-bottom: 4px;
-    }
-
-    .price-amount {
-      font-size: 28px;
-      font-weight: 700;
-      color: #e53e3e;
-    }
+  .stats-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .order-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 24px;
-    background: #FFFFFF;
-    border-top: 1px solid #e2e8f0;
-
-    .payment-info {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: #64748b;
-
-      .el-icon {
-        color: #667eea;
-      }
-    }
-
-    .order-actions {
-      display: flex;
-      gap: 8px;
-
-      .action-btn {
-        border-radius: 8px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-
-        &.pay-btn {
-          background: linear-gradient(45deg, #667eea, #764ba2);
-          border: none;
-          color: white;
-
-          &:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-          }
-        }
-
-        &.cancel-btn {
-          background: #f56565;
-          border: none;
-          color: white;
-
-          &:hover {
-            background: #e53e3e;
-            transform: translateY(-1px);
-          }
-        }
-
-        &.detail-btn {
-          background: white;
-          border: 2px solid #e2e8f0;
-          color: #64748b;
-
-          &:hover {
-            border-color: #667eea;
-            color: #667eea;
-            background: #FFFFFF;
-          }
-        }
-      }
-    }
+  .orders-layout {
+    grid-template-columns: 1fr;
   }
 
-  .pagination-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-top: 40px;
+  .status-nav {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .modern-pagination {
-    :deep(.el-pagination) {
-      .el-pager li {
-        border-radius: 8px;
-        margin: 0 4px;
-        transition: all 0.3s ease;
+  .info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 
-        &:hover {
-          background: #667eea;
-          color: white;
-        }
+  .card-foot {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
 
-        &.is-active {
-          background: linear-gradient(45deg, #667eea, #764ba2);
-          color: white;
-        }
-      }
+  .action-box {
+    justify-content: flex-start;
+  }
+}
 
-      .btn-prev,
-      .btn-next {
-        border-radius: 8px;
-        transition: all 0.3s ease;
+@media (max-width: 640px) {
+  .orders-header h1 {
+    font-size: 28px;
+  }
 
-        &:hover {
-          background: #667eea;
-          color: white;
-        }
-      }
-    }
+  .stats-row,
+  .status-nav,
+  .info-grid,
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card-head,
+  .detail-head {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .status-pill {
+    justify-self: start;
+  }
+
+  .orders-scroll {
+    max-height: 900px;
+  }
+
+  .detail-price {
+    text-align: left;
+  }
+
+  .detail-grid .wide {
+    grid-column: auto;
   }
 }
 </style>

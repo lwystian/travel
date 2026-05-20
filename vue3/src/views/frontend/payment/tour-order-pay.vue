@@ -65,7 +65,7 @@
 
         <div class="info-item">
           <span class="label">联系人</span>
-          <span class="value">{{ order.contactName }} {{ order.contactPhone }}</span>
+          <span class="value">{{ order.contactName }} {{ maskPhone(order.contactPhone, '-') }}</span>
         </div>
       </div>
 
@@ -162,6 +162,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Wallet, Check, Lock, Aliwangwang, Wechat } from '@element-plus/icons-vue'
 import { getTourOrderDetail } from '@/api/tourOrder'
 import { generatePayForm as generatePayFormApi, mockPay as mockPayApi, getOrderByOrderNo, getAvailablePaymentMethods } from '@/api/tourOrderPay'
+import { maskPhone } from '@/utils/mask'
 
 const route = useRoute()
 const router = useRouter()

@@ -27,9 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -232,7 +230,7 @@ public class UserController {
             throw new ServiceException("该手机号已被其他账号绑定");
         }
         geetestCaptchaService.verify(authConfigService.getGeetestConfigForVerify(), dto.getGeetest());
-        smsCodeService.sendCode(dto.getPhone(), "CHANGE_PHONE");
+        smsCodeService.sendCode(dto.getPhone(), "CHANGE_PHONE", userSubject(currentUser.getId()));
         return Result.success("短信验证码已发送，请注意查收");
     }
 
@@ -248,7 +246,7 @@ public class UserController {
             throw new ServiceException("当前账号未绑定手机号");
         }
         geetestCaptchaService.verify(authConfigService.getGeetestConfigForVerify(), dto.getGeetest());
-        smsCodeService.sendCode(latest.getPhone(), "VERIFY_CURRENT");
+        smsCodeService.sendCode(latest.getPhone(), "VERIFY_CURRENT", userSubject(currentUser.getId()));
         return Result.success("当前手机号验证码已发送，请注意查收");
     }
 
@@ -264,11 +262,18 @@ public class UserController {
             if (!StringUtils.hasText(latest.getPhone())) {
                 throw new ServiceException("超级管理员必须先绑定手机号");
             }
-            smsCodeService.verifyCode(latest.getPhone(), "VERIFY_CURRENT", dto.getCurrentSmsCode());
+            smsCodeService.verifyCode(latest.getPhone(), "VERIFY_CURRENT", dto.getCurrentSmsCode(), userSubject(currentUser.getId()));
         }
-        smsCodeService.verifyCode(dto.getPhone(), "CHANGE_PHONE", dto.getSmsCode());
+        smsCodeService.verifyCode(dto.getPhone(), "CHANGE_PHONE", dto.getSmsCode(), userSubject(currentUser.getId()));
         userService.changePhone(currentUser.getId(), dto.getPhone());
         return Result.success("手机号变更成功");
+    }
+
+    private String userSubject(Long userId) {
+        if (userId == null) {
+            throw new ServiceException("请先登录");
+        }
+        return "USER:" + userId;
     }
 
     @Operation(summary = "根据id删除用户")
@@ -352,17 +357,9 @@ public class UserController {
             return Result.error("手机号和密码不能为空");
         }
         
-        // 调用短信验证接口验证验证码
         try {
-            RestTemplate restTemplate = new RestTemplate();
-            String url = "http://localhost:8080/sms/verify?phone={phone}&code={code}";
-            Map<String, String> params = new HashMap<>();
-            params.put("phone", user.getPhone());
-            params.put("code", verifyCode);
-            
-            // 发送验证请求
-            restTemplate.getForObject(url, Result.class, params);
-            
+            smsCodeService.verifyCode(user.getPhone(), "REGISTER", verifyCode);
+
             // 生成默认用户名
             if (!StringUtils.hasText(user.getUsername())) {
                 user.setUsername("user_" + user.getPhone().substring(user.getPhone().length() - 4));
