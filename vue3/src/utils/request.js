@@ -98,11 +98,11 @@ const syncAuthFromHeaders = (response) => {
 const getBusinessErrorMessage = (code, fallback) => {
   switch (String(code)) {
     case '403':
-      return '没有权限进行此操作'
+      return fallback || '没有权限进行此操作'
     case '404':
-      return '请求的资源不存在'
+      return fallback || '请求的资源不存在'
     case '500':
-      return '服务器内部错误'
+      return fallback || '服务器内部错误'
     default:
       return fallback || `请求失败(${code})`
   }

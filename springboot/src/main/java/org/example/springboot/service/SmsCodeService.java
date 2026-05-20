@@ -81,7 +81,8 @@ public class SmsCodeService {
 
     public String normalizeScene(String scene) {
         String normalized = StringUtils.hasText(scene) ? scene.trim().toUpperCase(Locale.ROOT) : "";
-        if (!"REGISTER".equals(normalized) && !"LOGIN".equals(normalized)) {
+        if (!"REGISTER".equals(normalized) && !"LOGIN".equals(normalized) && !"CHANGE_PHONE".equals(normalized)
+                && !"VERIFY_CURRENT".equals(normalized)) {
             throw new ServiceException("验证码场景不正确");
         }
         return normalized;

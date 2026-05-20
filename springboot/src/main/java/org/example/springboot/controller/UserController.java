@@ -7,12 +7,21 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.example.springboot.common.Result;
+import org.example.springboot.dto.EmailBindCodeDTO;
+import org.example.springboot.dto.EmailBindConfirmDTO;
+import org.example.springboot.dto.PhoneChangeCodeDTO;
+import org.example.springboot.dto.PhoneChangeConfirmDTO;
 import org.example.springboot.entity.User;
+import org.example.springboot.exception.ServiceException;
 import org.example.springboot.DTO.UserPasswordUpdateDTO;
 import org.example.springboot.mapper.UserMapper;
 import org.example.springboot.service.EmailService;
+import org.example.springboot.service.AuthConfigService;
+import org.example.springboot.service.GeetestCaptchaService;
+import org.example.springboot.service.SmsCodeService;
 import org.example.springboot.service.UserService;
 import org.example.springboot.util.JwtTokenUtils;
+import org.example.springboot.security.RolePermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,21 +45,30 @@ public class UserController {
     private UserMapper userMapper;
     @Resource
     private EmailService emailService;
+    @Resource
+    private SmsCodeService smsCodeService;
+    @Resource
+    private AuthConfigService authConfigService;
+    @Resource
+    private GeetestCaptchaService geetestCaptchaService;
 
     @Operation(summary = "根据id获取用户信息")
     @GetMapping("/{id}")
     public Result<?> getById(@PathVariable Long id) {
-        // 如果用户不存在会抛出异常，由全局异常处理器处理
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null || (!RolePermission.isAdmin(currentUser) && !currentUser.getId().equals(id))) {
+            throw new ServiceException("无权限");
+        }
         User user = userService.getUserById(id);
-        return Result.success(user);
+        return Result.success(userService.attachRoleInfo(user));
     }
 
     @Operation(summary = "根据username获取用户信息")
     @GetMapping("/username/{username}")
     public Result<?> getUserByUsername(@PathVariable String username) {
-        // 不存在的用户会抛出异常
+        requireAdmin();
         User user = userService.getByUsername(username);
-        return Result.success(user);
+        return Result.success(userService.attachRoleInfo(user));
     }
 
     @Operation(summary = "登录")
@@ -73,7 +91,10 @@ public class UserController {
     @Operation(summary = "密码修改")
     @PutMapping("/password/{id}")
     public Result<?> updatePassword(@PathVariable Long id, @RequestBody UserPasswordUpdateDTO userPasswordUpdate) {
-        // 密码修改失败会抛出异常
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null || !currentUser.getId().equals(id)) {
+            throw new ServiceException("只能修改当前登录账号的密码");
+        }
         userService.updatePassword(id, userPasswordUpdate);
         return Result.success("密码修改成功");
     }
@@ -90,56 +111,171 @@ public class UserController {
     @GetMapping("/page")
     public Result<?> getUsersByPage(
             @RequestParam(defaultValue = "") String username,
+            @RequestParam(defaultValue = "") String phone,
             @RequestParam(defaultValue = "") String sex,
             @RequestParam(defaultValue = "") String nickname,
             @RequestParam(defaultValue = "") String roleCode,
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "10") Integer size) {
-        Page<User> page = userService.getUsersByPage(username, sex, nickname, roleCode, currentPage, size);
+        requireAdmin();
+        Page<User> page = userService.getUsersByPage(username, phone, sex, nickname, roleCode, currentPage, size);
         return Result.success(page);
     }
 
     @Operation(summary = "根据角色获取用户列表")
     @GetMapping("/role/{roleCode}")
     public Result<?> getUserByRole(@PathVariable String roleCode) {
+        requireAdmin();
         List<User> users = userService.getUserByRole(roleCode);
+        users.forEach(userService::attachRoleInfo);
         return Result.success(users);
     }
 
     @Operation(summary = "批量删除用户")
     @DeleteMapping("/deleteBatch")
     public Result<?> deleteBatch(@RequestParam List<Integer> ids) {
-        userService.deleteBatch(ids);
+        User currentUser = requireAdmin();
+        for (Integer id : ids) {
+            userService.deleteUserById(Long.valueOf(id), currentUser);
+        }
         return Result.success("批量删除成功");
     }
 
     @Operation(summary = "获取所有用户")
     @GetMapping("/all")
     public Result<?> getUserList() {
+        requireAdmin();
         List<User> list = userService.getUserList();
+        list.forEach(userService::attachRoleInfo);
         return Result.success(list);
     }
 
     @Operation(summary = "创建新用户")
     @PostMapping("/add")
     public Result<?> createUser(@RequestBody  User user) {
-        userService.createUser(user);
+        User currentUser = requireAdmin();
+        userService.createUser(user, currentUser);
         return Result.success("创建成功");
     }
 
     @Operation(summary = "更新用户信息")
     @PutMapping("/{id}")
     public Result<?> updateUser(@PathVariable Long id, @RequestBody User user) {
-        // 更新失败会抛出具体原因的异常
-        userService.updateUser(id, user);
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null) {
+            throw new ServiceException("请先登录");
+        }
+        if (currentUser.getId().equals(id)) {
+            User updated = userService.updateOwnProfile(id, user);
+            return Result.success("个人信息更新成功", userService.attachRoleInfo(updated));
+        }
+        if (!RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("只能修改自己的个人资料");
+        }
+        userService.updateUser(id, user, currentUser);
         return Result.success("更新成功");
+    }
+
+    @Operation(summary = "更新当前用户基础资料")
+    @PutMapping("/profile")
+    public Result<?> updateProfile(@RequestBody User user) {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null) {
+            throw new ServiceException("请先登录");
+        }
+        User updated = userService.updateOwnProfile(currentUser.getId(), user);
+        return Result.success("个人信息更新成功", userService.attachRoleInfo(updated));
+    }
+
+    @Operation(summary = "发送邮箱绑定验证码")
+    @PostMapping("/email/bind/code")
+    public Result<?> sendEmailBindCode(@RequestBody EmailBindCodeDTO dto) {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null) {
+            throw new ServiceException("请先登录");
+        }
+        if (userService.existsByEmail(dto.getEmail())) {
+            User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, dto.getEmail().trim().toLowerCase()));
+            if (user != null && !user.getId().equals(currentUser.getId())) {
+                throw new ServiceException("该邮箱已被其他账号绑定");
+            }
+        }
+        geetestCaptchaService.verify(authConfigService.getGeetestConfigForVerify(), dto.getGeetest());
+        emailService.sendVerificationCodeAsync(dto.getEmail());
+        return Result.success("邮箱验证码已发送，请注意查收");
+    }
+
+    @Operation(summary = "确认绑定邮箱")
+    @PostMapping("/email/bind/confirm")
+    public Result<?> confirmEmailBind(@RequestBody EmailBindConfirmDTO dto) {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null) {
+            throw new ServiceException("请先登录");
+        }
+        if (!emailService.verifyCode(dto.getEmail(), "EMAIL_BIND", dto.getCode())) {
+            throw new ServiceException("邮箱验证码错误或已过期");
+        }
+        userService.bindEmail(currentUser.getId(), dto.getEmail());
+        return Result.success("邮箱绑定成功");
+    }
+
+    @Operation(summary = "发送手机号变更验证码")
+    @PostMapping("/phone/change/code")
+    public Result<?> sendPhoneChangeCode(@RequestBody PhoneChangeCodeDTO dto) {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null) {
+            throw new ServiceException("请先登录");
+        }
+        smsCodeService.validatePhone(dto.getPhone());
+        User existUser = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, dto.getPhone()));
+        if (existUser != null && !existUser.getId().equals(currentUser.getId())) {
+            throw new ServiceException("该手机号已被其他账号绑定");
+        }
+        geetestCaptchaService.verify(authConfigService.getGeetestConfigForVerify(), dto.getGeetest());
+        smsCodeService.sendCode(dto.getPhone(), "CHANGE_PHONE");
+        return Result.success("短信验证码已发送，请注意查收");
+    }
+
+    @Operation(summary = "发送当前绑定手机号验证码")
+    @PostMapping("/phone/current/code")
+    public Result<?> sendCurrentPhoneCode(@RequestBody PhoneChangeCodeDTO dto) {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null) {
+            throw new ServiceException("请先登录");
+        }
+        User latest = userService.getUserById(currentUser.getId());
+        if (!StringUtils.hasText(latest.getPhone())) {
+            throw new ServiceException("当前账号未绑定手机号");
+        }
+        geetestCaptchaService.verify(authConfigService.getGeetestConfigForVerify(), dto.getGeetest());
+        smsCodeService.sendCode(latest.getPhone(), "VERIFY_CURRENT");
+        return Result.success("当前手机号验证码已发送，请注意查收");
+    }
+
+    @Operation(summary = "确认变更手机号")
+    @PostMapping("/phone/change/confirm")
+    public Result<?> confirmPhoneChange(@RequestBody PhoneChangeConfirmDTO dto) {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null) {
+            throw new ServiceException("请先登录");
+        }
+        User latest = userService.getUserById(currentUser.getId());
+        if (RolePermission.isSuperAdmin(latest)) {
+            if (!StringUtils.hasText(latest.getPhone())) {
+                throw new ServiceException("超级管理员必须先绑定手机号");
+            }
+            smsCodeService.verifyCode(latest.getPhone(), "VERIFY_CURRENT", dto.getCurrentSmsCode());
+        }
+        smsCodeService.verifyCode(dto.getPhone(), "CHANGE_PHONE", dto.getSmsCode());
+        userService.changePhone(currentUser.getId(), dto.getPhone());
+        return Result.success("手机号变更成功");
     }
 
     @Operation(summary = "根据id删除用户")
     @DeleteMapping("/delete/{id}")
     public Result<?> deleteUserById(@PathVariable Long id) {
-        // 删除失败会抛出异常
-        userService.deleteUserById(id);
+        User currentUser = requireAdmin();
+        userService.deleteUserById(id, currentUser);
         return Result.success("删除成功");
     }
 
@@ -150,14 +286,18 @@ public class UserController {
         if (currentUser == null) {
             return Result.error("获取当前用户信息失败，请重新登录");
         }
-        return Result.success(currentUser);
+        return Result.success(userService.attachRoleInfo(currentUser));
     }
     @Operation(summary = "修改用户状态")
     @PutMapping("/status/{userId}")
     public Result<?> updateStatus(@PathVariable Long userId, @RequestParam Integer status) {
+        User currentUser = requireAdmin();
         User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new ServiceException("用户不存在");
+        }
         user.setStatus(status);
-        userService.updateUser(userId,user);
+        userService.updateUser(userId, user, currentUser);
         return Result.success();
 
     }
@@ -166,10 +306,10 @@ public class UserController {
     @PutMapping("/resetPassword/{id}")
     public Result<?> resetPassword(@PathVariable Long id, @RequestBody UserPasswordUpdateDTO dto) {
         var currentUser = org.example.springboot.util.JwtTokenUtils.getCurrentUser();
-        if (currentUser == null || !"ADMIN".equals(currentUser.getRoleCode())) {
+        if (!RolePermission.isAdmin(currentUser)) {
             return Result.error("无权限");
         }
-        userService.resetPassword(id, dto.getNewPassword());
+        userService.resetPassword(id, dto.getNewPassword(), currentUser);
         return Result.success("重置密码成功");
     }
 
@@ -196,7 +336,7 @@ public class UserController {
     @GetMapping("/online/list")
     public Result<?> getOnlineUserList() {
         var currentUser = JwtTokenUtils.getCurrentUser();
-        if (currentUser == null || !"ADMIN".equals(currentUser.getRoleCode())) {
+        if (!RolePermission.isAdmin(currentUser)) {
             return Result.error("无权限");
         }
         
@@ -325,5 +465,13 @@ public class UserController {
         // 实现数据库查询逻辑，返回是否存在该用户名
 
         return userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getUsername,username))>0;
+    }
+
+    private User requireAdmin() {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (!RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("无权限");
+        }
+        return currentUser;
     }
 }

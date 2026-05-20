@@ -8,6 +8,7 @@ import org.example.springboot.annotation.OperationLog;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.SensitiveWord;
 import org.example.springboot.entity.User;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.service.SensitiveWordService;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -148,6 +149,6 @@ public class SensitiveWordController {
 
     private boolean isAdmin() {
         User currentUser = JwtTokenUtils.getCurrentUser();
-        return currentUser != null && "ADMIN".equals(currentUser.getRoleCode());
+        return RolePermission.isAdmin(currentUser);
     }
 }

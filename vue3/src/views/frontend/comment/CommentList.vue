@@ -66,7 +66,7 @@ import { useRoute } from 'vue-router'
 const userStore = useUserStore()
 const route = useRoute()
 const isLoggedIn = computed(() => !!userStore.token)
-const isAdmin = computed(() => userStore.role === 'ADMIN')
+const isAdmin = computed(() => userStore.isAdmin)
 const userId = computed(() => userStore.userInfo?.id)
 
 const scenicId = computed(() => Number(route.params.id) || route.query.scenicId)

@@ -2,13 +2,18 @@ package org.example.springboot.service;
 
 import jakarta.annotation.Resource;
 import org.example.springboot.DTO.EmailMessageDTO;
+import org.example.springboot.dto.EmailSmtpConfigDTO;
+import org.example.springboot.exception.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
+import java.time.Instant;
+import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,13 +25,14 @@ public class EmailService {
     
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
     
-    private static final ConcurrentHashMap<String, String> EMAIL_CODE_MAP = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, CodeInfo> EMAIL_CODE_MAP = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Long> EMAIL_SENT_AT_MAP = new ConcurrentHashMap<>();
     
     @Resource
     private JavaMailSender javaMailSender;
-    
-    @Value("${user.fromEmail}")
-    private String fromEmail;
+
+    @Resource
+    private AuthConfigService authConfigService;
     
     /**
      * 发送验证码邮件（同步）
@@ -35,20 +41,7 @@ public class EmailService {
      * @return 验证码
      */
     public String sendVerificationCodeAsync(String email) {
-        String code = generateVerificationCode();
-        
-        // 存储验证码
-        EMAIL_CODE_MAP.put(email, code);
-        
-        // 创建邮件消息DTO
-        EmailMessageDTO emailMessage = EmailMessageDTO.createVerifyCodeEmail(email, code);
-        
-        // 直接同步发送邮件
-        sendEmail(emailMessage);
-        
-        logger.info("发送验证码邮件：{}，验证码：{}", email, code);
-        
-        return code;
+        return sendCodeEmail(email, "EMAIL_BIND", "绑定邮箱验证码");
     }
     
     /**
@@ -58,20 +51,7 @@ public class EmailService {
      * @return 验证码
      */
     public String sendResetPasswordEmailAsync(String email) {
-        String code = generateVerificationCode();
-        
-        // 存储验证码
-        EMAIL_CODE_MAP.put(email, code);
-        
-        // 创建邮件消息DTO
-        EmailMessageDTO emailMessage = EmailMessageDTO.createResetPasswordEmail(email, code);
-        
-        // 直接同步发送邮件
-        sendEmail(emailMessage);
-        
-        logger.info("发送密码重置邮件：{}，验证码：{}", email, code);
-        
-        return code;
+        return sendCodeEmail(email, "RESET_PASSWORD", "密码重置验证码");
     }
     
     /**
@@ -98,18 +78,20 @@ public class EmailService {
      */
     public void sendEmail(EmailMessageDTO emailMessage) {
         try {
+            EmailSmtpConfigDTO config = authConfigService.getEmailConfigForSend();
+            JavaMailSender sender = createMailSender(config);
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
+            message.setFrom(config.getFromEmail());
             message.setTo(emailMessage.getTo());
             message.setSubject(emailMessage.getSubject());
             message.setText(emailMessage.getContent());
             
-            javaMailSender.send(message);
+            sender.send(message);
             
             logger.info("邮件发送成功：{}", emailMessage.getTo());
         } catch (Exception e) {
             logger.error("邮件发送失败：{}", e.getMessage(), e);
-            throw new RuntimeException("邮件发送失败：" + e.getMessage());
+            throw new ServiceException("邮件发送失败：" + e.getMessage());
         }
     }
     
@@ -121,15 +103,21 @@ public class EmailService {
      * @return 是否验证成功
      */
     public boolean verifyCode(String email, String code) {
-        String storedCode = EMAIL_CODE_MAP.get(email);
-        
-        if (storedCode != null && storedCode.equals(code)) {
-            // 验证成功后移除验证码
-            EMAIL_CODE_MAP.remove(email);
-            return true;
+        return verifyCode(email, "EMAIL_BIND", code);
+    }
+
+    public boolean verifyCode(String email, String scene, String code) {
+        String key = codeKey(email, scene);
+        CodeInfo codeInfo = EMAIL_CODE_MAP.get(key);
+        if (codeInfo == null || codeInfo.expireAt < Instant.now().toEpochMilli()) {
+            EMAIL_CODE_MAP.remove(key);
+            return false;
         }
-        
-        return false;
+        if (!codeInfo.code.equals(code)) {
+            return false;
+        }
+        EMAIL_CODE_MAP.remove(key);
+        return true;
     }
     
     /**
@@ -140,5 +128,59 @@ public class EmailService {
     private String generateVerificationCode() {
         Random random = new Random();
         return String.format("%06d", random.nextInt(1000000));
+    }
+
+    private String sendCodeEmail(String email, String scene, String subject) {
+        validateEmail(email);
+        EmailSmtpConfigDTO config = authConfigService.getEmailConfigForSend();
+        if (!Boolean.TRUE.equals(config.getEnabled()) || !Boolean.TRUE.equals(config.getConfigured())) {
+            throw new ServiceException("邮件服务未启用或未完成配置，请联系管理员");
+        }
+        String key = codeKey(email, scene);
+        Long sentUntil = EMAIL_SENT_AT_MAP.get(key);
+        if (sentUntil != null && sentUntil > Instant.now().toEpochMilli()) {
+            throw new ServiceException(config.getSendIntervalSeconds() + "秒内请勿重复获取邮箱验证码");
+        }
+
+        String code = generateVerificationCode();
+        long expireAt = Instant.now().plusSeconds(config.getCodeExpireMinutes() * 60L).toEpochMilli();
+        EMAIL_CODE_MAP.put(key, new CodeInfo(code, expireAt));
+        EMAIL_SENT_AT_MAP.put(key, Instant.now().plusSeconds(config.getSendIntervalSeconds()).toEpochMilli());
+
+        sendEmail(EmailMessageDTO.createNotificationEmail(email, subject,
+                "您的验证码为：" + code + "，" + config.getCodeExpireMinutes() + "分钟内有效。请勿向任何人泄露验证码。"));
+        logger.info("邮箱验证码已发送：{}，scene={}", email, scene);
+        return code;
+    }
+
+    private JavaMailSender createMailSender(EmailSmtpConfigDTO config) {
+        JavaMailSenderImpl sender = new JavaMailSenderImpl();
+        sender.setHost(config.getHost());
+        sender.setPort(config.getPort());
+        sender.setUsername(config.getUsername());
+        sender.setPassword(config.getPassword());
+        sender.setDefaultEncoding("UTF-8");
+        Properties properties = sender.getJavaMailProperties();
+        properties.put("mail.transport.protocol", StringUtils.hasText(config.getProtocol()) ? config.getProtocol() : "smtp");
+        properties.put("mail.smtp.auth", "true");
+        properties.put("mail.smtp.ssl.enable", String.valueOf(Boolean.TRUE.equals(config.getSslEnabled())));
+        properties.put("mail.smtp.starttls.enable", String.valueOf(!Boolean.TRUE.equals(config.getSslEnabled())));
+        properties.put("mail.smtp.connectiontimeout", "10000");
+        properties.put("mail.smtp.timeout", "10000");
+        properties.put("mail.smtp.writetimeout", "10000");
+        return sender;
+    }
+
+    private void validateEmail(String email) {
+        if (!StringUtils.hasText(email) || !email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+            throw new ServiceException("请输入正确的邮箱地址");
+        }
+    }
+
+    private String codeKey(String email, String scene) {
+        return scene + ":" + email.trim().toLowerCase();
+    }
+
+    private record CodeInfo(String code, long expireAt) {
     }
 }

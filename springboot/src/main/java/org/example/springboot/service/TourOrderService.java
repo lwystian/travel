@@ -8,6 +8,7 @@ import org.example.springboot.DTO.TourOrderCreateDTO;
 import org.example.springboot.entity.*;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.*;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.util.JwtTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -339,7 +340,7 @@ public class TourOrderService {
         if (currentUser == null) {
             throw new ServiceException("用户未登录");
         }
-        if (!order.getUserId().equals(currentUser.getId()) && !"ADMIN".equals(currentUser.getRoleCode())) {
+        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
             throw new ServiceException("无权操作此订单");
         }
 
@@ -388,7 +389,7 @@ public class TourOrderService {
         if (currentUser == null) {
             throw new ServiceException("用户未登录");
         }
-        if (!order.getUserId().equals(currentUser.getId()) && !"ADMIN".equals(currentUser.getRoleCode())) {
+        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
             throw new ServiceException("无权操作此订单");
         }
 
@@ -426,7 +427,7 @@ public class TourOrderService {
         }
 
         User currentUser = JwtTokenUtils.getCurrentUser();
-        if (!"ADMIN".equals(currentUser.getRoleCode())) {
+        if (!RolePermission.isAdmin(currentUser)) {
             throw new ServiceException("只有管理员可以执行退款操作");
         }
 
@@ -492,7 +493,7 @@ public class TourOrderService {
         if (currentUser == null) {
             throw new ServiceException("用户未登录");
         }
-        if (!order.getUserId().equals(currentUser.getId()) && !"ADMIN".equals(currentUser.getRoleCode())) {
+        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
             throw new ServiceException("无权查看此订单");
         }
 
@@ -597,7 +598,7 @@ public class TourOrderService {
         if (currentUser == null) {
             throw new ServiceException("用户未登录");
         }
-        if (!order.getUserId().equals(currentUser.getId()) && !"ADMIN".equals(currentUser.getRoleCode())) {
+        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
             throw new ServiceException("无权操作此订单");
         }
 

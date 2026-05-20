@@ -145,6 +145,12 @@ const frontendRoutes = [
         meta: { title: '首页' }
       },
       {
+        path: 'about',
+        name: 'About',
+        component: () => import('@/views/frontend/About.vue'),
+        meta: { title: '关于侠客行' }
+      },
+      {
         path: 'profile',
         name: 'Profile',
         component: () => import('@/views/frontend/profile/index.vue'),

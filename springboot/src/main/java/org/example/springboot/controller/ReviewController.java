@@ -11,6 +11,7 @@ import org.example.springboot.dto.ReviewRequestDTO;
 import org.example.springboot.entity.Comment;
 import org.example.springboot.entity.TravelGuide;
 import org.example.springboot.entity.User;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.service.ContentReviewService;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.*;
@@ -253,7 +254,7 @@ public class ReviewController {
         if (currentUser == null) {
             throw new org.example.springboot.exception.ServiceException("请先登录");
         }
-        if (!"ADMIN".equals(currentUser.getRoleCode())) {
+        if (!RolePermission.isAdmin(currentUser)) {
             throw new org.example.springboot.exception.ServiceException("无权限访问，需要管理员权限");
         }
         return currentUser;

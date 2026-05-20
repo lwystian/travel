@@ -22,6 +22,12 @@ import {
 } from '@/utils/geetest'
 
 const emit = defineEmits(['verified', 'error', 'ready', 'unavailable'])
+const props = defineProps({
+  successText: {
+    type: String,
+    default: '验证已通过，可以发送验证码'
+  }
+})
 
 const captchaRef = ref(null)
 const loading = ref(true)
@@ -33,7 +39,7 @@ let captchaId = ''
 let initTimer = null
 
 const statusText = computed(() => {
-  if (status.value === 'success') return '验证已通过，可以发送短信验证码'
+  if (status.value === 'success') return props.successText
   if (status.value === 'error') return '验证不可用，请检查极验配置'
   if (status.value === 'ready') return '请先点击上方按钮完成验证'
   return '正在准备安全验证'

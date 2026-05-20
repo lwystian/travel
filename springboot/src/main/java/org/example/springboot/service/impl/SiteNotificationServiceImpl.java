@@ -9,6 +9,7 @@ import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.SiteNotificationMapper;
 import org.example.springboot.mapper.UserMapper;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.service.SiteNotificationService;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.stereotype.Service;
@@ -46,7 +47,7 @@ public class SiteNotificationServiceImpl extends ServiceImpl<SiteNotificationMap
     @Override
     public void sendToAdmins(String title, String content, String type, String businessType, String businessId, String linkUrl) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(User::getRoleCode, "ADMIN").eq(User::getStatus, 1);
+        wrapper.in(User::getRoleCode, List.of(RolePermission.SUPER_ADMIN, RolePermission.ADMIN)).eq(User::getStatus, 1);
         List<Long> adminIds = userMapper.selectList(wrapper).stream().map(User::getId).toList();
         sendToUsers(adminIds, title, content, type, businessType, businessId, linkUrl);
     }
@@ -105,7 +106,7 @@ public class SiteNotificationServiceImpl extends ServiceImpl<SiteNotificationMap
         notification.setBusinessId(businessId);
         notification.setLinkUrl(linkUrl);
         notification.setReadStatus(0);
-        notification.setSenderType(sender == null ? "SYSTEM" : "ADMIN".equals(sender.getRoleCode()) ? "ADMIN" : "USER");
+        notification.setSenderType(sender == null ? "SYSTEM" : RolePermission.isAdmin(sender) ? "ADMIN" : "USER");
         notification.setSenderId(sender == null ? null : sender.getId());
         notification.setSenderName(sender == null ? "系统" : sender.getUsername());
         notification.setStatus(1);

@@ -9,6 +9,7 @@ import org.example.springboot.entity.User;
 import org.example.springboot.mapper.AccommodationMapper;
 import org.example.springboot.mapper.AccommodationReviewMapper;
 import org.example.springboot.mapper.UserMapper;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.stereotype.Service;
 
@@ -186,7 +187,7 @@ public class AccommodationReviewService {
         // 检查权限（只有管理员或评价的发布者可以删除）
         User currentUser = JwtTokenUtils.getCurrentUser();
         if (currentUser == null || 
-            (!currentUser.getRoleCode().equals("ADMIN") && !currentUser.getId().equals(review.getUserId().longValue()))) {
+            (!RolePermission.isAdmin(currentUser) && !currentUser.getId().equals(review.getUserId().longValue()))) {
             return false;
         }
         

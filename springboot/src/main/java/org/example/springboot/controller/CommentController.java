@@ -9,6 +9,7 @@ import org.example.springboot.entity.Comment;
 import org.example.springboot.entity.ScenicSpot;
 import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.service.CommentLikeService;
 import org.example.springboot.service.CommentService;
 import org.example.springboot.service.ScenicSpotService;
@@ -120,7 +121,10 @@ public class CommentController {
     @DeleteMapping("/delete/{id}")
     public Result<?> deleteComment(@PathVariable Long id) {
         var user = JwtTokenUtils.getCurrentUser();
-        boolean isAdmin = user != null && "ADMIN".equals(user.getRoleCode());
+        if (user == null) {
+            throw new ServiceException("请先登录");
+        }
+        boolean isAdmin = RolePermission.isAdmin(user);
         commentService.deleteComment(id, user.getId(), isAdmin);
         return Result.success("删除成功");
     }
@@ -142,7 +146,7 @@ public class CommentController {
 
         // 检查审核状态
         User currentUser = JwtTokenUtils.getCurrentUser();
-        boolean isAdmin = currentUser != null && "ADMIN".equals(currentUser.getRoleCode());
+        boolean isAdmin = RolePermission.isAdmin(currentUser);
         boolean isOwner = currentUser != null && currentUser.getId().equals(comment.getUserId());
 
         // 管理员或作者本人可以查看所有评论

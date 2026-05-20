@@ -6,7 +6,9 @@ import jakarta.annotation.Resource;
 import org.example.springboot.annotation.OperationLog;
 import org.example.springboot.common.Result;
 import org.example.springboot.dto.AliyunSmsConfigDTO;
+import org.example.springboot.dto.EmailSmtpConfigDTO;
 import org.example.springboot.dto.GeetestConfigDTO;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.service.AuthConfigService;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.*;
@@ -50,9 +52,25 @@ public class AuthConfigController {
         return Result.success("保存成功");
     }
 
+    @Operation(summary = "获取SMTP邮件配置")
+    @GetMapping("/email")
+    public Result<EmailSmtpConfigDTO> getEmailConfig() {
+        requireAdmin();
+        return Result.success(authConfigService.getEmailConfigForAdmin());
+    }
+
+    @Operation(summary = "保存SMTP邮件配置")
+    @OperationLog(operationType = "UPDATE", description = "保存SMTP邮件配置", targetType = "认证配置")
+    @PostMapping("/email")
+    public Result<?> saveEmailConfig(@RequestBody EmailSmtpConfigDTO dto) {
+        requireAdmin();
+        authConfigService.saveEmailConfig(dto);
+        return Result.success("保存成功");
+    }
+
     private void requireAdmin() {
         var user = JwtTokenUtils.getCurrentUser();
-        if (user == null || !"ADMIN".equals(user.getRoleCode())) {
+        if (!RolePermission.isAdmin(user)) {
             throw new org.example.springboot.exception.ServiceException("无权限");
         }
     }

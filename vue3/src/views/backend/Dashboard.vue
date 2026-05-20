@@ -90,6 +90,7 @@ const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 // 角色标签
 const roleLabel = computed(() => {
   const roleMap = {
+    'SUPER_ADMIN': '超级管理员',
     'ADMIN': '系统管理员',
     'USER': '普通用户'
   }

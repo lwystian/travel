@@ -18,10 +18,17 @@ export const useUserStore = defineStore('user', {
   getters: {
     // 判断是否登录
     isLoggedIn: (state) => !!state.token,
-    // 判断是否是管理员
-    isAdmin: (state) => state.userInfo?.roleCode === 'ADMIN',
+    // 判断是否是后台管理员（超级管理员也属于后台管理员）
+    isAdmin: (state) => ['SUPER_ADMIN', 'ADMIN'].includes(state.userInfo?.roleCode),
+    // 判断是否是超级管理员
+    isSuperAdmin: (state) => state.userInfo?.roleCode === 'SUPER_ADMIN',
     // 判断是否是普通用户
     isUser: (state) => state.userInfo?.roleCode === 'USER',
+    permissions: (state) => state.userInfo?.permissions || [],
+    hasPermission: (state) => (permission) => {
+      const permissions = state.userInfo?.permissions || []
+      return permissions.includes(permission)
+    },
     // 判断token是否过期
     isTokenExpired: (state) => {
       if (!state.tokenExpire) return !state.token
@@ -42,7 +49,7 @@ export const useUserStore = defineStore('user', {
       
       this.userInfo = data.userInfo || data
       this.token = data.token
-      this.role = data.roleCode
+      this.role = this.userInfo?.roleCode || data.roleCode
       
       // 存储到 LocalStorage
       localStorage.setItem('userInfo', JSON.stringify(this.userInfo))

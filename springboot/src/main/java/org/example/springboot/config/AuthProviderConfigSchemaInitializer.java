@@ -34,6 +34,7 @@ public class AuthProviderConfigSchemaInitializer {
 
             ensureDefault("aliyun_sms", "阿里云短信", "用于登录注册短信验证码发送");
             ensureDefault("geetest", "极验验证", "用于短信发送前的人机验证");
+            ensureDefault("email_smtp", "SMTP邮件", "用于邮箱绑定和邮件验证码发送");
         } catch (Exception e) {
             LOGGER.warn("初始化认证配置表失败", e);
         }

@@ -8,6 +8,7 @@ import org.example.springboot.common.Result;
 import org.example.springboot.entity.SiteNotification;
 import org.example.springboot.entity.User;
 import org.example.springboot.mapper.UserMapper;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.service.SiteNotificationService;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -64,7 +65,7 @@ public class SiteNotificationController {
     @OperationLog(operationType = "CREATE", description = "发送站内消息", targetType = "站内消息")
     public Result<?> adminSend(@RequestBody Map<String, Object> body) {
         User currentUser = JwtTokenUtils.getCurrentUser();
-        if (currentUser == null || !"ADMIN".equals(currentUser.getRoleCode())) {
+        if (!RolePermission.isAdmin(currentUser)) {
             return Result.error("无权限发送站内消息");
         }
         String title = String.valueOf(body.getOrDefault("title", "系统通知"));
@@ -74,7 +75,7 @@ public class SiteNotificationController {
             siteNotificationService.sendToAdmins(title, content, "ADMIN", "ADMIN_NOTICE", null, null);
         } else if ("USER".equals(target)) {
             List<Long> userIds = userMapper.selectList(null).stream()
-                    .filter(user -> !"ADMIN".equals(user.getRoleCode()))
+                    .filter(user -> !RolePermission.isAdmin(user))
                     .map(User::getId)
                     .toList();
             siteNotificationService.sendToUsers(userIds, title, content, "ADMIN", "ADMIN_NOTICE", null, null);
@@ -140,7 +141,7 @@ public class SiteNotificationController {
 
     private boolean isAdmin() {
         User currentUser = JwtTokenUtils.getCurrentUser();
-        return currentUser != null && "ADMIN".equals(currentUser.getRoleCode());
+        return RolePermission.isAdmin(currentUser);
     }
 
     private Integer parseInteger(String value) {

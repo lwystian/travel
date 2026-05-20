@@ -15,3 +15,11 @@ export function getGeetestConfig() {
 export function saveGeetestConfig(data, config = {}) {
   return request.post('/auth/config/geetest', data, config)
 }
+
+export function getEmailConfig() {
+  return request.get('/auth/config/email')
+}
+
+export function saveEmailConfig(data, config = {}) {
+  return request.post('/auth/config/email', data, config)
+}

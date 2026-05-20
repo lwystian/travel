@@ -338,7 +338,7 @@ const reviewRules = {
 // 检查是否为当前用户评价或管理员
 const canDelete = (review) => {
   if (!userStore.userInfo) return false
-  return userStore.userInfo.id === review.userId || userStore.userInfo.roleCode === 'ADMIN'
+  return userStore.userInfo.id === review.userId || userStore.isAdmin
 }
 
 // 格式化评价数量

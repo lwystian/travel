@@ -235,7 +235,8 @@ const submitLogin = async () => {
       : await loginByPhoneCode({ ...codeForm, agreementAccepted: true }, { showDefaultMsg: false })
     userStore.setUserInfo(data)
     ElMessage.success('登录成功')
-    const redirect = route.query.redirect || (data.roleCode === 'ADMIN' ? '/back/dashboard' : '/')
+    const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(data.roleCode)
+    const redirect = route.query.redirect || (isAdmin ? '/back/dashboard' : '/')
     router.push(redirect)
   } catch (err) {
     ElMessage.error(err.message || '登录失败')

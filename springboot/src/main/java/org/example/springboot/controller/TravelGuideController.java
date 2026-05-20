@@ -8,6 +8,7 @@ import org.example.springboot.common.Result;
 import org.example.springboot.entity.TravelGuide;
 import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.service.TravelGuideService;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.*;
@@ -43,7 +44,7 @@ public class TravelGuideController {
 
         // 检查审核状态
         User currentUser = JwtTokenUtils.getCurrentUser();
-        boolean isAdmin = currentUser != null && "ADMIN".equals(currentUser.getRoleCode());
+        boolean isAdmin = RolePermission.isAdmin(currentUser);
         boolean isOwner = currentUser != null && currentUser.getId().equals(guide.getUserId());
 
         // 管理员或作者本人可以查看所有攻略

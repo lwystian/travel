@@ -417,7 +417,7 @@ const hasSuggestions = computed(() => {
 let searchDebounceTimer = null
 
 const isLoggedIn = computed(() => !!userStore.token)
-const userName = computed(() => userStore.userInfo?.name || userStore.userInfo?.username || '')
+const userName = computed(() => userStore.userInfo?.nickname || userStore.userInfo?.name || userStore.userInfo?.username || '')
 
 // 计算当前激活的菜单索引
 const activeMenuIndex = computed(() => {

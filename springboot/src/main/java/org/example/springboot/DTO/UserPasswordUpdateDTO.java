@@ -10,4 +10,6 @@ public class UserPasswordUpdateDTO {
     private String oldPassword;
     @Schema(description = "新密码")
     private String newPassword;
+    @Schema(description = "当前绑定手机号验证码，超级管理员修改密码必填")
+    private String currentPhoneCode;
 }

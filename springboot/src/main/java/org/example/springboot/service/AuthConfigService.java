@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.springboot.dto.AliyunSmsConfigDTO;
+import org.example.springboot.dto.EmailSmtpConfigDTO;
 import org.example.springboot.dto.GeetestConfigDTO;
 import org.example.springboot.entity.AuthProviderConfig;
 import org.example.springboot.exception.ServiceException;
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 public class AuthConfigService extends ServiceImpl<AuthProviderConfigMapper, AuthProviderConfig> {
     public static final String TYPE_ALIYUN_SMS = "aliyun_sms";
     public static final String TYPE_GEETEST = "geetest";
+    public static final String TYPE_EMAIL_SMTP = "email_smtp";
 
     public AliyunSmsConfigDTO getSmsConfigForAdmin() {
         AliyunSmsConfigDTO config = getSmsConfig(false);
@@ -45,6 +47,19 @@ public class AuthConfigService extends ServiceImpl<AuthProviderConfigMapper, Aut
         return getGeetestConfig(true);
     }
 
+    public EmailSmtpConfigDTO getEmailConfigForAdmin() {
+        EmailSmtpConfigDTO config = getEmailConfig(true);
+        if (StringUtils.hasText(config.getPassword())) {
+            config.setConfigured(true);
+            config.setPassword("");
+        }
+        return config;
+    }
+
+    public EmailSmtpConfigDTO getEmailConfigForSend() {
+        return getEmailConfig(true);
+    }
+
     public GeetestConfigDTO getGeetestPublicConfig() {
         GeetestConfigDTO config = getGeetestConfig(false);
         config.setCaptchaKey(null);
@@ -68,6 +83,16 @@ public class AuthConfigService extends ServiceImpl<AuthProviderConfigMapper, Aut
             dto.setCaptchaKey(oldConfig.getCaptchaKey());
         }
         saveConfig(TYPE_GEETEST, "极验验证", Boolean.TRUE.equals(dto.getEnabled()), JSON.toJSONString(dto), "用于短信发送前的人机验证");
+    }
+
+    @Transactional
+    public void saveEmailConfig(EmailSmtpConfigDTO dto) {
+        EmailSmtpConfigDTO oldConfig = getEmailConfig(true);
+        if (!StringUtils.hasText(dto.getPassword())) {
+            dto.setPassword(oldConfig.getPassword());
+        }
+        fillEmailDefaults(dto);
+        saveConfig(TYPE_EMAIL_SMTP, "SMTP邮件", Boolean.TRUE.equals(dto.getEnabled()), JSON.toJSONString(dto), "用于邮箱绑定和邮件验证码发送");
     }
 
     private AliyunSmsConfigDTO getSmsConfig(boolean includeSecret) {
@@ -96,6 +121,22 @@ public class AuthConfigService extends ServiceImpl<AuthProviderConfigMapper, Aut
         return dto;
     }
 
+    private EmailSmtpConfigDTO getEmailConfig(boolean includeSecret) {
+        AuthProviderConfig entity = getOrCreate(TYPE_EMAIL_SMTP, "SMTP邮件", "用于邮箱绑定和邮件验证码发送");
+        EmailSmtpConfigDTO dto = parse(entity.getConfigData(), EmailSmtpConfigDTO.class, new EmailSmtpConfigDTO());
+        dto.setEnabled(Boolean.TRUE.equals(entity.getEnabled()));
+        fillEmailDefaults(dto);
+        dto.setConfigured(StringUtils.hasText(dto.getHost())
+                && dto.getPort() != null
+                && StringUtils.hasText(dto.getUsername())
+                && StringUtils.hasText(dto.getPassword())
+                && StringUtils.hasText(dto.getFromEmail()));
+        if (!includeSecret) {
+            dto.setPassword(null);
+        }
+        return dto;
+    }
+
     private void fillSmsDefaults(AliyunSmsConfigDTO dto) {
         if (!StringUtils.hasText(dto.getRegionId())) {
             dto.setRegionId("cn-hangzhou");
@@ -111,6 +152,27 @@ public class AuthConfigService extends ServiceImpl<AuthProviderConfigMapper, Aut
         }
         if (dto.getDailyLimit() == null || dto.getDailyLimit() < 1) {
             dto.setDailyLimit(10);
+        }
+    }
+
+    private void fillEmailDefaults(EmailSmtpConfigDTO dto) {
+        if (!StringUtils.hasText(dto.getHost())) {
+            dto.setHost("smtp.qq.com");
+        }
+        if (dto.getPort() == null || dto.getPort() < 1) {
+            dto.setPort(465);
+        }
+        if (!StringUtils.hasText(dto.getProtocol())) {
+            dto.setProtocol(Boolean.TRUE.equals(dto.getSslEnabled()) ? "smtps" : "smtp");
+        }
+        if (dto.getSslEnabled() == null) {
+            dto.setSslEnabled(true);
+        }
+        if (dto.getCodeExpireMinutes() == null || dto.getCodeExpireMinutes() < 1) {
+            dto.setCodeExpireMinutes(10);
+        }
+        if (dto.getSendIntervalSeconds() == null || dto.getSendIntervalSeconds() < 30) {
+            dto.setSendIntervalSeconds(60);
         }
     }
 

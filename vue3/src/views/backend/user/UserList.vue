@@ -32,8 +32,16 @@
             </template>
           </el-input>
         </el-form-item>
+        <el-form-item label="手机号">
+          <el-input v-model="searchForm.phone" placeholder="请输入手机号" clearable>
+            <template #prefix>
+              <i class="el-icon-phone"></i>
+            </template>
+          </el-input>
+        </el-form-item>
         <el-form-item label="角色">
           <el-select v-model="searchForm.roleCode" placeholder="请选择角色" clearable>
+            <el-option label="超级管理员" value="SUPER_ADMIN"></el-option>
             <el-option label="管理员" value="ADMIN"></el-option>
             <el-option label="普通用户" value="USER"></el-option>
           </el-select>
@@ -65,19 +73,31 @@
             <div class="user-name">{{ scope.row.username }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="nickname" label="昵称"></el-table-column>
-        <el-table-column prop="email" label="邮箱" width="180"></el-table-column>
-        <el-table-column prop="phone" label="手机号" width="120"></el-table-column>
+        <el-table-column prop="nickname" label="昵称" width="118" show-overflow-tooltip>
+          <template #default="scope">
+            <span class="nickname-text">{{ scope.row.nickname || '未设置' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="phone" label="手机号" width="130">
+          <template #default="scope">
+            <span>{{ scope.row.phone || '未绑定' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="email" label="邮箱" width="180">
+          <template #default="scope">
+            <span class="muted-text">{{ scope.row.email || '未绑定' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="sex" label="性别" width="80" align="center">
           <template #default="scope">
             {{ scope.row.sex === '男' ? '男' : scope.row.sex === '女' ? '女' : '未知' }}
           </template>
         </el-table-column>
-        <el-table-column prop="roleCode" label="角色" width="100" align="center">
+        <el-table-column prop="roleCode" label="角色" width="132" align="center">
           <template #default="scope">
-            <el-tag :type="scope.row.roleCode === 'ADMIN' ? 'danger' : 'primary'">
-              {{ scope.row.roleCode === 'ADMIN' ? '管理员' : '普通用户' }}
-            </el-tag>
+            <span class="role-badge" :class="getRoleClass(scope.row.roleCode)">
+              <span class="role-badge__text">{{ getRoleLabel(scope.row.roleCode) }}</span>
+            </span>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100" align="center">
@@ -86,6 +106,7 @@
               v-model="scope.row.status"
               :active-value="1"
               :inactive-value="0"
+              :disabled="!canManageUser(scope.row)"
               @change="handleStatusChange(scope.row)"
             ></el-switch>
           </template>
@@ -97,13 +118,13 @@
         </el-table-column>
         <el-table-column label="操作" fixed="right" width="300" align="center">
           <template #default="scope">
-            <el-button size="small" type="primary" plain @click="handleEdit(scope.row)" class="edit-btn">
+            <el-button size="small" type="primary" plain :disabled="!canManageUser(scope.row)" @click="handleEdit(scope.row)" class="edit-btn">
               <i class="el-icon-edit"></i> 编辑
             </el-button>
-            <el-button size="small" type="danger" plain @click="handleDelete(scope.row)" class="delete-btn">
-              <i class="el-icon-delete"></i> 删除
+            <el-button size="small" type="danger" plain :disabled="!canDeleteUser(scope.row)" @click="handleDelete(scope.row)" class="delete-btn">
+              <i class="el-icon-delete"></i> 停用
             </el-button>
-            <el-button size="small" type="warning" plain @click="handleResetPassword(scope.row)">
+            <el-button size="small" type="warning" plain :disabled="!canManageUser(scope.row)" @click="handleResetPassword(scope.row)">
               <i class="el-icon-key"></i> 重置密码
             </el-button>
           </template>
@@ -150,10 +171,10 @@
           <el-input v-model="userForm.nickname" placeholder="请输入昵称"></el-input>
         </el-form-item>
         <el-form-item label="邮箱" prop="email">
-          <el-input v-model="userForm.email" placeholder="请输入邮箱"></el-input>
+          <el-input v-model="userForm.email" placeholder="选填，作为备用联系方式"></el-input>
         </el-form-item>
         <el-form-item label="手机号" prop="phone">
-          <el-input v-model="userForm.phone" placeholder="请输入手机号"></el-input>
+          <el-input v-model="userForm.phone" placeholder="请输入手机号，用户可用于登录"></el-input>
         </el-form-item>
         <el-form-item label="性别" prop="sex">
           <el-radio-group v-model="userForm.sex">
@@ -163,7 +184,7 @@
         </el-form-item>
         <el-form-item label="角色" prop="roleCode">
           <el-select v-model="userForm.roleCode" placeholder="请选择角色">
-            <el-option label="管理员" value="ADMIN"></el-option>
+            <el-option v-if="userStore.isSuperAdmin" label="管理员" value="ADMIN"></el-option>
             <el-option label="普通用户" value="USER"></el-option>
           </el-select>
         </el-form-item>
@@ -214,10 +235,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { computed, ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
+import { useUserStore } from '@/store/user'
+
+const userStore = useUserStore()
+const currentUserId = computed(() => userStore.userInfo?.id)
 
 // 表格数据
 const tableData = ref([])
@@ -232,6 +257,7 @@ const total = ref(0)
 const searchForm = reactive({
   username: '',
   nickname: '',
+  phone: '',
   roleCode: ''
 })
 
@@ -264,10 +290,10 @@ const userFormRules = {
     { min: 6, max: 20, message: '密码长度在6到20个字符之间', trigger: 'blur' }
   ],
   email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
     { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
   ],
   phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
     { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
   ],
   roleCode: [
@@ -279,7 +305,7 @@ const userFormRules = {
 const resetPasswordFormRef = ref(null)
 const resetPasswordDialogVisible = ref(false)
 const resetPasswordLoading = ref(false)
-const currentUserId = ref(null)
+const resetPasswordUserId = ref(null)
 
 const resetPasswordForm = reactive({
   newPassword: '',
@@ -306,6 +332,32 @@ const resetPasswordFormRules = {
   ]
 }
 
+const getRoleLabel = (roleCode) => {
+  const roleMap = {
+    SUPER_ADMIN: '超级管理员',
+    ADMIN: '管理员',
+    USER: '普通用户'
+  }
+  return roleMap[roleCode] || '普通用户'
+}
+
+const getRoleClass = (roleCode) => {
+  if (roleCode === 'SUPER_ADMIN') return 'role-super'
+  if (roleCode === 'ADMIN') return 'role-admin'
+  return 'role-user'
+}
+
+const canManageUser = (row) => {
+  if (!row || row.id === currentUserId.value) return false
+  if (row.protectedAccount) return false
+  if (userStore.isSuperAdmin) return true
+  return row.roleCode === 'USER'
+}
+
+const canDeleteUser = (row) => {
+  return canManageUser(row) && !row.protectedAccount
+}
+
 // 生命周期钩子
 onMounted(() => {
   fetchUsers()
@@ -318,6 +370,7 @@ const fetchUsers = async () => {
     await request.get('/user/page', {
    
         username: searchForm.username,
+        phone: searchForm.phone,
         nickname: searchForm.nickname,
         roleCode: searchForm.roleCode,
         currentPage: currentPage.value,
@@ -371,6 +424,10 @@ const handleAdd = () => {
 
 // 编辑用户
 const handleEdit = (row) => {
+  if (!canManageUser(row)) {
+    ElMessage.warning('当前角色无权管理该账号')
+    return
+  }
   dialogType.value = 'edit'
   dialogTitle.value = '编辑用户'
   Object.keys(userForm).forEach(key => {
@@ -381,26 +438,36 @@ const handleEdit = (row) => {
   dialogVisible.value = true
 }
 
-// 删除用户
+// 停用用户
 const handleDelete = (row) => {
-  ElMessageBox.confirm('确定要删除该用户吗？', '提示', {
-    confirmButtonText: '确定',
+  if (!canDeleteUser(row)) {
+    ElMessage.warning('该账号受保护，不能停用')
+    return
+  }
+  ElMessageBox.confirm('确定要停用该用户吗？停用后该用户不能继续登录，历史业务数据会被保留。', '停用账号', {
+    confirmButtonText: '确认停用',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
     try {
       await request.delete(`/user/delete/${row.id}`, {
-        successMsg: '删除成功'
+        successMsg: '账号已停用'
       })
       fetchUsers()
     } catch (error) {
-      console.error('删除用户失败:', error)
+      console.error('停用用户失败:', error)
+      fetchUsers()
     }
   }).catch(() => {})
 }
 
 // 状态变更
 const handleStatusChange = async (row) => {
+  if (!canManageUser(row)) {
+    row.status = row.status === 1 ? 0 : 1
+    ElMessage.warning('当前角色无权调整该账号状态')
+    return
+  }
   try {
     await request.put(`/user/status/${row.id}`, null, {
       params: { status: row.status },
@@ -415,7 +482,11 @@ const handleStatusChange = async (row) => {
 
 // 重置密码
 const handleResetPassword = (row) => {
-  currentUserId.value = row.id
+  if (!canManageUser(row)) {
+    ElMessage.warning('当前角色无权重置该账号密码')
+    return
+  }
+  resetPasswordUserId.value = row.id
   resetPasswordForm.newPassword = ''
   resetPasswordForm.confirmPassword = ''
   resetPasswordDialogVisible.value = true
@@ -426,7 +497,7 @@ const submitResetPassword = () => {
     if (valid) {
       resetPasswordLoading.value = true
       try {
-        await request.put(`/user/resetPassword/${currentUserId.value}`, {
+        await request.put(`/user/resetPassword/${resetPasswordUserId.value}`, {
           newPassword: resetPasswordForm.newPassword
         }, {
           successMsg: '密码重置成功'
@@ -539,16 +610,27 @@ const resetForm = () => {
     background-color: #fff;
     box-shadow: none;
     
-    .search-form {
-      padding: 10px 0;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
+      .search-form {
+        padding: 10px 0;
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 12px;
+        overflow-x: auto;
       
-      .el-form-item {
-        margin-bottom: 0;
-        margin-right: 16px;
-      }
+        .el-form-item {
+          margin-bottom: 0;
+          margin-right: 0;
+          flex: 0 0 auto;
+        }
+
+        :deep(.el-input) {
+          width: 180px;
+        }
+
+        :deep(.el-select) {
+          width: 150px;
+        }
       
       .search-btn {
         background-color: #3498db;
@@ -609,6 +691,89 @@ const resetForm = () => {
       .date-text {
         color: #7f8c8d;
         font-size: 12px;
+      }
+
+      .muted-text {
+        color: #95a5a6;
+      }
+
+      .nickname-text {
+        display: inline-block;
+        max-width: 104px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: middle;
+      }
+
+      .role-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 96px;
+        height: 26px;
+        padding: 0 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap;
+        list-style: none;
+        list-style-type: none;
+        appearance: none;
+        overflow: hidden;
+        position: relative;
+        vertical-align: middle;
+        box-sizing: border-box;
+        border: 0;
+        outline: 0;
+        box-shadow: none;
+        background-clip: padding-box;
+        text-indent: 0;
+      }
+
+      .role-badge::before,
+      .role-badge::after {
+        display: none !important;
+        content: none !important;
+      }
+
+      .role-badge::marker {
+        content: '';
+        font-size: 0;
+      }
+
+      .role-badge__text {
+        display: block;
+        line-height: 1;
+        list-style: none;
+        max-width: none;
+        overflow: visible;
+        text-overflow: clip;
+        white-space: nowrap;
+      }
+
+      .role-badge__text::before,
+      .role-badge__text::after,
+      .role-badge__text::marker {
+        display: none !important;
+        content: none !important;
+        font-size: 0;
+      }
+
+      .role-super {
+        color: #9f1239;
+        background: #fff1f2;
+      }
+
+      .role-admin {
+        color: #92400e;
+        background: #fffbeb;
+      }
+
+      .role-user {
+        color: #1d4ed8;
+        background: #eff6ff;
       }
       
       .edit-btn {

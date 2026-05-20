@@ -70,6 +70,9 @@ public class AuthController {
     public Result<?> sendSmsCode(@RequestBody SmsCodeRequestDTO dto) {
         smsCodeService.validatePhone(dto.getPhone());
         String scene = smsCodeService.normalizeScene(dto.getScene());
+        if (!"REGISTER".equals(scene) && !"LOGIN".equals(scene)) {
+            throw new ServiceException("该短信场景不允许从公共接口发送");
+        }
         if ("REGISTER".equals(scene) && userService.existsByPhone(dto.getPhone())) {
             throw new ServiceException("该手机号已注册，请直接登录");
         }

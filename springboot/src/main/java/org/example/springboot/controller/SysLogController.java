@@ -9,6 +9,7 @@ import org.example.springboot.annotation.OperationLog;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.SysOperationLog;
 import org.example.springboot.entity.User;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.service.SysOperationLogService;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -190,6 +191,6 @@ public class SysLogController {
 
     private boolean isAdmin() {
         User currentUser = JwtTokenUtils.getCurrentUser();
-        return currentUser != null && "ADMIN".equals(currentUser.getRoleCode());
+        return RolePermission.isAdmin(currentUser);
     }
 }
