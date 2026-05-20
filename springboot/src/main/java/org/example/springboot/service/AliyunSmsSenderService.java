@@ -1,28 +1,23 @@
 package org.example.springboot.service;
 
 import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
+import com.aliyun.dysmsapi20170525.Client;
+import com.aliyun.dysmsapi20170525.models.SendSmsRequest;
+import com.aliyun.dysmsapi20170525.models.SendSmsResponse;
+import com.aliyun.dysmsapi20170525.models.SendSmsResponseBody;
+import com.aliyun.teaopenapi.models.Config;
 import org.example.springboot.dto.AliyunSmsConfigDTO;
 import org.example.springboot.exception.ServiceException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestTemplate;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.Base64;
 import java.util.Map;
-import java.util.TreeMap;
-import java.util.UUID;
 
 @Service
 public class AliyunSmsSenderService {
-    private final RestTemplate restTemplate = new RestTemplate();
+    private static final Logger LOGGER = LoggerFactory.getLogger(AliyunSmsSenderService.class);
 
     public void sendCode(AliyunSmsConfigDTO config, String phone, String code) {
         if (!Boolean.TRUE.equals(config.getEnabled()) || !Boolean.TRUE.equals(config.getConfigured())) {
@@ -30,64 +25,52 @@ public class AliyunSmsSenderService {
         }
 
         try {
-            Map<String, String> params = new TreeMap<>();
-            params.put("Action", "SendSms");
-            params.put("Version", "2017-05-25");
-            params.put("RegionId", config.getRegionId());
-            params.put("PhoneNumbers", phone);
-            params.put("SignName", config.getSignName());
-            params.put("TemplateCode", config.getTemplateCode());
-            params.put("TemplateParam", JSON.toJSONString(Map.of("code", code)));
-            params.put("Format", "JSON");
-            params.put("AccessKeyId", config.getAccessKeyId());
-            params.put("SignatureMethod", "HMAC-SHA1");
-            params.put("SignatureNonce", UUID.randomUUID().toString());
-            params.put("SignatureVersion", "1.0");
-            params.put("Timestamp", DateTimeFormatter.ISO_INSTANT.format(Instant.now().atOffset(ZoneOffset.UTC)));
+            SendSmsResponse response = createClient(config).sendSms(new SendSmsRequest()
+                    .setPhoneNumbers(phone)
+                    .setSignName(config.getSignName())
+                    .setTemplateCode(config.getTemplateCode())
+                    .setTemplateParam(JSON.toJSONString(Map.of("code", code))));
 
-            String canonicalizedQuery = buildCanonicalizedQuery(params);
-            String stringToSign = "GET&%2F&" + percentEncode(canonicalizedQuery);
-            String signature = sign(stringToSign, config.getAccessKeySecret() + "&");
-            String url = "https://" + config.getEndpoint() + "/?Signature=" + percentEncode(signature) + "&" + canonicalizedQuery;
-
-            String response = restTemplate.getForObject(url, String.class);
-            JSONObject json = JSON.parseObject(response);
-            String resultCode = json == null ? null : json.getString("Code");
+            SendSmsResponseBody body = response == null ? null : response.getBody();
+            String resultCode = body == null ? null : body.getCode();
             if (!"OK".equalsIgnoreCase(resultCode)) {
-                String message = json == null ? "短信服务无响应" : json.getString("Message");
+                String message = body == null ? "阿里云短信服务无响应" : body.getMessage();
                 throw new ServiceException("短信发送失败：" + (StringUtils.hasText(message) ? message : resultCode));
             }
         } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
-            throw new ServiceException("短信发送失败，请稍后再试");
+            LOGGER.error("Aliyun SMS SDK request failed. endpoint={}, regionId={}, signName={}, templateCode={}, phone={}",
+                    config.getEndpoint(), config.getRegionId(), config.getSignName(), config.getTemplateCode(), maskPhone(phone), e);
+            throw new ServiceException("短信发送失败：" + resolveErrorMessage(e), e);
         }
     }
 
-    private String buildCanonicalizedQuery(Map<String, String> params) {
-        StringBuilder builder = new StringBuilder();
-        for (Map.Entry<String, String> entry : params.entrySet()) {
-            if (!builder.isEmpty()) {
-                builder.append("&");
-            }
-            builder.append(percentEncode(entry.getKey())).append("=").append(percentEncode(entry.getValue()));
+    private Client createClient(AliyunSmsConfigDTO config) throws Exception {
+        Config sdkConfig = new Config()
+                .setAccessKeyId(config.getAccessKeyId())
+                .setAccessKeySecret(config.getAccessKeySecret());
+        sdkConfig.endpoint = normalizeEndpoint(config.getEndpoint());
+        return new Client(sdkConfig);
+    }
+
+    private String normalizeEndpoint(String endpoint) {
+        if (!StringUtils.hasText(endpoint)) {
+            return "dysmsapi.aliyuncs.com";
         }
-        return builder.toString();
+        return endpoint.trim()
+                .replaceFirst("^https?://", "")
+                .replaceFirst("/+$", "");
     }
 
-    private String sign(String source, String secret) throws Exception {
-        Mac mac = Mac.getInstance("HmacSHA1");
-        mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA1"));
-        return Base64.getEncoder().encodeToString(mac.doFinal(source.getBytes(StandardCharsets.UTF_8)));
+    private String resolveErrorMessage(Exception e) {
+        return StringUtils.hasText(e.getMessage()) ? e.getMessage() : "阿里云短信服务调用异常";
     }
 
-    private String percentEncode(String value) {
-        if (value == null) {
+    private String maskPhone(String phone) {
+        if (!StringUtils.hasText(phone) || phone.length() < 7) {
             return "";
         }
-        return URLEncoder.encode(value, StandardCharsets.UTF_8)
-                .replace("+", "%20")
-                .replace("*", "%2A")
-                .replace("%7E", "~");
+        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
     }
 }
