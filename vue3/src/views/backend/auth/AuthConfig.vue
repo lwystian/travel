@@ -89,7 +89,7 @@
                     </div>
                   </el-option>
                 </el-select>
-                <div v-else class="field-hint">模板列表来自已保存配置。修改左侧模板 Code 后，请先保存短信配置。</div>
+                <div v-if="smsTemplateOptions.length === 0" class="field-hint">模板列表来自已保存配置。修改左侧模板 Code 后，请先保存短信配置。</div>
               </el-form-item>
               <el-form-item label="测试手机号">
                 <el-input v-model="smsTest.phone" maxlength="11" placeholder="请输入接收测试短信的手机号" clearable />

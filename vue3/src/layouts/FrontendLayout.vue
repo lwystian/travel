@@ -323,10 +323,108 @@
       <router-view />
     </el-main>
 
-    <!-- 页脚 -->
-    <footer class="footer">
+    <!-- 企业化官网页脚 -->
+    <footer v-if="footerConfig.enabled !== false" class="footer">
       <div class="footer-content">
-        <p class="copyright">&copy; 2021-2026 侠客行国旅 | 版权所有</p>
+        <section v-if="visibleFeatureItems.length" class="footer-feature-grid" aria-label="企业服务能力">
+          <article v-for="item in visibleFeatureItems" :key="item.title" class="footer-feature-item">
+            <div class="footer-feature-icon" :class="getFooterFeatureIconClass(item.icon)">
+              <svg viewBox="0 0 48 48" aria-hidden="true">
+                <path
+                  v-for="path in getFooterFeatureIconPaths(item.icon)"
+                  :key="path"
+                  :d="path"
+                />
+              </svg>
+            </div>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.description }}</p>
+          </article>
+        </section>
+
+        <div class="footer-lower">
+          <section class="footer-text-info" aria-label="企业信息">
+            <nav v-if="visibleLinks(footerConfig.topLinks).length" class="footer-nav" aria-label="页脚导航">
+              <a
+                v-for="link in visibleLinks(footerConfig.topLinks)"
+                :key="`${link.label}-${link.url}`"
+                :href="link.url || '#'"
+                class="footer-nav-link"
+              >
+                {{ link.label }}
+              </a>
+            </nav>
+
+            <div class="footer-line">
+              <a
+                v-for="link in visibleLinks(footerConfig.complianceLinks)"
+                :key="`${link.label}-${link.url}`"
+                :href="link.url || '#'"
+              >
+                {{ link.label }}
+              </a>
+              <span v-if="footerConfig.licenseNumber">许可编号：{{ footerConfig.licenseNumber }}</span>
+            </div>
+
+            <div class="footer-line">
+              <span v-if="footerConfig.reportEmail">服务邮箱：{{ footerConfig.reportEmail }}</span>
+              <span v-if="footerConfig.minorReportEmail">未成年人信息保护邮箱：{{ footerConfig.minorReportEmail }}</span>
+            </div>
+
+            <div class="footer-line">
+              <span v-if="footerConfig.consultationPhone">旅行咨询电话：{{ footerConfig.consultationPhone }}</span>
+              <span v-if="footerConfig.cruisePhone">团队与邮轮咨询：{{ footerConfig.cruisePhone }}</span>
+              <span v-if="footerConfig.complaintPhone">投诉与服务监督：{{ footerConfig.complaintPhone }}</span>
+            </div>
+
+            <div class="footer-line">
+              <span v-if="footerConfig.address">公司总部地址：{{ footerConfig.address }}</span>
+              <span v-if="footerConfig.serviceTime">服务时间：{{ footerConfig.serviceTime }}</span>
+            </div>
+
+            <div v-if="visibleLinks(footerConfig.friendlyLinks).length" class="footer-line footer-friends">
+              <span>合作链接</span>
+              <a
+                v-for="link in visibleLinks(footerConfig.friendlyLinks)"
+                :key="`${link.label}-${link.url}`"
+                :href="link.url || '#'"
+                target="_blank"
+                rel="noopener"
+              >
+                {{ link.label }}
+              </a>
+            </div>
+
+            <div class="footer-line footer-compliance">
+              <span>{{ footerConfig.copyright }}</span>
+              <span v-if="footerConfig.technicalSupport">法律与技术支持：{{ footerConfig.technicalSupport }}</span>
+            </div>
+
+            <div v-if="footerConfig.legalNotes?.length" class="footer-line footer-legal">
+              <span v-for="note in footerConfig.legalNotes" :key="note">{{ note }}</span>
+            </div>
+          </section>
+
+          <section v-if="visibleQrCodes.length" class="footer-qrs" aria-label="官方二维码">
+            <div v-for="item in visibleQrCodes" :key="item.label" class="footer-qr-card">
+              <div class="footer-qr-image">
+                <img v-if="item.imageUrl" :src="getFooterAssetUrl(item.imageUrl)" :alt="item.label" @error="hideBrokenImage" />
+                <span v-else>{{ item.label }}</span>
+              </div>
+              <strong>{{ item.label }}</strong>
+              <p>{{ item.description }}</p>
+            </div>
+          </section>
+        </div>
+
+        <div class="footer-records">
+          <a v-if="footerConfig.icpNumber" :href="footerConfig.icpUrl || '#'" target="_blank" rel="noopener">
+            {{ footerConfig.icpNumber }}
+          </a>
+          <a v-if="footerConfig.policeNumber" :href="footerConfig.policeUrl || '#'" target="_blank" rel="noopener">
+            {{ footerConfig.policeNumber }}
+          </a>
+        </div>
       </div>
     </footer>
   </div>
@@ -339,6 +437,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import NotificationBell from '@/components/NotificationBell.vue'
 import request from '@/utils/request'
+import { getPublicFooterConfig } from '@/api/siteFooter'
+import wechatQrImage from '@/assets/wechat.jpg'
 import {
   HomeFilled,
   User,
@@ -371,6 +471,60 @@ const DEFAULT_CITY = '重庆'
 const LOCATION_STORAGE_KEY = 'frontend_selected_city'
 const currentCity = ref(DEFAULT_CITY)
 const showWechatQR = ref(false)
+
+const createDefaultFooterConfig = () => ({
+  enabled: true,
+  companyName: '侠客行国际旅行社有限公司',
+  brandName: '侠客行国旅',
+  slogan: '扎根重庆，连接山城、三峡与西南山河的品质旅行服务',
+  consultationPhone: '400-800-5178',
+  cruisePhone: '023-6789-5178',
+  serviceTime: '09:00 - 20:00，节假日专人在线',
+  address: '重庆市渝中区解放碑商圈时代旅行中心 18F',
+  copyright: '© 2021-2026 侠客行国旅 版权所有',
+  icpNumber: '',
+  icpUrl: 'https://beian.miit.gov.cn/',
+  policeNumber: '',
+  policeUrl: 'https://beian.mps.gov.cn/',
+  licenseNumber: 'L-CQ-XXK-2026',
+  complaintPhone: '12345 / 023-6789-5178',
+  technicalSupport: '侠客行数字旅行中心',
+  reportEmail: 'service@xkxtrip.com',
+  minorReportEmail: 'safe@xkxtrip.com',
+  featureItems: [
+    { title: '守信', description: '行程说明、费用明细与服务标准清楚呈现，重要节点可追踪。', icon: 'shield' },
+    { title: '甄选', description: '围绕重庆、三峡与西南目的地，打磨小而美的品质线路。', icon: 'route' },
+    { title: '陪伴', description: '顾问、导游与客服协同响应，从预订到返程持续跟进。', icon: 'service' },
+    { title: '自在', description: '控制车程、住宿与游览节奏，让旅途保持轻松和松弛感。', icon: 'experience' },
+    { title: '友好', description: '尊重当地风俗与自然环境，倡导低打扰、负责任的旅行。', icon: 'leaf' },
+    { title: '共创', description: '收集真实评价与旅途故事，把反馈转化为下一次优化。', icon: 'share' }
+  ],
+  topLinks: [
+    { label: '关于侠客行', url: '/about' },
+    { label: '山城线路', url: '/tickets' },
+    { label: '目的地灵感', url: '/scenic' },
+    { label: '旅行攻略', url: '/guide' },
+    { label: '服务承诺', url: '/about' },
+    { label: '联系我们', url: '/about' }
+  ],
+  complianceLinks: [
+    { label: '营业执照', url: '/about' },
+    { label: '旅行社业务经营许可', url: '/about' },
+    { label: '服务规范', url: '/about' },
+    { label: '社区公约', url: '/about' },
+    { label: '安全与隐私保护', url: '/about' },
+    { label: '在线服务与投诉反馈专区', url: '/about' }
+  ],
+  friendlyLinks: [],
+  qrCodes: [
+    { label: '侠客行服务号', imageUrl: wechatQrImage, description: '线路上新与出行提醒' },
+    { label: '旅行顾问', imageUrl: wechatQrImage, description: '定制咨询与售后协助' }
+  ],
+  certificates: [],
+  legalNotes: ['平台展示的图片、攻略与目的地资料仅用于旅行服务说明，出行前请以订单确认信息和当地实时政策为准。']
+})
+
+const footerConfig = ref(createDefaultFooterConfig())
 
 const cityList = ref([
   { code: 'chongqing', name: '重庆', aliases: ['重庆市', 'Chongqing'] },
@@ -435,6 +589,107 @@ const activeMenuIndex = computed(() => {
 const getImageUrl = (url) => {
   if (!url) return 'https://via.placeholder.com/48x48?text=No+Image'
   return url.startsWith('http') ? url : baseAPI + url
+}
+
+const visibleLinks = (links = []) => {
+  return Array.isArray(links) ? links.filter(item => item?.label) : []
+}
+
+const visibleQrCodes = computed(() => {
+  return Array.isArray(footerConfig.value.qrCodes)
+    ? footerConfig.value.qrCodes.filter(item => item?.label)
+    : []
+})
+
+const withFallbackQrImages = (qrCodes = [], fallbackQrCodes = []) => {
+  return qrCodes.map((item, index) => ({
+    ...item,
+    imageUrl: item.imageUrl || fallbackQrCodes[index]?.imageUrl || ''
+  }))
+}
+
+const visibleFeatureItems = computed(() => {
+  return Array.isArray(footerConfig.value.featureItems)
+    ? footerConfig.value.featureItems.filter(item => item?.title)
+    : []
+})
+
+const getFooterAssetUrl = (url) => {
+  if (!url) return ''
+  if (/^(https?:|data:|blob:)/.test(url)) return url
+  if (url.startsWith('/img/') || url.startsWith('/assets/')) return url
+  return url.startsWith('/') ? baseAPI + url : url
+}
+
+const getFooterFeatureIconClass = (icon) => {
+  const allowed = ['shield', 'route', 'service', 'experience', 'leaf', 'share']
+  return `is-${allowed.includes(icon) ? icon : 'service'}`
+}
+
+const footerFeatureIconPaths = {
+  shield: [
+    'M24 6l14 5v10c0 9.3-5.7 16.7-14 21-8.3-4.3-14-11.7-14-21V11l14-5z',
+    'M18 24l4 4 8-9'
+  ],
+  route: [
+    'M10 36c8-14 20 2 28-12',
+    'M13 13c-3 0-5 2.3-5 5 0 4.2 5 9 5 9s5-4.8 5-9c0-2.7-2-5-5-5z',
+    'M35 8c-3 0-5 2.3-5 5 0 4.2 5 9 5 9s5-4.8 5-9c0-2.7-2-5-5-5z',
+    'M13 18h.1M35 13h.1'
+  ],
+  service: [
+    'M12 27a12 12 0 0124 0',
+    'M10 26h5v9h-5a4 4 0 01-4-4v-1a4 4 0 014-4z',
+    'M38 26h-5v9h5a4 4 0 004-4v-1a4 4 0 00-4-4z',
+    'M32 37c-2 3-5 4-8 4h-4'
+  ],
+  experience: [
+    'M8 27c6-12 26-12 32 0',
+    'M13 27l5 10h12l5-10',
+    'M18 18c2-5 10-5 12 0',
+    'M24 13v-5',
+    'M15 39h18'
+  ],
+  leaf: [
+    'M39 9c-15 1-27 8-28 23 8 5 22 2 27-10 2-5 1-9 1-13z',
+    'M12 34c6-8 13-13 24-21',
+    'M17 31c2 6 7 9 15 8'
+  ],
+  share: [
+    'M13 33h22a4 4 0 004-4V14H9v15a4 4 0 004 4z',
+    'M15 14V9h18v5',
+    'M17 24h14',
+    'M24 19v10',
+    'M20 23l4-4 4 4'
+  ]
+}
+
+const getFooterFeatureIconPaths = (icon) => {
+  return footerFeatureIconPaths[icon] || footerFeatureIconPaths.service
+}
+
+const hideBrokenImage = (event) => {
+  if (event?.target) {
+    event.target.style.display = 'none'
+  }
+}
+
+const loadFooterConfig = async () => {
+  try {
+    const data = await getPublicFooterConfig()
+    const fallback = createDefaultFooterConfig()
+    footerConfig.value = {
+      ...fallback,
+      ...(data || {}),
+      featureItems: data?.featureItems?.length ? data.featureItems : fallback.featureItems,
+      topLinks: data?.topLinks?.length ? data.topLinks : fallback.topLinks,
+      complianceLinks: data?.complianceLinks?.length ? data.complianceLinks : fallback.complianceLinks,
+      qrCodes: data?.qrCodes?.length ? withFallbackQrImages(data.qrCodes, fallback.qrCodes) : fallback.qrCodes,
+      legalNotes: data?.legalNotes?.length ? data.legalNotes : fallback.legalNotes
+    }
+  } catch (error) {
+    footerConfig.value = createDefaultFooterConfig()
+  }
 }
 
 // 获取占位符文本
@@ -866,6 +1121,7 @@ const handleLogout = () => {
 onMounted(() => {
   // 页面加载时尝试通过IP获取位置
   fetchLocationByIP()
+  loadFooterConfig()
 })
 </script>
 
@@ -1463,23 +1719,605 @@ onMounted(() => {
   max-width: 100%;
 }
 
-// 页脚样式
+// 企业化页脚样式
 .footer {
-  background: #1a1a2e;
-  color: #c9d1d9;
-  padding: 30px 0;
+  background:
+    linear-gradient(180deg, rgba(7, 19, 42, 0.96), rgba(5, 15, 34, 0.98)),
+    radial-gradient(circle at 20% 0%, rgba(50, 119, 255, 0.18), transparent 34%);
+  color: #d7e3f4;
+  padding: 46px 0 28px;
 }
 
 .footer-content {
   max-width: 1400px;
   margin: 0 auto;
-  text-align: center;
+  padding: 0 28px;
 }
 
-.copyright {
-  margin: 0;
+.footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 0;
+  padding-bottom: 24px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-nav-link {
+  color: #f8fbff;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 0 18px;
+  border-right: 1px solid rgba(255, 255, 255, 0.35);
+
+  &:first-child {
+    padding-left: 0;
+  }
+
+  &:last-child {
+    border-right: 0;
+  }
+
+  &:hover {
+    color: #8fd5ff;
+  }
+}
+
+.footer-main {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) auto minmax(260px, 360px);
+  gap: 34px;
+  align-items: stretch;
+}
+
+.footer-company {
+  min-width: 0;
+}
+
+.footer-brand-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 22px;
+
+  h2 {
+    margin: 0 0 8px;
+    color: #ffffff;
+    font-size: 24px;
+    line-height: 1.25;
+    font-weight: 800;
+  }
+
+  p {
+    margin: 0;
+    color: #9fb1ce;
+    font-size: 14px;
+  }
+}
+
+.footer-brand-mark {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #2a8cff, #30d5c8);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 900;
+  box-shadow: 0 14px 34px rgba(42, 140, 255, 0.28);
+}
+
+.footer-contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.footer-info-line {
+  min-height: 70px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+
+  span {
+    display: block;
+    color: #8ea2c2;
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  strong {
+    display: block;
+    color: #edf5ff;
+    font-size: 15px;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+}
+
+.footer-info-wide {
+  grid-column: 1 / -1;
+}
+
+.footer-qrs {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.footer-qr-card {
+  width: 132px;
+  text-align: center;
+
+  strong {
+    display: block;
+    margin-top: 10px;
+    color: #ffffff;
+    font-size: 14px;
+  }
+
+  p {
+    margin: 5px 0 0;
+    color: #91a6c5;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+}
+
+.footer-qr-image {
+  width: 116px;
+  height: 116px;
+  margin: 0 auto;
+  border-radius: 14px;
+  padding: 8px;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  color: #1d3557;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+}
+
+.footer-section-title {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 14px;
+}
+
+.footer-cert-list {
+  display: grid;
+  gap: 12px;
+}
+
+.footer-cert-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  img {
+    width: 54px;
+    height: 54px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #fff;
+    flex-shrink: 0;
+  }
+
+  strong {
+    color: #f8fbff;
+    font-size: 14px;
+  }
+
+  p {
+    margin: 5px 0 0;
+    color: #91a6c5;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+}
+
+.footer-compliance,
+.footer-friends,
+.footer-legal,
+.footer-bottom {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-compliance,
+.footer-friends {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  color: #b8c8df;
+  font-size: 13px;
+
+  a {
+    color: #d8e8ff;
+    text-decoration: none;
+
+    &:hover {
+      color: #8fd5ff;
+    }
+  }
+}
+
+.footer-friends span {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.footer-legal {
+  p {
+    margin: 0 0 8px;
+    color: #8fa3c1;
+    font-size: 12px;
+    line-height: 1.7;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: #879ab8;
+  font-size: 13px;
+}
+
+// 现代旅行品牌信息矩阵页脚
+.footer {
+  background: #363636;
+  color: #c8d0d7;
+  padding: 30px 0 22px;
+}
+
+.footer-content {
+  width: 100%;
+  max-width: 1570px;
+  margin: 0 auto;
+  padding: 0 34px;
+}
+
+.footer-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 34px;
+  padding: 0 26px 24px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.footer-feature-item {
+  text-align: center;
+  min-width: 0;
+
+  h3 {
+    margin: 8px 0 8px;
+    color: #ffbd00;
+    font-size: 15px;
+    line-height: 1.2;
+    font-weight: 900;
+  }
+
+  p {
+    margin: 0;
+    color: #a9b1ba;
+    font-size: 12px;
+    line-height: 1.65;
+    text-align: left;
+  }
+}
+
+.footer-feature-icon {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  margin: 0 auto;
+  border: 1px solid rgba(255, 189, 0, 0.5);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #ffbd00;
+  background: rgba(255, 189, 0, 0.035);
+  box-shadow: none;
+
+  svg {
+    position: relative;
+    z-index: 1;
+    width: 34px;
+    height: 34px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 189, 0, 0.18);
+  }
+}
+
+.footer-lower {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 34px;
+  align-items: start;
+  padding: 0 26px;
+}
+
+.footer-records {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 15px 26px 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: #b8c0c8;
+  font-size: 12px;
+  line-height: 1.5;
+
+  a,
+  span {
+    color: inherit;
+  }
+
+  a:hover {
+    color: #ffbd00;
+  }
+}
+
+.footer-text-info {
+  grid-column: 1 / span 4;
+  min-width: 0;
+}
+
+.footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 15px;
+  padding-bottom: 0;
+  margin-bottom: 10px;
+  border-bottom: 0;
+}
+
+.footer-nav-link {
+  color: #e6ecf2;
+  font-size: 12px;
+  font-weight: 500;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #ffbd00;
+  }
+}
+
+.footer-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 14px;
+  margin-top: 7px;
+  color: #aeb6bf;
+  font-size: 12px;
+  line-height: 1.5;
+
+  span,
+  a {
+    color: inherit;
+  }
+
+  a:hover {
+    color: #ffbd00;
+  }
+}
+
+.footer-main {
+  grid-template-columns: minmax(0, 1fr) 286px;
+  gap: 34px;
+  align-items: start;
+}
+
+.footer-brand-row {
+  margin-bottom: 16px;
+
+  h2 {
+    color: #f8fbfd;
+    font-size: 22px;
+    letter-spacing: 0;
+  }
+
+  p {
+    color: #aeb8c2;
+  }
+}
+
+.footer-brand-mark {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffd061 0%, #52c2b1 100%);
+  color: #202427;
+  box-shadow: 0 14px 34px rgba(82, 194, 177, 0.16);
+}
+
+.footer-contact-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.footer-info-line {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+
+  span {
+    display: inline;
+    color: #eef2f5;
+    font-size: 14px;
+    margin-bottom: 0;
+    flex: 0 0 auto;
+  }
+
+  strong {
+    display: inline;
+    color: #aeb8c2;
+    font-size: 14px;
+    line-height: 1.65;
+    font-weight: 500;
+  }
+}
+
+.footer-info-wide {
+  grid-column: auto;
+}
+
+.footer-qrs {
+  grid-column: 5 / span 2;
+  display: flex;
+  gap: 34px;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding-top: 2px;
+}
+
+.footer-qr-card {
+  width: 96px;
+  text-align: center;
+
+  strong {
+    color: #ffbd00;
+    display: block;
+    margin-top: 7px;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  p {
+    margin: 3px 0 0;
+    color: #9faab4;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+}
+
+.footer-qr-image {
+  width: 78px;
+  height: 78px;
+  margin: 0 auto;
+  border-radius: 0;
+  padding: 4px;
+  background: #fff;
+  box-shadow: none;
+
+  img {
+    border-radius: 0;
+  }
+
+  span {
+    color: #2b3034;
+    font-size: 11px;
+    font-weight: 800;
+    text-align: center;
+  }
+}
+
+.footer-certs {
+  grid-column: 1 / -1;
+  margin-top: 10px;
+}
+
+.footer-section-title {
+  color: #f8fbfd;
   font-size: 14px;
-  color: #8b949e;
+  margin-bottom: 10px;
+}
+
+.footer-cert-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.footer-cert-item {
+  width: min(100%, 320px);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+
+  img {
+    width: 42px;
+    height: 42px;
+    border-radius: 2px;
+  }
+}
+
+.footer-compliance,
+.footer-friends,
+.footer-legal,
+.footer-bottom {
+  margin-top: 7px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.footer-compliance,
+.footer-friends {
+  gap: 5px 14px;
+  color: #aeb8c2;
+  font-size: 12px;
+
+  a:hover {
+    color: #ffbd00;
+  }
+}
+
+.footer-legal {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #9faab4;
+}
+
+.footer-bottom {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: #c8d0d7;
+  font-size: 12px;
 }
 
 // 响应式样式
@@ -1577,6 +2415,48 @@ onMounted(() => {
 
   .header-bottom-container {
     overflow-x: auto;
+  }
+
+  .footer {
+    padding: 34px 0 24px;
+  }
+
+  .footer-content {
+    padding: 0 16px;
+  }
+
+  .footer-nav {
+    justify-content: flex-start;
+  }
+
+  .footer-feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+  }
+
+  .footer-feature-icon {
+    width: 72px;
+    height: 72px;
+  }
+
+  .footer-main {
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+
+  .footer-contact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-qrs {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
   }
 
   .main-menu {

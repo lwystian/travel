@@ -70,6 +70,12 @@ export const backendRoutes = [
         meta: { title: '首页推荐', icon: 'Star' }
       },
       {
+        path: 'site-footer',
+        name: 'SiteFooterConfig',
+        component: () => import('@/views/backend/site/FooterConfig.vue'),
+        meta: { title: '网站页脚', icon: 'OfficeBuilding' }
+      },
+      {
         path: 'log',
         name: 'LogManagement',
         component: () => import('@/views/backend/log/LogManager.vue'),

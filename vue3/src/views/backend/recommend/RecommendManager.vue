@@ -11,9 +11,10 @@
         <div class="info-icon">💡</div>
         <div class="info-text">
           <p><strong>使用说明：</strong></p>
-          <p>1. 精选行程只能设置1个，会在首页顶部醒目展示</p>
-          <p>2. 更多推荐可设置多个，支持拖拽调整顺序</p>
-          <p>3. 如果清空设置，将按默认规则自动推荐</p>
+          <p>1. 精选行程用于首页“精选行程”主推大图，只保留1个上架行程</p>
+          <p>2. 更多推荐用于主推右侧的副推卡片和后续推荐，建议至少配置3个，支持拖拽排序</p>
+          <p>3. 更多推荐会自动排除当前精选行程，避免首页重复展示同一产品</p>
+          <p>4. 如果清空设置，将按默认规则自动补齐首页展示内容</p>
         </div>
       </div>
     </el-card>
@@ -294,6 +295,7 @@ const searchKeyword = ref('')
 const selectedTourIds = ref([])
 const selectedTourId = ref([])
 const submitting = ref(false)
+const featuredRecommendIds = ref([])
 
 // 拖拽相关
 const sortableListRef = ref(null)
@@ -332,7 +334,12 @@ const filteredTourList = computed(() => {
     .filter(item => item.tourId)
     .map(item => item.tourId)
   
-  let list = allTourList.value.filter(tour => !recommendedIds.includes(tour.id))
+  let excludedIds = recommendedIds
+  if (currentType.value === 'more') {
+    excludedIds = [...new Set([...recommendedIds, ...featuredRecommendIds.value])]
+  }
+
+  let list = allTourList.value.filter(tour => !excludedIds.includes(tour.id))
   
   if (searchKeyword.value) {
     list = list.filter(tour => 
@@ -388,6 +395,11 @@ const handleTypeChange = () => {
   searchKeyword.value = ''
   selectedTourIds.value = []
   selectedTourId.value = []
+  if (currentType.value === 'more') {
+    loadFeaturedRecommendIds()
+  } else {
+    featuredRecommendIds.value = []
+  }
   fetchRecommends()
 }
 
@@ -397,10 +409,26 @@ const handleSearch = () => {
 }
 
 // 添加推荐
-const handleAddRecommend = () => {
+const handleAddRecommend = async () => {
   selectedTourIds.value = []
   selectedTourId.value = []
+  await loadFeaturedRecommendIds()
   dialogVisible.value = true
+}
+
+const loadFeaturedRecommendIds = async () => {
+  if (currentType.value !== 'more') {
+    featuredRecommendIds.value = []
+    return
+  }
+  await request.get('/tour/recommends', {
+    type: 'featured'
+  }, {
+    showDefaultMsg: false,
+    onSuccess: (data) => {
+      featuredRecommendIds.value = (data || []).map(item => item.tourId).filter(Boolean)
+    }
+  })
 }
 
 // 切换行程选择（多选）

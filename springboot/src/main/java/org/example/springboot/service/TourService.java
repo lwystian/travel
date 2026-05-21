@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 @Service
 public class TourService {
     private static final Logger logger = LoggerFactory.getLogger(TourService.class);
+    private static final int HOME_FEATURED_LIMIT = 1;
+    private static final int HOME_MORE_LIMIT = 10;
 
     @Resource
     private TourMapper tourMapper;
@@ -773,10 +775,16 @@ public class TourService {
                         tour.setMinPrice(minPrice);
                     }
                     tours.add(tour);
+                    if (tours.size() >= HOME_FEATURED_LIMIT) {
+                        break;
+                    }
                 }
             }
         } else {
             // 没有设置，返回默认推荐的行程（最近创建的6个上架行程）
+            tours = getDefaultFeaturedTours();
+        }
+        if (tours.isEmpty()) {
             tours = getDefaultFeaturedTours();
         }
         
@@ -796,10 +804,14 @@ public class TourService {
         List<HomeRecommend> recommends = homeRecommendMapper.selectList(queryWrapper);
 
         List<Tour> tours = new ArrayList<>();
+        Set<Long> featuredIds = getCurrentFeaturedTourIds();
         
         if (recommends != null && !recommends.isEmpty()) {
             // 有设置的推荐，按设置的顺序返回
             for (HomeRecommend recommend : recommends) {
+                if (featuredIds.contains(recommend.getTourId())) {
+                    continue;
+                }
                 Tour tour = tourMapper.selectById(recommend.getTourId());
                 if (tour != null && tour.getStatus() != null && tour.getStatus() == 1) {
                     // 计算最低价
@@ -814,6 +826,9 @@ public class TourService {
             // 没有设置，返回默认推荐（除精选外的最近行程）
             tours = getDefaultMoreTours();
         }
+        if (tours.isEmpty()) {
+            tours = getDefaultMoreTours();
+        }
         
         return tours;
     }
@@ -826,7 +841,7 @@ public class TourService {
             new LambdaQueryWrapper<Tour>()
                 .eq(Tour::getStatus, 1)
                 .orderByDesc(Tour::getCreateTime)
-                .last("LIMIT 6")
+                .last("LIMIT " + HOME_FEATURED_LIMIT)
         );
         
         for (Tour tour : tours) {
@@ -841,9 +856,36 @@ public class TourService {
     /**
      * 获取默认更多推荐行程（精选行程之后的最近行程）
      */
+    private Set<Long> getCurrentFeaturedTourIds() {
+        Set<Long> featuredIds = new HashSet<>();
+        LambdaQueryWrapper<HomeRecommend> featuredWrapper = new LambdaQueryWrapper<>();
+        featuredWrapper.eq(HomeRecommend::getType, "featured");
+        featuredWrapper.orderByAsc(HomeRecommend::getSortOrder);
+        List<HomeRecommend> featuredRecommends = homeRecommendMapper.selectList(featuredWrapper);
+        if (featuredRecommends != null && !featuredRecommends.isEmpty()) {
+            for (HomeRecommend recommend : featuredRecommends) {
+                Tour tour = tourMapper.selectById(recommend.getTourId());
+                if (tour != null && tour.getStatus() != null && tour.getStatus() == 1) {
+                    featuredIds.add(tour.getId());
+                    if (featuredIds.size() >= HOME_FEATURED_LIMIT) {
+                        break;
+                    }
+                }
+            }
+            if (!featuredIds.isEmpty()) {
+                return featuredIds;
+            }
+        }
+
+        for (Tour tour : getDefaultFeaturedTours()) {
+            featuredIds.add(tour.getId());
+        }
+        return featuredIds;
+    }
+
     private List<Tour> getDefaultMoreTours() {
         // 获取已有的精选行程ID
-        Set<Long> featuredIds = new HashSet<>();
+        Set<Long> featuredIds = getCurrentFeaturedTourIds();
         LambdaQueryWrapper<HomeRecommend> featuredWrapper = new LambdaQueryWrapper<>();
         featuredWrapper.eq(HomeRecommend::getType, "featured");
         List<HomeRecommend> featuredRecommends = homeRecommendMapper.selectList(featuredWrapper);
@@ -881,7 +923,7 @@ public class TourService {
         queryWrapper.eq(Tour::getStatus, 1);
         queryWrapper.notIn(!featuredIds.isEmpty(), Tour::getId, featuredIds);
         queryWrapper.orderByDesc(Tour::getCreateTime);
-        queryWrapper.last("LIMIT 10");
+        queryWrapper.last("LIMIT " + HOME_MORE_LIMIT);
         
         List<Tour> tours = tourMapper.selectList(queryWrapper);
         for (Tour tour : tours) {
@@ -913,7 +955,27 @@ public class TourService {
                 .eq(HomeRecommend::getType, type)
                 .orderByAsc(HomeRecommend::getSortOrder)
         );
+        if ("featured".equals(type) && recommends.size() > HOME_FEATURED_LIMIT) {
+            recommends = recommends.subList(0, HOME_FEATURED_LIMIT);
+        }
+        if ("more".equals(type)) {
+            Set<Long> featuredIds = getCurrentFeaturedTourIds();
+            deleteMoreRecommendConflicts(featuredIds);
+            recommends = recommends.stream()
+                .filter(item -> !featuredIds.contains(item.getTourId()))
+                .collect(Collectors.toList());
+        }
         return convertToDTOList(recommends);
+    }
+
+    private void deleteMoreRecommendConflicts(Set<Long> tourIds) {
+        if (tourIds == null || tourIds.isEmpty()) {
+            return;
+        }
+        LambdaQueryWrapper<HomeRecommend> conflictWrapper = new LambdaQueryWrapper<>();
+        conflictWrapper.eq(HomeRecommend::getType, "more");
+        conflictWrapper.in(HomeRecommend::getTourId, tourIds);
+        homeRecommendMapper.delete(conflictWrapper);
     }
 
     /**
@@ -1020,9 +1082,12 @@ public class TourService {
             
             // 只插入最后一个（精选行程只保留一个）
             if (!tourIds.isEmpty()) {
+                Long featuredTourId = tourIds.get(tourIds.size() - 1);
+                deleteMoreRecommendConflicts(Collections.singleton(featuredTourId));
+
                 HomeRecommend recommend = new HomeRecommend();
                 recommend.setType(type);
-                recommend.setTourId(tourIds.get(tourIds.size() - 1));
+                recommend.setTourId(featuredTourId);
                 recommend.setSortOrder(1);
                 recommend.setCreateTime(LocalDateTime.now());
                 recommend.setUpdateTime(LocalDateTime.now());
@@ -1039,9 +1104,13 @@ public class TourService {
         maxWrapper.last("LIMIT 1");
         HomeRecommend lastRecommend = homeRecommendMapper.selectOne(maxWrapper);
         int maxSort = (lastRecommend != null && lastRecommend.getSortOrder() != null) ? lastRecommend.getSortOrder() : 0;
+        Set<Long> featuredIds = getCurrentFeaturedTourIds();
         
         // 追加新的推荐
         for (Long tourId : tourIds) {
+            if ("more".equals(type) && featuredIds.contains(tourId)) {
+                continue;
+            }
             // 检查是否已存在
             LambdaQueryWrapper<HomeRecommend> existWrapper = new LambdaQueryWrapper<>();
             existWrapper.eq(HomeRecommend::getType, type);
