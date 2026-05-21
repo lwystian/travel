@@ -2838,14 +2838,13 @@ onUnmounted(() => {
   .traveler-fields {
     display: grid;
     grid-template-columns: 0.95fr 0.8fr 1.45fr 0.85fr;
-    gap: 8px;
+    gap: 10px 18px;
+    align-items: center;
 
     div {
       min-width: 0;
-      padding: 10px 12px;
-      border: 1px solid #eef2f7;
-      border-radius: 8px;
-      background: #fbfdff;
+      padding: 0 0 0 14px;
+      border-left: 1px solid #e2e8f0;
     }
 
     .wide {
@@ -2864,7 +2863,7 @@ onUnmounted(() => {
     }
 
     strong {
-      margin-top: 6px;
+      margin-top: 4px;
       color: #334155;
       font-size: 14px;
       line-height: 1.4;
@@ -3218,6 +3217,11 @@ onUnmounted(() => {
     .traveler-fields {
       grid-template-columns: repeat(2, minmax(0, 1fr));
 
+      div {
+        padding-left: 0;
+        border-left: 0;
+      }
+
       .wide {
         grid-column: span 2;
       }
@@ -3253,6 +3257,11 @@ onUnmounted(() => {
   .profile-container {
     .traveler-fields {
       grid-template-columns: 1fr;
+
+      div {
+        padding-left: 0;
+        border-left: 0;
+      }
 
       .wide {
         grid-column: auto;
