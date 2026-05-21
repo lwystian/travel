@@ -447,12 +447,18 @@ onMounted(fetchAllCollectionCounts)
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 520px);
   gap: 28px;
-  align-items: end;
+  align-items: start;
   padding: 26px 28px;
   border: 1px solid #dde5f0;
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 18px 44px rgba(16, 24, 40, 0.06);
+  text-align: left;
+}
+
+.page-hero > div:first-child {
+  min-width: 0;
+  text-align: left;
 }
 
 .eyebrow {
@@ -564,10 +570,15 @@ onMounted(fetchAllCollectionCounts)
 
 .panel-toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   padding: 18px 20px;
+  text-align: left;
+}
+
+.panel-toolbar > div {
+  text-align: left;
 }
 
 .panel-toolbar span {

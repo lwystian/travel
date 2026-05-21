@@ -186,21 +186,22 @@
       :close-on-click-modal="false"
       class="traveler-dialog"
     >
-      <el-form ref="travelerFormRef" :model="travelerForm" :rules="travelerRules" label-position="top" class="traveler-form">
+      <el-form
+        ref="travelerFormRef"
+        :model="travelerForm"
+        :rules="travelerRules"
+        label-position="top"
+        class="traveler-form"
+        hide-required-asterisk
+      >
         <el-form-item label="姓名" prop="name">
           <el-input v-model="travelerForm.name" placeholder="请输入出行人姓名" clearable />
         </el-form-item>
         <el-form-item label="性别" prop="gender">
-          <el-radio-group v-model="travelerForm.gender">
-            <el-radio value="MALE">男</el-radio>
-            <el-radio value="FEMALE">女</el-radio>
-          </el-radio-group>
+          <el-segmented v-model="travelerForm.gender" :options="travelerGenderOptions" />
         </el-form-item>
         <el-form-item label="类型" prop="travelerType">
-          <el-radio-group v-model="travelerForm.travelerType">
-            <el-radio value="ADULT">成人</el-radio>
-            <el-radio value="CHILD">儿童</el-radio>
-          </el-radio-group>
+          <el-segmented v-model="travelerForm.travelerType" :options="travelerTypeOptions" />
         </el-form-item>
         <el-form-item label="手机号" prop="phone">
           <el-input v-model="travelerForm.phone" placeholder="请输入手机号" clearable maxlength="11" />
@@ -208,10 +209,16 @@
         <el-form-item label="证件类型" prop="idType">
           <el-select v-model="travelerForm.idType" placeholder="请选择证件类型" style="width: 100%">
             <el-option label="身份证" value="ID_CARD" />
+            <el-option label="护照" value="PASSPORT" />
           </el-select>
         </el-form-item>
         <el-form-item label="证件号码" prop="idNumber">
-          <el-input v-model="travelerForm.idNumber" :placeholder="idNumberPlaceholder" clearable maxlength="18" />
+          <el-input
+            v-model="travelerForm.idNumber"
+            :placeholder="idNumberPlaceholder"
+            clearable
+            :maxlength="travelerForm.idType === 'ID_CARD' ? 18 : 20"
+          />
         </el-form-item>
         <el-form-item label="出生日期" prop="birthDate">
           <el-date-picker
@@ -234,7 +241,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
@@ -285,6 +292,41 @@ const travelerForm = reactive({
   birthDate: ''
 })
 
+const travelerGenderOptions = [
+  { label: '男', value: 'MALE' },
+  { label: '女', value: 'FEMALE' }
+]
+
+const travelerTypeOptions = [
+  { label: '成人', value: 'ADULT' },
+  { label: '儿童', value: 'CHILD' }
+]
+
+const validateCnIdCard = (value) => {
+  if (!/^\d{17}[\dXx]$/.test(value)) return false
+  const weights = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2]
+  const checks = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2']
+  const sum = value.slice(0, 17).split('').reduce((total, num, index) => total + Number(num) * weights[index], 0)
+  return checks[sum % 11] === value.charAt(17).toUpperCase()
+}
+
+const validateTravelerIdNumber = (rule, value, callback) => {
+  const normalized = String(value || '').trim()
+  if (!normalized) {
+    callback(new Error('请输入证件号码'))
+    return
+  }
+  if (travelerForm.idType === 'ID_CARD' && !validateCnIdCard(normalized)) {
+    callback(new Error('请输入有效的 18 位身份证号码'))
+    return
+  }
+  if (travelerForm.idType === 'PASSPORT' && !/^[A-Za-z0-9]{5,20}$/.test(normalized)) {
+    callback(new Error('护照号码需为 5-20 位字母或数字'))
+    return
+  }
+  callback()
+}
+
 const travelerRules = computed(() => ({
   name: [
     { required: true, message: '请输入出行人姓名', trigger: 'blur' },
@@ -299,16 +341,7 @@ const travelerRules = computed(() => ({
   idType: [{ required: true, message: '请选择证件类型', trigger: 'change' }],
   idNumber: [
     { required: true, message: '请输入证件号码', trigger: 'blur' },
-    {
-      validator: (rule, value, callback) => {
-        if (!/^\d{17}[\dXx]$/.test(value)) {
-          callback(new Error('身份证号码格式不正确'))
-        } else {
-          callback()
-        }
-      },
-      trigger: 'blur'
-    }
+    { validator: validateTravelerIdNumber, trigger: ['blur', 'change'] }
   ],
   birthDate: [{ required: true, message: '请选择出生日期', trigger: 'change' }]
 }))
@@ -318,7 +351,7 @@ const adultRequired = computed(() => order.value?.adultCount || 0)
 const childRequired = computed(() => order.value?.childCount || 0)
 const selectedAdultCount = computed(() => selectedTravelers.value.filter(t => t.travelerType === 'ADULT').length)
 const selectedChildCount = computed(() => selectedTravelers.value.filter(t => t.travelerType === 'CHILD').length)
-const idNumberPlaceholder = computed(() => '请输入 18 位身份证号码')
+const idNumberPlaceholder = computed(() => travelerForm.idType === 'ID_CARD' ? '请输入 18 位身份证号码' : '请输入 5-20 位护照号码')
 
 const getIdTypeLabel = () => '身份证'
 
@@ -335,6 +368,11 @@ const formatDate = (dateStr) => {
 
 const formatPrice = (price) => Number(price || 0).toFixed(2)
 const disableFutureDate = (date) => date.getTime() > Date.now()
+
+watch(() => travelerForm.idType, () => {
+  travelerForm.idNumber = ''
+  travelerFormRef.value?.clearValidate?.('idNumber')
+})
 
 const loadFrequentTravelers = async () => {
   try {
@@ -788,18 +826,30 @@ onMounted(async () => {
 
 .traveler-form :deep(.el-form-item) {
   margin-bottom: 0;
+  text-align: left;
 }
 
 .traveler-form :deep(.el-form-item__label) {
+  display: block;
+  width: 100%;
   margin-bottom: 8px;
+  padding: 0;
   color: #344054;
   font-size: 13px;
   font-weight: 900;
-  line-height: 1.2;
+  line-height: 20px;
+  text-align: left;
+}
+
+.traveler-form :deep(.el-form-item__content) {
+  display: block;
+  width: 100%;
+  line-height: normal;
 }
 
 .traveler-form :deep(.el-input__wrapper),
 .traveler-form :deep(.el-select__wrapper) {
+  width: 100%;
   min-height: 46px;
   border-radius: 8px;
   background: #fff;
@@ -811,14 +861,38 @@ onMounted(async () => {
   box-shadow: 0 0 0 1px #155eef inset, 0 0 0 3px rgba(21, 94, 239, 0.12);
 }
 
-.traveler-form :deep(.el-radio-group) {
+.traveler-form :deep(.el-segmented) {
+  --el-segmented-item-selected-bg-color: #0d9488;
+  --el-segmented-item-selected-color: #fff;
+  --el-segmented-item-selected-disabled-bg-color: #99f6e4;
   width: 100%;
+  height: 46px;
   min-height: 46px;
-  padding: 0 12px;
-  border: 1px solid #d6deeb;
+  padding: 4px;
+  border: 0;
   border-radius: 8px;
-  background: #fff;
-  gap: 18px;
+  background: #ecfdf5;
+  box-shadow: 0 0 0 1px rgba(13, 148, 136, 0.14) inset;
+}
+
+.traveler-form :deep(.el-segmented__group) {
+  width: 100%;
+  height: 100%;
+}
+
+.traveler-form :deep(.el-segmented__item) {
+  flex: 1;
+  height: 38px;
+  min-height: 38px;
+  border-radius: 7px;
+  color: #0f766e;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.traveler-form :deep(.el-segmented__item-label) {
+  height: 38px;
+  line-height: 38px;
 }
 
 .quota-row {

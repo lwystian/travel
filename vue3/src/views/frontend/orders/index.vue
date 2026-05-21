@@ -455,7 +455,7 @@ onUnmounted(() => {
 
 .orders-header {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
   padding: 26px 28px;
@@ -463,6 +463,12 @@ onUnmounted(() => {
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 18px 44px rgba(16, 24, 40, 0.06);
+  text-align: left;
+}
+
+.orders-header > div:first-child {
+  min-width: 0;
+  text-align: left;
 }
 
 .kicker {
@@ -624,12 +630,17 @@ onUnmounted(() => {
 
 .panel-title {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
   padding: 18px 20px;
   border-bottom: 1px solid #e4eaf3;
   background: #fbfcfe;
+  text-align: left;
+}
+
+.panel-title > div {
+  text-align: left;
 }
 
 .panel-title span {
@@ -650,7 +661,7 @@ onUnmounted(() => {
   color: #667085;
   font-size: 13px;
   font-weight: 700;
-  text-align: right;
+  text-align: left;
 }
 
 .loading-box {
@@ -722,10 +733,10 @@ onUnmounted(() => {
 .order-card {
   position: relative;
   display: grid;
-  min-height: 216px;
-  grid-template-rows: auto 1fr auto;
-  gap: 14px;
-  padding: 18px;
+  min-height: 218px;
+  grid-template-rows: auto auto auto;
+  gap: 12px;
+  padding: 16px;
   border: 1px solid #e4eaf3;
   border-left-width: 4px;
   border-radius: 8px;
@@ -817,22 +828,24 @@ onUnmounted(() => {
 .info-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px 12px;
+  gap: 8px 10px;
 }
 
 .info-cell {
   min-width: 0;
-  padding: 10px 12px;
+  min-height: 58px;
+  padding: 8px 10px;
   border: 1px solid #eef2f7;
   border-radius: 8px;
   background: #fbfcfe;
+  align-content: start;
 }
 
-.info-cell span {
+.info-cell > span {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: #98a2b3;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   line-height: 1.2;
 }
@@ -841,10 +854,23 @@ onUnmounted(() => {
   display: block;
   overflow: hidden;
   color: #344054;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
-  line-height: 1.45;
+  line-height: 1.35;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: break-word;
+}
+
+.info-cell:nth-child(2) strong,
+.info-cell:nth-child(6) strong {
+  display: -webkit-box;
+  white-space: normal;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.info-cell:nth-child(3) strong {
   white-space: nowrap;
 }
 
@@ -852,8 +878,8 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: auto minmax(130px, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  padding-top: 14px;
+  gap: 10px;
+  padding-top: 12px;
   border-top: 1px solid #eef2f7;
 }
 
@@ -1014,6 +1040,10 @@ onUnmounted(() => {
 
   .info-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .info-cell:nth-child(n) {
+    grid-column: auto;
   }
 
   .card-foot {

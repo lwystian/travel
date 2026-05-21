@@ -282,7 +282,7 @@ onMounted(fetchGuides)
 
 .page-hero {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
   padding: 26px 28px;
@@ -290,6 +290,12 @@ onMounted(fetchGuides)
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 18px 44px rgba(16, 24, 40, 0.06);
+  text-align: left;
+}
+
+.page-hero > div:first-child {
+  min-width: 0;
+  text-align: left;
 }
 
 .eyebrow {
@@ -378,12 +384,17 @@ onMounted(fetchGuides)
 
 .panel-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   padding: 18px 20px;
   border-bottom: 1px solid #e4eaf3;
   background: #fbfcfe;
+  text-align: left;
+}
+
+.panel-head > div {
+  text-align: left;
 }
 
 .panel-head span {

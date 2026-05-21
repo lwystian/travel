@@ -3,6 +3,7 @@ package org.example.springboot.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import org.example.springboot.annotation.OperationLog;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.FrequentTraveler;
 import org.example.springboot.service.FrequentTravelerService;
@@ -22,12 +23,14 @@ public class FrequentTravelerController {
     private FrequentTravelerService frequentTravelerService;
 
     @Operation(summary = "获取当前用户的常用出行人列表")
+    @OperationLog(operationType = "QUERY", description = "查询常用出行人", targetType = "FrequentTraveler")
     @GetMapping
     public Result<List<FrequentTraveler>> getMyTravelers(@RequestAttribute Long userId) {
         return Result.success(frequentTravelerService.getByUserId(userId));
     }
 
     @Operation(summary = "保存常用出行人")
+    @OperationLog(operationType = "CREATE", description = "新增常用出行人", targetType = "FrequentTraveler")
     @PostMapping
     public Result<FrequentTraveler> saveTraveler(
             @RequestAttribute Long userId,
@@ -40,6 +43,7 @@ public class FrequentTravelerController {
     }
 
     @Operation(summary = "更新常用出行人")
+    @OperationLog(operationType = "UPDATE", description = "更新常用出行人", targetType = "FrequentTraveler")
     @PutMapping("/{id}")
     public Result<FrequentTraveler> updateTraveler(
             @RequestAttribute Long userId,
@@ -54,6 +58,7 @@ public class FrequentTravelerController {
     }
 
     @Operation(summary = "删除常用出行人")
+    @OperationLog(operationType = "DELETE", description = "删除常用出行人", targetType = "FrequentTraveler")
     @DeleteMapping("/{id}")
     public Result<Void> deleteTraveler(
             @RequestAttribute Long userId,
@@ -66,6 +71,7 @@ public class FrequentTravelerController {
     }
 
     @Operation(summary = "设置默认出行人")
+    @OperationLog(operationType = "UPDATE", description = "设置默认出行人", targetType = "FrequentTraveler")
     @PutMapping("/{id}/default")
     public Result<Void> setDefault(
             @RequestAttribute Long userId,

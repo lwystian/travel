@@ -264,24 +264,20 @@
                 <el-empty v-else-if="frequentTravelers.length === 0" description="暂无常用出行人">
                   <el-button type="primary" @click="openTravelerDialog()">添加出行人</el-button>
                 </el-empty>
-                <div v-else class="traveler-profile-grid">
+                <div v-else class="traveler-profile-list">
                   <article
                     v-for="traveler in frequentTravelers"
                     :key="traveler.id"
                     class="traveler-profile-card"
-                    :class="{ default: traveler.isDefault }"
                   >
-                    <div class="traveler-card-top">
+                    <div class="traveler-card-identity">
                       <div class="traveler-avatar">{{ traveler.name?.charAt(0) || '旅' }}</div>
                       <div class="traveler-main">
-                        <div class="traveler-name-row">
-                          <h4>{{ traveler.name }}</h4>
-                          <el-tag v-if="traveler.isDefault" type="success" effect="plain">
-                            <el-icon><StarFilled /></el-icon>
-                            默认
-                          </el-tag>
+                        <h4>{{ traveler.name }}</h4>
+                        <div class="traveler-tags">
+                          <span>{{ traveler.travelerType === 'CHILD' ? '儿童' : '成人' }}</span>
+                          <span>{{ traveler.gender === 'FEMALE' ? '女' : '男' }}</span>
                         </div>
-                        <p>{{ traveler.travelerType === 'CHILD' ? '儿童' : '成人' }} · {{ traveler.gender === 'FEMALE' ? '女' : '男' }}</p>
                       </div>
                     </div>
 
@@ -305,7 +301,6 @@
                     </div>
 
                     <div class="traveler-card-actions">
-                      <el-button v-if="!traveler.isDefault" plain @click="setTravelerDefault(traveler)">设为默认</el-button>
                       <el-button plain @click="openTravelerDialog(traveler)">
                         <el-icon><EditPen /></el-icon>
                         编辑
@@ -562,10 +557,7 @@
             />
           </el-form-item>
           <el-form-item label="证件号码" prop="idNumber" class="wide">
-            <el-input v-model="travelerForm.idNumber" placeholder="请输入证件号码" clearable maxlength="32" />
-          </el-form-item>
-          <el-form-item class="wide traveler-default-switch">
-            <el-checkbox v-model="travelerForm.isDefault">设为默认出行人</el-checkbox>
+            <el-input v-model="travelerForm.idNumber" :placeholder="travelerIdNumberPlaceholder" clearable :maxlength="travelerForm.idType === 'ID_CARD' ? 18 : 20" />
           </el-form-item>
         </div>
       </el-form>
@@ -584,10 +576,10 @@ import { useUserStore } from "@/store/user";
 import { useRoute, useRouter } from "vue-router";
 import request from "@/utils/request";
 import GeetestBox from '@/components/auth/GeetestBox.vue'
-import {User,Lock,Key,Check,Camera,Phone,Message,EditPen,ChatDotRound,Location,Bell,Plus,Delete,StarFilled} from '@element-plus/icons-vue'
+import {User,Lock,Key,Check,Camera,Phone,Message,EditPen,ChatDotRound,Location,Bell,Plus,Delete} from '@element-plus/icons-vue'
 import { formatDate } from '@/utils/dateUtils'
 import { maskEmail, maskPhone } from '@/utils/mask'
-import { getFrequentTravelers, saveFrequentTraveler, updateFrequentTraveler, deleteFrequentTraveler, setDefaultTraveler } from '@/api/frequentTraveler'
+import { getFrequentTravelers, saveFrequentTraveler, updateFrequentTraveler, deleteFrequentTraveler } from '@/api/frequentTraveler'
 
 const baseAPI = process.env.VUE_APP_BASE_API || "/api";
 const userStore = useUserStore();
@@ -676,8 +668,7 @@ const travelerForm = reactive({
   phone: '',
   idType: 'ID_CARD',
   idNumber: '',
-  birthDate: '',
-  isDefault: false
+  birthDate: ''
 })
 
 const genderOptions = ["男", "女"];
@@ -689,6 +680,7 @@ const travelerTypeOptions = [
   { label: '成人', value: 'ADULT' },
   { label: '儿童', value: 'CHILD' }
 ]
+const travelerIdNumberPlaceholder = computed(() => travelerForm.idType === 'ID_CARD' ? '请输入 18 位身份证号码' : '请输入 5-20 位护照号码')
 
 const displayName = computed(() => userForm.nickname || userForm.username || "用户");
 const securityLevelText = computed(() => {
@@ -777,6 +769,32 @@ const passwordRules = {
   ],
 };
 
+const validateCnIdCard = (value) => {
+  if (!/^\d{17}[\dXx]$/.test(value)) return false
+  const weights = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2]
+  const checks = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2']
+  const sum = value.slice(0, 17).split('').reduce((total, num, index) => total + Number(num) * weights[index], 0)
+  return checks[sum % 11] === value.charAt(17).toUpperCase()
+}
+
+const validateTravelerIdNumber = (rule, value, callback) => {
+  const idType = travelerForm.idType
+  const normalized = String(value || '').trim()
+  if (!normalized) {
+    callback(new Error('请输入证件号码'))
+    return
+  }
+  if (idType === 'ID_CARD' && !validateCnIdCard(normalized)) {
+    callback(new Error('请输入有效的 18 位身份证号码'))
+    return
+  }
+  if (idType === 'PASSPORT' && !/^[A-Za-z0-9]{5,20}$/.test(normalized)) {
+    callback(new Error('护照号码需为 5-20 位字母或数字'))
+    return
+  }
+  callback()
+}
+
 const travelerRules = {
   name: [
     { required: true, message: '请输入出行人姓名', trigger: 'blur' },
@@ -791,7 +809,7 @@ const travelerRules = {
   idType: [{ required: true, message: '请选择证件类型', trigger: 'change' }],
   idNumber: [
     { required: true, message: '请输入证件号码', trigger: 'blur' },
-    { min: 6, max: 32, message: '证件号码长度为 6-32 个字符', trigger: 'blur' }
+    { validator: validateTravelerIdNumber, trigger: ['blur', 'change'] }
   ],
   birthDate: [{ required: true, message: '请选择出生日期', trigger: 'change' }]
 };
@@ -1324,8 +1342,7 @@ const resetTravelerForm = () => {
     phone: '',
     idType: 'ID_CARD',
     idNumber: '',
-    birthDate: '',
-    isDefault: false
+    birthDate: ''
   })
   travelerFormRef.value?.clearValidate?.()
 }
@@ -1340,8 +1357,7 @@ const openTravelerDialog = (traveler = null) => {
       phone: traveler.phone || '',
       idType: traveler.idType || 'ID_CARD',
       idNumber: traveler.idNumber || '',
-      birthDate: formatTravelerDate(traveler.birthDate),
-      isDefault: Boolean(traveler.isDefault)
+      birthDate: formatTravelerDate(traveler.birthDate)
     })
   } else {
     resetTravelerForm()
@@ -1359,16 +1375,12 @@ const saveTravelerProfile = async () => {
   travelerSaving.value = true
   try {
     const payload = { ...travelerForm }
-    let saved
     if (editingTraveler.value) {
-      saved = await updateFrequentTraveler(editingTraveler.value.id, payload)
+      await updateFrequentTraveler(editingTraveler.value.id, payload)
       ElMessage.success('出行人信息已更新')
     } else {
-      saved = await saveFrequentTraveler(payload)
+      await saveFrequentTraveler(payload)
       ElMessage.success('出行人已添加')
-    }
-    if (payload.isDefault && (saved?.id || editingTraveler.value?.id)) {
-      await setDefaultTraveler(saved?.id || editingTraveler.value.id)
     }
     travelerDialogVisible.value = false
     await fetchFrequentTravelers()
@@ -1377,17 +1389,6 @@ const saveTravelerProfile = async () => {
     ElMessage.error(error.message || '保存常用出行人失败')
   } finally {
     travelerSaving.value = false
-  }
-}
-
-const setTravelerDefault = async (traveler) => {
-  try {
-    await setDefaultTraveler(traveler.id)
-    ElMessage.success('默认出行人已更新')
-    await fetchFrequentTravelers()
-  } catch (error) {
-    console.error('设置默认出行人失败', error)
-    ElMessage.error(error.message || '设置默认出行人失败')
   }
 }
 
@@ -1418,15 +1419,21 @@ watch(activeTab, (newTab) => {
   } else if (newTab === 'notifications') {
     fetchNotifications()
   }
+  if (route.query.tab !== newTab) {
+    router.replace({ query: { ...route.query, tab: newTab } })
+  }
 })
 
 watch(() => route.query.tab, (tab) => {
-  if (tab === 'notifications') {
-    activeTab.value = 'notifications'
-  } else if (tab === 'travelers') {
-    activeTab.value = 'travelers'
+  const validTabs = ['basic', 'password', 'travelers', 'mycomments', 'notifications']
+  if (validTabs.includes(tab) && activeTab.value !== tab) {
+    activeTab.value = tab
   }
 }, { immediate: true })
+
+watch(() => travelerForm.idType, () => {
+  travelerFormRef.value?.validateField?.('idNumber').catch?.(() => {})
+})
 
 // 评论分页变化
 const handleCommentPageChange = (page) => {
@@ -2074,13 +2081,20 @@ onUnmounted(() => {
       }
 
       :deep(.el-segmented) {
-        --el-segmented-item-selected-bg-color: #0f766e;
+        --el-segmented-item-selected-bg-color: #0d9488;
         --el-segmented-item-selected-color: #fff;
-        width: 220px;
+        width: 100%;
+        min-height: 44px;
         max-width: 100%;
         border-radius: 8px;
-        background: #f1f5f9;
+        background: #ecfdf5;
         padding: 4px;
+      }
+
+      :deep(.el-segmented__item) {
+        min-height: 36px;
+        border-radius: 7px;
+        font-weight: 800;
       }
     }
 
@@ -2738,31 +2752,38 @@ onUnmounted(() => {
     }
   }
 
-  .traveler-profile-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
+  .traveler-profile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .traveler-profile-card {
+    display: grid;
+    grid-template-columns: 230px minmax(0, 1fr) 170px;
+    align-items: center;
+    gap: 18px;
     min-width: 0;
-    padding: 20px;
+    padding: 16px 18px;
     border: 1px solid #e5e7eb;
     border-radius: 8px;
-    background: #fff;
-    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 
-    &.default {
-      border-color: #99f6e4;
-      background: linear-gradient(180deg, #ffffff 0%, #f0fdfa 100%);
+    &:hover {
+      border-color: #bae6fd;
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+      transform: translateY(-1px);
     }
+
   }
 
-  .traveler-card-top {
+  .traveler-card-identity {
     display: flex;
     align-items: center;
     gap: 14px;
-    margin-bottom: 16px;
+    min-width: 0;
   }
 
   .traveler-avatar {
@@ -2781,41 +2802,54 @@ onUnmounted(() => {
   .traveler-main {
     min-width: 0;
 
-    p {
-      margin: 6px 0 0;
-      color: #64748b;
-      font-size: 13px;
-    }
-  }
-
-  .traveler-name-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
     h4 {
       margin: 0;
       color: #0f172a;
       font-size: 18px;
       font-weight: 900;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
+  }
+
+  .traveler-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      height: 24px;
+      padding: 0 9px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
   }
 
   .traveler-fields {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    grid-template-columns: 0.95fr 0.8fr 1.45fr 0.85fr;
+    gap: 8px;
 
     div {
       min-width: 0;
-      padding: 12px;
+      padding: 10px 12px;
       border: 1px solid #eef2f7;
       border-radius: 8px;
       background: #fbfdff;
     }
 
     .wide {
-      grid-column: span 2;
+      grid-column: auto;
     }
 
     span,
@@ -2830,26 +2864,29 @@ onUnmounted(() => {
     }
 
     strong {
-      margin-top: 7px;
+      margin-top: 6px;
       color: #334155;
       font-size: 14px;
       line-height: 1.4;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       word-break: break-all;
     }
   }
 
   .traveler-card-actions {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    align-items: center;
     justify-content: flex-end;
     gap: 8px;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #eef2f7;
 
     .el-button {
+      min-width: 72px;
       border-radius: 8px;
       font-weight: 800;
+      margin-left: 0;
     }
   }
 
@@ -2857,32 +2894,67 @@ onUnmounted(() => {
     .traveler-form-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 2px 16px;
+      gap: 16px;
+      align-items: start;
 
       .wide {
         grid-column: span 2;
       }
     }
 
+    :deep(.el-form-item) {
+      margin-bottom: 0;
+    }
+
+    :deep(.el-form-item__label) {
+      display: flex;
+      align-items: center;
+      min-height: 20px;
+      margin: 0 0 8px;
+      padding: 0;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 20px;
+      text-align: left;
+    }
+
+    :deep(.el-input__wrapper),
     :deep(.el-select__wrapper) {
       min-height: 46px;
-      border-radius: 12px;
-      box-shadow: 0 0 0 1px #e2e8f0 inset;
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 0 0 1px #dfe7ef inset;
+    }
+
+    :deep(.el-input__wrapper.is-focus),
+    :deep(.el-select__wrapper.is-focused) {
+      box-shadow: 0 0 0 1px #0f766e inset, 0 0 0 4px rgba(15, 118, 110, 0.1);
+    }
+
+    :deep(.el-select__wrapper) {
+      min-height: 46px;
+      border-radius: 8px;
+    }
+
+    :deep(.el-select),
+    :deep(.el-date-editor.el-input),
+    :deep(.el-date-editor .el-input__wrapper) {
+      width: 100%;
     }
 
     :deep(.el-segmented) {
       width: 100%;
       min-height: 46px;
-      border-radius: 12px;
+      border-radius: 8px;
       background: #f1f5f9;
       padding: 4px;
     }
 
-    .traveler-default-switch {
-      padding: 12px 14px;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      background: #f8fafc;
+    :deep(.el-segmented__item) {
+      min-height: 38px;
+      border-radius: 7px;
+      font-weight: 800;
     }
   }
 
@@ -2936,6 +3008,98 @@ onUnmounted(() => {
       &.is-focus {
         box-shadow: 0 0 0 1px #0ea5e9 inset, 0 0 0 3px rgba(14, 165, 233, 0.12);
       }
+    }
+  }
+
+  .traveler-manage-form {
+    .traveler-form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px 16px;
+      align-items: start;
+
+      .wide {
+        grid-column: 1 / -1;
+      }
+    }
+
+    :deep(.el-form-item) {
+      display: block;
+      margin-bottom: 0;
+    }
+
+    :deep(.el-form-item__label) {
+      display: block;
+      width: 100%;
+      height: auto;
+      margin: 0 0 8px;
+      padding: 0;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 20px;
+      text-align: left;
+    }
+
+    :deep(.el-form-item__content) {
+      display: block;
+      width: 100%;
+      line-height: normal;
+    }
+
+    :deep(.el-input),
+    :deep(.el-select),
+    :deep(.el-date-editor.el-input) {
+      width: 100%;
+    }
+
+    :deep(.el-input__wrapper),
+    :deep(.el-select__wrapper) {
+      width: 100%;
+      min-height: 46px;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 0 0 1px #dfe7ef inset;
+      transition: box-shadow 0.18s ease, background 0.18s ease;
+    }
+
+    :deep(.el-input__wrapper:hover),
+    :deep(.el-select__wrapper:hover) {
+      box-shadow: 0 0 0 1px #99f6e4 inset;
+    }
+
+    :deep(.el-input__wrapper.is-focus),
+    :deep(.el-select__wrapper.is-focused) {
+      box-shadow: 0 0 0 1px #0f766e inset, 0 0 0 4px rgba(15, 118, 110, 0.1);
+    }
+
+    :deep(.el-segmented) {
+      --el-segmented-item-selected-bg-color: #0d9488;
+      --el-segmented-item-selected-color: #fff;
+      width: 100%;
+      height: 46px;
+      min-height: 46px;
+      padding: 4px;
+      border-radius: 8px;
+      background: #ecfdf5;
+    }
+
+    :deep(.el-segmented__group) {
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(.el-segmented__item) {
+      height: 38px;
+      min-height: 38px;
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    :deep(.el-segmented__item-label) {
+      height: 38px;
+      line-height: 38px;
     }
   }
 
@@ -3006,8 +3170,7 @@ onUnmounted(() => {
 
         .overview-metrics,
         .profile-grid,
-        .field-stack,
-        .traveler-profile-grid {
+        .field-stack {
           grid-template-columns: 1fr;
           width: 100%;
         }
@@ -3047,6 +3210,23 @@ onUnmounted(() => {
       align-items: flex-start;
     }
 
+    .traveler-profile-card {
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+
+    .traveler-fields {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+
+      .wide {
+        grid-column: span 2;
+      }
+    }
+
+    .traveler-card-actions {
+      justify-content: flex-start;
+    }
+
     .traveler-profile-dialog {
       .traveler-form-grid {
         grid-template-columns: 1fr;
@@ -3054,6 +3234,28 @@ onUnmounted(() => {
         .wide {
           grid-column: auto;
         }
+      }
+    }
+
+    .traveler-manage-form {
+      .traveler-form-grid {
+        grid-template-columns: 1fr;
+
+        .wide {
+          grid-column: auto;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .profile-container {
+    .traveler-fields {
+      grid-template-columns: 1fr;
+
+      .wide {
+        grid-column: auto;
       }
     }
   }
