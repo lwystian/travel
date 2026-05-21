@@ -30,7 +30,7 @@ public class FrequentTravelerController {
     }
 
     @Operation(summary = "保存常用出行人")
-    @OperationLog(operationType = "CREATE", description = "新增常用出行人", targetType = "FrequentTraveler")
+    @OperationLog(operationType = "CREATE", description = "用户新增常用出行人", targetType = "FrequentTraveler")
     @PostMapping
     public Result<FrequentTraveler> saveTraveler(
             @RequestAttribute Long userId,
@@ -43,7 +43,7 @@ public class FrequentTravelerController {
     }
 
     @Operation(summary = "更新常用出行人")
-    @OperationLog(operationType = "UPDATE", description = "更新常用出行人", targetType = "FrequentTraveler")
+    @OperationLog(operationType = "UPDATE", description = "用户更新常用出行人", targetType = "FrequentTraveler")
     @PutMapping("/{id}")
     public Result<FrequentTraveler> updateTraveler(
             @RequestAttribute Long userId,
@@ -58,7 +58,7 @@ public class FrequentTravelerController {
     }
 
     @Operation(summary = "删除常用出行人")
-    @OperationLog(operationType = "DELETE", description = "删除常用出行人", targetType = "FrequentTraveler")
+    @OperationLog(operationType = "DELETE", description = "用户删除常用出行人", targetType = "FrequentTraveler")
     @DeleteMapping("/{id}")
     public Result<Void> deleteTraveler(
             @RequestAttribute Long userId,

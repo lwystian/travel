@@ -103,13 +103,19 @@ public class OperationLogAspect {
     }
 
     private boolean shouldAudit(HttpServletRequest request, OperationLog annotation) {
-        if (annotation != null) {
-            return true;
-        }
         if (request == null) {
             return false;
         }
+        String path = request.getRequestURI();
         String method = request.getMethod();
+        if (path != null
+                && path.contains("/frequent-traveler")
+                && ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method))) {
+            return false;
+        }
+        if (annotation != null) {
+            return true;
+        }
         return "POST".equalsIgnoreCase(method)
                 || "PUT".equalsIgnoreCase(method)
                 || "PATCH".equalsIgnoreCase(method)

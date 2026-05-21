@@ -53,6 +53,9 @@ public class TourOrderAlipayService {
     @Autowired
     private AlipayPaymentStrategy alipayPaymentStrategy;
 
+    @Autowired
+    private TourOrderNotificationService tourOrderNotificationService;
+
     /**
      * 支付策略注册表
      */
@@ -193,6 +196,7 @@ public class TourOrderAlipayService {
         tourOrderMapper.updateById(order);
 
         logger.info("订单支付成功 - 订单号: {}, 交易号: {}", outTradeNo, tradeNo);
+        tourOrderNotificationService.notifyPaymentSuccess(order);
 
         return "success";
     }
@@ -240,6 +244,7 @@ public class TourOrderAlipayService {
         tourOrderMapper.updateById(order);
 
         logger.info("模拟支付成功，订单ID: {}", orderId);
+        tourOrderNotificationService.notifyPaymentSuccess(order);
     }
 
     /**

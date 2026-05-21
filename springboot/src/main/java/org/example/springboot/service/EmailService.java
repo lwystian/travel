@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class EmailService {
     
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
+    private static final String COMPANY_NAME = "侠客行国际旅行社";
+    private static final String COMPANY_SHORT_NAME = "侠客行国旅";
     
     private static final ConcurrentHashMap<String, CodeInfo> EMAIL_CODE_MAP = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Long> EMAIL_SENT_AT_MAP = new ConcurrentHashMap<>();
@@ -41,7 +43,7 @@ public class EmailService {
      * @return 验证码
      */
     public String sendVerificationCodeAsync(String email) {
-        return sendCodeEmail(email, "EMAIL_BIND", "绑定邮箱验证码");
+        return sendCodeEmail(email, "EMAIL_BIND", "【" + COMPANY_SHORT_NAME + "】绑定邮箱验证码");
     }
     
     /**
@@ -51,7 +53,7 @@ public class EmailService {
      * @return 验证码
      */
     public String sendResetPasswordEmailAsync(String email) {
-        return sendCodeEmail(email, "RESET_PASSWORD", "密码重置验证码");
+        return sendCodeEmail(email, "RESET_PASSWORD", "【" + COMPANY_SHORT_NAME + "】密码重置验证码");
     }
     
     /**
@@ -148,7 +150,10 @@ public class EmailService {
         EMAIL_SENT_AT_MAP.put(key, Instant.now().plusSeconds(config.getSendIntervalSeconds()).toEpochMilli());
 
         sendEmail(EmailMessageDTO.createNotificationEmail(email, subject,
-                "您的验证码为：" + code + "，" + config.getCodeExpireMinutes() + "分钟内有效。请勿向任何人泄露验证码。"));
+                "您好，我们是" + COMPANY_NAME + "（简称：" + COMPANY_SHORT_NAME + "）。\n\n"
+                        + "您的验证码为：" + code + "，" + config.getCodeExpireMinutes() + "分钟内有效。请勿向任何人泄露验证码。\n\n"
+                        + "如非您本人操作，请忽略本邮件并及时检查账号安全。\n\n"
+                        + COMPANY_NAME));
         logger.info("邮箱验证码已发送：{}，scene={}", email, scene);
         return code;
     }

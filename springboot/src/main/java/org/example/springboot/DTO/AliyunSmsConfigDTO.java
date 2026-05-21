@@ -9,6 +9,8 @@ public class AliyunSmsConfigDTO {
     private String accessKeySecret;
     private String signName;
     private String templateCode;
+    private String orderUserTemplateCode;
+    private String orderAdminTemplateCode;
     private String regionId = "cn-hangzhou";
     private String endpoint = "dysmsapi.aliyuncs.com";
     private Integer codeExpireMinutes = 5;

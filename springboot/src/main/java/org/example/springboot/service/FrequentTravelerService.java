@@ -4,10 +4,14 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import org.example.springboot.entity.FrequentTraveler;
+import org.example.springboot.entity.SysOperationLog;
+import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.FrequentTravelerMapper;
+import org.example.springboot.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -24,6 +28,12 @@ public class FrequentTravelerService extends ServiceImpl<FrequentTravelerMapper,
 
     @Resource
     private SiteNotificationService siteNotificationService;
+
+    @Resource
+    private UserMapper userMapper;
+
+    @Resource
+    private SysOperationLogService sysOperationLogService;
 
     /**
      * 获取用户的所有常用出行人
@@ -51,6 +61,10 @@ public class FrequentTravelerService extends ServiceImpl<FrequentTravelerMapper,
             sendTravelerNotification(userId, "常用出行人已添加",
                     "你刚刚添加了常用出行人「" + safeName(traveler.getName()) + "」，预订行程时可直接选择使用。",
                     traveler.getId());
+            sendTravelerAdminNotification(userId, "用户新增常用出行人",
+                    resolveUserDisplayName(userId) + " 新增了常用出行人「" + safeName(traveler.getName()) + "」。",
+                    traveler.getId());
+            recordTravelerAudit(userId, "CREATE", "新增常用联系人「" + safeName(traveler.getName()) + "」", traveler.getId(), traveler.getName());
         } else {
             // 更新时确保是当前用户的出行人
             QueryWrapper<FrequentTraveler> queryWrapper = new QueryWrapper<>();
@@ -63,6 +77,10 @@ public class FrequentTravelerService extends ServiceImpl<FrequentTravelerMapper,
                 sendTravelerNotification(userId, "常用出行人已更新",
                         "常用出行人「" + safeName(traveler.getName()) + "」的信息刚刚完成更新。",
                         traveler.getId());
+                sendTravelerAdminNotification(userId, "用户更新常用出行人",
+                        resolveUserDisplayName(userId) + " 更新了常用出行人「" + safeName(traveler.getName()) + "」。",
+                        traveler.getId());
+                recordTravelerAudit(userId, "UPDATE", "更新常用联系人「" + safeName(traveler.getName()) + "」", traveler.getId(), traveler.getName());
             } else {
                 return null;
             }
@@ -86,6 +104,10 @@ public class FrequentTravelerService extends ServiceImpl<FrequentTravelerMapper,
             sendTravelerNotification(userId, "常用出行人已删除",
                     "常用出行人「" + safeName(traveler.getName()) + "」已从你的资料中删除。",
                     travelerId);
+            sendTravelerAdminNotification(userId, "用户删除常用出行人",
+                    resolveUserDisplayName(userId) + " 删除了常用出行人「" + safeName(traveler.getName()) + "」。",
+                    travelerId);
+            recordTravelerAudit(userId, "DELETE", "删除常用联系人「" + safeName(traveler.getName()) + "」", travelerId, traveler.getName());
         }
         return removed;
     }
@@ -126,6 +148,48 @@ public class FrequentTravelerService extends ServiceImpl<FrequentTravelerMapper,
     private void sendTravelerNotification(Long userId, String title, String content, Long travelerId) {
         siteNotificationService.sendToUser(userId, title, content,
                 "ACCOUNT", "FREQUENT_TRAVELER", String.valueOf(travelerId), "/profile?tab=travelers");
+    }
+
+    private void sendTravelerAdminNotification(Long userId, String title, String content, Long travelerId) {
+        siteNotificationService.sendToAdmins(title, content,
+                "ACCOUNT", "FREQUENT_TRAVELER", String.valueOf(travelerId), "/back/log");
+    }
+
+    private void recordTravelerAudit(Long userId, String operationType, String operationDesc, Long travelerId, String travelerName) {
+        User user = userMapper.selectById(userId);
+        SysOperationLog log = new SysOperationLog();
+        log.setUserId(userId);
+        log.setUsername(user == null ? String.valueOf(userId) : user.getUsername());
+        log.setOperationType(operationType);
+        log.setLogLevel("INFO");
+        log.setOperationDesc(operationDesc);
+        log.setTargetType("常用联系人");
+        log.setTargetId(travelerId == null ? "" : String.valueOf(travelerId));
+        log.setRequestUrl(sysOperationLogService.getRequestUrl());
+        log.setRequestMethod(sysOperationLogService.getRequestMethod());
+        log.setRequestParams("{\"travelerId\":\"" + (travelerId == null ? "" : travelerId) + "\",\"travelerName\":\"" + escapeJson(safeName(travelerName)) + "\"}");
+        log.setIpAddress(sysOperationLogService.getClientIp());
+        log.setPort(sysOperationLogService.getClientPort());
+        log.setUserAgent(sysOperationLogService.getUserAgent());
+        log.setStatus(1);
+        log.setExecutionTime(0L);
+        log.setCreateTime(LocalDateTime.now());
+        sysOperationLogService.saveLog(log);
+    }
+
+    private String resolveUserDisplayName(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            return "用户" + userId;
+        }
+        if (user.getNickname() != null && !user.getNickname().isBlank()) {
+            return user.getUsername() + "（" + user.getNickname().trim() + "）";
+        }
+        return user.getUsername();
+    }
+
+    private String escapeJson(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private void validateTraveler(FrequentTraveler traveler) {

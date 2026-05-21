@@ -20,16 +20,23 @@ public class AliyunSmsSenderService {
     private static final Logger LOGGER = LoggerFactory.getLogger(AliyunSmsSenderService.class);
 
     public void sendCode(AliyunSmsConfigDTO config, String phone, String code) {
+        sendTemplate(config, phone, config.getTemplateCode(), Map.of("code", code));
+    }
+
+    public void sendTemplate(AliyunSmsConfigDTO config, String phone, String templateCode, Map<String, ?> params) {
         if (!Boolean.TRUE.equals(config.getEnabled()) || !Boolean.TRUE.equals(config.getConfigured())) {
             throw new ServiceException("短信服务未启用或未完成配置，请联系管理员");
+        }
+        if (!StringUtils.hasText(templateCode)) {
+            throw new ServiceException("短信模板未配置，请联系管理员");
         }
 
         try {
             SendSmsResponse response = createClient(config).sendSms(new SendSmsRequest()
                     .setPhoneNumbers(phone)
                     .setSignName(config.getSignName())
-                    .setTemplateCode(config.getTemplateCode())
-                    .setTemplateParam(JSON.toJSONString(Map.of("code", code))));
+                    .setTemplateCode(templateCode)
+                    .setTemplateParam(JSON.toJSONString(params == null ? Map.of() : params)));
 
             SendSmsResponseBody body = response == null ? null : response.getBody();
             String resultCode = body == null ? null : body.getCode();

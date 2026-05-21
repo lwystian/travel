@@ -63,6 +63,9 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
     @Autowired(required = false)
     private StringRedisTemplate stringRedisTemplate;
 
+    @Autowired
+    private TourOrderNotificationService tourOrderNotificationService;
+
     private AlipayConfigDTO configDTO;
 
     @PostConstruct
@@ -207,6 +210,7 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
 
         tourOrderMapper.updateById(order);
         logger.info("订单支付成功: {}, 金额: {}", orderNo, amount);
+        tourOrderNotificationService.notifyPaymentSuccess(order);
         return "success";
     }
 
@@ -298,6 +302,7 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
         order.setPaymentMethod("alipay");
         tourOrderMapper.updateById(order);
         logger.info("模拟支付成功，订单ID: {}", orderId);
+        tourOrderNotificationService.notifyPaymentSuccess(order);
     }
 
     /**

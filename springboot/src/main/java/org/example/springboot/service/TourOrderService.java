@@ -47,6 +47,9 @@ public class TourOrderService {
     @Resource
     private SiteNotificationService siteNotificationService;
 
+    @Resource
+    private TourOrderNotificationService tourOrderNotificationService;
+
     /**
      * 创建行程订单
      */
@@ -372,6 +375,7 @@ public class TourOrderService {
         siteNotificationService.sendToUser(order.getUserId(), "订单支付成功",
                 "订单 " + order.getOrderNo() + " 已支付成功，我们会为你保留出行名额。",
                 "ORDER", "TOUR_ORDER", String.valueOf(order.getId()), "/orders");
+        tourOrderNotificationService.notifyPaymentSuccess(order);
         logger.info("行程订单支付成功：订单号={}", order.getOrderNo());
     }
 
