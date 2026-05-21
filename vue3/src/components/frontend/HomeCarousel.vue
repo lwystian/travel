@@ -1,6 +1,6 @@
 <template>
-  <div class="home-carousel">
-    <el-carousel :interval="4000" height="482px" indicator-position="outside" arrow="never" v-loading="loading">
+  <div ref="carouselRoot" class="home-carousel" :style="{ '--home-carousel-height': `${carouselHeight}px` }">
+    <el-carousel :interval="4000" :height="`${carouselHeight}px`" indicator-position="outside" arrow="never" v-loading="loading">
       <el-carousel-item v-for="item in carouselList" :key="item.id">
         <div class="carousel-content">
           <img :src="getImageUrl(item.imageUrl)" :alt="item.title" class="carousel-image" />
@@ -14,12 +14,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import request from '@/utils/request'
 
 const carouselList = ref([])
 const loading = ref(false)
+const carouselRoot = ref(null)
+const carouselHeight = ref(482)
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
+
+const updateCarouselHeight = () => {
+  if (!carouselRoot.value) return
+  const top = carouselRoot.value.getBoundingClientRect().top
+  const availableHeight = window.innerHeight - top
+  carouselHeight.value = Math.max(260, Math.round(availableHeight))
+}
 
 const getImageUrl = (url) => {
   if (!url) return ''
@@ -33,6 +42,7 @@ const fetchCarousels = async () => {
       showDefaultMsg: false,
       onSuccess: (data) => {
         carouselList.value = data || []
+        nextTick(updateCarouselHeight)
       }
     })
   } catch (error) {
@@ -44,13 +54,23 @@ const fetchCarousels = async () => {
 
 onMounted(() => {
   fetchCarousels()
+  nextTick(updateCarouselHeight)
+  setTimeout(updateCarouselHeight, 100)
+  setTimeout(updateCarouselHeight, 400)
+  window.addEventListener('resize', updateCarouselHeight)
+  window.addEventListener('orientationchange', updateCarouselHeight)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateCarouselHeight)
+  window.removeEventListener('orientationchange', updateCarouselHeight)
 })
 </script>
 
 <style scoped>
 .home-carousel {
   width: 100%;
-  height: 482px;
+  height: var(--home-carousel-height, 482px);
   position: relative;
 }
 
@@ -90,12 +110,12 @@ onMounted(() => {
 /* 全局样式 - 圆点指示器 */
 .home-carousel .el-carousel {
   width: 100%;
-  height: 482px;
+  height: var(--home-carousel-height, 482px);
   position: relative;
 }
 
 .home-carousel .el-carousel__container {
-  height: 482px !important;
+  height: var(--home-carousel-height, 482px) !important;
 }
 
 .home-carousel .el-carousel__indicators--outside {

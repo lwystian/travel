@@ -11947,3 +11947,4 @@ org.example.springboot.exception.ServiceException: 该邮箱已被其他账号�
 2026-05-21 10:48:19.396 ERROR [http-nio-3001-exec-4] [6bcc75922d08406e9c958aa7262876d0] o.e.springboot.util.JwtTokenUtils - 获取当前登录的token失败，tokennull
 2026-05-21 10:49:34.944 ERROR [http-nio-3001-exec-4] [639c5fa6881c470cae0c92fcb84e16de] o.e.springboot.util.JwtTokenUtils - 获取当前登录的token失败，tokennull
 2026-05-21 17:29:45.698 ERROR [http-nio-3001-exec-4] [354ddd15b3e4471fa0e16f5bc368632c] o.e.springboot.util.JwtTokenUtils - 获取当前登录的token失败，tokennull
+2026-05-21 23:17:31.728 ERROR [http-nio-3001-exec-9] [64c74a0302964adf9cc94d44e6519131] o.e.springboot.util.JwtTokenUtils - 获取当前登录的token失败，tokennull

@@ -363,23 +363,23 @@
               >
                 {{ link.label }}
               </a>
-              <span v-if="footerConfig.licenseNumber">许可编号：{{ footerConfig.licenseNumber }}</span>
+              <span v-if="footerConfig.licenseNumber">{{ fieldLabel('licenseNumber', '许可编号') }}：{{ footerConfig.licenseNumber }}</span>
             </div>
 
             <div class="footer-line">
-              <span v-if="footerConfig.reportEmail">服务邮箱：{{ footerConfig.reportEmail }}</span>
-              <span v-if="footerConfig.minorReportEmail">未成年人信息保护邮箱：{{ footerConfig.minorReportEmail }}</span>
+              <span v-if="footerConfig.reportEmail">{{ fieldLabel('reportEmail', '服务邮箱') }}：{{ footerConfig.reportEmail }}</span>
+              <span v-if="footerConfig.minorReportEmail">{{ fieldLabel('minorReportEmail', '未成年人信息保护邮箱') }}：{{ footerConfig.minorReportEmail }}</span>
             </div>
 
             <div class="footer-line">
-              <span v-if="footerConfig.consultationPhone">旅行咨询电话：{{ footerConfig.consultationPhone }}</span>
-              <span v-if="footerConfig.cruisePhone">团队与邮轮咨询：{{ footerConfig.cruisePhone }}</span>
-              <span v-if="footerConfig.complaintPhone">投诉与服务监督：{{ footerConfig.complaintPhone }}</span>
+              <span v-if="footerConfig.consultationPhone">{{ fieldLabel('consultationPhone', '旅行咨询电话') }}：{{ footerConfig.consultationPhone }}</span>
+              <span v-if="footerConfig.cruisePhone">{{ fieldLabel('cruisePhone', '团队与邮轮咨询') }}：{{ footerConfig.cruisePhone }}</span>
+              <span v-if="footerConfig.complaintPhone">{{ fieldLabel('complaintPhone', '投诉与服务监督') }}：{{ footerConfig.complaintPhone }}</span>
             </div>
 
             <div class="footer-line">
-              <span v-if="footerConfig.address">公司总部地址：{{ footerConfig.address }}</span>
-              <span v-if="footerConfig.serviceTime">服务时间：{{ footerConfig.serviceTime }}</span>
+              <span v-if="footerConfig.address">{{ fieldLabel('address', '公司总部地址') }}：{{ footerConfig.address }}</span>
+              <span v-if="footerConfig.serviceTime">{{ fieldLabel('serviceTime', '服务时间') }}：{{ footerConfig.serviceTime }}</span>
             </div>
 
             <div v-if="visibleLinks(footerConfig.friendlyLinks).length" class="footer-line footer-friends">
@@ -396,8 +396,8 @@
             </div>
 
             <div class="footer-line footer-compliance">
-              <span>{{ footerConfig.copyright }}</span>
-              <span v-if="footerConfig.technicalSupport">法律与技术支持：{{ footerConfig.technicalSupport }}</span>
+              <span>{{ fieldLabel('copyright', '版权信息') }}：{{ footerConfig.copyright }}</span>
+              <span v-if="footerConfig.technicalSupport">{{ fieldLabel('technicalSupport', '法律与技术支持') }}：{{ footerConfig.technicalSupport }}</span>
             </div>
 
             <div v-if="footerConfig.legalNotes?.length" class="footer-line footer-legal">
@@ -421,7 +421,8 @@
           <a v-if="footerConfig.icpNumber" :href="footerConfig.icpUrl || '#'" target="_blank" rel="noopener">
             {{ footerConfig.icpNumber }}
           </a>
-          <a v-if="footerConfig.policeNumber" :href="footerConfig.policeUrl || '#'" target="_blank" rel="noopener">
+          <a v-if="footerConfig.policeNumber" :href="footerConfig.policeUrl || '#'" class="police-record-link" target="_blank" rel="noopener">
+            <img class="police-badge" src="https://beian.mps.gov.cn/img/logo01.dd7ff50e.png" alt="" aria-hidden="true" />
             {{ footerConfig.policeNumber }}
           </a>
         </div>
@@ -472,6 +473,27 @@ const LOCATION_STORAGE_KEY = 'frontend_selected_city'
 const currentCity = ref(DEFAULT_CITY)
 const showWechatQR = ref(false)
 
+const defaultFooterFieldLabels = () => ({
+  enabled: '前台展示状态',
+  companyName: '企业名称',
+  brandName: '品牌名称',
+  slogan: '页脚标语',
+  consultationPhone: '旅行咨询电话',
+  cruisePhone: '团队与邮轮咨询',
+  serviceTime: '服务时间',
+  address: '公司总部地址',
+  icpNumber: 'ICP备案号',
+  icpUrl: 'ICP备案链接',
+  policeNumber: '公安备案号',
+  policeUrl: '公安备案链接',
+  licenseNumber: '许可编号',
+  complaintPhone: '投诉与服务监督',
+  technicalSupport: '法律与技术支持',
+  reportEmail: '服务邮箱',
+  minorReportEmail: '未成年人信息保护邮箱',
+  copyright: '版权信息'
+})
+
 const createDefaultFooterConfig = () => ({
   enabled: true,
   companyName: '侠客行国际旅行社有限公司',
@@ -491,6 +513,7 @@ const createDefaultFooterConfig = () => ({
   technicalSupport: '侠客行数字旅行中心',
   reportEmail: 'service@xkxtrip.com',
   minorReportEmail: 'safe@xkxtrip.com',
+  fieldLabels: defaultFooterFieldLabels(),
   featureItems: [
     { title: '守信', description: '行程说明、费用明细与服务标准清楚呈现，重要节点可追踪。', icon: 'shield' },
     { title: '甄选', description: '围绕重庆、三峡与西南目的地，打磨小而美的品质线路。', icon: 'route' },
@@ -508,12 +531,12 @@ const createDefaultFooterConfig = () => ({
     { label: '联系我们', url: '/about' }
   ],
   complianceLinks: [
-    { label: '营业执照', url: '/about' },
-    { label: '旅行社业务经营许可', url: '/about' },
-    { label: '服务规范', url: '/about' },
-    { label: '社区公约', url: '/about' },
-    { label: '安全与隐私保护', url: '/about' },
-    { label: '在线服务与投诉反馈专区', url: '/about' }
+    { label: '营业执照', url: '/legal/business-license' },
+    { label: '旅行社业务经营许可', url: '/legal/travel-license' },
+    { label: '服务规范', url: '/legal/service-standard' },
+    { label: '社区公约', url: '/legal/community-guidelines' },
+    { label: '安全与隐私保护', url: '/legal/privacy-safety' },
+    { label: '在线服务与投诉反馈专区', url: '/legal/support-feedback' }
   ],
   friendlyLinks: [],
   qrCodes: [
@@ -674,6 +697,8 @@ const hideBrokenImage = (event) => {
   }
 }
 
+const fieldLabel = (key, fallback) => footerConfig.value.fieldLabels?.[key] || fallback
+
 const loadFooterConfig = async () => {
   try {
     const data = await getPublicFooterConfig()
@@ -681,6 +706,7 @@ const loadFooterConfig = async () => {
     footerConfig.value = {
       ...fallback,
       ...(data || {}),
+      fieldLabels: { ...defaultFooterFieldLabels(), ...(data?.fieldLabels || {}) },
       featureItems: data?.featureItems?.length ? data.featureItems : fallback.featureItems,
       topLinks: data?.topLinks?.length ? data.topLinks : fallback.topLinks,
       complianceLinks: data?.complianceLinks?.length ? data.complianceLinks : fallback.complianceLinks,
@@ -2092,6 +2118,21 @@ onMounted(() => {
   a:hover {
     color: #ffbd00;
   }
+}
+
+.police-record-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.police-badge {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  display: inline-block;
+  object-fit: contain;
 }
 
 .footer-text-info {

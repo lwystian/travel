@@ -157,6 +157,12 @@ const frontendRoutes = [
         meta: { title: '关于侠客行' }
       },
       {
+        path: 'legal/:type',
+        name: 'LegalInfo',
+        component: () => import('@/views/frontend/LegalInfo.vue'),
+        meta: { title: '服务与合规说明' }
+      },
+      {
         path: 'profile',
         name: 'Profile',
         component: () => import('@/views/frontend/profile/index.vue'),
@@ -313,7 +319,13 @@ const router = createRouter({
     ...backendRoutes,
     ...errorRoutes
   ],
-  scrollBehavior() {
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    }
+    if (to.name === 'LegalInfo' && from.name === 'LegalInfo') {
+      return false
+    }
     return { top: 0 }
   }
 })
