@@ -1,7 +1,7 @@
 <template>
   <div class="travel-page">
     <!-- 顶部 Banner -->
-    <div class="banner">
+    <div ref="bannerRef" class="banner" :style="{ '--page-hero-height': `${bannerHeight}px` }">
       <img
         class="banner-img"
         src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1920&h=600&fit=crop"
@@ -111,7 +111,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch, nextTick } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
@@ -405,6 +405,15 @@ const getDestinationLabel = (dest) => {
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const router = useRouter()
 const route = useRoute()
+const bannerRef = ref(null)
+const bannerHeight = ref(480)
+
+const updateBannerHeight = () => {
+  if (!bannerRef.value) return
+  const rect = bannerRef.value.getBoundingClientRect()
+  const pageTop = rect.top + window.scrollY
+  bannerHeight.value = Math.max(320, Math.round(window.innerHeight - pageTop))
+}
 
 // 数据
 const tableData = ref([])
@@ -555,6 +564,16 @@ watch(() => route.query.search, (newSearch, oldSearch) => {
 // 生命周期
 onMounted(() => {
   handleUrlParams()
+  nextTick(updateBannerHeight)
+  setTimeout(updateBannerHeight, 100)
+  setTimeout(updateBannerHeight, 400)
+  window.addEventListener('resize', updateBannerHeight)
+  window.addEventListener('orientationchange', updateBannerHeight)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateBannerHeight)
+  window.removeEventListener('orientationchange', updateBannerHeight)
 })
 </script>
 
@@ -572,7 +591,7 @@ onMounted(() => {
 .banner {
   position: relative;
   width: 100%;
-  height: 480px;
+  height: var(--page-hero-height, 480px);
   overflow: hidden;
 }
 
@@ -978,7 +997,7 @@ onMounted(() => {
 /* 响应式 */
 @media (max-width: 768px) {
   .banner {
-    height: 320px;
+    height: var(--page-hero-height, 320px);
   }
   
   .banner-title {

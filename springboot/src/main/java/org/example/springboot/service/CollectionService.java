@@ -5,18 +5,31 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.annotation.Resource;
 import org.example.springboot.entity.Collection;
+import org.example.springboot.entity.ScenicCollection;
+import org.example.springboot.entity.ScenicSpot;
+import org.example.springboot.entity.Tour;
+import org.example.springboot.entity.TourCollection;
 import org.example.springboot.entity.TravelGuide;
 import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.CollectionMapper;
+import org.example.springboot.mapper.ScenicCollectionMapper;
+import org.example.springboot.mapper.ScenicSpotMapper;
+import org.example.springboot.mapper.TourCollectionMapper;
+import org.example.springboot.mapper.TourMapper;
 import org.example.springboot.mapper.TravelGuideMapper;
 import org.example.springboot.mapper.UserMapper;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,6 +42,14 @@ public class CollectionService {
     
     @Resource
     private UserMapper userMapper;
+    @Resource
+    private ScenicCollectionMapper scenicCollectionMapper;
+    @Resource
+    private ScenicSpotMapper scenicSpotMapper;
+    @Resource
+    private TourCollectionMapper tourCollectionMapper;
+    @Resource
+    private TourMapper tourMapper;
     
     /**
      * 添加收藏
@@ -171,6 +192,219 @@ public class CollectionService {
         if (collectionMapper.deleteById(id) <= 0) {
             throw new ServiceException("删除收藏失败");
         }
+    }
+
+    public Page<Map<String, Object>> getUnifiedCollectionsByAdmin(String type, String username, String keyword,
+                                                                  Integer currentPage, Integer size) {
+        List<Long> userIds = resolveUserIds(username);
+        if (StringUtils.isNotBlank(username) && userIds.isEmpty()) {
+            return emptyUnifiedPage(currentPage, size);
+        }
+
+        List<Map<String, Object>> records = new ArrayList<>();
+        boolean includeAll = !hasText(type) || "all".equalsIgnoreCase(type);
+        if (includeAll || "scenic".equalsIgnoreCase(type)) {
+            records.addAll(getScenicCollectionRows(userIds, keyword));
+        }
+        if (includeAll || "guide".equalsIgnoreCase(type)) {
+            records.addAll(getGuideCollectionRows(userIds, keyword));
+        }
+        if (includeAll || "tour".equalsIgnoreCase(type)) {
+            records.addAll(getTourCollectionRows(userIds, keyword));
+        }
+
+        fillUnifiedUserInfo(records);
+        records.sort((left, right) -> compareCreateTimeDesc(left, right));
+
+        Page<Map<String, Object>> page = new Page<>(currentPage, size);
+        page.setTotal(records.size());
+        int from = Math.max(0, (currentPage - 1) * size);
+        if (from >= records.size()) {
+            page.setRecords(List.of());
+        } else {
+            int to = Math.min(records.size(), from + size);
+            page.setRecords(records.subList(from, to));
+        }
+        return page;
+    }
+
+    public void deleteUnifiedCollection(String type, Long id) {
+        int affected;
+        if ("scenic".equalsIgnoreCase(type)) {
+            affected = scenicCollectionMapper.deleteById(id);
+        } else if ("guide".equalsIgnoreCase(type)) {
+            affected = collectionMapper.deleteById(id);
+        } else if ("tour".equalsIgnoreCase(type)) {
+            affected = tourCollectionMapper.deleteById(id);
+        } else {
+            throw new ServiceException("收藏类型无效");
+        }
+        if (affected <= 0) {
+            throw new ServiceException("收藏记录不存在或已被删除");
+        }
+    }
+
+    private List<Map<String, Object>> getScenicCollectionRows(List<Long> userIds, String keyword) {
+        LambdaQueryWrapper<ScenicCollection> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(userIds != null && !userIds.isEmpty(), ScenicCollection::getUserId, userIds)
+                .orderByDesc(ScenicCollection::getCreateTime);
+        List<ScenicCollection> collections = scenicCollectionMapper.selectList(wrapper);
+        if (collections.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, ScenicSpot> targetMap = scenicSpotMapper.selectBatchIds(collections.stream()
+                        .map(ScenicCollection::getScenicId)
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList())
+                .stream()
+                .collect(Collectors.toMap(ScenicSpot::getId, item -> item));
+        return collections.stream()
+                .map(item -> {
+                    ScenicSpot scenic = targetMap.get(item.getScenicId());
+                    return buildCollectionRow(item.getId(), "scenic", "景点收藏", item.getUserId(),
+                            item.getScenicId(), scenic == null ? "已删除景点" : scenic.getName(),
+                            scenic == null ? null : scenic.getImageUrl(), null, item.getCreateTime());
+                })
+                .filter(row -> matchKeyword(row, keyword))
+                .toList();
+    }
+
+    private List<Map<String, Object>> getGuideCollectionRows(List<Long> userIds, String keyword) {
+        LambdaQueryWrapper<Collection> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(userIds != null && !userIds.isEmpty(), Collection::getUserId, userIds)
+                .orderByDesc(Collection::getCreateTime);
+        List<Collection> collections = collectionMapper.selectList(wrapper);
+        if (collections.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, TravelGuide> targetMap = travelGuideMapper.selectBatchIds(collections.stream()
+                        .map(Collection::getGuideId)
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList())
+                .stream()
+                .collect(Collectors.toMap(TravelGuide::getId, item -> item));
+        return collections.stream()
+                .map(item -> {
+                    TravelGuide guide = targetMap.get(item.getGuideId());
+                    return buildCollectionRow(item.getId(), "guide", "攻略收藏", item.getUserId(),
+                            item.getGuideId(), guide == null ? "已删除攻略" : guide.getTitle(),
+                            guide == null ? null : guide.getCoverImage(), guide == null ? null : guide.getViews(),
+                            toLocalDateTime(item.getCreateTime()));
+                })
+                .filter(row -> matchKeyword(row, keyword))
+                .toList();
+    }
+
+    private List<Map<String, Object>> getTourCollectionRows(List<Long> userIds, String keyword) {
+        LambdaQueryWrapper<TourCollection> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(userIds != null && !userIds.isEmpty(), TourCollection::getUserId, userIds)
+                .orderByDesc(TourCollection::getCreateTime);
+        List<TourCollection> collections = tourCollectionMapper.selectList(wrapper);
+        if (collections.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Tour> targetMap = tourMapper.selectBatchIds(collections.stream()
+                        .map(TourCollection::getTourId)
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList())
+                .stream()
+                .collect(Collectors.toMap(Tour::getId, item -> item));
+        return collections.stream()
+                .map(item -> {
+                    Tour tour = targetMap.get(item.getTourId());
+                    return buildCollectionRow(item.getId(), "tour", "行程收藏", item.getUserId(),
+                            item.getTourId(), tour == null ? "已删除行程" : tour.getTitle(),
+                            tour == null ? null : tour.getMainImage(), null, item.getCreateTime());
+                })
+                .filter(row -> matchKeyword(row, keyword))
+                .toList();
+    }
+
+    private Map<String, Object> buildCollectionRow(Long id, String type, String typeLabel, Long userId, Long targetId,
+                                                   String targetTitle, String coverImage, Integer views,
+                                                   LocalDateTime createTime) {
+        Map<String, Object> row = new HashMap<>();
+        row.put("id", id);
+        row.put("type", type);
+        row.put("typeLabel", typeLabel);
+        row.put("userId", userId);
+        row.put("targetId", targetId);
+        row.put("targetTitle", targetTitle);
+        row.put("coverImage", coverImage);
+        row.put("views", views);
+        row.put("createTime", createTime);
+        return row;
+    }
+
+    private boolean matchKeyword(Map<String, Object> row, String keyword) {
+        if (!hasText(keyword)) {
+            return true;
+        }
+        Object title = row.get("targetTitle");
+        return title != null && title.toString().contains(keyword);
+    }
+
+    private void fillUnifiedUserInfo(List<Map<String, Object>> records) {
+        List<Long> userIds = records.stream()
+                .map(row -> (Long) row.get("userId"))
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (userIds.isEmpty()) {
+            return;
+        }
+        Map<Long, User> userMap = userMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(User::getId, item -> item));
+        for (Map<String, Object> row : records) {
+            User user = userMap.get(row.get("userId"));
+            if (user != null) {
+                row.put("username", user.getUsername());
+                row.put("userNickname", user.getNickname());
+                row.put("userAvatar", user.getAvatar());
+            }
+        }
+    }
+
+    private List<Long> resolveUserIds(String username) {
+        if (!hasText(username)) {
+            return List.of();
+        }
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.and(query -> query.like(User::getUsername, username).or().like(User::getNickname, username));
+        return userMapper.selectList(wrapper).stream().map(User::getId).toList();
+    }
+
+    private LocalDateTime toLocalDateTime(Date date) {
+        return date == null ? null : LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault());
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private Page<Map<String, Object>> emptyUnifiedPage(Integer currentPage, Integer size) {
+        Page<Map<String, Object>> page = new Page<>(currentPage, size);
+        page.setRecords(List.of());
+        page.setTotal(0);
+        return page;
+    }
+
+    private int compareCreateTimeDesc(Map<String, Object> left, Map<String, Object> right) {
+        LocalDateTime leftTime = (LocalDateTime) left.get("createTime");
+        LocalDateTime rightTime = (LocalDateTime) right.get("createTime");
+        if (leftTime == null && rightTime == null) {
+            return 0;
+        }
+        if (leftTime == null) {
+            return 1;
+        }
+        if (rightTime == null) {
+            return -1;
+        }
+        return rightTime.compareTo(leftTime);
     }
     
     /**

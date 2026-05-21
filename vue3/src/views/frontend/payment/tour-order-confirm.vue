@@ -143,8 +143,13 @@
           </article>
         </section>
 
-        <aside class="summary-panel">
-          <div class="summary-card">
+        <aside
+          ref="summaryPanelRef"
+          class="summary-panel"
+          :class="{ 'is-fixed': summaryFixed }"
+          :style="{ minHeight: summaryFixed ? `${summaryPlaceholderHeight}px` : null }"
+        >
+          <div ref="summaryCardRef" class="summary-card" :class="{ 'is-fixed': summaryFixed }" :style="summaryFixedStyle">
             <header>
               <span>Settlement</span>
               <strong>结算信息</strong>
@@ -241,7 +246,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive, watch } from 'vue'
+import { ref, computed, nextTick, onBeforeUnmount, onMounted, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
@@ -259,6 +264,12 @@ const order = ref(null)
 const error = ref(null)
 const contactFormRef = ref(null)
 const travelerFormRef = ref(null)
+const summaryPanelRef = ref(null)
+const summaryCardRef = ref(null)
+const summaryFixed = ref(false)
+const summaryStartTop = ref(0)
+const summaryPlaceholderHeight = ref(0)
+const summaryFixedStyle = ref({})
 
 const contactForm = reactive({
   name: '',
@@ -373,6 +384,51 @@ watch(() => travelerForm.idType, () => {
   travelerForm.idNumber = ''
   travelerFormRef.value?.clearValidate?.('idNumber')
 })
+
+const syncSummaryMetrics = () => {
+  const panel = summaryPanelRef.value
+  const card = summaryCardRef.value
+  if (!panel || !card || window.innerWidth <= 980) {
+    summaryFixed.value = false
+    summaryFixedStyle.value = {}
+    return
+  }
+
+  const panelRect = panel.getBoundingClientRect()
+  const cardRect = card.getBoundingClientRect()
+  if (!summaryFixed.value) {
+    summaryStartTop.value = panelRect.top + window.scrollY
+  }
+  summaryPlaceholderHeight.value = Math.max(cardRect.height, summaryPlaceholderHeight.value)
+  summaryFixedStyle.value = {
+    width: `${panelRect.width}px`,
+    left: `${panelRect.left}px`,
+    maxHeight: '100vh'
+  }
+}
+
+const handleSummaryStick = () => {
+  const panel = summaryPanelRef.value
+  if (!panel || window.innerWidth <= 980) {
+    summaryFixed.value = false
+    summaryFixedStyle.value = {}
+    return
+  }
+  if (!summaryStartTop.value || !summaryFixed.value) {
+    syncSummaryMetrics()
+  }
+  summaryFixed.value = window.scrollY >= summaryStartTop.value
+  syncSummaryMetrics()
+}
+
+const initSummaryStick = () => {
+  nextTick(() => {
+    summaryFixed.value = false
+    summaryPlaceholderHeight.value = 0
+    syncSummaryMetrics()
+    handleSummaryStick()
+  })
+}
 
 const loadFrequentTravelers = async () => {
   try {
@@ -587,6 +643,16 @@ const goBack = () => router.back()
 onMounted(async () => {
   await loadOrderInfo()
   await loadFrequentTravelers()
+  initSummaryStick()
+  window.addEventListener('scroll', handleSummaryStick, { passive: true })
+  window.addEventListener('resize', initSummaryStick)
+  window.addEventListener('orientationchange', initSummaryStick)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', handleSummaryStick)
+  window.removeEventListener('resize', initSummaryStick)
+  window.removeEventListener('orientationchange', initSummaryStick)
 })
 </script>
 
@@ -1023,11 +1089,23 @@ onMounted(async () => {
 
 .summary-panel {
   position: sticky;
-  top: 16px;
+  top: 0;
+  align-self: flex-start;
+  z-index: 20;
 }
 
 .summary-card {
   padding: 20px;
+  max-height: 100vh;
+  overflow-y: auto;
+  transition: box-shadow 0.2s ease;
+}
+
+.summary-card.is-fixed {
+  position: fixed;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 18px 42px rgba(16, 24, 40, 0.18);
 }
 
 .fee-list {

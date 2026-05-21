@@ -5,12 +5,15 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.annotation.Resource;
 import org.example.springboot.entity.Comment;
 import org.example.springboot.entity.AccommodationReview;
+import org.example.springboot.entity.Accommodation;
+import org.example.springboot.entity.ScenicSpot;
 import org.example.springboot.entity.TravelGuide;
 import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.AccommodationReviewMapper;
 import org.example.springboot.mapper.AccommodationMapper;
 import org.example.springboot.mapper.CommentMapper;
+import org.example.springboot.mapper.ScenicSpotMapper;
 import org.example.springboot.mapper.TravelGuideMapper;
 import org.example.springboot.mapper.UserMapper;
 import org.slf4j.Logger;
@@ -24,6 +27,8 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * 内容审核服务
@@ -45,6 +50,8 @@ public class ContentReviewService {
     private AccommodationReviewMapper accommodationReviewMapper;
     @Resource
     private AccommodationMapper accommodationMapper;
+    @Resource
+    private ScenicSpotMapper scenicSpotMapper;
     
     @Resource
     private TravelGuideMapper travelGuideMapper;
@@ -203,6 +210,57 @@ public class ContentReviewService {
         return accommodationReviewMapper.selectCount(new LambdaQueryWrapper<AccommodationReview>()
                 .eq(AccommodationReview::getReviewStatus, STATUS_PENDING));
     }
+
+    public Page<Map<String, Object>> getUnifiedReviewPage(String type, String targetName, String userName,
+                                                          String content, Integer reviewStatus,
+                                                          Integer currentPage, Integer size) {
+        List<Long> userIds = resolveUserIds(userName);
+        if (hasText(userName) && userIds.isEmpty()) {
+            return emptyMapPage(currentPage, size);
+        }
+
+        List<Map<String, Object>> records = new ArrayList<>();
+        boolean includeAll = !hasText(type) || "all".equalsIgnoreCase(type);
+        if (includeAll || "scenic".equalsIgnoreCase(type)) {
+            records.addAll(getScenicReviewRows(userIds, targetName, content, reviewStatus));
+        }
+        if (includeAll || "accommodation".equalsIgnoreCase(type)) {
+            records.addAll(getAccommodationReviewRows(userIds, targetName, content, reviewStatus));
+        }
+        records.sort((left, right) -> compareCreateTimeDesc(left, right));
+
+        Page<Map<String, Object>> page = new Page<>(currentPage, size);
+        page.setTotal(records.size());
+        int from = Math.max(0, (currentPage - 1) * size);
+        if (from >= records.size()) {
+            page.setRecords(List.of());
+        } else {
+            page.setRecords(records.subList(from, Math.min(records.size(), from + size)));
+        }
+        return page;
+    }
+
+    @Transactional
+    public void deleteUnifiedReview(String type, Long id) {
+        if ("scenic".equalsIgnoreCase(type)) {
+            if (commentMapper.deleteById(id) <= 0) {
+                throw new ServiceException("景点评论不存在或已被删除");
+            }
+            return;
+        }
+        if ("accommodation".equalsIgnoreCase(type)) {
+            AccommodationReview review = accommodationReviewMapper.selectById(id);
+            if (review == null) {
+                throw new ServiceException("住宿评价不存在或已被删除");
+            }
+            if (accommodationReviewMapper.deleteById(id) <= 0) {
+                throw new ServiceException("住宿评价删除失败");
+            }
+            updateAccommodationRating(review.getAccommodationId());
+            return;
+        }
+        throw new ServiceException("评论类型无效");
+    }
     
     // ==================== 攻略审核 ====================
     
@@ -327,6 +385,155 @@ public class ContentReviewService {
 
     @Resource
     private UserMapper userMapper;
+
+    private List<Map<String, Object>> getScenicReviewRows(List<Long> userIds, String targetName,
+                                                          String content, Integer reviewStatus) {
+        LambdaQueryWrapper<Comment> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(userIds != null && !userIds.isEmpty(), Comment::getUserId, userIds)
+                .eq(reviewStatus != null, Comment::getReviewStatus, reviewStatus)
+                .like(hasText(content), Comment::getContent, content)
+                .orderByDesc(Comment::getCreateTime);
+        List<Comment> comments = commentMapper.selectList(wrapper);
+        if (comments.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, ScenicSpot> targetMap = scenicSpotMapper.selectBatchIds(comments.stream()
+                        .map(Comment::getScenicId)
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList())
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(ScenicSpot::getId, item -> item));
+        Map<Long, User> userMap = getUserMap(comments.stream().map(Comment::getUserId).toList());
+
+        return comments.stream()
+                .map(item -> {
+                    ScenicSpot scenic = targetMap.get(item.getScenicId());
+                    User user = userMap.get(item.getUserId());
+                    return buildReviewRow(item.getId(), "scenic", "景点评论", item.getUserId(),
+                            item.getScenicId(), scenic == null ? "已删除景点" : scenic.getName(),
+                            item.getContent(), item.getRating(), item.getLikes(), item.getReviewStatus(),
+                            item.getReviewerName(), item.getReviewTime(), item.getReviewComment(), item.getCreateTime(), user);
+                })
+                .filter(row -> matchTargetName(row, targetName))
+                .toList();
+    }
+
+    private List<Map<String, Object>> getAccommodationReviewRows(List<Long> userIds, String targetName,
+                                                                 String content, Integer reviewStatus) {
+        LambdaQueryWrapper<AccommodationReview> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(userIds != null && !userIds.isEmpty(), AccommodationReview::getUserId, userIds)
+                .eq(reviewStatus != null, AccommodationReview::getReviewStatus, reviewStatus)
+                .like(hasText(content), AccommodationReview::getContent, content)
+                .orderByDesc(AccommodationReview::getCreateTime);
+        List<AccommodationReview> reviews = accommodationReviewMapper.selectList(wrapper);
+        if (reviews.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Accommodation> targetMap = accommodationMapper.selectBatchIds(reviews.stream()
+                        .map(AccommodationReview::getAccommodationId)
+                        .filter(Objects::nonNull)
+                        .map(Integer::longValue)
+                        .distinct()
+                        .toList())
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(Accommodation::getId, item -> item));
+        Map<Long, User> userMap = getUserMap(reviews.stream().map(AccommodationReview::getUserId).toList());
+
+        return reviews.stream()
+                .map(item -> {
+                    Accommodation accommodation = item.getAccommodationId() == null
+                            ? null
+                            : targetMap.get(item.getAccommodationId().longValue());
+                    return buildReviewRow(item.getId(), "accommodation", "住宿评价", item.getUserId(),
+                            item.getAccommodationId() == null ? null : item.getAccommodationId().longValue(),
+                            accommodation == null ? "已删除住宿" : accommodation.getName(),
+                            item.getContent(), item.getRating(), null, item.getReviewStatus(),
+                            item.getReviewerName(), item.getReviewTime(), item.getReviewComment(), item.getCreateTime(),
+                            userMap.get(item.getUserId()));
+                })
+                .filter(row -> matchTargetName(row, targetName))
+                .toList();
+    }
+
+    private Map<String, Object> buildReviewRow(Long id, String type, String typeLabel, Long userId, Long targetId,
+                                               String targetName, String content, Object rating, Integer likes,
+                                               Integer reviewStatus, String reviewerName, LocalDateTime reviewTime,
+                                               String reviewComment, LocalDateTime createTime, User user) {
+        Map<String, Object> row = new HashMap<>();
+        row.put("id", id);
+        row.put("type", type);
+        row.put("typeLabel", typeLabel);
+        row.put("userId", userId);
+        row.put("targetId", targetId);
+        row.put("targetName", targetName);
+        row.put("content", content);
+        row.put("rating", rating);
+        row.put("likes", likes);
+        row.put("reviewStatus", reviewStatus);
+        row.put("reviewerName", reviewerName);
+        row.put("reviewTime", reviewTime);
+        row.put("reviewComment", reviewComment);
+        row.put("createTime", createTime);
+        if (user != null) {
+            row.put("username", user.getUsername());
+            row.put("userNickname", user.getNickname());
+            row.put("userAvatar", user.getAvatar());
+        }
+        return row;
+    }
+
+    private boolean matchTargetName(Map<String, Object> row, String targetName) {
+        if (!hasText(targetName)) {
+            return true;
+        }
+        Object name = row.get("targetName");
+        return name != null && name.toString().contains(targetName);
+    }
+
+    private List<Long> resolveUserIds(String userName) {
+        if (!hasText(userName)) {
+            return List.of();
+        }
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.and(query -> query.like(User::getUsername, userName).or().like(User::getNickname, userName));
+        return userMapper.selectList(wrapper).stream().map(User::getId).toList();
+    }
+
+    private Map<Long, User> getUserMap(List<Long> userIds) {
+        List<Long> ids = userIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return userMapper.selectBatchIds(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(User::getId, item -> item));
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private Page<Map<String, Object>> emptyMapPage(Integer currentPage, Integer size) {
+        Page<Map<String, Object>> page = new Page<>(currentPage, size);
+        page.setTotal(0);
+        page.setRecords(List.of());
+        return page;
+    }
+
+    private int compareCreateTimeDesc(Map<String, Object> left, Map<String, Object> right) {
+        LocalDateTime leftTime = (LocalDateTime) left.get("createTime");
+        LocalDateTime rightTime = (LocalDateTime) right.get("createTime");
+        if (leftTime == null && rightTime == null) {
+            return 0;
+        }
+        if (leftTime == null) {
+            return 1;
+        }
+        if (rightTime == null) {
+            return -1;
+        }
+        return rightTime.compareTo(leftTime);
+    }
 
     private void fillCommentUserInfo(List<Comment> comments) {
         if (comments == null || comments.isEmpty()) {

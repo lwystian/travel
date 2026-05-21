@@ -1,7 +1,7 @@
 <template>
   <div class="accommodation-frontend-container">
     <!-- 顶部 Hero 区：背景图 + 标题 + 搜索框 -->
-    <div class="hero-section">
+    <div ref="heroSection" class="hero-section" :style="{ '--page-hero-height': `${heroHeight}px` }">
       <div class="hero-overlay"></div>
       <!-- 装饰性波浪分隔线 -->
       <div class="hero-wave-divider"></div>
@@ -235,7 +235,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, nextTick } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import request from '@/utils/request'
 import {
@@ -249,6 +249,15 @@ import {
 
 const router = useRouter()
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
+const heroSection = ref(null)
+const heroHeight = ref(420)
+
+const updateHeroHeight = () => {
+  if (!heroSection.value) return
+  const rect = heroSection.value.getBoundingClientRect()
+  const pageTop = rect.top + window.scrollY
+  heroHeight.value = Math.max(320, Math.round(window.innerHeight - pageTop))
+}
 
 // 数据状态
 const loading = ref(false)
@@ -421,6 +430,16 @@ onMounted(() => {
   fetchScenicOptions()
   fetchAccommodationTypes()
   fetchAccommodations()
+  nextTick(updateHeroHeight)
+  setTimeout(updateHeroHeight, 100)
+  setTimeout(updateHeroHeight, 400)
+  window.addEventListener('resize', updateHeroHeight)
+  window.addEventListener('orientationchange', updateHeroHeight)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateHeroHeight)
+  window.removeEventListener('orientationchange', updateHeroHeight)
 })
 </script>
 
@@ -443,9 +462,8 @@ $border: #ececec;
 /* ============== Hero 区 ============== */
 .hero-section {
   position: relative;
-  height: calc(100vh - 180px);
+  height: var(--page-hero-height, calc(100vh - 180px));
   min-height: 380px;
-  max-height: 600px;
   background: url('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1920&q=80')
     center / cover no-repeat;
   display: flex;
@@ -1048,7 +1066,7 @@ $border: #ececec;
 /* ============== 响应式 ============== */
 @media (max-width: 992px) {
   .hero-section {
-    height: 420px;
+    height: var(--page-hero-height, 420px);
   }
   .hero-title {
     font-size: 30px;
@@ -1079,7 +1097,7 @@ $border: #ececec;
 
 @media (max-width: 640px) {
   .hero-section {
-    height: 380px;
+    height: var(--page-hero-height, 380px);
   }
   .hero-title {
     font-size: 24px;

@@ -1,81 +1,95 @@
 <template>
   <div class="collection-management">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <h1 class="page-title">收藏管理</h1>
-      <p class="page-subtitle">Collection Management</p>
-    </div>
-    
-    <!-- 搜索区域 -->
-    <el-card class="search-card" shadow="never">
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="用户名">
-          <el-input v-model="searchForm.username" placeholder="请输入用户名" clearable>
-            <template #prefix>
-              <i class="el-icon-user"></i>
-            </template>
-          </el-input>
+    <section class="hero-panel">
+      <div>
+        <p class="eyebrow">Collection Console</p>
+        <h1>收藏管理</h1>
+        <span>统一管理景点、攻略、行程收藏，兼容当前前台收藏业务。</span>
+      </div>
+      <div class="hero-stats">
+        <div>
+          <strong>{{ total }}</strong>
+          <span>当前结果</span>
+        </div>
+        <div>
+          <strong>{{ activeTypeLabel }}</strong>
+          <span>收藏类型</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="filter-panel">
+      <el-radio-group v-model="searchForm.type" class="type-tabs" @change="handleSearch">
+        <el-radio-button label="all">全部收藏</el-radio-button>
+        <el-radio-button label="scenic">景点</el-radio-button>
+        <el-radio-button label="guide">攻略</el-radio-button>
+        <el-radio-button label="tour">行程</el-radio-button>
+      </el-radio-group>
+
+      <el-form :model="searchForm" class="search-form">
+        <el-form-item label="用户">
+          <el-input v-model="searchForm.username" placeholder="用户名 / 昵称" clearable />
         </el-form-item>
-        <el-form-item label="攻略标题">
-          <el-input v-model="searchForm.guideTitle" placeholder="请输入攻略标题" clearable>
-            <template #prefix>
-              <i class="el-icon-document"></i>
-            </template>
-          </el-input>
+        <el-form-item label="收藏内容">
+          <el-input v-model="searchForm.keyword" placeholder="景点、攻略或行程名称" clearable />
         </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch" class="search-btn">
-            <i class="el-icon-search"></i> 搜索
-          </el-button>
-          <el-button @click="resetSearch" class="reset-btn">
-            <i class="el-icon-refresh"></i> 重置
-          </el-button>
+        <el-form-item class="action-item">
+          <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
+          <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
-    
-    <!-- 表格区域 -->
-    <el-card class="table-card" shadow="never">
-      <el-table :data="tableData" style="width: 100%" v-loading="loading" border class="collection-table">
-        <el-table-column label="ID" prop="id" width="80" align="center" />
-        <el-table-column label="用户信息" min-width="180">
-          <template #default="scope">
-            <div class="user-info">
-              <el-avatar :src="baseAPI + (scope.row.userAvatar || '')" size="small" />
-              <div class="user-details">
-                <div class="username">{{ scope.row.username || '未知用户' }}</div>
-                <div class="nickname" v-if="scope.row.userNickname">{{ scope.row.userNickname }}</div>
+    </section>
+
+    <section class="table-panel">
+      <el-table :data="tableData" v-loading="loading" class="collection-table">
+        <el-table-column label="收藏内容" min-width="280">
+          <template #default="{ row }">
+            <div class="target-cell">
+              <div class="target-cover">
+                <el-image v-if="row.coverImage" :src="resolveAsset(row.coverImage)" fit="cover" />
+                <component v-else :is="typeIcon(row.type)" />
+              </div>
+              <div class="target-main">
+                <div class="target-title">{{ row.targetTitle || '内容已删除' }}</div>
+                <div class="target-meta">
+                  <el-tag size="small" :type="typeTag(row.type)" effect="light">{{ row.typeLabel }}</el-tag>
+                  <span>ID {{ row.targetId || '-' }}</span>
+                  <span v-if="row.views !== null && row.views !== undefined">{{ row.views }} 浏览</span>
+                </div>
               </div>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="攻略标题" prop="guideTitle">
-          <template #default="scope">
-            <span class="guide-title">{{ scope.row.guideTitle }}</span>
+
+        <el-table-column label="用户" min-width="210">
+          <template #default="{ row }">
+            <div class="user-cell">
+              <el-avatar :src="resolveAsset(row.userAvatar)" :size="36">{{ avatarText(row) }}</el-avatar>
+              <div>
+                <div class="user-name">{{ row.userNickname || row.username || '未知用户' }}</div>
+                <div class="user-sub">@{{ row.username || row.userId || '-' }}</div>
+              </div>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="攻略浏览量" prop="guideViews" width="120" align="center">
-          <template #default="scope">
-            <span class="view-count">
-              <i class="el-icon-view"></i> {{ scope.row.guideViews || 0 }}
-            </span>
+
+        <el-table-column label="收藏时间" width="190">
+          <template #default="{ row }">
+            <span class="time-text">{{ formatDate(row.createTime) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="收藏时间" width="180" align="center">
-          <template #default="scope">
-            <span class="date-text">{{ formatDate(scope.row.createTime) }}</span>
+
+        <el-table-column label="操作" width="130" align="right">
+          <template #default="{ row }">
+            <el-button type="danger" plain :icon="Delete" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" align="center">
-          <template #default="scope">
-            <el-button type="danger" size="small" plain @click="handleDelete(scope.row)" class="delete-btn">
-              <i class="el-icon-delete"></i> 删除
-            </el-button>
-          </template>
-        </el-table-column>
+
+        <template #empty>
+          <el-empty description="暂无匹配的收藏记录" />
+        </template>
       </el-table>
-      
-      <!-- 分页 -->
+
       <div class="pagination-container">
         <el-pagination
           background
@@ -86,15 +100,16 @@
           @current-change="handleCurrentChange"
         />
       </div>
-    </el-card>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { Delete, Location, Notebook, Picture, Refresh, Search, Suitcase } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
-import { ElMessageBox, ElMessage } from 'element-plus'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const tableData = ref([])
@@ -102,28 +117,38 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+
 const searchForm = reactive({
+  type: 'all',
   username: '',
-  guideTitle: ''
+  keyword: ''
 })
+
+const typeLabels = {
+  all: '全部',
+  scenic: '景点',
+  guide: '攻略',
+  tour: '行程'
+}
+
+const activeTypeLabel = computed(() => typeLabels[searchForm.type] || '全部')
 
 const fetchCollections = async () => {
   loading.value = true
   try {
-    await request.get('/collection/admin/page', {
+    await request.get('/collection/admin/unified/page', {
+      type: searchForm.type,
       username: searchForm.username,
-      guideTitle: searchForm.guideTitle,
+      keyword: searchForm.keyword,
       currentPage: currentPage.value,
       size: pageSize.value
     }, {
       showDefaultMsg: false,
       onSuccess: (res) => {
-        tableData.value = res.records||[]
-        total.value = res.total||0
+        tableData.value = res.records || []
+        total.value = res.total || 0
       }
     })
-  } catch (error) {
-    console.error('获取收藏列表失败:', error)
   } finally {
     loading.value = false
   }
@@ -135,8 +160,9 @@ const handleSearch = () => {
 }
 
 const resetSearch = () => {
+  searchForm.type = 'all'
   searchForm.username = ''
-  searchForm.guideTitle = ''
+  searchForm.keyword = ''
   currentPage.value = 1
   fetchCollections()
 }
@@ -147,168 +173,214 @@ const handleCurrentChange = (val) => {
 }
 
 const handleDelete = (row) => {
-  ElMessageBox.confirm('确定要删除这条收藏记录吗？', '提示', {
-    confirmButtonText: '确定',
+  ElMessageBox.confirm(`确定删除这条${row.typeLabel || '收藏'}记录吗？`, '删除确认', {
+    confirmButtonText: '删除',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    request.delete(`/collection/admin/${row.id}`,  {
+    request.delete(`/collection/admin/unified/${row.type}/${row.id}`, {
       successMsg: '删除成功',
-      onSuccess: () => {
-        fetchCollections()
-      }
+      onSuccess: fetchCollections
     })
   }).catch(() => {})
 }
+
+const resolveAsset = (url) => {
+  if (!url) return ''
+  if (/^(https?:)?\/\//.test(url) || url.startsWith('data:')) return url
+  return `${baseAPI}${url.startsWith('/') ? url : `/${url}`}`
+}
+
+const avatarText = (row) => (row.userNickname || row.username || '用').slice(0, 1)
+const typeTag = (type) => ({ scenic: 'success', guide: 'warning', tour: 'primary' }[type] || 'info')
+const typeIcon = (type) => ({ scenic: Location, guide: Notebook, tour: Suitcase }[type] || Picture)
 
 onMounted(fetchCollections)
 </script>
 
 <style lang="scss" scoped>
 .collection-management {
-  padding: 20px;
-  background-color: #f9fafc;
   min-height: calc(100vh - 120px);
+  padding: 24px;
+  background: #f5f7fb;
+  color: #1f2937;
+}
 
-  .page-header {
-    margin-bottom: 24px;
-    text-align: left;
-    
-    .page-title {
-      font-size: 24px;
-      color: #34495e;
-      margin: 0 0 8px 0;
-      font-weight: 500;
-    }
-    
-    .page-subtitle {
-      font-size: 14px;
-      color: #7f8c8d;
-      margin: 0;
-      font-style: italic;
-    }
+.hero-panel,
+.filter-panel,
+.table-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+}
+
+.hero-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px 30px;
+  margin-bottom: 18px;
+
+  .eyebrow {
+    margin: 0 0 8px;
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 700;
   }
 
-  .search-card {
-    margin-bottom: 20px;
-    border-radius: 8px;
-    background-color: #fff;
-    box-shadow: none;
-    
-    .search-form {
-      padding: 10px 0;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      
-      .el-form-item {
-        margin-bottom: 0;
-        margin-right: 16px;
-      }
-      
-      .search-btn {
-        background-color: #3498db;
-        border-color: #3498db;
-        
-        &:hover, &:focus {
-          background-color: #2980b9;
-          border-color: #2980b9;
-        }
-      }
-      
-      .reset-btn {
-        color: #7f8c8d;
-        border-color: #bdc3c7;
-        
-        &:hover, &:focus {
-          color: #34495e;
-          border-color: #95a5a6;
-          background-color: #FFFFFF;
-        }
-      }
-    }
-  }
-  
-  .table-card {
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: none;
-    
-    .collection-table {
-      border-radius: 4px;
-      overflow: hidden;
-      
-      :deep(thead) {
-        background-color: #ecf0f1;
-        
-        th {
-          background-color: #ecf0f1;
-          color: #34495e;
-          font-weight: 500;
-          padding: 12px 0;
-        }
-      }
-      
-      :deep(tbody tr) {
-        transition: all 0.3s;
-        
-        &:hover {
-          background-color: #f8f9fa;
-        }
-      }
-      
-      .user-info {
-        display: flex;
-        align-items: center;
-        
-        .el-avatar {
-          margin-right: 10px;
-          flex-shrink: 0;
-        }
-        
-        .user-details {
-          display: flex;
-          flex-direction: column;
-          
-          .username {
-            font-weight: 500;
-            font-size: 14px;
-            color: #2980b9;
-          }
-          
-          .nickname {
-            font-size: 12px;
-            color: #909399;
-          }
-        }
-      }
-      
-      .guide-title {
-        color: #2c3e50;
-        font-weight: 500;
-      }
-      
-      .view-count {
-        color: #7f8c8d;
-        font-size: 14px;
-      }
-      
-      .date-text {
-        color: #7f8c8d;
-        font-size: 12px;
-      }
-      
-      .delete-btn {
-        padding: 5px 12px;
-      }
-    }
+  h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 800;
   }
 
-  .pagination-container {
-    margin-top: 20px;
-    display: flex;
-    justify-content: flex-end;
-    padding: 0 20px;
+  span {
+    display: inline-block;
+    margin-top: 10px;
+    color: #64748b;
+  }
+}
+
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(118px, 1fr));
+  gap: 12px;
+
+  div {
+    padding: 16px;
+    border-radius: 14px;
+    background: #f8fafc;
+  }
+
+  strong {
+    display: block;
+    font-size: 22px;
+    color: #0f172a;
+  }
+
+  span {
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 13px;
+  }
+}
+
+.filter-panel {
+  padding: 18px 20px 6px;
+  margin-bottom: 18px;
+}
+
+.type-tabs {
+  margin-bottom: 16px;
+}
+
+.search-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(220px, 360px) auto;
+  gap: 14px;
+  align-items: flex-start;
+
+  :deep(.el-form-item__label) {
+    font-weight: 600;
+    color: #475569;
+  }
+
+  .action-item {
+    align-self: end;
+  }
+}
+
+.table-panel {
+  padding: 8px 8px 18px;
+}
+
+.collection-table {
+  :deep(.el-table__header th) {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 700;
+  }
+
+  :deep(.el-table__row) {
+    height: 76px;
+  }
+}
+
+.target-cell,
+.user-cell,
+.target-meta {
+  display: flex;
+  align-items: center;
+}
+
+.target-cell {
+  gap: 14px;
+}
+
+.target-cover {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 54px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #eef2ff;
+  color: #4f46e5;
+
+  .el-image,
+  :deep(img) {
+    width: 100%;
+    height: 100%;
+  }
+
+  :deep(svg) {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.target-title,
+.user-name {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  color: #111827;
+}
+
+.target-meta {
+  gap: 8px;
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.user-cell {
+  gap: 10px;
+}
+
+.user-sub,
+.time-text {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  padding: 18px 16px 0;
+}
+
+@media (max-width: 980px) {
+  .hero-panel {
+    flex-direction: column;
+  }
+
+  .search-form {
+    grid-template-columns: 1fr;
   }
 }
 </style>

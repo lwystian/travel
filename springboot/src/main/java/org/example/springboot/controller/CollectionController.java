@@ -71,6 +71,24 @@ public class CollectionController {
         Page<Collection> page = collectionService.getCollectionsByAdmin(username, guideTitle, currentPage, size);
         return Result.success(page);
     }
+
+    @Operation(summary = "管理员统一查询收藏")
+    @GetMapping("/admin/unified/page")
+    public Result<?> getUnifiedAdminCollectionList(
+            @RequestParam(defaultValue = "all") String type,
+            @RequestParam(defaultValue = "") String username,
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "1") Integer currentPage,
+            @RequestParam(defaultValue = "10") Integer size) {
+        return Result.success(collectionService.getUnifiedCollectionsByAdmin(type, username, keyword, currentPage, size));
+    }
+
+    @Operation(summary = "管理员统一删除收藏")
+    @DeleteMapping("/admin/unified/{type}/{id}")
+    public Result<?> deleteUnifiedCollection(@PathVariable String type, @PathVariable Long id) {
+        collectionService.deleteUnifiedCollection(type, id);
+        return Result.success();
+    }
     
     @Operation(summary = "管理员删除收藏")
     @DeleteMapping("/admin/{id}")

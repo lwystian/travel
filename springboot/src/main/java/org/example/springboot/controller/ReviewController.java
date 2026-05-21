@@ -156,6 +156,30 @@ public class ReviewController {
         }
         return Result.success("批量审核完成");
     }
+
+    @Operation(summary = "统一查询评论和评价")
+    @GetMapping("/comment/unified")
+    @OperationLog(operationType = "QUERY", description = "统一查询评论和评价")
+    public Result<?> getUnifiedReviews(
+            @RequestParam(defaultValue = "all") String type,
+            @RequestParam(defaultValue = "") String targetName,
+            @RequestParam(defaultValue = "") String userName,
+            @RequestParam(defaultValue = "") String content,
+            @RequestParam(required = false) Integer reviewStatus,
+            @RequestParam(defaultValue = "1") Integer currentPage,
+            @RequestParam(defaultValue = "10") Integer size) {
+        checkAdminPermission();
+        return Result.success(contentReviewService.getUnifiedReviewPage(type, targetName, userName, content, reviewStatus, currentPage, size));
+    }
+
+    @Operation(summary = "统一删除评论和评价")
+    @DeleteMapping("/comment/unified/{type}/{id}")
+    @OperationLog(operationType = "DELETE", description = "统一删除评论和评价")
+    public Result<?> deleteUnifiedReview(@PathVariable String type, @PathVariable Long id) {
+        checkAdminPermission();
+        contentReviewService.deleteUnifiedReview(type, id);
+        return Result.success("删除成功");
+    }
     
     // ==================== 攻略审核 ====================
     

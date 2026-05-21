@@ -2,7 +2,7 @@
 <template>
   <div class="scenic-frontend-container">
     <!-- Hero 区域 - 背景图片适中 -->
-    <div class="hero-section" ref="heroSection">
+    <div class="hero-section" ref="heroSection" :style="{ '--page-hero-height': `${heroHeight}px` }">
       <div class="hero-overlay"></div>
       <div class="hero-content">
         <div class="hero-text">
@@ -168,7 +168,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch, nextTick } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import request from '@/utils/request'
 import { useUserStore } from '@/store/user'
@@ -182,6 +182,14 @@ const userStore = useUserStore()
 // DOM 引用
 const heroSection = ref(null)
 const mainSection = ref(null)
+const heroHeight = ref(420)
+
+const updateHeroHeight = () => {
+  if (!heroSection.value) return
+  const rect = heroSection.value.getBoundingClientRect()
+  const pageTop = rect.top + window.scrollY
+  heroHeight.value = Math.max(320, Math.round(window.innerHeight - pageTop))
+}
 
 // 数据状态
 const tableData = ref([])
@@ -371,6 +379,16 @@ const hexToRgba = (hex, alpha) => {
 onMounted(() => {
   fetchCategories()
   handleUrlParams()
+  nextTick(updateHeroHeight)
+  setTimeout(updateHeroHeight, 100)
+  setTimeout(updateHeroHeight, 400)
+  window.addEventListener('resize', updateHeroHeight)
+  window.addEventListener('orientationchange', updateHeroHeight)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateHeroHeight)
+  window.removeEventListener('orientationchange', updateHeroHeight)
 })
 </script>
 
@@ -393,7 +411,7 @@ $border: #e9ecef;
 .hero-section {
   position: relative;
   width: 100%;
-  height: calc(100vh - 215px);
+  height: var(--page-hero-height, calc(100vh - 215px));
   background: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80') center bottom / cover no-repeat;
   display: flex;
   align-items: center;
@@ -1011,7 +1029,7 @@ $border: #e9ecef;
 
 @media (max-width: 768px) {
   .hero-section {
-    height: calc(100vh - 140px);
+    height: var(--page-hero-height, calc(100vh - 140px));
   }
 
   .hero-title {

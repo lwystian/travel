@@ -25,8 +25,9 @@ const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 
 const updateCarouselHeight = () => {
   if (!carouselRoot.value) return
-  const top = carouselRoot.value.getBoundingClientRect().top
-  const availableHeight = window.innerHeight - top
+  const rect = carouselRoot.value.getBoundingClientRect()
+  const pageTop = rect.top + window.scrollY
+  const availableHeight = window.innerHeight - pageTop
   carouselHeight.value = Math.max(260, Math.round(availableHeight))
 }
 
