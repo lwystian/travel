@@ -275,22 +275,6 @@ const handlePaymentTypeChange = (type) => {
   form.paymentName = paymentTypeNames[type] || ''
 }
 
-const getPaymentIcon = (type) => {
-  const icons = {
-    alipay: 'Aliwangwang',
-    wechat: 'Wechat'
-  }
-  return icons[type] || 'Wallet'
-}
-
-const getPaymentIconColor = (type) => {
-  const colors = {
-    alipay: '#1677FF',
-    wechat: '#07C160'
-  }
-  return colors[type] || '#666'
-}
-
 const loadPayments = async () => {
   loading.value = true
   try {

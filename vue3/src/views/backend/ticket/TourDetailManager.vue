@@ -783,11 +783,6 @@ const handleVideoUpload = async (options) => {
   }
 }
 
-const removeVideo = () => {
-  videoUrl.value = ''
-  videoPoster.value = ''
-}
-
 const beforeVideoUpload = (file) => {
   const isVideo = file.type.startsWith('video/')
   const isLt100M = file.size / 1024 / 1024 < 100

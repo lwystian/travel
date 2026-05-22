@@ -128,9 +128,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import request from '@/utils/request'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { formatDate } from '@/utils/dateUtils'
 
 const tableData = ref([])
@@ -161,8 +161,6 @@ const submitting = ref(false)
 const parentCategories = ref([])
 
 // 基础API路径
-const baseAPI = process.env.VUE_APP_BASE_API || '/api'
-
 // 获取分类列表
 const fetchCategories = async () => {
   loading.value = true

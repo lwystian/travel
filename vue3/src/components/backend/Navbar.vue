@@ -48,7 +48,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { useAppStore } from '@/store/app'
 import { ElMessageBox } from 'element-plus'
-import { Expand, Fold, ArrowDown, User, SwitchButton, FullScreen, Aim } from '@element-plus/icons-vue'
+import { Expand, Fold, ArrowDown, SwitchButton, FullScreen, Aim } from '@element-plus/icons-vue'
 import NotificationBell from '@/components/NotificationBell.vue'
 
 const router = useRouter()

@@ -83,6 +83,11 @@
           <el-icon><OfficeBuilding /></el-icon>
           <span>网站页脚</span>
         </el-menu-item>
+
+        <el-menu-item index="/back/site-settings/site-access" v-if="userStore.isAdmin">
+          <el-icon><Setting /></el-icon>
+          <span>网站设置</span>
+        </el-menu-item>
         
         <el-menu-item index="/back/order" v-if="userStore.isAdmin">
           <el-icon><List /></el-icon>
@@ -143,7 +148,8 @@ import {
   Checked,
   Warning,
   Bell,
-  OfficeBuilding
+  OfficeBuilding,
+  Setting
 } from '@element-plus/icons-vue'
 
 const route = useRoute()

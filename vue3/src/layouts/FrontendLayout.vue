@@ -441,25 +441,17 @@ import request from '@/utils/request'
 import { getPublicFooterConfig } from '@/api/siteFooter'
 import wechatQrImage from '@/assets/wechat.jpg'
 import {
-  HomeFilled,
   User,
-  Bicycle,
   Reading,
-  Notebook,
   Star,
   SwitchButton,
-  Key,
   Ticket,
   Tickets,
-  House,
-  Place,
-  Ship,
   ArrowDown,
   Location,
   Search,
   ChatDotRound,
-  Document,
-  Grid
+  Document
 } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
@@ -942,8 +934,6 @@ const getLineIndex = (index) => {
 const selectSuggestion = (index) => {
   const lineCount = searchSuggestions.lines.length
   const scenicCount = searchSuggestions.scenics.length
-  const guideCount = searchSuggestions.guides.length
-
   if (index < lineCount) {
     // 线路
     const line = searchSuggestions.lines[index]
@@ -978,10 +968,6 @@ const goToTicketDetail = (id) => {
 }
 
 // 跳转到线路详情（兼容旧名称）
-const goToLineDetail = (id) => {
-  goToTicketDetail(id)
-}
-
 // 执行搜索提交
 const handleSearchSubmit = () => {
   if (!searchKeyword.value.trim()) return
@@ -1133,10 +1119,6 @@ const handleCommand = (command) => {
       handleLogout()
       break
   }
-}
-
-const goToLogin = () => {
-  router.push('/login')
 }
 
 const handleLogout = () => {

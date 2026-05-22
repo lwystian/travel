@@ -620,7 +620,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Check } from '@element-plus/icons-vue'
 import { getTourDetailFull } from '@/api/tour'
-import { createTourOrder, checkPendingOrder } from '@/api/tourOrder'
+import { createTourOrder } from '@/api/tourOrder'
 import request from '@/utils/request'
 
 // =============================================
@@ -908,11 +908,6 @@ const getBatchForDate = (dateStr) => {
     finalChildPrice: hasChildPrice.value ? (tripChildPrice + (batch.childDateExtraFee || 0) + batchExtra) : 0,
     canBook: batch.status === '可报名' && remaining >= requiredCount
   }
-}
-
-const getWeekday = (dateStr) => {
-  const date = new Date(dateStr)
-  return weekdayNames[date.getDay()]
 }
 
 const calendarDays = computed(() => {
@@ -1517,18 +1512,6 @@ const filterByDeparture = () => {
 
 const showRefundPolicy = () => {
   ElMessage.info('出发前3天可全额退款，出发前1天扣除50%')
-}
-
-const showNotice = () => {
-  ElMessage.info('报名须知：请仔细阅读行程安排...')
-}
-
-const showPolicy = () => {
-  ElMessage.info('优惠政策：早鸟优惠、团体优惠...')
-}
-
-const startCustomTravel = () => {
-  ElMessage.info('定制旅行功能开发中')
 }
 
 // 监听视频源变化，重新加载视频

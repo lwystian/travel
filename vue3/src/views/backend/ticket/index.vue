@@ -499,6 +499,7 @@ const tourTypeMap = {
 const themeMap = {
   scenic: '风景游', cultural: '文化游', adventure: '探险游', hiking: '徒步游'
 }
+void themeMap
 
 // 分页参数
 const currentPage = ref(1)
@@ -783,6 +784,7 @@ const previewImage = () => {
     window.open(tourForm.mainImage, '_blank')
   }
 }
+void previewImage
 
 // 提交表单
 const submitForm = async () => {

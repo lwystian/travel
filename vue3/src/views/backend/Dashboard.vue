@@ -79,7 +79,8 @@ import {
   Warning,
   Bell,
   Wallet,
-  List
+  List,
+  Setting
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -115,6 +116,7 @@ const quickActions = [
   { title: '收藏管理', desc: '管理用户收藏信息', path: '/back/collection', icon: Star, cardClass: 'collection-card' },
   { title: '行程管理', desc: '管理景点行程信息', path: '/back/ticket', icon: Ticket, cardClass: 'ticket-card' },
   { title: '首页推荐', desc: '维护首页推荐内容', path: '/back/recommend', icon: Star, cardClass: 'recommend-card' },
+  { title: '网站设置', desc: '控制官网开放与访问终端策略', path: '/back/site-settings/site-access', icon: Setting, cardClass: 'setting-card' },
   { title: '订单管理', desc: '处理订单与退款流程', path: '/back/order', icon: List, cardClass: 'order-card' },
   { title: '住宿管理', desc: '管理酒店住宿信息', path: '/back/accommodation', icon: House, cardClass: 'accommodation-card' },
   { title: '轮播图管理', desc: '管理首页轮播图片', path: '/back/carousel', icon: Picture, cardClass: 'carousel-card' },

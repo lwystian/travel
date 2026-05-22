@@ -76,6 +76,22 @@ export const backendRoutes = [
         meta: { title: '网站页脚', icon: 'OfficeBuilding' }
       },
       {
+        path: 'site-settings',
+        redirect: '/back/site-settings/site-access'
+      },
+      {
+        path: 'site-settings/site-access',
+        name: 'SiteAccessSetting',
+        component: () => import('@/views/backend/site/WebsiteSettings.vue'),
+        meta: { title: '网站开关', icon: 'SwitchButton', activeMenu: '/back/site-settings/site-access' }
+      },
+      {
+        path: 'site-settings/device-access',
+        name: 'DeviceAccessSetting',
+        component: () => import('@/views/backend/site/WebsiteSettings.vue'),
+        meta: { title: '访问终端', icon: 'Monitor', activeMenu: '/back/site-settings/site-access' }
+      },
+      {
         path: 'log',
         name: 'LogManagement',
         component: () => import('@/views/backend/log/LogManager.vue'),

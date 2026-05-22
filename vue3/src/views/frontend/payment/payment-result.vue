@@ -16,7 +16,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import { getOrderByOrderNo } from '@/api/tourOrderPay'
 
 const router = useRouter()

@@ -918,7 +918,7 @@ const updateUserAvatar = async (avatarPath) => {
       { avatar: avatarPath },
       {
         showDefaultMsg: false,
-        onSuccess: (data) => {
+        onSuccess: () => {
           // 更新本地用户信息
           const updatedUserInfo = { ...userStore.userInfo, avatar: avatarPath };
           userStore.updateUserInfo(updatedUserInfo);

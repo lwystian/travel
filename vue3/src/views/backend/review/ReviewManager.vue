@@ -431,12 +431,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref, onMounted } from 'vue'
+import { ElMessageBox } from 'element-plus'
 import { Clock, ChatDotRound, Document, Finished, Check, Close } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 
-const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 
 // 统计数据
 const stats = ref({

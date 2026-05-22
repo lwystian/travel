@@ -114,7 +114,6 @@
 import { ref, reactive, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import request from '@/utils/request'
-import { formatDate } from '@/utils/dateUtils'
 import { Edit } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
@@ -533,18 +532,7 @@ const goEdit = () => {
 }
 
 // 清除搜索
-const clearSearchTitle = () => {
-  searchForm.title = ''
-  handleSearch()
-}
-
 // 重置搜索
-const resetSearch = () => {
-  searchForm.title = ''
-  currentPage.value = 1
-  fetchGuides()
-}
-
 // 处理URL参数
 const handleUrlParams = () => {
   const searchParam = route.query.search

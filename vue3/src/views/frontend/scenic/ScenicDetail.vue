@@ -440,7 +440,6 @@ const fetchWeatherInfo = async (location) => {
     })
     
     if (locationResponse.data.code === '200' && locationResponse.data.location && locationResponse.data.location.length > 0) {
-      const locationId = locationResponse.data.location[0].id
       const lon = locationResponse.data.location[0].lon
       const lat = locationResponse.data.location[0].lat
       

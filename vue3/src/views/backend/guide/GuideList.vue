@@ -234,7 +234,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import { Search, Refresh, Edit, Delete, View, Plus, Close, Check, CircleCheckFilled, EditPen, Camera, InfoFilled, Warning, Upload, Picture } from '@element-plus/icons-vue'
+import { Search, Refresh, Edit, Delete, View, Plus, Camera, Picture } from '@element-plus/icons-vue'
 import WangEditor from '@/components/WangEditor.vue'
 import { useUserStore } from '@/store/user'
 

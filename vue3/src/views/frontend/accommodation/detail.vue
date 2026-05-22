@@ -284,14 +284,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { useUserStore } from '@/store/user'
 import { shareCurrentPage } from '@/utils/share'
 import {
-  Location, Star, Picture, Phone, Delete, House, MapLocation,
+  Location, Star, Phone, Delete, House, MapLocation,
   Document, InfoFilled, Money, ChatDotRound, EditPen, Share
 } from '@element-plus/icons-vue'
 

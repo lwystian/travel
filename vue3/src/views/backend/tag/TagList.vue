@@ -135,7 +135,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import request from '@/utils/request'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { formatDate } from '@/utils/dateUtils'
 
 const tableData = ref([])

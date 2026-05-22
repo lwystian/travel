@@ -350,6 +350,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Search, Loading, Close } from '@element-plus/icons-vue'
+void Search
 
 const router = useRouter()
 const route = useRoute()

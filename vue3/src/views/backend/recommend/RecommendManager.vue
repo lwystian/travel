@@ -281,7 +281,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -592,7 +592,7 @@ const handleDrop = async (e, index) => {
   dragIndex.value = -1
 }
 
-const handleDragEnd = (e) => {
+const handleDragEnd = () => {
   resetDragStyles()
   dragIndex.value = -1
 }

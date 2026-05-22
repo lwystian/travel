@@ -484,7 +484,7 @@ const updateUserAvatar = async (avatarPath) => {
       {
         showDefaultMsg: false,
         successMsg: '头像更新成功',
-        onSuccess: (data) => {
+        onSuccess: () => {
           // 更新本地用户信息
           const updatedUserInfo = { ...userStore.userInfo, avatar: avatarPath }
           userStore.updateUserInfo(updatedUserInfo)
@@ -526,7 +526,7 @@ const handleSave = async () => {
       {
         showDefaultMsg: false,
         successMsg: '个人信息更新成功',
-        onSuccess: (data) => {
+        onSuccess: () => {
           isEditing.value = false
           // 更新store中的用户信息
           userStore.updateUserInfo({

@@ -171,13 +171,11 @@
 import { ref, reactive, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import request from '@/utils/request'
-import { useUserStore } from '@/store/user'
 import { Search, Location, Refresh, Star, ChatDotRound } from '@element-plus/icons-vue'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const router = useRouter()
 const route = useRoute()
-const userStore = useUserStore()
 
 // DOM 引用
 const heroSection = ref(null)

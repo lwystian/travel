@@ -350,7 +350,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, watch, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
@@ -463,7 +463,6 @@ const scenicFormRules = {
 const mapDialogVisible = ref(false)
 const mapInstance = ref(null)
 const mapMarker = ref(null)
-const confirmingLocation = ref(false)
 const mapSearchKeyword = ref('')
 const inputTips = ref(null)
 const searchResults = ref([])
