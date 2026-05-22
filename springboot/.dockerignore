@@ -1,0 +1,10 @@
+target/
+logs/
+files/
+backup/
+.mvn/
+mvnw
+mvnw.cmd
+*.iml
+.idea/
+.vscode/
