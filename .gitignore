@@ -6,6 +6,7 @@
 **/.mvn/
 **/mvnw
 **/mvnw.cmd
+**/logs/
 
 # Vue / Node
 **/node_modules/

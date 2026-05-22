@@ -13,13 +13,10 @@
     "@wangeditor/editor": "^5.1.23",
     "axios": "^1.10.0",
     "core-js": "^3.8.3",
-    "element-china-area-data": "^6.1.0",
     "element-plus": "^2.9.4",
     "pinia": "^3.0.0",
-    "qrcodejs2-fix": "^0.0.1",
     "vue": "^3.2.13",
-    "vue-router": "^4.0.3",
-    "vuex": "^4.1.0"
+    "vue-router": "^4.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.26.8",

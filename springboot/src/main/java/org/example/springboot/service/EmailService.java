@@ -7,7 +7,6 @@ import org.example.springboot.exception.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -30,9 +29,6 @@ public class EmailService {
     private static final ConcurrentHashMap<String, CodeInfo> EMAIL_CODE_MAP = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Long> EMAIL_SENT_AT_MAP = new ConcurrentHashMap<>();
     
-    @Resource
-    private JavaMailSender javaMailSender;
-
     @Resource
     private AuthConfigService authConfigService;
     
@@ -81,7 +77,7 @@ public class EmailService {
     public void sendEmail(EmailMessageDTO emailMessage) {
         try {
             EmailSmtpConfigDTO config = authConfigService.getEmailConfigForSend();
-            JavaMailSender sender = createMailSender(config);
+            JavaMailSenderImpl sender = createMailSender(config);
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(config.getFromEmail());
             message.setTo(emailMessage.getTo());
@@ -158,7 +154,7 @@ public class EmailService {
         return code;
     }
 
-    private JavaMailSender createMailSender(EmailSmtpConfigDTO config) {
+    private JavaMailSenderImpl createMailSender(EmailSmtpConfigDTO config) {
         JavaMailSenderImpl sender = new JavaMailSenderImpl();
         sender.setHost(config.getHost());
         sender.setPort(config.getPort());
