@@ -1,93 +1,89 @@
 <template>
-    <div class="backend-layout">
-      <!-- 侧边栏 -->
-      <Sidebar />
-  
-      <!-- 主要内容区域 -->
-      <div class="main-content">
-        <!-- 顶部导航栏 -->
-        <Navbar @logout="handleLogout" />
-  
-        <!-- 页面内容 -->
-        <div class="content-container">
-          <router-view v-slot="{ Component }">
-            <transition name="fade" mode="out-in">
-              <component :is="Component" />
-            </transition>
-          </router-view>
-        </div>
-      </div>
-    </div>
-  </template>
-  
-  <script setup>
-  import { useUserStore } from '@/store/user'
-  import { useRouter } from 'vue-router'
-  import Sidebar from '@/components/backend/Sidebar.vue'
-  import Navbar from '@/components/backend/Navbar.vue'
-  const userStore = useUserStore()
-  const router = useRouter()
-  
-  const handleLogout = () => {
-    userStore.clearUserInfo()
-    router.push('/login')
-  }
-  </script>
-  
-  <style lang="scss" scoped>
-  .backend-layout {
-    display: flex;
-    height: 100vh;
-    min-height: 100vh;
-    background-color: #f5f7fa;
-    overflow: hidden;
-  }
-  
-  .sidebar {
-    width: 200px;
-    background-color: #333;
-    color: white;
-    padding: 1rem;
-  }
-  
-  .sidebar nav {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .sidebar a {
-    color: white;
-    text-decoration: none;
-  }
-  
-  .main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    height: 100%;
-  }
-  
-  .content-container {
-    flex: 1;
-    padding: 20px;
-    overflow-y: auto;
-    position: relative;
-    
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
+  <div class="backend-layout">
+    <Sidebar />
 
-    &::-webkit-scrollbar-thumb {
-      background-color: rgba(0, 0, 0, 0.2);
-      border-radius: 3px;
-    }
+    <section class="backend-main">
+      <Navbar @logout="handleLogout" />
 
-    &::-webkit-scrollbar-track {
-      background-color: transparent;
-    }
+      <main class="content-container">
+        <router-view v-slot="{ Component }">
+          <transition name="backend-fade" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
+      </main>
+    </section>
+  </div>
+</template>
+
+<script setup>
+import { useRouter } from 'vue-router'
+import { useUserStore } from '@/store/user'
+import Sidebar from '@/components/backend/Sidebar.vue'
+import Navbar from '@/components/backend/Navbar.vue'
+
+const userStore = useUserStore()
+const router = useRouter()
+
+const handleLogout = () => {
+  userStore.clearUserInfo()
+  router.push('/login')
+}
+</script>
+
+<style lang="scss" scoped>
+.backend-layout {
+  display: flex;
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+  color: #172033;
+  background: #ffffff;
+}
+
+.backend-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  flex-direction: column;
+}
+
+.content-container {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 24px;
+  background: #ffffff;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+
+  &::-webkit-scrollbar {
+    width: 8px;
   }
-  
- 
-  </style>
+
+  &::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: rgba(100, 116, 139, 0.34);
+    background-clip: content-box;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+.backend-fade-enter-active,
+.backend-fade-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.backend-fade-enter-from,
+.backend-fade-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+</style>

@@ -1,74 +1,49 @@
 <template>
-  <div class="sidebar-container" :class="{ 'is-collapsed': isCollapsed }">
+  <aside class="sidebar-container" :class="{ 'is-collapsed': isCollapsed }">
     <div class="logo">
-      <span class="logo-icon">🌍</span>
+      <img class="logo-mark" src="@/assets/logo.png" alt="侠客行国旅" />
       <span class="logo-text" v-show="!isCollapsed">侠客行国旅</span>
     </div>
+
     <div class="menu-wrapper">
-      <el-menu :default-active="activeMenu" :collapse="isCollapsed" :collapse-transition="false" mode="vertical" class="sidebar-menu"
-        text-color="#a6b0cf" active-text-color="#ffffff" router>
-        
-        <!-- 固定菜单项 -->
+      <el-menu
+        :default-active="activeMenu"
+        :collapse="isCollapsed"
+        :collapse-transition="false"
+        mode="vertical"
+        class="sidebar-menu"
+        router
+      >
         <el-menu-item index="/back/dashboard">
           <el-icon><HomeFilled /></el-icon>
           <template #title>首页</template>
         </el-menu-item>
-        
-        <el-menu-item index="/back/user" v-if="userStore.isAdmin">
-          <el-icon><User /></el-icon>
-          <template #title>用户管理</template>
-        </el-menu-item>
-        
+
         <el-menu-item index="/back/profile">
           <el-icon><UserFilled /></el-icon>
           <template #title>个人信息</template>
         </el-menu-item>
-        
-        <el-menu-item index="/back/scenic" v-if="userStore.isAdmin">
-          <el-icon><Location /></el-icon>
-          <template #title>景点管理</template>
+
+        <el-menu-item index="/back/order" v-if="userStore.isAdmin">
+          <el-icon><List /></el-icon>
+          <template #title>订单管理</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/tag" v-if="userStore.isAdmin">
-          <el-icon><PriceTag /></el-icon>
-          <span>景点标签管理</span>
-        </el-menu-item>
-
-        <el-menu-item index="/back/category">
-          <el-icon><Menu /></el-icon>
-          <template #title>分类管理</template>
+        <el-menu-item index="/back/user" v-if="userStore.isAdmin">
+          <el-icon><User /></el-icon>
+          <template #title>用户管理</template>
         </el-menu-item>
 
         <el-menu-item index="/back/review" v-if="userStore.isAdmin">
           <el-icon><Checked /></el-icon>
-          <span>内容审核</span>
-        </el-menu-item>
-
-        <el-menu-item index="/back/sensitive-word" v-if="userStore.isAdmin">
-          <el-icon><Warning /></el-icon>
-          <span>敏感词过滤</span>
+          <template #title>内容审核</template>
         </el-menu-item>
 
         <el-menu-item index="/back/notification" v-if="userStore.isAdmin">
           <el-icon><Bell /></el-icon>
-          <span>站内消息</span>
+          <template #title>站内消息</template>
         </el-menu-item>
-        
-        <el-menu-item index="/back/comment" v-if="userStore.isAdmin">
-          <el-icon><ChatDotRound /></el-icon>
-          <template #title>评论管理</template>
-        </el-menu-item>
-        
-        <el-menu-item index="/back/guide" v-if="userStore.isAdmin">
-          <el-icon><Document /></el-icon>
-          <template #title>攻略管理</template>
-        </el-menu-item>
-        
-        <el-menu-item index="/back/collection" v-if="userStore.isAdmin">
-          <el-icon><Star /></el-icon>
-          <template #title>收藏管理</template>
-        </el-menu-item>
-        
+
         <el-menu-item index="/back/ticket" v-if="userStore.isAdmin">
           <el-icon><Ticket /></el-icon>
           <template #title>行程管理</template>
@@ -76,52 +51,81 @@
 
         <el-menu-item index="/back/recommend" v-if="userStore.isAdmin">
           <el-icon><Star /></el-icon>
-          <span>首页推荐</span>
+          <template #title>首页推荐</template>
+        </el-menu-item>
+
+        <el-menu-item index="/back/scenic" v-if="userStore.isAdmin">
+          <el-icon><Location /></el-icon>
+          <template #title>景点管理</template>
+        </el-menu-item>
+
+        <el-menu-item index="/back/accommodation">
+          <el-icon><House /></el-icon>
+          <template #title>住宿管理</template>
+        </el-menu-item>
+
+        <el-menu-item index="/back/guide" v-if="userStore.isAdmin">
+          <el-icon><Document /></el-icon>
+          <template #title>攻略管理</template>
+        </el-menu-item>
+
+        <el-menu-item index="/back/comment" v-if="userStore.isAdmin">
+          <el-icon><ChatDotRound /></el-icon>
+          <template #title>评论管理</template>
+        </el-menu-item>
+
+        <el-menu-item index="/back/collection" v-if="userStore.isAdmin">
+          <el-icon><CollectionTag /></el-icon>
+          <template #title>收藏管理</template>
+        </el-menu-item>
+
+        <el-menu-item index="/back/category">
+          <el-icon><Menu /></el-icon>
+          <template #title>分类管理</template>
+        </el-menu-item>
+
+        <el-menu-item index="/back/tag" v-if="userStore.isAdmin">
+          <el-icon><PriceTag /></el-icon>
+          <template #title>景点标签</template>
+        </el-menu-item>
+
+        <el-menu-item index="/back/carousel" v-if="userStore.isAdmin">
+          <el-icon><Picture /></el-icon>
+          <template #title>轮播图管理</template>
         </el-menu-item>
 
         <el-menu-item index="/back/site-footer" v-if="userStore.isAdmin">
           <el-icon><OfficeBuilding /></el-icon>
-          <span>网站页脚</span>
+          <template #title>网站页脚</template>
         </el-menu-item>
 
         <el-menu-item index="/back/site-settings/site-access" v-if="userStore.isAdmin">
           <el-icon><Setting /></el-icon>
-          <span>网站设置</span>
-        </el-menu-item>
-        
-        <el-menu-item index="/back/order" v-if="userStore.isAdmin">
-          <el-icon><List /></el-icon>
-          <template #title>订单管理</template>
-        </el-menu-item>
-        
-        <el-menu-item index="/back/accommodation">
-          <el-icon><House /></el-icon>
-          <span>住宿管理</span>
-        </el-menu-item>
-        
-        <el-menu-item index="/back/carousel" v-if="userStore.isAdmin">
-          <el-icon><Picture /></el-icon>
-          <span>轮播图管理</span>
+          <template #title>网站设置</template>
         </el-menu-item>
 
         <el-menu-item index="/back/payment" v-if="userStore.isAdmin">
           <el-icon><Wallet /></el-icon>
-          <span>支付配置</span>
+          <template #title>支付配置</template>
         </el-menu-item>
 
         <el-menu-item index="/back/auth-config" v-if="userStore.isAdmin">
           <el-icon><Lock /></el-icon>
-          <span>认证配置</span>
+          <template #title>认证配置</template>
+        </el-menu-item>
+
+        <el-menu-item index="/back/sensitive-word" v-if="userStore.isAdmin">
+          <el-icon><Warning /></el-icon>
+          <template #title>敏感词过滤</template>
         </el-menu-item>
 
         <el-menu-item index="/back/log" v-if="userStore.isAdmin">
-          <el-icon><Document /></el-icon>
-          <span>系统日志</span>
+          <el-icon><Files /></el-icon>
+          <template #title>系统日志</template>
         </el-menu-item>
-
       </el-menu>
     </div>
-  </div>
+  </aside>
 </template>
 
 <script setup>
@@ -129,9 +133,9 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppStore } from '@/store/app'
 import { useUserStore } from '@/store/user'
-import { 
-  HomeFilled, 
-  User, 
+import {
+  HomeFilled,
+  User,
   UserFilled,
   Location,
   Menu,
@@ -149,7 +153,9 @@ import {
   Warning,
   Bell,
   OfficeBuilding,
-  Setting
+  Setting,
+  Files,
+  CollectionTag
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -158,183 +164,168 @@ const userStore = useUserStore()
 
 const isCollapsed = computed(() => appStore.sidebarCollapsed)
 
-// 当前激活的菜单
 const activeMenu = computed(() => {
   const { meta, path } = route
-  if (meta.activeMenu) {
-    return meta.activeMenu
-  }
-  return path
+  return meta.activeMenu || path
 })
 </script>
 
 <style lang="scss" scoped>
 .sidebar-container {
-  height: 100%; 
-  min-height: 100vh;
-  background: #FFFFFF;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.4);
+  position: relative;
+  z-index: 12;
   display: flex;
   flex-direction: column;
-  width: 220px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  
+  width: 248px;
+  min-width: 248px;
+  height: 100vh;
+  overflow: hidden;
+  border-right: 1px solid #edf1f6;
+  background: #ffffff;
+  box-shadow: 12px 0 34px rgba(15, 23, 42, 0.04);
+  transition: width 0.24s ease, min-width 0.24s ease;
+
   &.is-collapsed {
-    width: 64px;
-    
+    width: 78px;
+    min-width: 78px;
+
     .logo {
-      padding: 0;
       justify-content: center;
-      
-      .logo-icon {
-        margin: 0;
+      padding: 0 12px;
+    }
+
+    .logo-mark {
+      margin-right: 0;
+    }
+
+    :deep(.el-menu-item) {
+      justify-content: center;
+      width: 48px;
+      padding: 0 !important;
+      margin-right: auto;
+      margin-left: auto;
+
+      .el-icon {
+        margin-right: 0;
       }
     }
-
-    :deep(.el-menu) {
-      .el-sub-menu__title span,
-      .el-menu-item span {
-        opacity: 0;
-        transition: opacity 0.2s;
-      }
-    }
   }
-  
-  .logo {
-    height: 60px;
-    flex-shrink: 0;
-    line-height: 60px;
-    text-align: center;
-    background: linear-gradient(90deg, #3ec6e0 0%, #6ee7b7 100%);
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
-    .logo-icon {
-      font-size: 24px;
-      margin-right: 8px;
-      transition: margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    .logo-text {
-      color: #fff;
-      font-size: 18px;
-      font-weight: 600;
-      white-space: nowrap;
-      opacity: 1;
-      transition: opacity 0.2s;
-    }
-  }
+}
 
-  .menu-wrapper {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
+.logo {
+  display: flex;
+  align-items: center;
+  height: 72px;
+  padding: 0 22px;
+  border-bottom: 1px solid #f0f3f8;
+}
 
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
+.logo-mark {
+  display: block;
+  width: 30px;
+  height: 30px;
+  margin-right: 12px;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
 
-    &::-webkit-scrollbar-thumb {
-      background: rgba(166, 176, 207, 0.3);
-      border-radius: 3px;
-    }
+.logo-text {
+  min-width: 0;
+  color: #172033;
+  font-size: 18px;
+  font-weight: 850;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
 
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
+.menu-wrapper {
+  flex: 1;
+  padding: 14px 0 18px;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  &::-webkit-scrollbar {
+    width: 6px;
   }
 
-  :deep(.sidebar-menu) {
-    border: none;
+  &::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.32);
+  }
+
+  &::-webkit-scrollbar-track {
     background: transparent;
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
 
-    .el-menu-item, .el-sub-menu__title {
-      height: 50px;
-      line-height: 50px;
-      color: #a6b0cf;
+:deep(.sidebar-menu) {
+  border-right: 0;
+  background: transparent;
+
+  .el-menu-item {
+    position: relative;
+    height: 46px;
+    margin: 4px 14px;
+    padding: 0 15px !important;
+    border-radius: 14px;
+    color: #61708a;
+    font-weight: 680;
+    line-height: 46px;
+    transition: background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      width: 4px;
+      height: 18px;
+      border-radius: 999px;
       background: transparent;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      
-      span {
-        opacity: 1;
-        transition: opacity 0.3s;
-      }
-      
-      &:hover {
-        background: linear-gradient(90deg, #3ec6e0 0%, #6ee7b7 100%) !important;
-        color: #ffffff;
-      }
+      transform: translateY(-50%);
+      transition: background-color 0.16s ease;
     }
 
-    .el-menu-item.is-active {
-      background: linear-gradient(90deg, #3ec6e0 0%, #409EFF 100%) !important;
-      color: #ffffff !important;
-      
-      &::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 3px;
-        height: 100%;
-        background: #409EFF;
-      }
+    .el-icon {
+      width: 20px;
+      height: 20px;
+      margin-right: 12px;
+      color: inherit;
+      font-size: 18px;
     }
 
-    .el-sub-menu {
-      &.is-opened {
-        > .el-sub-menu__title {
-          color: #ffffff;
-          background: rgba(64, 158, 255, 0.1) !important;
-        }
-      }
-
-      .el-menu {
-        background: rgba(166, 176, 207, 0.05);
-        
-        .el-menu-item {
-          background: transparent;
-          color: #a6b0cf;
-          
-          &:hover {
-            background: linear-gradient(90deg, #3ec6e0 0%, #6ee7b7 100%) !important;
-            color: #ffffff;
-          }
-          
-          &.is-active {
-            background: linear-gradient(90deg, #3ec6e0 0%, #409EFF 100%) !important;
-            color: #ffffff !important;
-          }
-        }
-      }
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    // 折叠状态下的弹出菜单样式
-    &.el-menu--collapse {
-      .el-sub-menu {
-        &.is-opened {
-          > .el-sub-menu__title {
-            background: transparent !important;
-          }
-        }
+    &:hover {
+      color: #1d4ed8;
+      background: #f3f8ff;
+    }
+
+    &.is-active {
+      color: #1d4ed8;
+      background: #eef6ff;
+      box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
+
+      &::after {
+        background: #2563eb;
       }
     }
   }
 
-  .el-icon {
-    vertical-align: middle;
-    margin-right: 5px;
-    width: 24px;
-    text-align: center;
-    color: inherit;
-  }
+  &.el-menu--collapse {
+    width: 78px;
 
-  span {
-    vertical-align: middle;
+    .el-tooltip__trigger {
+      justify-content: center;
+    }
+
+    .el-menu-item::after {
+      left: 4px;
+    }
   }
 }
 </style>

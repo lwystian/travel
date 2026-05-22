@@ -16,6 +16,10 @@
               <span class="frontend-notice-bell">
                 <NotificationBell trigger="hover" click-to-center />
               </span>
+              <button v-if="userStore.isAdmin" class="admin-entry-btn" type="button" @click="router.push('/back/dashboard')">
+                <el-icon><DataBoard /></el-icon>
+                <span>管理后台</span>
+              </button>
               <el-dropdown trigger="click" @command="handleCommand">
                 <span class="welcome-text user-dropdown">
                   <el-icon><User /></el-icon>
@@ -27,6 +31,10 @@
                     <el-dropdown-item command="profile">
                       <el-icon><User /></el-icon>
                       个人中心
+                    </el-dropdown-item>
+                    <el-dropdown-item v-if="userStore.isAdmin" command="admin">
+                      <el-icon><DataBoard /></el-icon>
+                      管理后台
                     </el-dropdown-item>
                     <el-dropdown-item command="orders">
                       <el-icon><Tickets /></el-icon>
@@ -405,10 +413,28 @@
             </div>
           </section>
 
+          <section v-if="visibleCertificates.length" class="footer-certs" aria-label="荣誉证书">
+            <div class="footer-cert-list">
+              <article v-for="item in visibleCertificates" :key="item.title" class="footer-cert-item">
+                <img v-if="item.imageUrl" :src="getFooterAssetUrl(item.imageUrl)" :alt="item.title" @error="hideBrokenImage" />
+                <div v-if="item.imageUrl" class="footer-image-preview footer-cert-preview" aria-hidden="true">
+                  <img :src="getFooterAssetUrl(item.imageUrl)" :alt="item.title" />
+                </div>
+                <div>
+                  <strong>{{ item.title }}</strong>
+                  <p>{{ item.description }}</p>
+                </div>
+              </article>
+            </div>
+          </section>
+
           <section v-if="visibleQrCodes.length" class="footer-qrs" aria-label="官方二维码">
             <div v-for="item in visibleQrCodes" :key="item.label" class="footer-qr-card">
               <div class="footer-qr-image">
                 <img v-if="item.imageUrl" :src="getFooterAssetUrl(item.imageUrl)" :alt="item.label" @error="hideBrokenImage" />
+                <div v-if="item.imageUrl" class="footer-image-preview" aria-hidden="true">
+                  <img :src="getFooterAssetUrl(item.imageUrl)" :alt="item.label" />
+                </div>
                 <span v-else>{{ item.label }}</span>
               </div>
               <strong>{{ item.label }}</strong>
@@ -451,7 +477,8 @@ import {
   Location,
   Search,
   ChatDotRound,
-  Document
+  Document,
+  DataBoard
 } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
@@ -616,6 +643,12 @@ const visibleQrCodes = computed(() => {
     : []
 })
 
+const visibleCertificates = computed(() => {
+  return Array.isArray(footerConfig.value.certificates)
+    ? footerConfig.value.certificates.filter(item => item?.title)
+    : []
+})
+
 const withFallbackQrImages = (qrCodes = [], fallbackQrCodes = []) => {
   return qrCodes.map((item, index) => ({
     ...item,
@@ -703,6 +736,7 @@ const loadFooterConfig = async () => {
       topLinks: data?.topLinks?.length ? data.topLinks : fallback.topLinks,
       complianceLinks: data?.complianceLinks?.length ? data.complianceLinks : fallback.complianceLinks,
       qrCodes: data?.qrCodes?.length ? withFallbackQrImages(data.qrCodes, fallback.qrCodes) : fallback.qrCodes,
+      certificates: data?.certificates?.length ? data.certificates : fallback.certificates,
       legalNotes: data?.legalNotes?.length ? data.legalNotes : fallback.legalNotes
     }
   } catch (error) {
@@ -1106,6 +1140,9 @@ const handleCommand = (command) => {
     case 'profile':
       router.push('/profile')
       break
+    case 'admin':
+      router.push('/back/dashboard')
+      break
     case 'guide':
       router.push('/my-guide')
       break
@@ -1313,6 +1350,34 @@ onMounted(() => {
   .favorite-link {
     .el-icon {
       color: #ffd700;
+    }
+  }
+
+  .admin-entry-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 26px;
+    margin-right: 10px;
+    padding: 0 11px;
+    border: 1px solid rgba(255, 189, 0, 0.42);
+    border-radius: 999px;
+    color: #ffdf74;
+    cursor: pointer;
+    background: rgba(255, 189, 0, 0.08);
+    font-size: 12px;
+    font-weight: 800;
+    transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+
+    &:hover {
+      color: #1f2937;
+      border-color: #ffbd00;
+      background: #ffbd00;
+    }
+
+    .el-icon {
+      margin-right: 0;
+      font-size: 14px;
     }
   }
 
@@ -1896,6 +1961,11 @@ onMounted(() => {
     object-fit: cover;
     border-radius: 8px;
   }
+
+  &:hover {
+    position: relative;
+    z-index: 20;
+  }
 }
 
 .footer-section-title {
@@ -1915,16 +1985,23 @@ onMounted(() => {
   gap: 12px;
   padding: 12px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  border: 0;
 
   img {
-    width: 54px;
-    height: 54px;
+    width: auto;
+    max-width: 96px;
+    height: 78px;
     border-radius: 8px;
-    object-fit: cover;
-    background: #fff;
+    object-fit: contain;
+    background: transparent;
     flex-shrink: 0;
+    mix-blend-mode: multiply;
+  }
+
+  &:hover {
+    position: relative;
+    z-index: 20;
   }
 
   strong {
@@ -2229,9 +2306,9 @@ onMounted(() => {
 }
 
 .footer-qrs {
-  grid-column: 5 / span 2;
+  grid-column: 6 / span 1;
   display: flex;
-  gap: 34px;
+  gap: 18px;
   justify-content: flex-end;
   align-items: flex-start;
   padding-top: 2px;
@@ -2265,9 +2342,19 @@ onMounted(() => {
   padding: 4px;
   background: #fff;
   box-shadow: none;
+  position: relative;
+  z-index: 1;
+  cursor: zoom-in;
 
-  img {
+  > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     border-radius: 0;
+  }
+
+  &:hover {
+    z-index: 30;
   }
 
   span {
@@ -2279,34 +2366,132 @@ onMounted(() => {
 }
 
 .footer-certs {
-  grid-column: 1 / -1;
-  margin-top: 10px;
+  grid-column: 5 / span 1;
+  min-width: 0;
+  margin-top: 0;
+  padding-top: 2px;
+  text-align: center;
 }
 
 .footer-section-title {
   color: #f8fbfd;
-  font-size: 14px;
-  margin-bottom: 10px;
+  font-size: 12px;
+  margin-bottom: 8px;
+  font-weight: 900;
 }
 
 .footer-cert-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  gap: 28px;
+  justify-content: flex-end;
+  align-items: flex-start;
 }
 
 .footer-cert-item {
-  width: min(100%, 320px);
+  display: block;
+  width: 126px;
   padding: 0;
   border-radius: 0;
   background: transparent;
   border: 0;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  cursor: zoom-in;
+
+  > img {
+    display: block;
+    width: auto;
+    max-width: 126px;
+    height: 78px;
+    margin: 0 auto;
+    border-radius: 0;
+    object-fit: contain;
+    border: 0;
+    background: transparent;
+    mix-blend-mode: multiply;
+  }
+
+  &:hover {
+    z-index: 30;
+  }
+
+  strong {
+    display: block;
+    margin-top: 7px;
+    color: #ffbd00;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1.35;
+  }
+
+  p {
+    margin: 3px 0 0;
+    color: #9faab4;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+}
+
+.footer-image-preview {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 14px);
+  width: 190px;
+  min-height: 190px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 58px rgba(0, 0, 0, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 10px) scale(0.96);
+  transform-origin: center bottom;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  z-index: 50;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -7px;
+    width: 14px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.96);
+    border-right: 1px solid rgba(255, 255, 255, 0.82);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.82);
+    transform: translateX(-50%) rotate(45deg);
+  }
 
   img {
-    width: 42px;
-    height: 42px;
-    border-radius: 2px;
+    display: block;
+    width: 100%;
+    height: 170px;
+    border-radius: 10px;
+    object-fit: contain;
+    background: #ffffff;
   }
+}
+
+.footer-cert-preview img {
+  width: auto;
+  max-width: 280px;
+  height: 300px;
+  object-fit: contain;
+}
+
+.footer-cert-preview {
+  width: max-content;
+  min-height: 0;
+  padding: 8px;
+  line-height: 0;
+}
+
+.footer-cert-item:hover .footer-image-preview,
+.footer-qr-image:hover .footer-image-preview {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
 }
 
 .footer-compliance,
@@ -2476,6 +2661,10 @@ onMounted(() => {
     flex-wrap: wrap;
     grid-column: auto;
     grid-row: auto;
+  }
+
+  .footer-certs {
+    grid-column: auto;
   }
 
   .footer-bottom {

@@ -78,7 +78,7 @@
                 <strong>{{ maskedEmail }}</strong>
                 <p>邮箱绑定需要完成验证，防止误填和账号归属争议。</p>
               </div>
-              <el-button disabled class="soft-btn">前台验证绑定</el-button>
+              <el-button type="primary" plain @click="openEmailDialog">{{ form.email ? '更换邮箱' : '绑定邮箱' }}</el-button>
             </div>
             <div class="bind-item">
               <div>
@@ -162,6 +162,43 @@
     </section>
 
     <el-dialog
+      v-model="emailDialogVisible"
+      :title="form.email ? '安全更换邮箱' : '安全绑定邮箱'"
+      width="560px"
+      class="secure-dialog"
+      @close="resetEmailDialog"
+    >
+      <el-form ref="emailFormRef" :model="emailForm" :rules="emailRules" label-position="top" class="modern-form dialog-form">
+        <div class="verify-box verify-box--plain">
+          <div class="verify-title">验证电子邮箱</div>
+          <p>邮箱将用于接收验证码、安全提醒和重要通知。绑定或更换前需要先完成极验，再通过邮箱验证码确认。</p>
+          <el-form-item label="电子邮箱" prop="email">
+            <el-input v-model="emailForm.email" placeholder="请输入需要绑定的邮箱" clearable />
+          </el-form-item>
+          <GeetestBox
+            ref="emailCaptchaRef"
+            success-text="验证已通过，可以发送邮箱验证码"
+            @verified="emailGeetestValidate = $event"
+            @error="message => ElMessage.error(message)"
+            @unavailable="emailGeetestRequired = false"
+          />
+          <div class="code-row">
+            <el-form-item label="邮箱验证码" prop="code">
+              <el-input v-model="emailForm.code" maxlength="6" placeholder="6位验证码" />
+            </el-form-item>
+            <el-button :loading="emailCodeSending" :disabled="emailCountdown > 0" @click="sendEmailBindCode">
+              {{ emailCountdown > 0 ? `${emailCountdown}s` : '发送验证码' }}
+            </el-button>
+          </div>
+        </div>
+      </el-form>
+      <template #footer>
+        <el-button @click="emailDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="emailBinding" @click="confirmEmailBind">确认绑定</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
       v-model="phoneDialogVisible"
       title="安全变更手机号"
       width="560px"
@@ -236,6 +273,14 @@ const passwordFormRef = ref(null)
 const isEditing = ref(false)
 const saving = ref(false)
 const changingPassword = ref(false)
+const emailDialogVisible = ref(false)
+const emailBinding = ref(false)
+const emailCodeSending = ref(false)
+const emailFormRef = ref(null)
+const emailCaptchaRef = ref(null)
+const emailGeetestValidate = ref(null)
+const emailGeetestRequired = ref(true)
+const emailCountdown = ref(0)
 const phoneDialogVisible = ref(false)
 const phoneSubmitting = ref(false)
 const phoneFormRef = ref(null)
@@ -298,6 +343,11 @@ const phoneForm = reactive({
   phone: '',
   smsCode: '',
   currentSmsCode: ''
+})
+
+const emailForm = reactive({
+  email: '',
+  code: ''
 })
 
 // 表单验证规则
@@ -374,6 +424,17 @@ const phoneRules = {
       },
       trigger: 'blur'
     }
+  ]
+}
+
+const emailRules = {
+  email: [
+    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+    { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }
+  ],
+  code: [
+    { required: true, message: '请输入邮箱验证码', trigger: 'blur' },
+    { pattern: /^\d{6}$/, message: '验证码为6位数字', trigger: 'blur' }
   ]
 }
 
@@ -550,6 +611,64 @@ const openPhoneDialog = () => {
   phoneForm.smsCode = ''
   phoneForm.currentSmsCode = ''
   phoneDialogVisible.value = true
+}
+
+const openEmailDialog = () => {
+  emailForm.email = form.email || ''
+  emailForm.code = ''
+  emailGeetestValidate.value = null
+  emailGeetestRequired.value = true
+  emailDialogVisible.value = true
+}
+
+const resetEmailDialog = () => {
+  emailForm.email = ''
+  emailForm.code = ''
+  emailGeetestValidate.value = null
+  emailCaptchaRef.value?.resetCaptcha()
+}
+
+const sendEmailBindCode = async () => {
+  const validEmail = await emailFormRef.value?.validateField('email').catch(() => false)
+  if (validEmail === false) return
+  if (emailGeetestRequired.value && !emailGeetestValidate.value) {
+    ElMessage.warning('请先完成邮箱极验验证')
+    return
+  }
+  emailCodeSending.value = true
+  try {
+    await request.post('/user/email/bind/code', {
+      email: emailForm.email,
+      geetest: emailGeetestValidate.value
+    }, { showDefaultMsg: false })
+    ElMessage.success('邮箱验证码已发送')
+    startCountdown(emailCountdown)
+    emailGeetestValidate.value = null
+    emailCaptchaRef.value?.resetCaptcha()
+  } catch (error) {
+    ElMessage.error(error.message || '邮箱验证码发送失败')
+    emailGeetestValidate.value = null
+    emailCaptchaRef.value?.resetCaptcha()
+  } finally {
+    emailCodeSending.value = false
+  }
+}
+
+const confirmEmailBind = async () => {
+  if (!emailFormRef.value) return
+  try {
+    await emailFormRef.value.validate()
+    emailBinding.value = true
+    await request.post('/user/email/bind/confirm', { ...emailForm }, { showDefaultMsg: false })
+    ElMessage.success('邮箱绑定成功')
+    form.email = emailForm.email
+    userStore.updateUserInfo({ ...userStore.userInfo, email: emailForm.email })
+    emailDialogVisible.value = false
+  } catch (error) {
+    ElMessage.error(error.message || '邮箱绑定失败')
+  } finally {
+    emailBinding.value = false
+  }
 }
 
 const resetPhoneDialog = () => {

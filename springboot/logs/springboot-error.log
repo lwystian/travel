@@ -687,3 +687,5 @@ Caused by: java.lang.NumberFormatException: For input string: "related"
 	at org.springframework.web.method.annotation.AbstractNamedValueMethodArgumentResolver.convertIfNecessary(AbstractNamedValueMethodArgumentResolver.java:284)
 	... 108 common frames omitted
 2026-05-22 09:37:29.657 ERROR [http-nio-3001-exec-6] [734d17cff1754a249378aa2bf1f154d8] o.e.springboot.util.JwtTokenUtils - 获取当前登录的token失败，tokennull
+2026-05-22 11:07:53.049 ERROR [http-nio-3001-exec-8] [f07380c67bab45a5a5f2d1a0503d97ee] o.e.springboot.util.JwtTokenUtils - 获取当前登录的token失败，tokennull
+2026-05-22 11:24:29.244 ERROR [http-nio-3001-exec-9] [22e4bb6472b24ea3bec3eb862baa7729] o.e.springboot.util.JwtTokenUtils - 获取当前登录的token失败，tokennull
