@@ -287,7 +287,6 @@ const targetTextMap = {
   User: '用户',
   ScenicSpot: '景点',
   ScenicCategory: '分类',
-  ScenicTag: '标签',
   TravelGuide: '攻略',
   Comment: '评论',
   Tour: '行程',

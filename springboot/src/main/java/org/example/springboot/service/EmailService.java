@@ -1,7 +1,7 @@
 package org.example.springboot.service;
 
 import jakarta.annotation.Resource;
-import org.example.springboot.DTO.EmailMessageDTO;
+import org.example.springboot.dto.EmailMessageDTO;
 import org.example.springboot.dto.EmailSmtpConfigDTO;
 import org.example.springboot.exception.ServiceException;
 import org.slf4j.Logger;

@@ -1,6 +1,3 @@
--- Clean initial schema for new Travel deployments.
--- Generated from the current local database structure only.
--- No historical users, orders, logs, test data, or production secrets are included.
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -22,8 +19,6 @@ DROP TABLE IF EXISTS `review_log`;
 DROP TABLE IF EXISTS `scenic_category`;
 DROP TABLE IF EXISTS `scenic_collection`;
 DROP TABLE IF EXISTS `scenic_spot`;
-DROP TABLE IF EXISTS `scenic_spot_tag`;
-DROP TABLE IF EXISTS `scenic_tag`;
 DROP TABLE IF EXISTS `sensitive_log`;
 DROP TABLE IF EXISTS `sensitive_word`;
 DROP TABLE IF EXISTS `site_notification`;
@@ -341,31 +336,12 @@ CREATE TABLE `scenic_spot` (
   `image_url` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL ,
   `longitude` decimal(10,6) DEFAULT NULL ,
   `latitude` decimal(10,6) DEFAULT NULL ,
+  `tags` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL ,
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP ,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP ,
   `category_id` bigint DEFAULT NULL ,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
-
-CREATE TABLE `scenic_spot_tag` (
-  `id` bigint NOT NULL AUTO_INCREMENT ,
-  `scenic_spot_id` bigint NOT NULL ,
-  `tag_id` bigint NOT NULL ,
-  PRIMARY KEY (`id`),
-  KEY `idx_scenic_spot_id` (`scenic_spot_id`),
-  KEY `idx_tag_id` (`tag_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
-CREATE TABLE `scenic_tag` (
-  `id` bigint NOT NULL AUTO_INCREMENT ,
-  `name` varchar(50) NOT NULL ,
-  `color` varchar(20) DEFAULT '#FF6B35' ,
-  `icon` varchar(50) DEFAULT '' ,
-  `sort_order` int DEFAULT '0' ,
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP ,
-  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP ,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `sensitive_log` (
   `id` bigint NOT NULL AUTO_INCREMENT ,
@@ -704,64 +680,5 @@ ALTER TABLE `comment_like` ADD CONSTRAINT `comment_like_ibfk_2` FOREIGN KEY (`co
 ALTER TABLE `scenic_collection` ADD CONSTRAINT `scenic_collection_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `scenic_collection` ADD CONSTRAINT `scenic_collection_ibfk_2` FOREIGN KEY (`scenic_id`) REFERENCES `scenic_spot` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `travel_guide` ADD CONSTRAINT `travel_guide_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
--- ----------------------------
--- Clean seed data
--- ----------------------------
-
-INSERT INTO `auth_provider_config`
-(`config_type`, `config_name`, `enabled`, `config_data`, `description`)
-VALUES
-('aliyun_sms', '阿里云短信', 0, '{"enabled":false,"configured":false,"accessKeyId":"","accessKeySecret":"","signName":"","templateCode":"","orderUserTemplateCode":"","orderAdminTemplateCode":"","regionId":"cn-hangzhou","endpoint":"dysmsapi.aliyuncs.com","codeExpireMinutes":5,"sendIntervalSeconds":60,"dailyLimit":5}', '用于登录注册、订单通知等短信验证码发送'),
-('geetest', '极验验证', 0, '{"enabled":false,"configured":false,"captchaId":"","captchaKey":""}', '用于短信发送前的人机验证'),
-('email_smtp', 'SMTP邮件', 0, '{"enabled":false,"configured":false,"host":"","port":465,"username":"","password":"","fromEmail":"","protocol":"smtp","sslEnabled":true,"codeExpireMinutes":10,"sendIntervalSeconds":60}', '用于邮箱绑定和邮件验证码发送'),
-('site_access', '网站访问控制', 1, '{"siteEnabled":true,"closedTitle":"网站维护中","closedMessage":"我们正在进行系统维护与服务升级，完成后将恢复访问。","closedContact":"如有紧急订单或出行问题，请联系官方客服处理。","rejectMobile":false,"mobileTitle":"请使用电脑访问","mobileMessage":"当前移动端体验正在优化，如遇显示异常可使用电脑访问。","mobileContact":"如需咨询行程，可通过官方客服渠道联系我们。","supportButtonText":"联系官方客服","supportUrl":"","supportCredential":"","supportQrImageUrl":""}', '控制官网前台开放状态和移动端访问策略'),
-('site_assets', '站点图片配置', 1, '{"logoUrl":"","wechatQrUrl":"","authBackgroundUrl":"","aboutHeroUrl":"","legalHeroUrl":"","accommodationHeroUrl":"","placeholderImageUrl":""}', '用于前台模板的可配置图片'),
-('site_footer', '网站页脚配置', 1, '{"enabled":true,"brandName":"旅行社官网","companyName":"请在后台填写公司名称","slogan":"提供可靠、清晰、可追踪的旅行服务","consultationPhone":"","cruisePhone":"","serviceTime":"09:00 - 18:00","address":"","icpNumber":"","icpUrl":"https://beian.miit.gov.cn","policeNumber":"","policeUrl":"https://beian.mps.gov.cn","licenseNumber":"","complaintPhone":"","technicalSupport":"","reportEmail":"","minorReportEmail":"","copyright":"© 2026 旅行社官网 版权所有","topLinks":[{"label":"关于我们","url":"/about"},{"label":"旅游线路","url":"/tickets"},{"label":"目的地","url":"/scenic"},{"label":"旅行攻略","url":"/guide"}],"friendlyLinks":[],"qrCodes":[],"certificates":[],"complianceLinks":[{"label":"营业执照","url":"/legal/business-license"},{"label":"旅行社业务经营许可","url":"/legal/travel-license"},{"label":"服务规范","url":"/legal/service-standard"},{"label":"社区公约","url":"/legal/community-guidelines"},{"label":"安全与隐私保护","url":"/legal/privacy-safety"},{"label":"在线服务与投诉反馈专区","url":"/legal/support-feedback"}],"legalPages":[],"legalNotes":[]}', '用于网站页脚、备案、二维码、证书和合规页面展示'),
-('page_content:home', '页面内容配置-home', 1, '{"sections":{},"trustMetrics":[],"capabilityList":[],"scenarioList":[],"assuranceSteps":[],"processSteps":[]}', '首页可编辑文案配置'),
-('page_content:about', '页面内容配置-about', 1, '{"pageContent":{}}', '关于我们页面可编辑文案配置'),
-('page_content:frontend-header', '页面内容配置-frontend-header', 1, '{"welcomeText":"欢迎访问旅行社官网","brandName":"旅行社官网","brandSubtitle":"品质旅行服务","wechatQrText":"扫码关注","logoLinkUrl":"/"}', '前台头部可编辑文案配置');
-
-INSERT INTO `payment_config`
-(`payment_type`, `payment_name`, `enabled`, `config_data`, `gateway_url`, `is_sandbox`, `icon`, `description`, `sort_order`)
-VALUES
-('alipay', '支付宝', 0, '{"paymentType":"alipay","appId":"","privateKey":"","alipayPublicKey":"","isSandbox":true,"gatewayUrl":"https://openapi-sandbox.dl.alipaydev.com/gateway.do","timeoutExpress":"2h"}', 'https://openapi-sandbox.dl.alipaydev.com/gateway.do', 1, 'alipay', '支付宝网页支付，请在后台填写正式配置后启用', 1);
-
-INSERT INTO `scenic_category`
-(`id`, `name`, `description`, `icon`, `parent_id`, `sort_order`, `status`, `create_time`, `update_time`)
-VALUES
-(1, '自然风光', '山水、湖泊、瀑布、海岛等自然景观', '', 0, 1, 1, NOW(), NOW()),
-(2, '历史文化', '古迹、博物馆、历史遗址、文化街区等', '', 0, 2, 1, NOW(), NOW()),
-(3, '主题乐园', '主题乐园、亲子游乐、演艺体验等', '', 0, 3, 1, NOW(), NOW()),
-(4, '城市地标', '城市建筑、观景平台、热门街区等', '', 0, 4, 1, NOW(), NOW()),
-(5, '乡村民俗', '乡村风光、民俗文化、农旅体验等', '', 0, 5, 1, NOW(), NOW());
-
-INSERT INTO `scenic_tag`
-(`id`, `name`, `color`, `description`, `status`, `sort_order`, `create_time`, `update_time`)
-VALUES
-(1, '自然风光', '#22c55e', '自然景观类标签', 1, 1, NOW(), NOW()),
-(2, '历史文化', '#8b5cf6', '历史文化类标签', 1, 2, NOW(), NOW()),
-(3, '亲子友好', '#f59e0b', '适合亲子家庭出行', 1, 3, NOW(), NOW()),
-(4, '摄影推荐', '#0ea5e9', '适合拍照和摄影创作', 1, 4, NOW(), NOW()),
-(5, '轻松休闲', '#14b8a6', '行程节奏轻松', 1, 5, NOW(), NOW());
-
-INSERT INTO `sensitive_word`
-(`word`, `category`, `level`, `match_type`, `replacement`, `remark`, `status`, `create_time`, `update_time`)
-VALUES
-('色情服务', 'PORN', 'BLOCK', 'CONTAINS', '***', '涉黄违法内容', 1, NOW(), NOW()),
-('赌博', 'GAMBLING', 'BLOCK', 'CONTAINS', '***', '赌博违法内容', 1, NOW(), NOW()),
-('博彩', 'GAMBLING', 'BLOCK', 'CONTAINS', '***', '赌博引流内容', 1, NOW(), NOW()),
-('毒品', 'DRUG', 'BLOCK', 'CONTAINS', '***', '涉毒违法内容', 1, NOW(), NOW()),
-('枪支', 'WEAPON', 'BLOCK', 'CONTAINS', '***', '涉枪违法内容', 1, NOW(), NOW()),
-('爆炸物', 'WEAPON', 'BLOCK', 'CONTAINS', '***', '涉爆违法内容', 1, NOW(), NOW()),
-('诈骗', 'FRAUD', 'REVIEW', 'CONTAINS', '***', '欺诈风险内容', 1, NOW(), NOW()),
-('刷单', 'FRAUD', 'REVIEW', 'CONTAINS', '***', '灰产引流内容', 1, NOW(), NOW()),
-('代开发票', 'FRAUD', 'BLOCK', 'CONTAINS', '***', '发票违法内容', 1, NOW(), NOW()),
-('站外交易', 'FRAUD', 'REVIEW', 'CONTAINS', '***', '绕开平台交易', 1, NOW(), NOW()),
-('加微信', 'CONTACT', 'REVIEW', 'CONTAINS', '***', '站外引流联系方式', 1, NOW(), NOW()),
-('加QQ', 'CONTACT', 'REVIEW', 'CONTAINS', '***', '站外引流联系方式', 1, NOW(), NOW()),
-('私下转账', 'CONTACT', 'REVIEW', 'CONTAINS', '***', '绕开平台交易', 1, NOW(), NOW()),
-('政治谣言', 'POLITICAL', 'BLOCK', 'CONTAINS', '***', '政治谣言风险', 1, NOW(), NOW()),
-('邪教', 'ILLEGAL', 'BLOCK', 'CONTAINS', '***', '非法组织相关内容', 1, NOW(), NOW());
 
 SET FOREIGN_KEY_CHECKS = 1;

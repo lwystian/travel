@@ -289,7 +289,6 @@ public class OperationLogAspect {
             case "User", "用户" -> "用户";
             case "ScenicSpot", "景点" -> "景点";
             case "ScenicCategory", "分类" -> "分类";
-            case "ScenicTag", "标签" -> "标签";
             case "TravelGuide", "攻略" -> "攻略";
             case "Comment", "评论" -> "评论";
             case "Tour", "行程" -> "行程";

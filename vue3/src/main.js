@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import logger from '@/utils/logger'
+import { useSiteAssets } from '@/utils/siteAssets'
 // 导入 Element Plus
 import ElementPlus from 'element-plus'
 // 导入自定义主题色配置
@@ -31,6 +32,7 @@ app.use(router)
 app.use(ElementPlus, {
   locale: zhCn
 })
+useSiteAssets().loadSiteAssets()
 // 注册所有图标
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)

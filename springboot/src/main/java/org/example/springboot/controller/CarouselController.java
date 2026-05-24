@@ -6,8 +6,6 @@ import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.Carousel;
 import org.example.springboot.service.CarouselService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,8 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/carousel")
 public class CarouselController {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CarouselController.class);
-    
+
     @Resource
     private CarouselService carouselService;
     

@@ -32,13 +32,13 @@ public class Tour {
     @Schema(description = "标签")
     private String tag;
 
-    @Schema(description = "行程类型: around-周边游, long-长线游, team-跟团游, cruise-邮轮出行")
+    @Schema(description = "行程类型，自由填写")
     private String tourType;
 
     @Schema(description = "出发城市代码")
     private String city;
 
-    @Schema(description = "目的地代码")
+    @Schema(description = "目的地，可使用地区代码或自由填写")
     private String destination;
 
     @Schema(description = "行程天数")
@@ -68,7 +68,7 @@ public class Tour {
     @Schema(description = "已报名人数")
     private Integer enrolledCount;
 
-    @Schema(description = "主题: scenic-风景游, cultural-文化游, adventure-探险游, hiking-徒步游")
+    @Schema(description = "主题，自由填写，可为空")
     private String theme;
 
     @Schema(description = "状态: 1-上架, 0-下架")

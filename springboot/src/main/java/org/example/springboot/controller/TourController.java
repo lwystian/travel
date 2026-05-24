@@ -4,11 +4,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
-import org.example.springboot.DTO.TourDetailDTO;
-import org.example.springboot.DTO.HomeRecommendDTO;
+import org.example.springboot.dto.TourDetailDTO;
+import org.example.springboot.dto.HomeRecommendDTO;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.Tour;
-import org.example.springboot.entity.HomeRecommend;
 import org.example.springboot.service.TourService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,12 +31,34 @@ public class TourController {
             @RequestParam(defaultValue = "") String tourType,
             @RequestParam(defaultValue = "") String city,
             @RequestParam(defaultValue = "") String destination,
+            @RequestParam(defaultValue = "") String days,
+            @RequestParam(defaultValue = "") String month,
+            @RequestParam(defaultValue = "") String priceRange,
             @RequestParam(defaultValue = "") String theme,
+            @RequestParam(defaultValue = "default") String sortType,
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "10") Integer pageSize) {
         Page<Tour> page = tourService.getToursByPage(
-            keyword, tourType, city, destination, theme, currentPage, pageSize);
+            keyword, tourType, city, destination, days, month, priceRange, theme, sortType, currentPage, pageSize);
         return Result.success(page);
+    }
+
+    @Operation(summary = "获取前台行程筛选项")
+    @GetMapping("/filters")
+    public Result<?> getTourFilters(@RequestParam(defaultValue = "") String keyword) {
+        return Result.success(tourService.getTourFilters(keyword));
+    }
+
+    @Operation(summary = "获取前台热门行程关键词")
+    @GetMapping("/hot-keywords")
+    public Result<?> getHotKeywords() {
+        return Result.success(tourService.getHotKeywords(8));
+    }
+
+    @Operation(summary = "获取行程预订页精选推荐")
+    @GetMapping("/ticket-featured")
+    public Result<?> getTicketFeaturedTours() {
+        return Result.success(tourService.getTicketFeaturedTours(4));
     }
 
     @Operation(summary = "获取所有行程")

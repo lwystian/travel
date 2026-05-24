@@ -13,7 +13,7 @@ import org.example.springboot.dto.PhoneChangeCodeDTO;
 import org.example.springboot.dto.PhoneChangeConfirmDTO;
 import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
-import org.example.springboot.DTO.UserPasswordUpdateDTO;
+import org.example.springboot.dto.UserPasswordUpdateDTO;
 import org.example.springboot.mapper.UserMapper;
 import org.example.springboot.service.EmailService;
 import org.example.springboot.service.AuthConfigService;
@@ -322,7 +322,7 @@ public class UserController {
     @PostMapping("/logout")
     public Result<?> logout(HttpServletRequest request) {
         String token = request.getHeader("token");
-        if (StringUtils.isEmpty(token)) {
+        if (!StringUtils.hasText(token)) {
             token = request.getParameter("token");
         }
         

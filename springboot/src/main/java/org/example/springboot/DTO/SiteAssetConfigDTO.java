@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class SiteAssetConfigDTO {
+    private String faviconUrl = "";
     private String logoUrl = "";
     private String wechatQrUrl = "";
     private String authBackgroundUrl = "";

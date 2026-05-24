@@ -7,7 +7,7 @@ import jakarta.annotation.Resource;
 
 import org.example.springboot.annotation.RedisCache;
 import org.example.springboot.entity.User;
-import org.example.springboot.DTO.UserPasswordUpdateDTO;
+import org.example.springboot.dto.UserPasswordUpdateDTO;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.UserMapper;
 import org.example.springboot.security.RolePermission;

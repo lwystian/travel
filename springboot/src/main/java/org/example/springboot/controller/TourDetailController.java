@@ -1,6 +1,5 @@
 package org.example.springboot.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -13,7 +12,6 @@ import org.example.springboot.service.BatchPackageService;
 import org.example.springboot.service.TourBatchService;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Tag(name = "行程套餐和班期管理接口")

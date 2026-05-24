@@ -84,11 +84,6 @@
           <template #title>分类管理</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/tag" v-if="userStore.isAdmin">
-          <el-icon><PriceTag /></el-icon>
-          <template #title>景点标签</template>
-        </el-menu-item>
-
         <el-menu-item index="/back/carousel" v-if="userStore.isAdmin">
           <el-icon><Picture /></el-icon>
           <template #title>轮播图管理</template>
@@ -153,7 +148,6 @@ import {
   List,
   House,
   Picture,
-  PriceTag,
   Wallet,
   Lock,
   Checked,

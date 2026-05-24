@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
-import org.example.springboot.DTO.TourOrderCreateDTO;
+import org.example.springboot.dto.TourOrderCreateDTO;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.TourOrder;
 import org.example.springboot.service.TourOrderService;

@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
-import org.example.springboot.DTO.TourDetailDTO;
-import org.example.springboot.DTO.HomeRecommendDTO;
+import org.example.springboot.dto.TourDetailDTO;
+import org.example.springboot.dto.HomeRecommendDTO;
 import org.example.springboot.entity.*;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.*;
@@ -53,15 +53,17 @@ public class TourService {
             String tourType,
             String city,
             String destination,
+            String days,
+            String month,
+            String priceRange,
             String theme,
+            String sortType,
             Integer currentPage,
             Integer size) {
         LambdaQueryWrapper<Tour> queryWrapper = new LambdaQueryWrapper<>();
 
         // 添加查询条件
-        if (StringUtils.isNotBlank(title)) {
-            queryWrapper.like(Tour::getTitle, title);
-        }
+        applyKeywordFilter(queryWrapper, title);
         if (StringUtils.isNotBlank(tourType)) {
             queryWrapper.eq(Tour::getTourType, tourType);
         }
@@ -74,26 +76,97 @@ public class TourService {
         if (StringUtils.isNotBlank(theme)) {
             queryWrapper.eq(Tour::getTheme, theme);
         }
+        applyDaysFilter(queryWrapper, days, tourType);
+        if (StringUtils.isNotBlank(month)) {
+            try {
+                queryWrapper.eq(Tour::getMonth, Integer.parseInt(month));
+            } catch (NumberFormatException ignored) {
+            }
+        }
 
         // 只查询上架的行程
         queryWrapper.eq(Tour::getStatus, 1);
 
-        // 按创建时间降序排序
-        queryWrapper.orderByDesc(Tour::getCreateTime);
+        applySort(queryWrapper, sortType);
 
-        Page<Tour> page = tourMapper.selectPage(new Page<>(currentPage, size), queryWrapper);
+        List<Tour> matchedTours = tourMapper.selectList(queryWrapper);
+        fillMinPrices(matchedTours);
+        List<Tour> filteredTours = applyPriceFilter(matchedTours, priceRange);
+        sortByComputedFields(filteredTours, sortType);
 
-        // 为每个行程计算最低价格
-        if (page.getRecords() != null && !page.getRecords().isEmpty()) {
-            for (Tour tour : page.getRecords()) {
-                BigDecimal minPrice = calculateMinPrice(tour.getId());
-                if (minPrice != null) {
-                    tour.setMinPrice(minPrice);
-                }
+        long total = filteredTours.size();
+        long safeCurrent = currentPage == null || currentPage < 1 ? 1 : currentPage;
+        long safeSize = size == null || size < 1 ? 10 : Math.min(size, 100);
+        int fromIndex = (int) Math.min((safeCurrent - 1) * safeSize, total);
+        int toIndex = (int) Math.min(fromIndex + safeSize, total);
+        Page<Tour> page = new Page<>(safeCurrent, safeSize);
+        page.setTotal(total);
+        page.setRecords(filteredTours.subList(fromIndex, toIndex));
+        return page;
+    }
+
+    public Map<String, List<Map<String, Object>>> getTourFilters(String keyword) {
+        LambdaQueryWrapper<Tour> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Tour::getStatus, 1);
+        if (StringUtils.isNotBlank(keyword)) {
+            applyKeywordFilter(queryWrapper, keyword);
+        }
+        List<Tour> tours = tourMapper.selectList(queryWrapper);
+        fillMinPrices(tours);
+
+        Map<String, List<Map<String, Object>>> filters = new LinkedHashMap<>();
+        filters.put("tourTypes", countOptions(tours, Tour::getTourType));
+        filters.put("cities", countOptions(tours, Tour::getCity));
+        filters.put("destinations", countOptions(tours, Tour::getDestination));
+        filters.put("daysList", countOptions(tours, tour -> getDaysRange(tour.getDays())));
+        filters.put("months", countOptions(tours, tour -> tour.getMonth() == null ? "" : tour.getMonth().toString()));
+        filters.put("priceRanges", countOptions(tours, tour -> getPriceRange(tour.getMinPrice())));
+        filters.put("themes", countOptions(tours, Tour::getTheme));
+        return filters;
+    }
+
+    public List<Map<String, String>> getHotKeywords(Integer limit) {
+        int max = limit == null || limit < 1 ? 8 : Math.min(limit, 20);
+        List<Tour> tours = tourMapper.selectList(new LambdaQueryWrapper<Tour>()
+                .eq(Tour::getStatus, 1)
+                .orderByDesc(Tour::getEnrolledCount)
+                .orderByDesc(Tour::getCreateTime));
+        LinkedHashMap<String, HotKeywordItem> counts = new LinkedHashMap<>();
+        for (Tour tour : tours) {
+            addKeywordCount(counts, tour.getDestination());
+            addKeywordCount(counts, tour.getTheme());
+            addKeywordCount(counts, tour.getTourType());
+            for (String tag : parseTags(tour.getTags())) {
+                addKeywordCount(counts, tag);
             }
         }
+        return counts.values().stream()
+                .sorted((a, b) -> Integer.compare(b.getCount(), a.getCount()))
+                .limit(max)
+                .map(keyword -> {
+                    Map<String, String> item = new LinkedHashMap<>();
+                    item.put("value", keyword.getValue());
+                    item.put("label", keyword.getLabel());
+                    return item;
+                })
+                .collect(Collectors.toList());
+    }
 
-        return page;
+    public List<Tour> getTicketFeaturedTours(Integer limit) {
+        int max = limit == null || limit < 1 ? 4 : Math.min(limit, 12);
+        List<Tour> tours = getFeaturedTours();
+        if (tours.size() < max) {
+            Set<Long> ids = tours.stream().map(Tour::getId).collect(Collectors.toSet());
+            List<Tour> more = tourMapper.selectList(new LambdaQueryWrapper<Tour>()
+                    .eq(Tour::getStatus, 1)
+                    .notIn(!ids.isEmpty(), Tour::getId, ids)
+                    .orderByDesc(Tour::getEnrolledCount)
+                    .orderByDesc(Tour::getCreateTime)
+                    .last("LIMIT " + (max - tours.size())));
+            fillMinPrices(more);
+            tours.addAll(more);
+        }
+        return tours.size() > max ? tours.subList(0, max) : tours;
     }
 
     /**
@@ -109,6 +182,222 @@ public class TourService {
             }
         }
         return tours;
+    }
+
+    private void applyKeywordFilter(LambdaQueryWrapper<Tour> queryWrapper, String keyword) {
+        if (!StringUtils.isNotBlank(keyword)) {
+            return;
+        }
+        queryWrapper.and(wrapper -> wrapper
+                .like(Tour::getTitle, keyword)
+                .or()
+                .like(Tour::getSubtitle, keyword)
+                .or()
+                .like(Tour::getTags, keyword)
+                .or()
+                .like(Tour::getFeature, keyword)
+                .or()
+                .like(Tour::getDestination, keyword)
+                .or()
+                .like(Tour::getCity, keyword)
+                .or()
+                .like(Tour::getTourType, keyword)
+                .or()
+                .like(Tour::getTheme, keyword));
+    }
+
+    private void applyDaysFilter(LambdaQueryWrapper<Tour> queryWrapper, String days, String tourType) {
+        if (!StringUtils.isNotBlank(days)) {
+            return;
+        }
+        if (days.matches("\\d+")) {
+            queryWrapper.eq(Tour::getDays, Integer.parseInt(days));
+            return;
+        }
+        switch (days) {
+            case "1-3" -> queryWrapper.between(Tour::getDays, 1, 3);
+            case "4-6" -> queryWrapper.between(Tour::getDays, 4, 6);
+            case "7-9" -> queryWrapper.between(Tour::getDays, 7, 9);
+            case "10+" -> queryWrapper.ge(Tour::getDays, 10);
+            default -> {
+                if (days.matches("\\d+")) {
+                    queryWrapper.eq(Tour::getDays, Integer.parseInt(days));
+                }
+            }
+        }
+    }
+
+    private void applySort(LambdaQueryWrapper<Tour> queryWrapper, String sortType) {
+        if ("popular".equals(sortType)) {
+            queryWrapper.orderByDesc(Tour::getEnrolledCount).orderByDesc(Tour::getCreateTime);
+            return;
+        }
+        queryWrapper.orderByDesc(Tour::getCreateTime).orderByDesc(Tour::getId);
+    }
+
+    private void fillMinPrices(List<Tour> tours) {
+        if (tours == null || tours.isEmpty()) {
+            return;
+        }
+        for (Tour tour : tours) {
+            BigDecimal minPrice = calculateMinPrice(tour.getId());
+            if (minPrice != null) {
+                tour.setMinPrice(minPrice);
+            }
+        }
+    }
+
+    private List<Tour> applyPriceFilter(List<Tour> tours, String priceRange) {
+        if (!StringUtils.isNotBlank(priceRange)) {
+            return tours;
+        }
+        return tours.stream()
+                .filter(tour -> matchPriceRange(tour.getMinPrice(), priceRange))
+                .collect(Collectors.toList());
+    }
+
+    private boolean matchPriceRange(BigDecimal price, String range) {
+        if (price == null) {
+            return false;
+        }
+        return switch (range) {
+            case "0-500" -> price.compareTo(BigDecimal.valueOf(500)) <= 0;
+            case "500-1000" -> price.compareTo(BigDecimal.valueOf(500)) > 0 && price.compareTo(BigDecimal.valueOf(1000)) <= 0;
+            case "1000-2000" -> price.compareTo(BigDecimal.valueOf(1000)) > 0 && price.compareTo(BigDecimal.valueOf(2000)) <= 0;
+            case "2000+" -> price.compareTo(BigDecimal.valueOf(2000)) > 0;
+            default -> true;
+        };
+    }
+
+    private void sortByComputedFields(List<Tour> tours, String sortType) {
+        if ("price_asc".equals(sortType)) {
+            tours.sort(Comparator.comparing(tour -> Optional.ofNullable(tour.getMinPrice()).orElse(BigDecimal.valueOf(Long.MAX_VALUE))));
+        } else if ("price_desc".equals(sortType)) {
+            tours.sort(Comparator.comparing((Tour tour) -> Optional.ofNullable(tour.getMinPrice()).orElse(BigDecimal.ZERO)).reversed());
+        }
+    }
+
+    private List<Map<String, Object>> countOptions(List<Tour> tours, java.util.function.Function<Tour, String> getter) {
+        Map<String, Long> counts = tours.stream()
+                .map(getter)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.groupingBy(value -> value, LinkedHashMap::new, Collectors.counting()));
+        return counts.entrySet().stream()
+                .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
+                .map(entry -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("value", entry.getKey());
+                    item.put("count", entry.getValue());
+                    return item;
+                })
+                .collect(Collectors.toList());
+    }
+
+    private String getDaysRange(Integer days) {
+        if (days == null) {
+            return "";
+        }
+        if (days <= 3) {
+            return "1-3";
+        }
+        if (days <= 6) {
+            return "4-6";
+        }
+        if (days <= 9) {
+            return "7-9";
+        }
+        return "10+";
+    }
+
+    private String getPriceRange(BigDecimal price) {
+        if (price == null) {
+            return "";
+        }
+        if (price.compareTo(BigDecimal.valueOf(500)) <= 0) {
+            return "0-500";
+        }
+        if (price.compareTo(BigDecimal.valueOf(1000)) <= 0) {
+            return "500-1000";
+        }
+        if (price.compareTo(BigDecimal.valueOf(2000)) <= 0) {
+            return "1000-2000";
+        }
+        return "2000+";
+    }
+
+    private void addKeywordCount(Map<String, HotKeywordItem> counts, String keyword) {
+        if (!StringUtils.isNotBlank(keyword)) {
+            return;
+        }
+        String cleaned = keyword.trim();
+        String displayLabel = getKeywordDisplayLabel(cleaned);
+        if (!StringUtils.isNotBlank(displayLabel) || isInternalKeyword(cleaned, displayLabel)) {
+            return;
+        }
+        HotKeywordItem item = counts.computeIfAbsent(displayLabel, label -> new HotKeywordItem(cleaned, label));
+        item.increment();
+    }
+
+    private String getKeywordDisplayLabel(String keyword) {
+        if (!StringUtils.isNotBlank(keyword)) {
+            return "";
+        }
+        Map<String, String> labels = new HashMap<>();
+        labels.put("around", "周边游");
+        labels.put("long", "长线游");
+        labels.put("team", "跟团游");
+        labels.put("cruise", "邮轮出行");
+        labels.put("xisha", "西沙群岛");
+        labels.put("sanxia", "三峡");
+        labels.put("sanyan", "三峡");
+        labels.put("chongqing", "重庆");
+        labels.put("chengdu", "成都");
+        labels.put("kunming", "昆明");
+        labels.put("guiyang", "贵阳");
+        labels.put("sanya", "三亚");
+        labels.put("beijing", "北京");
+        labels.put("shanghai", "上海");
+        labels.put("hangzhou", "杭州");
+        labels.put("yichang", "宜昌");
+        labels.put("haikou", "海口");
+        labels.put("sichuan", "四川");
+        labels.put("yunnan", "云南");
+        labels.put("guizhou", "贵州");
+        labels.put("hubei", "湖北");
+        labels.put("hunan", "湖南");
+        labels.put("hainan", "海南");
+        return labels.getOrDefault(keyword, keyword);
+    }
+
+    private boolean isInternalKeyword(String keyword, String displayLabel) {
+        return keyword.equals(displayLabel) && keyword.matches("^[A-Za-z0-9_-]+$");
+    }
+
+    private static class HotKeywordItem {
+        private final String value;
+        private final String label;
+        private int count;
+
+        HotKeywordItem(String value, String label) {
+            this.value = value;
+            this.label = label;
+        }
+
+        String getValue() {
+            return value;
+        }
+
+        String getLabel() {
+            return label;
+        }
+
+        int getCount() {
+            return count;
+        }
+
+        void increment() {
+            count++;
+        }
     }
 
     /**

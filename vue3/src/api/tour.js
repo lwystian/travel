@@ -15,6 +15,18 @@ export function getTourList() {
   return request.get('/tour/list', {}, { showDefaultMsg: false })
 }
 
+export function getTourFilters(params = {}) {
+  return request.get('/tour/filters', params, { showDefaultMsg: false })
+}
+
+export function getHotTourKeywords() {
+  return request.get('/tour/hot-keywords', {}, { showDefaultMsg: false })
+}
+
+export function getTicketFeaturedTours() {
+  return request.get('/tour/ticket-featured', {}, { showDefaultMsg: false })
+}
+
 // 获取行程详情（简单信息）
 export function getTourDetail(id) {
   return request.get(`/tour/${id}`, {}, { showDefaultMsg: false })

@@ -211,10 +211,10 @@
         <div class="sort-bar" v-if="hasSearched">
           <div class="result-stats">
             <template v-if="searchKeyword">
-              搜索“<strong class="search-keyword">{{ searchKeyword }}</strong>” 共找到 <strong>{{ filteredList.length }}</strong> 个行程
+              搜索“<strong class="search-keyword">{{ displaySearchKeyword }}</strong>” 共找到 <strong>{{ totalCount }}</strong> 个行程
             </template>
             <template v-else>
-              共找到 <strong>{{ filteredList.length }}</strong> 个行程
+              共找到 <strong>{{ totalCount }}</strong> 个行程
             </template>
           </div>
           <div class="sort-options">
@@ -237,7 +237,7 @@
     <!-- 行程列表区域 -->
     <div class="tickets-list">
       <div
-        v-for="item in paginatedList"
+        v-for="item in ticketList"
         :key="item.id"
         class="ticket-card"
         @click="goToDetail(item.id)"
@@ -293,12 +293,12 @@
       </div>
 
       <!-- 分页 -->
-      <div class="pagination-container" v-if="filteredList.length > 0">
+      <div class="pagination-container" v-if="totalCount > 0">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :page-sizes="[10, 20, 30, 50]"
-          :total="filteredList.length"
+          :total="totalCount"
           layout="total, sizes, prev, pager, next, jumper"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
@@ -306,8 +306,8 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-if="filteredList.length === 0 && hasSearched && !loading" class="empty-state">
-        <el-empty :description="`没有找到“${searchKeyword}”相关的行程`" />
+      <div v-if="totalCount === 0 && hasSearched && !loading" class="empty-state">
+        <el-empty :description="`没有找到“${displaySearchKeyword}”相关的行程`" />
         <el-button type="primary" plain @click="resetSearch">查看全部行程</el-button>
       </div>
 
@@ -315,12 +315,7 @@
       <div v-if="!hasSearched && !loading" class="initial-state">
         <div class="hot-search">
           <span class="hot-title">热门推荐：</span>
-          <span class="hot-tag" @click="quickSearch('西沙')">西沙</span>
-          <span class="hot-tag" @click="quickSearch('重庆')">重庆</span>
-          <span class="hot-tag" @click="quickSearch('徒步')">徒步</span>
-          <span class="hot-tag" @click="quickSearch('邮轮')">邮轮</span>
-          <span class="hot-tag" @click="quickSearch('四川')">四川</span>
-          <span class="hot-tag" @click="quickSearch('云南')">云南</span>
+          <span v-for="keyword in hotKeywords" :key="keyword.value" class="hot-tag" @click="quickSearch(keyword)">{{ keyword.label }}</span>
         </div>
         <div class="recommend-section">
           <h3>精选推荐</h3>
@@ -350,6 +345,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Search, Loading, Close } from '@element-plus/icons-vue'
+import { getTourPage, getTourFilters, getHotTourKeywords, getTicketFeaturedTours } from '@/api/tour'
 void Search
 
 const router = useRouter()
@@ -581,17 +577,6 @@ const priceMap = {
   '1000-2000': '¥1000-2000', '2000+': '¥2000以上'
 }
 
-const themeMap = {
-  hiking: '户外徒步', cultural: '人文古迹', scenic: '自然风光',
-  city: '城市漫步', family: '亲子游', adventure: '探险游',
-  romantic: '浪漫游', food: '美食游', photography: '摄影游'
-}
-
-// 行程类型映射
-const tourTypeMap = {
-  around: '周边游', long: '长线游', team: '跟团游', cruise: '邮轮出行'
-}
-
 // 排序选项
 const sortOptions = ref([
   { value: 'default', label: '默认排序' },
@@ -604,8 +589,10 @@ const sortOptions = ref([
 // 响应式数据
 // =============================================
 const searchKeyword = ref('')
+const searchDisplayKeyword = ref('')
 const hasSearched = ref(false)
 const loading = ref(false)
+const initialLoading = ref(false)
 const sortType = ref('default')
 
 // 分页
@@ -634,14 +621,12 @@ const availableFilters = ref({
   themes: []
 })
 
-// 完整的行程列表（从后端获取）
-const fullTicketsList = ref([])
-
-// 当前搜索结果列表
-const currentSearchResults = ref([])
+const ticketList = ref([])
+const recommendList = ref([])
+const hotKeywords = ref([])
 
 // 总数量（用于全部标签显示）
-const totalCount = computed(() => currentSearchResults.value.length)
+const totalCount = ref(0)
 
 // 数据加载完成标志
 const isDataLoaded = ref(false)
@@ -653,271 +638,85 @@ const getCityLabel = (value) => cityMap[value] || value
 const getDaysLabel = (value) => daysMap[value] || value
 const getMonthLabel = (value) => monthMap[value] || value + '月'
 const getPriceLabel = (value) => priceMap[value] || value
-const getThemeLabel = (value) => themeMap[value] || value
-const getTourTypeLabel = (value) => tourTypeMap[value] || value
+const getThemeLabel = (value) => value || ''
+const getTourTypeLabel = (value) => value || ''
+const displaySearchKeyword = computed(() => searchDisplayKeyword.value || searchKeyword.value)
 
-// =============================================
-// 辅助函数：匹配逻辑
-// =============================================
-// 天数匹配函数 - 同时支持精确天数和范围格式
-const matchDaysRange = (days, range) => {
-  if (!range) return true
-  
-  // 精确天数匹配（周边游）
-  if (/^\d+$/.test(range)) {
-    return days === parseInt(range)
-  }
-  
-  // 范围匹配（普通行程）
-  switch (range) {
-    case '1-3': 
-      return days >= 1 && days <= 3
-    case '4-6': 
-      return days >= 4 && days <= 6
-    case '7-9': 
-      return days >= 7 && days <= 9
-    case '10+': 
-      return days >= 10
-    default: return true
+const decorateFilterItems = (items = [], labelGetter) => {
+  return items.map(item => ({
+    ...item,
+    label: labelGetter(item.value)
+  }))
+}
+
+const applyFilterLabels = data => {
+  availableFilters.value = {
+    tourTypes: decorateFilterItems(data?.tourTypes, getTourTypeLabel),
+    cities: decorateFilterItems(data?.cities, getCityLabel),
+    destinations: decorateFilterItems(data?.destinations, getDestinationLabel),
+    daysList: decorateFilterItems(data?.daysList, getDaysLabel),
+    months: decorateFilterItems(data?.months, getMonthLabel),
+    priceRanges: decorateFilterItems(data?.priceRanges, getPriceLabel),
+    themes: decorateFilterItems(data?.themes, getThemeLabel)
   }
 }
 
-// 价格范围匹配函数
-const matchPriceRange = (price, range) => {
-  if (!range) return true
-  switch (range) {
-    case '0-500': return price <= 500
-    case '500-1000': return price > 500 && price <= 1000
-    case '1000-2000': return price > 1000 && price <= 2000
-    case '2000+': return price > 2000
-    default: return true
-  }
+const normalizeTours = records => (records || []).map(item => ({
+  ...item,
+  tags: parseTags(item.tags)
+}))
+
+const buildQueryParams = () => ({
+  keyword: searchKeyword.value.trim(),
+  tourType: activeFilters.value.tourType,
+  city: activeFilters.value.city,
+  destination: activeFilters.value.destination,
+  days: activeFilters.value.days,
+  month: activeFilters.value.month,
+  priceRange: activeFilters.value.priceRange,
+  theme: activeFilters.value.theme,
+  sortType: sortType.value,
+  currentPage: currentPage.value,
+  pageSize: pageSize.value
+})
+
+const loadFilters = async () => {
+  const filters = await getTourFilters({ keyword: searchKeyword.value.trim() })
+  applyFilterLabels(filters || {})
 }
 
-// 根据天数获取天数区间
-const getDaysRangeFromDays = (days) => {
-  if (days <= 3) return '1-3'
-  if (days <= 6) return '4-6'
-  if (days <= 9) return '7-9'
-  return '10+'
-}
-
-// 根据价格获取价格区间
-const getPriceRangeFromPrice = (price) => {
-  if (price <= 500) return '0-500'
-  if (price <= 1000) return '500-1000'
-  if (price <= 2000) return '1000-2000'
-  return '2000+'
-}
-
-// =============================================
-// 核心函数：根据关键词和筛选条件搜索
-// =============================================
-const performSearch = () => {
-  if (!isDataLoaded.value) {
-    ElMessage.warning('数据加载中，请稍后再试')
-    return
-  }
-  
+const fetchTickets = async ({ scroll = false } = {}) => {
   loading.value = true
-  
-  setTimeout(() => {
-    let results = [...fullTicketsList.value]
-    const keyword = searchKeyword.value.trim().toLowerCase()
-    
-    // 1. 关键词筛选
-    if (keyword) {
-      results = results.filter(item =>
-        item.title.toLowerCase().includes(keyword) ||
-        (item.subtitle && item.subtitle.toLowerCase().includes(keyword)) ||
-        (item.tags && item.tags.some(tag => tag.toLowerCase().includes(keyword))) ||
-        (item.destination && getDestinationLabel(item.destination).toLowerCase().includes(keyword)) ||
-        (item.city && cityMap[item.city]?.includes(keyword))
-      )
-    }
-    
-    // 2. 应用当前活跃的筛选条件
-    if (activeFilters.value.tourType) {
-      results = results.filter(item => item.tourType === activeFilters.value.tourType)
-    }
-    if (activeFilters.value.city) {
-      results = results.filter(item => item.city === activeFilters.value.city)
-    }
-    if (activeFilters.value.destination) {
-      results = results.filter(item => item.destination === activeFilters.value.destination)
-    }
-    if (activeFilters.value.days) {
-      if (activeFilters.value.tourType === 'around') {
-        results = results.filter(item => item.days === parseInt(activeFilters.value.days))
-      } else {
-        results = results.filter(item => matchDaysRange(item.days, activeFilters.value.days))
-      }
-    }
-    if (activeFilters.value.month) {
-      results = results.filter(item => item.month === parseInt(activeFilters.value.month))
-    }
-    if (activeFilters.value.priceRange) {
-      results = results.filter(item => matchPriceRange(item.minPrice, activeFilters.value.priceRange))
-    }
-    if (activeFilters.value.theme) {
-      results = results.filter(item => item.theme === activeFilters.value.theme)
-    }
-
-    currentSearchResults.value = results
-    
-    // 3. 基于搜索结果生成可用的筛选选项
-    generateAvailableFilters(results)
-    
+  try {
+    const res = await getTourPage(buildQueryParams())
+    ticketList.value = normalizeTours(res?.records)
+    totalCount.value = Number(res?.total || 0)
     hasSearched.value = true
-    currentPage.value = 1
+    isDataLoaded.value = true
+    if (scroll) {
+      setTimeout(() => {
+        window.scrollTo({ top: 220, behavior: 'smooth' })
+      }, 120)
+    }
+  } catch (error) {
+    console.error('获取行程列表失败:', error)
+    ElMessage.error('获取行程数据失败，请稍后重试')
+    ticketList.value = []
+    totalCount.value = 0
+  } finally {
     loading.value = false
-    
-    // 搜索后页面往下滑动一小段距离
-    setTimeout(() => {
-      window.scrollTo({ top: 220, behavior: 'smooth' })
-    }, 200)
-  }, 200)
+  }
 }
 
-// 基于搜索结果生成可用的筛选选项
-const generateAvailableFilters = (results) => {
-  // 统计行程类型的出现次数
-  const tourTypeMapCount = new Map()
-  // 统计出发城市的出现次数
-  const cityMapCount = new Map()
-  // 统计目标地点的出现次数
-  const destMapCount = new Map()
-  // 统计天数的出现次数
-  const daysMapCount = new Map()
-  // 统计月份的出现次数
-  const monthMapCount = new Map()
-  // 统计价格区间的出现次数
-  const priceMapCount = new Map()
-  // 统计主题的出现次数
-  const themeMapCount = new Map()
-
-  results.forEach(item => {
-    // 行程类型
-    if (item.tourType) {
-      tourTypeMapCount.set(item.tourType, (tourTypeMapCount.get(item.tourType) || 0) + 1)
-    }
-    // 出发城市
-    if (item.city) {
-      cityMapCount.set(item.city, (cityMapCount.get(item.city) || 0) + 1)
-    }
-    // 目标地点
-    if (item.destination) {
-      destMapCount.set(item.destination, (destMapCount.get(item.destination) || 0) + 1)
-    }
-    // 天数 - 统一转换为范围格式进行统计
-    const daysRange = getDaysRangeFromDays(item.days)
-    if (daysRange) {
-      daysMapCount.set(daysRange, (daysMapCount.get(daysRange) || 0) + 1)
-    }
-    // 月份
-    if (item.month) {
-      const monthKey = item.month.toString()
-      monthMapCount.set(monthKey, (monthMapCount.get(monthKey) || 0) + 1)
-    }
-    // 价格区间
-    const priceRangeKey = getPriceRangeFromPrice(item.minPrice)
-    if (priceRangeKey) {
-      priceMapCount.set(priceRangeKey, (priceMapCount.get(priceRangeKey) || 0) + 1)
-    }
-    // 主题
-    if (item.theme) {
-      themeMapCount.set(item.theme, (themeMapCount.get(item.theme) || 0) + 1)
-    }
-  })
-  
-  // 生成可用选项列表
-  availableFilters.value.tourTypes = Array.from(tourTypeMapCount.entries())
-    .map(([value, count]) => ({ value, label: tourTypeMap[value] || value, count }))
-    .sort((a, b) => b.count - a.count)
-  
-  availableFilters.value.cities = Array.from(cityMapCount.entries())
-    .map(([value, count]) => ({ value, label: cityMap[value] || value, count }))
-    .sort((a, b) => b.count - a.count)
-  
-  availableFilters.value.destinations = Array.from(destMapCount.entries())
-    .map(([value, count]) => ({ value, label: getDestinationLabel(value), count }))
-    .sort((a, b) => b.count - a.count)
-  
-  // 天数选项：根据行程类型显示不同格式
-  if (activeFilters.value.tourType === 'around') {
-    // 周边游：精确天数
-    const exactDaysMap = new Map()
-    results.forEach(item => {
-      if (item.tourType === 'around') {
-        const d = item.days.toString()
-        exactDaysMap.set(d, (exactDaysMap.get(d) || 0) + 1)
-      }
-    })
-    availableFilters.value.daysList = [
-      { value: '1', label: '1天', count: exactDaysMap.get('1') || 0 },
-      { value: '2', label: '2天', count: exactDaysMap.get('2') || 0 },
-      { value: '3', label: '3天', count: exactDaysMap.get('3') || 0 },
-      { value: '4', label: '4天', count: exactDaysMap.get('4') || 0 },
-      { value: '5', label: '5天', count: exactDaysMap.get('5') || 0 }
-    ].filter(item => item.count > 0)
-  } else {
-    // 普通行程：范围格式
-    availableFilters.value.daysList = [
-      { value: '1-3', label: '1-3天', count: daysMapCount.get('1-3') || 0 },
-      { value: '4-6', label: '4-6天', count: daysMapCount.get('4-6') || 0 },
-      { value: '7-9', label: '7-9天', count: daysMapCount.get('7-9') || 0 },
-      { value: '10+', label: '10天以上', count: daysMapCount.get('10+') || 0 }
-    ].filter(item => item.count > 0)
+const performSearch = async ({ resetPage = true, scroll = true } = {}) => {
+  if (resetPage) {
+    currentPage.value = 1
   }
-  
-  availableFilters.value.months = Array.from(monthMapCount.entries())
-    .map(([value, count]) => ({ value, label: monthMap[value] || value + '月', count }))
-    .sort((a, b) => parseInt(a.value) - parseInt(b.value))
-  
-  availableFilters.value.priceRanges = [
-    { value: '0-500', label: '¥500以下', count: priceMapCount.get('0-500') || 0 },
-    { value: '500-1000', label: '¥500-1000', count: priceMapCount.get('500-1000') || 0 },
-    { value: '1000-2000', label: '¥1000-2000', count: priceMapCount.get('1000-2000') || 0 },
-    { value: '2000+', label: '¥2000以上', count: priceMapCount.get('2000+') || 0 }
-  ].filter(item => item.count > 0)
-  
-  availableFilters.value.themes = Array.from(themeMapCount.entries())
-    .map(([value, count]) => ({ value, label: themeMap[value] || value, count }))
-    .sort((a, b) => b.count - a.count)
+  await Promise.all([
+    loadFilters(),
+    fetchTickets({ scroll })
+  ])
 }
-
-// =============================================
-// 计算属性
-// =============================================
-// 过滤并排序后的列表
-const filteredList = computed(() => {
-  let result = [...currentSearchResults.value]
-  
-  // 排序
-  switch (sortType.value) {
-    case 'price_asc':
-      result.sort((a, b) => a.minPrice - b.minPrice)
-      break
-    case 'price_desc':
-      result.sort((a, b) => b.minPrice - a.minPrice)
-      break
-    case 'popular':
-      result.sort((a, b) => (b.enrolledCount || 0) - (a.enrolledCount || 0))
-      break
-    default:
-      result.sort((a, b) => (b.id || 0) - (a.id || 0))
-      break
-  }
-  
-  return result
-})
-
-// 分页后的列表
-const paginatedList = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return filteredList.value.slice(start, end)
-})
 
 // 是否有活跃的筛选条件
 const hasActiveFilters = computed(() => {
@@ -928,14 +727,6 @@ const hasActiveFilters = computed(() => {
          activeFilters.value.month ||
          activeFilters.value.priceRange ||
          activeFilters.value.theme
-})
-
-// 推荐列表（从完整数据中取前4个）
-const recommendList = computed(() => {
-  if (fullTicketsList.value.length > 0) {
-    return fullTicketsList.value.slice(0, 4)
-  }
-  return []
 })
 
 // =============================================
@@ -957,21 +748,13 @@ const goToDetail = (id) => {
 
 // 执行搜索
 const executeSearch = () => {
-  if (!isDataLoaded.value) {
-    ElMessage.warning('数据加载中，请稍后再试')
-    return
-  }
-  // 如果没有关键词且没有筛选条件，提示用户
-  if (!searchKeyword.value.trim() && !hasActiveFilters.value) {
-    ElMessage.warning('请输入搜索关键词或选择筛选条件')
-    return
-  }
   performSearch()
 }
 
 // 快速搜索（热门词）
 const quickSearch = (keyword) => {
-  searchKeyword.value = keyword
+  searchKeyword.value = keyword.value
+  searchDisplayKeyword.value = keyword.label || keyword.value
   executeSearch()
 }
 
@@ -984,7 +767,6 @@ const toggleFilter = (type, value) => {
     // 否则选中新的
     activeFilters.value[type] = value
   }
-  // 重新执行搜索
   performSearch()
 }
 
@@ -1003,21 +785,25 @@ const clearAllFilters = () => {
 // 重置搜索（回到初始状态）
 const resetSearch = () => {
   searchKeyword.value = ''
+  searchDisplayKeyword.value = ''
   activeFilters.value = { tourType: '', city: '', destination: '', days: '', month: '', priceRange: '', theme: '' }
-  currentSearchResults.value = []
   hasSearched.value = false
   sortType.value = 'default'
   currentPage.value = 1
+  ticketList.value = []
+  totalCount.value = 0
 }
 
 // 分页处理
 const handleSizeChange = (size) => {
   pageSize.value = size
   currentPage.value = 1
+  fetchTickets()
 }
 
 const handleCurrentChange = (page) => {
   currentPage.value = page
+  fetchTickets()
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -1034,6 +820,7 @@ const initFromUrl = () => {
   // 处理搜索关键词
   if (searchParam) {
     searchKeyword.value = decodeURIComponent(searchParam)
+    searchDisplayKeyword.value = searchKeyword.value
     hasParams = true
   }
 
@@ -1061,48 +848,38 @@ const initFromUrl = () => {
     hasParams = true
   }
 
-  // 如果有任何筛选条件，执行搜索
-  if (hasParams && isDataLoaded.value) {
-    hasSearched.value = true
-    executeSearch()
+  if (hasParams) {
+    performSearch({ scroll: false })
   }
 }
 
-// 从后端获取数据
-const fetchTickets = async () => {
-  loading.value = true
-  
+const loadInitialData = async () => {
+  initialLoading.value = true
   try {
-    const { getTourList } = await import('@/api/tour')
-    const res = await getTourList()
-    
-    if (res && Array.isArray(res) && res.length > 0) {
-      // 处理后端返回的数据，将 tags 字符串转换为数组
-      fullTicketsList.value = res.map(item => ({
-        ...item,
-        tags: parseTags(item.tags)
-      }))
-    } else {
-      ElMessage.warning('暂无行程数据')
-      fullTicketsList.value = []
-    }
+    const [keywords, featured] = await Promise.all([
+      getHotTourKeywords(),
+      getTicketFeaturedTours(),
+      loadFilters()
+    ])
+    hotKeywords.value = Array.isArray(keywords)
+      ? keywords.map(item => typeof item === 'string' ? { value: item, label: getDestinationLabel(item) || item } : item)
+      : []
+    recommendList.value = normalizeTours(featured)
   } catch (error) {
-    console.error('获取行程列表失败:', error)
-    ElMessage.error('获取行程数据失败，请稍后重试')
-    fullTicketsList.value = []
+    console.error('获取行程预订初始数据失败:', error)
   } finally {
-    loading.value = false
+    initialLoading.value = false
     isDataLoaded.value = true
-    // 数据加载完成后，如果有URL参数则执行搜索
     nextTick(() => {
       initFromUrl()
     })
   }
 }
 
-// 监听排序变化，重置页码
 watch(sortType, () => {
-  currentPage.value = 1
+  if (hasSearched.value) {
+    performSearch()
+  }
 })
 
 // 监听路由变化，当搜索参数改变时重新搜索
@@ -1123,6 +900,7 @@ watch(() => route.query, (query) => {
     // 应用新的搜索关键词
     if (newSearch) {
       searchKeyword.value = decodeURIComponent(newSearch)
+      searchDisplayKeyword.value = searchKeyword.value
     }
 
     // 应用新的筛选条件
@@ -1139,30 +917,16 @@ watch(() => route.query, (query) => {
       activeFilters.value.destination = newDestination
     }
 
-    if (isDataLoaded.value) {
-      // 数据已加载，直接执行搜索
-      hasSearched.value = true
-      executeSearch()
-    } else {
-      // 数据还未加载，标记需要搜索，加载完成后会执行
-      hasSearched.value = true
-    }
+    hasSearched.value = true
+    performSearch({ scroll: false })
   }
 }, { deep: true })
-
-// 监听数据加载完成
-watch(isDataLoaded, (loaded) => {
-  if (loaded && hasSearched.value) {
-    // 数据加载完成且之前有搜索标记，执行搜索
-    executeSearch()
-  }
-})
 
 // =============================================
 // 生命周期
 // =============================================
 onMounted(() => {
-  fetchTickets()
+  loadInitialData()
 })
 </script>
 

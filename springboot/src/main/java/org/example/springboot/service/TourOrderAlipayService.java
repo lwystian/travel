@@ -2,7 +2,6 @@ package org.example.springboot.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.annotation.PostConstruct;
-import jakarta.annotation.Resource;
 import org.example.springboot.entity.TourOrder;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.TourOrderMapper;
@@ -10,17 +9,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 行程订单支付服务
@@ -31,21 +25,8 @@ public class TourOrderAlipayService {
 
     private static final Logger logger = LoggerFactory.getLogger(TourOrderAlipayService.class);
 
-    private static final Duration NOTIFY_CACHE_EXPIRE = Duration.ofHours(24);
-
-    private final Map<String, Long> notifyIdCache = new ConcurrentHashMap<>();
-
-    private static final ScheduledExecutorService cleanupScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "alipay-notify-cache-cleanup");
-        t.setDaemon(true);
-        return t;
-    });
-
     @Autowired
     private TourOrderMapper tourOrderMapper;
-
-    @Autowired(required = false)
-    private StringRedisTemplate stringRedisTemplate;
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -64,7 +45,6 @@ public class TourOrderAlipayService {
     @PostConstruct
     public void init() {
         registerStrategies();
-        cleanupScheduler.scheduleAtFixedRate(() -> cleanupExpiredCache(), 1, 1, TimeUnit.HOURS);
     }
 
     /**
@@ -261,14 +241,4 @@ public class TourOrderAlipayService {
         return strategyRegistry;
     }
 
-    /**
-     * 清理过期的内存缓存
-     */
-    private void cleanupExpiredCache() {
-        long now = System.currentTimeMillis();
-        notifyIdCache.entrySet().removeIf(entry -> entry.getValue() <= now);
-        if (logger.isDebugEnabled()) {
-            logger.debug("内存缓存清理完成，当前条目数: {}", notifyIdCache.size());
-        }
-    }
 }

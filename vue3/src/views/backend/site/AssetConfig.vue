@@ -50,6 +50,7 @@ const saving = ref(false)
 const uploadingKey = ref('')
 
 const form = reactive({
+  faviconUrl: '',
   logoUrl: '',
   wechatQrUrl: '',
   authBackgroundUrl: '',
@@ -60,6 +61,7 @@ const form = reactive({
 })
 
 const assetItems = [
+  { key: 'faviconUrl', title: '网站 Favicon', desc: '浏览器标签页和收藏夹图标。' },
   { key: 'logoUrl', title: '品牌 Logo', desc: '前台顶部导航和后台侧边栏使用。' },
   { key: 'wechatQrUrl', title: '微信二维码', desc: '前台顶部微信浮层和页脚二维码的默认素材。' },
   { key: 'authBackgroundUrl', title: '登录注册背景', desc: '登录、注册等认证页面背景图。' },
@@ -79,10 +81,10 @@ const loadConfig = async () => {
 }
 
 const beforeImageUpload = (file) => {
-  const validType = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)
+  const validType = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/x-icon', 'image/vnd.microsoft.icon'].includes(file.type)
   const validSize = file.size / 1024 / 1024 < 10
   if (!validType) {
-    ElMessage.error('仅支持 JPG、PNG、WebP、GIF 图片')
+    ElMessage.error('仅支持 JPG、PNG、WebP、GIF、ICO 图片')
     return false
   }
   if (!validSize) {

@@ -133,7 +133,6 @@ import {
   Menu,
   OfficeBuilding,
   Picture,
-  PriceTag,
   Setting,
   Star,
   Ticket,
@@ -190,7 +189,6 @@ const allDailyModules = [
 ]
 
 const allConfigModules = [
-  { title: '景点标签', path: '/back/tag', icon: PriceTag, adminOnly: true },
   { title: '轮播图管理', path: '/back/carousel', icon: Picture, adminOnly: true },
   { title: '网站页脚', path: '/back/site-footer', icon: OfficeBuilding, adminOnly: true },
   { title: '网站设置', path: '/back/site-settings/site-access', icon: Setting, adminOnly: true },

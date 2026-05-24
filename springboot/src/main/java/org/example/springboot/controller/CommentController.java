@@ -15,8 +15,6 @@ import org.example.springboot.service.CommentService;
 import org.example.springboot.service.ScenicSpotService;
 import org.example.springboot.service.UserService;
 import org.example.springboot.util.JwtTokenUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,7 +25,6 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/comment")
 public class CommentController {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CommentController.class);
     @Resource
     private CommentService commentService;
     @Resource

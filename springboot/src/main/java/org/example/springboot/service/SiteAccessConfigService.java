@@ -53,24 +53,16 @@ public class SiteAccessConfigService extends ServiceImpl<AuthProviderConfigMappe
         if (dto.getRejectMobile() == null) {
             dto.setRejectMobile(false);
         }
-        dto.setClosedTitle(clean(dto.getClosedTitle(), "网站维护中", 40));
-        dto.setClosedMessage(clean(dto.getClosedMessage(), "我们正在进行系统维护与服务升级，完成后将第一时间恢复访问。", 160));
-        dto.setClosedContact(clean(dto.getClosedContact(), "如有紧急订单或出行问题，请联系官方客服处理。", 120));
-        dto.setMobileTitle(clean(dto.getMobileTitle(), "请使用电脑访问", 40));
-        dto.setMobileMessage(clean(dto.getMobileMessage(), "当前官网桌面版正在服务中，移动端 H5 模板正在制作，为保证浏览和下单体验，请使用电脑访问。", 180));
-        dto.setMobileContact(clean(dto.getMobileContact(), "如需咨询行程，可通过官方客服渠道联系我们。", 120));
-        dto.setSupportButtonText(clean(dto.getSupportButtonText(), "联系官方客服", 30));
+        dto.setClosedTitle(cleanNullable(dto.getClosedTitle(), 40));
+        dto.setClosedMessage(cleanNullable(dto.getClosedMessage(), 160));
+        dto.setClosedContact(cleanNullable(dto.getClosedContact(), 120));
+        dto.setMobileTitle(cleanNullable(dto.getMobileTitle(), 40));
+        dto.setMobileMessage(cleanNullable(dto.getMobileMessage(), 180));
+        dto.setMobileContact(cleanNullable(dto.getMobileContact(), 120));
+        dto.setSupportButtonText(cleanNullable(dto.getSupportButtonText(), 30));
         dto.setSupportUrl(cleanNullable(dto.getSupportUrl(), 300));
         dto.setSupportCredential(cleanNullable(dto.getSupportCredential(), 120));
         dto.setSupportQrImageUrl(cleanNullable(dto.getSupportQrImageUrl(), 300));
-    }
-
-    private String clean(String value, String fallback, int maxLength) {
-        String text = value == null ? "" : value.trim();
-        if (text.isEmpty()) {
-            text = fallback;
-        }
-        return text.length() > maxLength ? text.substring(0, maxLength) : text;
     }
 
     private String cleanNullable(String value, int maxLength) {

@@ -11,7 +11,6 @@ import org.example.springboot.entity.TourOrder;
 import org.example.springboot.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -32,12 +31,6 @@ public class TourOrderPayController {
 
     @Resource
     private TourOrderAlipayService tourOrderAlipayService;
-
-    @Autowired
-    private AlipayPaymentStrategy alipayPaymentStrategy;
-
-    @Resource
-    private PaymentConfigService paymentConfigService;
 
     @Resource
     private PaymentConfigController paymentConfigController;
@@ -142,7 +135,6 @@ public class TourOrderPayController {
         logger.info("收到同步回调: {}", params);
 
         String orderNo = params.get("out_trade_no");
-        String tradeStatus = params.get("trade_status");
         String status = "failed";
 
         if (orderNo != null && !orderNo.isEmpty()) {

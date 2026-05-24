@@ -57,6 +57,7 @@ public class SiteAssetConfigService extends ServiceImpl<AuthProviderConfigMapper
     }
 
     private void normalize(SiteAssetConfigDTO dto) {
+        dto.setFaviconUrl(normalizeImagePath(dto.getFaviconUrl()));
         dto.setLogoUrl(normalizeImagePath(dto.getLogoUrl()));
         dto.setWechatQrUrl(normalizeImagePath(dto.getWechatQrUrl()));
         dto.setAuthBackgroundUrl(normalizeImagePath(dto.getAuthBackgroundUrl()));
@@ -95,6 +96,7 @@ public class SiteAssetConfigService extends ServiceImpl<AuthProviderConfigMapper
         if (dto == null) {
             return images;
         }
+        addImagePath(images, dto.getFaviconUrl());
         addImagePath(images, dto.getLogoUrl());
         addImagePath(images, dto.getWechatQrUrl());
         addImagePath(images, dto.getAuthBackgroundUrl());

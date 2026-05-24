@@ -7,12 +7,10 @@ import jakarta.annotation.Resource;
 import org.example.springboot.entity.Comment;
 import org.example.springboot.entity.ScenicCategory;
 import org.example.springboot.entity.ScenicSpot;
-import org.example.springboot.entity.ScenicTag;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.CommentMapper;
 import org.example.springboot.mapper.ScenicCategoryMapper;
 import org.example.springboot.mapper.ScenicSpotMapper;
-import org.example.springboot.mapper.ScenicTagMapper;
 import org.example.springboot.security.SecurityValidationUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -33,12 +31,6 @@ public class ScenicSpotService {
     
     @Resource
     private CommentMapper commentMapper;
-
-    @Resource
-    private ScenicTagMapper scenicTagMapper;
-
-    @Autowired
-    private ScenicTagService scenicTagService;
 
     public Page<ScenicSpot> getScenicSpotsByPage(String name, String location, Long categoryId, Integer currentPage, Integer size, String orderBy, String order) {
         currentPage = SecurityValidationUtil.clampPage(currentPage);
@@ -81,9 +73,6 @@ public class ScenicSpotService {
         fillCategoryInfo(page.getRecords());
         // 填充评论信息（评分和评论数）
         fillReviewInfo(page.getRecords());
-        // 填充标签信息
-        fillTagsInfo(page.getRecords());
-
         // 如果是按评分排序，在内存中进行排序
         if (StringUtils.isNotBlank(orderBy) && "rating".equals(orderBy)) {
             List<ScenicSpot> records = page.getRecords();
@@ -116,7 +105,6 @@ public class ScenicSpotService {
         List<ScenicSpot> spots = scenicSpotMapper.selectList(queryWrapper);
         fillCategoryInfo(spots);
         fillReviewInfo(spots);
-        fillTagsInfo(spots);
         
         return spots;
     }
@@ -132,8 +120,6 @@ public class ScenicSpotService {
         
         // 填充评论信息
         fillReviewInfo(List.of(spot));
-        // 填充标签信息
-        fillTagsInfo(List.of(spot));
 
         return spot;
     }
@@ -173,7 +159,6 @@ public class ScenicSpotService {
         List<ScenicSpot> spots = scenicSpotMapper.selectList(new LambdaQueryWrapper<>());
         fillCategoryInfo(spots);
         fillReviewInfo(spots);
-        fillTagsInfo(spots);
         return spots;
     }
     
@@ -260,7 +245,6 @@ public class ScenicSpotService {
         queryWrapper.last("LIMIT " + limit);
         List<ScenicSpot> spots = scenicSpotMapper.selectList(queryWrapper);
         fillReviewInfo(spots);
-        fillTagsInfo(spots);
         return spots;
     }
 
@@ -283,9 +267,6 @@ public class ScenicSpotService {
         fillCategoryInfo(spots);
         // 填充评论信息
         fillReviewInfo(spots);
-        // 填充标签信息
-        fillTagsInfo(spots);
-
         return spots;
     }
 
@@ -328,26 +309,4 @@ public class ScenicSpotService {
         return result;
     }
 
-    /**
-     * 填充景点的标签信息
-     */
-    private void fillTagsInfo(List<ScenicSpot> spots) {
-        if (spots == null || spots.isEmpty()) {
-            return;
-        }
-
-        spots.forEach(spot -> {
-            if (spot.getId() != null) {
-                List<ScenicTag> tags = scenicTagMapper.selectTagsByScenicSpotId(spot.getId());
-                spot.setTags(tags);
-            }
-        });
-    }
-
-    /**
-     * 保存景点的标签关联
-     */
-    public void saveScenicTags(Long scenicSpotId, List<Long> tagIds) {
-        scenicTagService.saveScenicTags(scenicSpotId, tagIds);
-    }
 }

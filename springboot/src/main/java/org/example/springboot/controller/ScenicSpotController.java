@@ -7,8 +7,6 @@ import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.ScenicSpot;
 import org.example.springboot.service.ScenicSpotService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,7 +16,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/scenic")
 public class ScenicSpotController {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ScenicSpotController.class);
     @Resource
     private ScenicSpotService scenicSpotService;
 
@@ -110,12 +107,5 @@ public class ScenicSpotController {
         } catch (Exception e) {
             return Result.error("地理编码请求失败: " + e.getMessage());
         }
-    }
-
-    @Operation(summary = "更新景点标签")
-    @PutMapping("/{id}/tags")
-    public Result<?> updateScenicTags(@PathVariable Long id, @RequestBody List<Long> tagIds) {
-        scenicSpotService.saveScenicTags(id, tagIds);
-        return Result.success("标签更新成功");
     }
 } 

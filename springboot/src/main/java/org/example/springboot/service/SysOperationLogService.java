@@ -2,7 +2,6 @@ package org.example.springboot.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
@@ -32,9 +31,6 @@ public class SysOperationLogService {
     
     @Resource
     private SysOperationLogMapper sysOperationLogMapper;
-    
-    @Resource
-    private ObjectMapper objectMapper;
     
     /**
      * 异步保存操作日志
@@ -126,7 +122,10 @@ public class SysOperationLogService {
      * 批量删除日志
      */
     public void deleteBatch(List<Long> ids) {
-        sysOperationLogMapper.deleteBatchIds(ids);
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        sysOperationLogMapper.delete(new LambdaQueryWrapper<SysOperationLog>().in(SysOperationLog::getId, ids));
     }
 
     /**

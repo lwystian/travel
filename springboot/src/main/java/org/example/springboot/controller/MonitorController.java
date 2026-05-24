@@ -2,7 +2,6 @@ package org.example.springboot.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

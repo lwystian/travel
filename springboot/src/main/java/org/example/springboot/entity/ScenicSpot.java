@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @TableName("scenic_spot")
@@ -42,6 +41,9 @@ public class ScenicSpot {
     @Schema(description = "纬度")
     private BigDecimal latitude;
 
+    @Schema(description = "标签，多个标签用英文逗号分隔")
+    private String tags;
+
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
 
@@ -60,7 +62,4 @@ public class ScenicSpot {
     @Schema(description = "评论数量")
     private Integer reviewCount;
 
-    @TableField(exist = false)
-    @Schema(description = "标签列表")
-    private List<ScenicTag> tags;
 } 

@@ -254,28 +254,12 @@
             </div>
           </div>
         </el-form-item>
-        <el-form-item label="标签" prop="tagIds">
-          <el-select
-            v-model="scenicForm.tagIds"
-            multiple
-            placeholder="请选择标签"
-            clearable
-            style="width: 100%"
-          >
-            <el-option
-              v-for="item in tagOptions"
-              :key="item.id"
-              :label="item.name"
-              :value="item.id"
-              :style="{ color: item.color }"
-            >
-              <span :style="{ color: item.color }">
-                <el-tag size="small" :style="{ backgroundColor: item.color + '20', borderColor: item.color, color: item.color }">
-                  {{ item.name }}
-                </el-tag>
-              </span>
-            </el-option>
-          </el-select>
+        <el-form-item label="标签">
+          <el-input v-model="tagsInput" placeholder="请输入标签，多个标签用英文逗号分隔，如：亲子,摄影,避暑" />
+          <div class="form-tip">多个标签用英文逗号分隔，输入即生效</div>
+          <div v-if="parsedTags.length > 0" class="tags-preview">
+            <el-tag v-for="tag in parsedTags" :key="tag" size="small">{{ tag }}</el-tag>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -350,7 +334,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
@@ -403,7 +387,8 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 const categoryOptions = ref([])
-const tagOptions = ref([])
+const tagsInput = ref('')
+const parsedTags = computed(() => parseTags(tagsInput.value))
 
 // 格式化地区数据为级联选择器格式
 const formatRegionData = () => {
@@ -446,8 +431,7 @@ const scenicForm = reactive({
   openingHours: '',
   imageUrl: '',
   longitude: '',
-  latitude: '',
-  tagIds: []
+  latitude: ''
 })
 
 const scenicFormRules = {
@@ -474,7 +458,6 @@ const tempCoordinates = reactive({
 
 onMounted(() => {
   fetchCategories()
-  fetchTags()
   fetchScenicSpots()
   loadAmapScript().catch(err => {
     console.error('加载高德地图API失败:', err)
@@ -524,7 +507,24 @@ const handleCurrentChange = (page) => {
 const handleAdd = () => {
   dialogType.value = 'add'
   dialogTitle.value = '新增景点'
+  tagsInput.value = ''
   dialogVisible.value = true
+}
+
+const parseTags = (tags) => {
+  if (!tags) return []
+  if (Array.isArray(tags)) {
+    return tags
+      .map(tag => {
+        if (typeof tag === 'string') return tag.trim()
+        return (tag?.name || '').trim()
+      })
+      .filter(Boolean)
+  }
+  if (typeof tags === 'string') {
+    return tags.split(',').map(tag => tag.trim()).filter(Boolean)
+  }
+  return []
 }
 
 const handleEdit = (row) => {
@@ -536,12 +536,7 @@ const handleEdit = (row) => {
     }
   })
   scenicForm.regionValue = parseLocationToRegionValue(row.location)
-  // 加载景点已有的标签
-  if (row.tags && row.tags.length > 0) {
-    scenicForm.tagIds = row.tags.map(tag => tag.id)
-  } else {
-    scenicForm.tagIds = []
-  }
+  tagsInput.value = parseTags(row.tags).join(', ')
   dialogVisible.value = true
 }
 
@@ -567,29 +562,18 @@ const submitForm = () => {
     if (valid) {
       submitLoading.value = true
       try {
-        // 创建一个新对象，不包含regionValue和tagIds字段
+        // 创建一个新对象，不包含前端辅助字段
         const formData = { ...scenicForm }
         delete formData.regionValue
-        const tagIds = formData.tagIds // 保存标签ID
-        delete formData.tagIds
+        formData.tags = parsedTags.value.join(',')
 
         if (dialogType.value === 'add') {
-          const spotRes = await request.post('/scenic/add', formData, {
+          await request.post('/scenic/add', formData, {
             successMsg: '添加景点成功'
           })
-          // 新增景点后，保存标签
-          if (spotRes && spotRes.id && tagIds && tagIds.length > 0) {
-            await request.put(`/scenic/${spotRes.id}/tags`, tagIds, {
-              showDefaultMsg: false
-            })
-          }
         } else {
           await request.put(`/scenic/${formData.id}`, formData, {
             successMsg: '更新景点成功'
-          })
-          // 更新景点后，保存标签
-          await request.put(`/scenic/${formData.id}/tags`, tagIds, {
-            showDefaultMsg: false
           })
         }
         dialogVisible.value = false
@@ -608,14 +592,15 @@ const resetForm = () => {
     scenicFormRef.value.resetFields()
   }
   Object.keys(scenicForm).forEach(key => {
-    if (key === 'id' || key === 'categoryId' || key === 'tagIds') {
-      scenicForm[key] = key === 'tagIds' ? [] : null
+    if (key === 'id' || key === 'categoryId') {
+      scenicForm[key] = null
     } else if (key === 'regionValue') {
       scenicForm[key] = []
     } else {
       scenicForm[key] = ''
     }
   })
+  tagsInput.value = ''
 }
 
 // 图片上传相关
@@ -672,21 +657,6 @@ const fetchCategories = async () => {
   } catch (error) {
     console.error('获取分类列表失败:', error)
     categoryOptions.value = []
-  }
-}
-
-// 获取标签列表
-const fetchTags = async () => {
-  try {
-    await request.get('/scenic-tag/all', {}, {
-      showDefaultMsg: false,
-      onSuccess: (res) => {
-        tagOptions.value = res || []
-      }
-    })
-  } catch (error) {
-    console.error('获取标签列表失败:', error)
-    tagOptions.value = []
   }
 }
 
@@ -1343,6 +1313,20 @@ const updateMapFromInput = () => {
           display: flex;
           gap: 10px;
         }
+      }
+
+      .form-tip {
+        margin-top: 6px;
+        color: #909399;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .tags-preview {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
       }
     }
   }

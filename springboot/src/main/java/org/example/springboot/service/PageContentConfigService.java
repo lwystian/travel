@@ -1,6 +1,7 @@
 package org.example.springboot.service;
 
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.TypeReference;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.springboot.entity.AuthProviderConfig;
@@ -84,7 +85,7 @@ public class PageContentConfigService extends ServiceImpl<AuthProviderConfigMapp
             return new LinkedHashMap<>();
         }
         try {
-            return JSON.parseObject(json, LinkedHashMap.class);
+            return JSON.parseObject(json, new TypeReference<LinkedHashMap<String, Object>>() {});
         } catch (Exception e) {
             return new LinkedHashMap<>();
         }

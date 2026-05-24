@@ -6,17 +6,13 @@ import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.ScenicCategory;
 import org.example.springboot.service.ScenicCategoryService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "景点分类接口")
 @RestController
 @RequestMapping("/scenic-category")
 public class ScenicCategoryController {
-    
-    private static final Logger LOGGER = LoggerFactory.getLogger(ScenicCategoryController.class);
-    
+
     @Resource
     private ScenicCategoryService scenicCategoryService;
     

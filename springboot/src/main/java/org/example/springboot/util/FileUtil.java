@@ -19,9 +19,9 @@ import java.util.UUID;
 public class FileUtil {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileUtil.class);
     public static final String FILE_BASE_PATH = System.getProperty("user.dir") + "/files/";
-    private static final Set<String> IMAGE_EXTENSIONS = Set.of(".jpg", ".jpeg", ".png", ".webp", ".gif");
+    private static final Set<String> IMAGE_EXTENSIONS = Set.of(".jpg", ".jpeg", ".png", ".webp", ".gif", ".ico");
     private static final Set<String> VIDEO_EXTENSIONS = Set.of(".mp4", ".webm", ".mov");
-    private static final Set<String> COMMON_EXTENSIONS = Set.of(".jpg", ".jpeg", ".png", ".webp", ".gif", ".mp4", ".webm", ".mov", ".pdf", ".txt");
+    private static final Set<String> COMMON_EXTENSIONS = Set.of(".jpg", ".jpeg", ".png", ".webp", ".gif", ".ico", ".mp4", ".webm", ".mov", ".pdf", ".txt");
 
     public static Path getProjectRootPath() throws IOException {
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();

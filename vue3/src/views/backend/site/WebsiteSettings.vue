@@ -107,13 +107,13 @@
               <el-input v-model="form.supportButtonText" maxlength="30" show-word-limit />
             </el-form-item>
             <el-form-item label="客服跳转链接">
-              <el-input v-model="form.supportUrl" placeholder="例如企业微信客服链接、微信客服链接或企微活码链接" maxlength="300" show-word-limit />
+              <el-input v-model="form.supportUrl" maxlength="300" show-word-limit />
             </el-form-item>
             <el-form-item label="客服凭证">
-              <el-input v-model="form.supportCredential" placeholder="例如微信号、企业微信号、客服工号或其他识别凭证" maxlength="120" show-word-limit />
+              <el-input v-model="form.supportCredential" maxlength="120" show-word-limit />
             </el-form-item>
             <el-form-item label="客服二维码图片地址">
-              <el-input v-model="form.supportQrImageUrl" placeholder="可填写后台上传后的图片地址或 HTTPS 图片地址" maxlength="300" show-word-limit />
+              <el-input v-model="form.supportQrImageUrl" maxlength="300" show-word-limit />
             </el-form-item>
           </el-form>
         </div>
@@ -145,13 +145,13 @@ const saving = ref(false)
 const form = reactive({
   siteEnabled: true,
   rejectMobile: false,
-  closedTitle: '网站维护中',
-  closedMessage: '我们正在进行系统维护与服务升级，完成后将第一时间恢复访问。',
-  closedContact: '如有紧急订单或出行问题，请联系官方客服处理。',
-  mobileTitle: '请使用电脑访问',
-  mobileMessage: '当前官网桌面版正在服务中，移动端 H5 模板正在制作，为保证浏览和下单体验，请使用电脑访问。',
-  mobileContact: '如需咨询行程，可通过官方客服渠道联系我们。',
-  supportButtonText: '联系官方客服',
+  closedTitle: '',
+  closedMessage: '',
+  closedContact: '',
+  mobileTitle: '',
+  mobileMessage: '',
+  mobileContact: '',
+  supportButtonText: '',
   supportUrl: '',
   supportCredential: '',
   supportQrImageUrl: ''

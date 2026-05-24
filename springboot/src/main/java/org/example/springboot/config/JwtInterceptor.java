@@ -7,7 +7,6 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 
-import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 
 import jakarta.servlet.http.HttpServletRequest;

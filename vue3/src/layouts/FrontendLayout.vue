@@ -543,14 +543,14 @@ const wechatQrUrl = computed(() => getAssetUrl(siteAssets.value.wechatQrUrl, noI
 
 const cloneData = (data) => JSON.parse(JSON.stringify(data))
 const createDefaultHeaderContent = () => ({
-  welcomeText: '您好，欢迎来到重庆侠客行国际旅行社官网',
-  brandName: '侠客行国旅',
-  brandSubtitle: 'XIAKEXING TRAVEL',
+  welcomeText: '',
+  brandName: '',
+  brandSubtitle: '',
   logoLinkUrl: '/',
-  aboutText: '关于侠客行',
+  aboutText: '',
   aboutLinkUrl: '/about',
-  wechatText: '微信',
-  wechatQrText: '扫码关注微信公众号',
+  wechatText: '',
+  wechatQrText: '',
   homeMenuText: '首页',
   homeMenuUrl: '/',
   scenicMenuText: '景点',
@@ -608,55 +608,32 @@ const defaultFooterFieldLabels = () => ({
 
 const createDefaultFooterConfig = () => ({
   enabled: true,
-  companyName: '旅行社有限公司',
-  brandName: '品牌名称',
-  slogan: '连接目的地与品质旅行服务',
-  consultationPhone: '400-800-5178',
-  cruisePhone: '023-6789-5178',
-  serviceTime: '09:00 - 20:00',
-  address: '公司地址',
-  copyright: '© 2021-2026 版权所有',
+  companyName: '',
+  brandName: '',
+  slogan: '',
+  consultationPhone: '',
+  cruisePhone: '',
+  serviceTime: '',
+  address: '',
+  copyright: '',
   icpNumber: '',
-  icpUrl: 'https://beian.miit.gov.cn/',
+  icpUrl: '',
   policeNumber: '',
-  policeUrl: 'https://beian.mps.gov.cn/',
-  licenseNumber: 'L-CQ-XXK-2026',
-  complaintPhone: '12345 / 023-6789-5178',
-  technicalSupport: '数字旅行中心',
-  reportEmail: 'service@xkxtrip.com',
-  minorReportEmail: 'safe@xkxtrip.com',
-  fieldLabels: defaultFooterFieldLabels(),
-  featureItems: [
-    { title: '守信', description: '行程说明、费用明细与服务标准清晰呈现。', icon: 'shield' },
-    { title: '甄选', description: '围绕目的地资源打磨品质线路。', icon: 'route' },
-    { title: '陪伴', description: '顾问与客服协同响应，持续跟进。', icon: 'service' },
-    { title: '自在', description: '控制车程、住宿与游览节奏。', icon: 'experience' },
-    { title: '友好', description: '尊重当地风俗与自然环境。', icon: 'leaf' },
-    { title: '共创', description: '收集真实反馈并持续优化。', icon: 'share' }
-  ],
-  topLinks: [
-    { label: '关于我们', url: '/about' },
-    { label: '旅行线路', url: '/tickets' },
-    { label: '目的地灵感', url: '/scenic' },
-    { label: '旅行攻略', url: '/guide' },
-    { label: '服务承诺', url: '/about' },
-    { label: '联系我们', url: '/about' }
-  ],
-  complianceLinks: [
-    { label: '营业执照', url: '/legal/business-license' },
-    { label: '旅行社业务经营许可证', url: '/legal/travel-license' },
-    { label: '服务规范', url: '/legal/service-standard' },
-    { label: '社区公约', url: '/legal/community-guidelines' },
-    { label: '安全与隐私保护', url: '/legal/privacy-safety' },
-    { label: '在线服务与投诉反馈专区', url: '/legal/support-feedback' }
-  ],
+  policeUrl: '',
+  licenseNumber: '',
+  complaintPhone: '',
+  technicalSupport: '',
+  reportEmail: '',
+  minorReportEmail: '',
+  fieldLabels: {},
+  featureItems: [],
+  topLinks: [],
+  complianceLinks: [],
   friendlyLinks: [],
-  qrCodes: [
-    { label: '服务号', imageUrl: wechatQrUrl.value, description: '线路上新与出行提醒' },
-    { label: '旅行顾问', imageUrl: wechatQrUrl.value, description: '定制咨询与售后协助' }
-  ],
+  qrCodes: [],
   certificates: [],
-  legalNotes: ['平台展示的图片、攻略与目的地资料仅用于旅行服务说明，出行前请以订单确认信息和当地实时政策为准。']
+  legalNotes: [],
+  legalPages: []
 })
 
 const footerConfig = ref(createDefaultFooterConfig())
@@ -742,13 +719,6 @@ const visibleCertificates = computed(() => {
     : []
 })
 
-const withFallbackQrImages = (qrCodes = [], fallbackQrCodes = []) => {
-  return qrCodes.map((item, index) => ({
-    ...item,
-    imageUrl: item.imageUrl || fallbackQrCodes[index]?.imageUrl || noImage
-  }))
-}
-
 const visibleFeatureItems = computed(() => {
   return Array.isArray(footerConfig.value.featureItems)
     ? footerConfig.value.featureItems.filter(item => item?.title)
@@ -827,12 +797,13 @@ const loadFooterConfig = async () => {
       ...fallback,
       ...(data || {}),
       fieldLabels: { ...defaultFooterFieldLabels(), ...(data?.fieldLabels || {}) },
-      featureItems: data?.featureItems?.length ? data.featureItems : fallback.featureItems,
-      topLinks: data?.topLinks?.length ? data.topLinks : fallback.topLinks,
-      complianceLinks: data?.complianceLinks?.length ? data.complianceLinks : fallback.complianceLinks,
-      qrCodes: data?.qrCodes?.length ? withFallbackQrImages(data.qrCodes, fallback.qrCodes) : fallback.qrCodes,
-      certificates: data?.certificates?.length ? data.certificates : fallback.certificates,
-      legalNotes: data?.legalNotes?.length ? data.legalNotes : fallback.legalNotes
+      featureItems: data?.featureItems || [],
+      topLinks: data?.topLinks || [],
+      complianceLinks: data?.complianceLinks || [],
+      qrCodes: data?.qrCodes || [],
+      certificates: data?.certificates || [],
+      legalNotes: data?.legalNotes || [],
+      legalPages: data?.legalPages || []
     }
   } catch (error) {
     footerConfig.value = createDefaultFooterConfig()

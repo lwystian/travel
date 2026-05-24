@@ -20,12 +20,7 @@
           <el-input v-model="searchForm.title" placeholder="请输入" clearable style="width: 140px;"></el-input>
         </el-form-item>
         <el-form-item label="行程类型" class="search-item">
-          <el-select v-model="searchForm.tourType" placeholder="请选择" clearable style="width: 110px;">
-            <el-option label="周边游" value="around"></el-option>
-            <el-option label="长线游" value="long"></el-option>
-            <el-option label="跟团游" value="team"></el-option>
-            <el-option label="邮轮出行" value="cruise"></el-option>
-          </el-select>
+          <el-input v-model="searchForm.tourType" placeholder="请输入" clearable style="width: 120px;" />
         </el-form-item>
         <el-form-item label="出发城市" class="search-item">
           <el-select v-model="searchForm.city" placeholder="请选择" clearable filterable style="width: 110px;">
@@ -33,17 +28,20 @@
           </el-select>
         </el-form-item>
         <el-form-item label="目的地" class="search-item">
-          <el-select v-model="searchForm.destination" placeholder="请选择" clearable filterable style="width: 140px;">
+          <el-select
+            v-model="searchForm.destination"
+            placeholder="请选择或输入"
+            clearable
+            filterable
+            allow-create
+            default-first-option
+            style="width: 160px;"
+          >
             <el-option v-for="city in allCityOptions" :key="city.code" :label="city.name" :value="city.code"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="主题" class="search-item">
-          <el-select v-model="searchForm.theme" placeholder="请选择" clearable style="width: 110px;">
-            <el-option label="风景游" value="scenic"></el-option>
-            <el-option label="文化游" value="cultural"></el-option>
-            <el-option label="探险游" value="adventure"></el-option>
-            <el-option label="徒步游" value="hiking"></el-option>
-          </el-select>
+          <el-input v-model="searchForm.theme" placeholder="请输入" clearable style="width: 120px;" />
         </el-form-item>
         <el-form-item class="search-buttons">
           <el-button type="primary" @click="handleSearch">
@@ -192,12 +190,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="行程类型" prop="tourType">
-              <el-select v-model="tourForm.tourType" placeholder="请选择行程类型" style="width: 100%;">
-                <el-option label="周边游" value="around"></el-option>
-                <el-option label="长线游" value="long"></el-option>
-                <el-option label="跟团游" value="team"></el-option>
-                <el-option label="邮轮出行" value="cruise"></el-option>
-              </el-select>
+              <el-input v-model="tourForm.tourType" placeholder="请输入行程类型" maxlength="40" show-word-limit />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -209,19 +202,17 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="目的地" prop="destination">
-              <el-cascader
+              <el-select
                 v-model="tourForm.destination"
-                :options="destinationOptions"
-                placeholder="请选择目的地"
+                placeholder="请选择或输入目的地"
                 filterable
+                allow-create
+                default-first-option
+                clearable
                 style="width: 100%;"
-                :props="{
-                  value: 'code',
-                  label: 'name',
-                  children: 'cities',
-                  emitPath: false
-                }"
-              />
+              >
+                <el-option v-for="city in allCityOptions" :key="city.code" :label="city.name" :value="city.code"></el-option>
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -258,12 +249,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="主题" prop="theme">
-              <el-select v-model="tourForm.theme" placeholder="请选择主题" style="width: 100%;">
-                <el-option label="风景游" value="scenic"></el-option>
-                <el-option label="文化游" value="cultural"></el-option>
-                <el-option label="探险游" value="adventure"></el-option>
-                <el-option label="徒步游" value="hiking"></el-option>
-              </el-select>
+              <el-input v-model="tourForm.theme" placeholder="可自由填写，也可留空" maxlength="40" show-word-limit />
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -490,17 +476,6 @@ const getDestinationLabel = (dest) => {
   return province ? province.name : dest
 }
 
-// 行程类型映射
-const tourTypeMap = {
-  around: '周边游', long: '长线游', team: '跟团游', cruise: '邮轮出行'
-}
-
-// 主题映射
-const themeMap = {
-  scenic: '风景游', cultural: '文化游', adventure: '探险游', hiking: '徒步游'
-}
-void themeMap
-
 // 分页参数
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -616,9 +591,9 @@ const tourForm = reactive({
 // 表单验证规则
 const tourRules = {
   title: [{ required: true, message: '请输入行程名称', trigger: 'blur' }],
-  tourType: [{ required: true, message: '请选择行程类型', trigger: 'change' }],
+  tourType: [{ required: true, message: '请输入行程类型', trigger: 'blur' }],
   city: [{ required: true, message: '请选择出发城市', trigger: 'change' }],
-  destination: [{ required: true, message: '请选择目的地', trigger: 'change' }],
+  destination: [{ required: true, message: '请选择或输入目的地', trigger: 'change' }],
   days: [{ required: true, message: '请输入行程天数', trigger: 'blur' }]
 }
 
@@ -627,13 +602,13 @@ const fetchTours = async () => {
   loading.value = true
   try {
     await request.get('/tour/page', {
-      title: searchForm.title,
+      keyword: searchForm.title,
       tourType: searchForm.tourType,
       city: searchForm.city,
       destination: searchForm.destination,
       theme: searchForm.theme,
       currentPage: currentPage.value,
-      size: pageSize.value
+      pageSize: pageSize.value
     }, {
       showDefaultMsg: false,
       onSuccess: (res) => {
@@ -656,7 +631,7 @@ const fetchTours = async () => {
 const getCityLabel = (city) => cityMap[city] || city || '-'
 
 // 获取行程类型标签
-const getTourTypeLabel = (type) => tourTypeMap[type] || type || '-'
+const getTourTypeLabel = (type) => type || '-'
 
 // 搜索
 const handleSearch = () => {

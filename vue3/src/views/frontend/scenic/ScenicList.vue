@@ -119,14 +119,13 @@
               
               <div class="feature-tags">
                 <span
-                  v-for="tag in (item.tags || [])"
-                  :key="tag.id"
+                  v-for="tag in parseTags(item.tags)"
+                  :key="tag"
                   class="feature-tag"
-                  :style="getTagStyle(tag)"
                 >
-                  {{ tag.name }}
+                  {{ tag }}
                 </span>
-                <span v-if="!item.tags || item.tags.length === 0" class="no-tags">暂无标签</span>
+                <span v-if="parseTags(item.tags).length === 0" class="no-tags">暂无标签</span>
               </div>
               
               <div class="card-footer-horizontal">
@@ -354,24 +353,18 @@ const getDisplayRating = (rating) => {
   return parseFloat(rating).toFixed(1)
 }
 
-// 获取标签样式
-const getTagStyle = (tag) => {
-  const color = tag.color || '#FF6B35'
-  const bgAlpha = 0.1
-  return {
-    backgroundColor: hexToRgba(color, bgAlpha),
-    color: color,
-    borderColor: hexToRgba(color, 0.3)
+const parseTags = (tags) => {
+  if (!tags) return []
+  if (Array.isArray(tags)) {
+    return tags
+      .map(tag => (typeof tag === 'string' ? tag : tag?.name || ''))
+      .map(tag => tag.trim())
+      .filter(Boolean)
   }
-}
-
-// HEX转RGBA
-const hexToRgba = (hex, alpha) => {
-  if (!hex) return `rgba(255, 107, 53, ${alpha})`
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  if (typeof tags === 'string') {
+    return tags.split(',').map(tag => tag.trim()).filter(Boolean)
+  }
+  return []
 }
 
 // 生命周期

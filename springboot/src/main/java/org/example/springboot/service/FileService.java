@@ -1,6 +1,5 @@
 package org.example.springboot.service;
 
-import io.micrometer.common.util.StringUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import org.example.springboot.common.Result;
 import org.example.springboot.enumClass.FileType;
@@ -8,6 +7,7 @@ import org.example.springboot.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,7 +23,14 @@ public class FileService {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileService.class);
     private static final long MAX_IMAGE_SIZE = 10 * 1024 * 1024;
     private static final long MAX_COMMON_SIZE = 100 * 1024 * 1024;
-    private static final Set<String> IMAGE_CONTENT_TYPES = Set.of("image/jpeg", "image/png", "image/webp", "image/gif");
+    private static final Set<String> IMAGE_CONTENT_TYPES = Set.of(
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif",
+            "image/x-icon",
+            "image/vnd.microsoft.icon"
+    );
 
     @Operation(summary = "文件上传")
     public Result<?> upLoad(MultipartFile file, FileType fileType) {
@@ -61,7 +68,7 @@ public class FileService {
 
         for (MultipartFile file : files) {
             try {
-                if (file == null || StringUtils.isEmpty(file.getOriginalFilename())) {
+                if (file == null || !StringUtils.hasText(file.getOriginalFilename())) {
                     failedFiles.add("empty file");
                     continue;
                 }
@@ -71,7 +78,7 @@ public class FileService {
                 }
                 LOGGER.info("upload FILE:{}", file.getOriginalFilename());
                 String path = FileUtil.saveFile(file, null, FileType.COMMON.getTypeName());
-                if (StringUtils.isNotBlank(path)) {
+                if (StringUtils.hasText(path)) {
                     successPaths.add(path);
                 } else {
                     failedFiles.add(file.getOriginalFilename() + ": 文件上传失败");

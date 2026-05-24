@@ -59,7 +59,7 @@ public class WebConfig implements WebMvcConfigurer {
     public void configurePathMatch(PathMatchConfigurer configurer) {
         // 为带有RestController注解的类添加"/api"路径前缀
         // 排除 Knife4j/Swagger 相关的接口（通过包名判断）
-        configurer.addPathPrefix("/api", clazz ->
+        configurer.addPathPrefix(API_PREFIX, clazz ->
                 clazz.isAnnotationPresent(RestController.class) &&
                         !clazz.getPackage().getName().contains("springfox") &&
                         !clazz.getPackage().getName().contains("swagger")&&!clazz.getPackage().getName().contains("doc")

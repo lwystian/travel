@@ -1,7 +1,6 @@
 package org.example.springboot.service;
 
 import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.TypeReference;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
 import com.alipay.api.DefaultAlipayClient;
@@ -22,7 +21,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -44,7 +42,6 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
     private static final String GATEWAY_SANDBOX = "https://openapi-sandbox.dl.alipaydev.com/gateway.do";
 
     private static final Duration NOTIFY_CACHE_EXPIRE = Duration.ofHours(24);
-    private static final BigDecimal AMOUNT_TOLERANCE = new BigDecimal("0.01");
 
     private final Map<String, Long> notifyIdCache = new ConcurrentHashMap<>();
 

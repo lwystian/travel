@@ -1,4 +1,4 @@
-package org.example.springboot.DTO;
+package org.example.springboot.dto;
 
 import lombok.Data;
 
