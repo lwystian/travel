@@ -1,7 +1,7 @@
 <template>
   <aside class="sidebar-container" :class="{ 'is-collapsed': isCollapsed }">
     <div class="logo">
-      <img class="logo-mark" src="@/assets/logo.png" alt="侠客行国旅" />
+      <img class="logo-mark" :src="logoUrl" alt="侠客行国旅" />
       <span class="logo-text" v-show="!isCollapsed">侠客行国旅</span>
     </div>
 
@@ -99,6 +99,11 @@
           <template #title>网站页脚</template>
         </el-menu-item>
 
+        <el-menu-item index="/back/site-assets" v-if="userStore.isAdmin">
+          <el-icon><Picture /></el-icon>
+          <template #title>站点素材</template>
+        </el-menu-item>
+
         <el-menu-item index="/back/site-settings/site-access" v-if="userStore.isAdmin">
           <el-icon><Setting /></el-icon>
           <template #title>网站设置</template>
@@ -129,10 +134,12 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppStore } from '@/store/app'
 import { useUserStore } from '@/store/user'
+import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
+import noImage from '@/assets/images/no-image.png'
 import {
   HomeFilled,
   User,
@@ -161,13 +168,17 @@ import {
 const route = useRoute()
 const appStore = useAppStore()
 const userStore = useUserStore()
+const { siteAssets, loadSiteAssets } = useSiteAssets()
 
 const isCollapsed = computed(() => appStore.sidebarCollapsed)
+const logoUrl = computed(() => getAssetUrl(siteAssets.value.logoUrl, noImage))
 
 const activeMenu = computed(() => {
   const { meta, path } = route
   return meta.activeMenu || path
 })
+
+onMounted(loadSiteAssets)
 </script>
 
 <style lang="scss" scoped>

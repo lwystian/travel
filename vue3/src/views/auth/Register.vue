@@ -1,5 +1,5 @@
 <template>
-  <div class="auth-page">
+  <div class="auth-page" :style="authBackgroundStyle">
     <main class="auth-card">
       <section class="form-panel">
         <div class="form-head">
@@ -59,7 +59,7 @@
         </div>
       </section>
 
-      <section class="visual-panel">
+      <section class="visual-panel" :style="authBackgroundStyle">
         <div class="brand">
           <div class="brand-logo">侠客行</div>
           <div>
@@ -84,7 +84,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Key, Lock, Phone } from '@element-plus/icons-vue'
@@ -92,8 +92,11 @@ import { registerByPhone, sendSmsCode } from '@/api/auth'
 import { encryptPassword } from '@/utils/passwordCrypto'
 import AgreementDialog from '@/components/auth/AgreementDialog.vue'
 import GeetestBox from '@/components/auth/GeetestBox.vue'
+import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
+import noImage from '@/assets/images/no-image.png'
 
 const router = useRouter()
+const { siteAssets, loadSiteAssets } = useSiteAssets()
 const formRef = ref(null)
 const captchaRef = ref(null)
 const loading = ref(false)
@@ -102,6 +105,9 @@ const countdown = ref(0)
 const agreementVisible = ref(false)
 const geetestValidate = ref(null)
 const geetestRequired = ref(true)
+const authBackgroundStyle = computed(() => ({
+  '--auth-bg-url': `url("${getAssetUrl(siteAssets.value.authBackgroundUrl, noImage)}")`
+}))
 
 const form = reactive({
   phone: '',
@@ -236,6 +242,8 @@ const submitRegister = async () => {
     loading.value = false
   }
 }
+
+onMounted(loadSiteAssets)
 </script>
 
 <style scoped>
@@ -247,7 +255,7 @@ const submitRegister = async () => {
   justify-content: center;
   background:
     linear-gradient(135deg, rgba(13, 36, 55, 0.6), rgba(8, 78, 93, 0.42)),
-    url('@/assets/bg.jpg') center/cover no-repeat;
+    var(--auth-bg-url) center/cover no-repeat;
 }
 
 .auth-card {
@@ -374,7 +382,7 @@ const submitRegister = async () => {
   color: #fff;
   background:
     linear-gradient(160deg, rgba(37, 99, 235, 0.86), rgba(20, 184, 166, 0.78)),
-    url('@/assets/bg.jpg') center/cover no-repeat;
+    var(--auth-bg-url) center/cover no-repeat;
   display: flex;
   flex-direction: column;
 }

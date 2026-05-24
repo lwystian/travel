@@ -140,6 +140,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
+import noImage from '@/assets/images/no-image.png'
 import { formatDate } from '@/utils/dateUtils'
 import {
   Delete,
@@ -177,7 +178,7 @@ const pendingCount = computed(() => {
 })
 
 const getImageUrl = (url) => {
-  if (!url) return '/default-guide-cover.jpg'
+  if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
 }
 

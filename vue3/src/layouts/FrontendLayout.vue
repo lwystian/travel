@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="frontend-layout">
     <!-- 顶部导航栏 - 三层结构 -->
     <header class="header">
@@ -7,7 +7,7 @@
         <div class="header-top-container">
           <!-- 左侧：欢迎语 -->
           <div class="welcome-message">
-            <span>您好，欢迎来到重庆侠客行国际旅行社官网!</span>
+            <inline-editable-text v-model="headerContent.welcomeText" :edit-mode="headerEditMode" tag="span" maxlength="80" />
           </div>
 
           <!-- 右侧：用户链接 -->
@@ -68,32 +68,44 @@
               加入收藏
             </span>
             <el-divider direction="vertical" />
-            <router-link to="/about" class="top-link">关于侠客行</router-link>
+            <a :href="headerContent.aboutLinkUrl || '/about'" class="top-link" @click="handleHeaderConfiguredLink(headerContent.aboutLinkUrl || '/about', $event)">
+              <inline-editable-text v-model="headerContent.aboutText" :edit-mode="headerEditMode" tag="span" maxlength="40" />
+            </a>
+            <el-input v-if="headerEditMode" v-model="headerContent.aboutLinkUrl" class="header-link-input" size="small" placeholder="关于链接" />
             <el-divider direction="vertical" />
             <span class="wechat-link" @mouseenter="showWechatQR = true" @mouseleave="showWechatQR = false">
               <el-icon><ChatDotRound /></el-icon>
-              微信
+              <inline-editable-text v-model="headerContent.wechatText" :edit-mode="headerEditMode" tag="span" maxlength="20" />
               <div v-if="showWechatQR" class="wechat-qrcode">
-                <img src="@/assets/wechat.jpg" alt="微信公众号" @error="handleQRCodeError" />
-                <p>扫码关注微信公众号</p>
+                <img :src="wechatQrUrl" alt="" @error="handleQRCodeError" />
+                <inline-editable-text v-model="headerContent.wechatQrText" :edit-mode="headerEditMode" tag="p" maxlength="40" />
               </div>
             </span>
+            <template v-if="userStore.isAdmin">
+              <el-divider direction="vertical" />
+              <button v-if="!headerEditMode" class="header-edit-btn" type="button" @click="startHeaderEdit">编辑顶部</button>
+              <template v-else>
+                <button class="header-edit-btn" type="button" :disabled="headerSaving" @click="saveHeaderContent">保存顶部</button>
+                <button class="header-edit-btn is-plain" type="button" :disabled="headerSaving" @click="cancelHeaderEdit">取消</button>
+              </template>
+            </template>
           </div>
         </div>
       </div>
 
-      <!-- 第二层：Logo和搜索框 -->
+      <!-- 第二层：Logo 和搜索框 -->
       <div class="header-middle">
         <div class="header-middle-container">
-          <router-link to="/" class="logo-section">
-            <img src="@/assets/logo.png" class="logo-icon" />
+          <a :href="headerContent.logoLinkUrl || '/'" class="logo-section" @click="handleHeaderConfiguredLink(headerContent.logoLinkUrl || '/', $event)">
+            <img :src="logoUrl" class="logo-icon" />
             <div class="logo-text-group">
-              <h1 class="logo-title">侠客行国旅</h1>
-              <p class="logo-subtitle">XIAKEXING TRAVEL</p>
+              <inline-editable-text v-model="headerContent.brandName" :edit-mode="headerEditMode" tag="h1" class="logo-title" maxlength="50" />
+              <inline-editable-text v-model="headerContent.brandSubtitle" :edit-mode="headerEditMode" tag="p" class="logo-subtitle" maxlength="50" />
+              <el-input v-if="headerEditMode" v-model="headerContent.logoLinkUrl" class="header-link-input" size="small" placeholder="品牌链接" />
             </div>
-          </router-link>
+          </a>
 
-          <!-- 位置选择器移到搜索框左边 -->
+          <!-- 位置选择器移到搜索框左侧 -->
           <div class="search-bar-wrapper">
             <div class="location-selector">
               <el-icon><Location /></el-icon>
@@ -164,7 +176,7 @@
                 class="suggestions-dropdown"
                 @mousedown.prevent
               >
-                <!-- 线路推荐（综合模式或线路模式显示） -->
+                <!-- 线路推荐 -->
                 <div v-if="searchSuggestions.lines.length > 0 && (currentCategory.value === 'all' || currentCategory.value === 'line')" class="suggestion-section">
                   <div class="section-title">
                     <el-icon><Tickets /></el-icon>
@@ -182,7 +194,7 @@
                       <img
                         :src="getImageUrl(item.ticketImage)"
                         :alt="item.ticketName"
-                        @error="$event.target.src = 'https://via.placeholder.com/48x48?text=No+Image'"
+                        @error="$event.target.src = noImage"
                       />
                     </div>
                     <div class="item-content">
@@ -190,14 +202,14 @@
                       <div class="item-subtitle">
                         <el-icon><Ticket /></el-icon>
                         {{ item.description || '精彩线路' }}
-                        <span v-if="item.discountPrice && item.discountPrice > 0" class="price">¥{{ item.discountPrice }}</span>
-                        <span v-else-if="item.price && item.price > 0" class="price">¥{{ item.price }}</span>
+                        <span v-if="item.discountPrice && item.discountPrice > 0" class="price">￥{{ item.discountPrice }}</span>
+                        <span v-else-if="item.price && item.price > 0" class="price">￥{{ item.price }}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <!-- 景点推荐（综合模式或景点模式显示） -->
+                <!-- 景点推荐 -->
                 <div v-if="searchSuggestions.scenics.length > 0 && (currentCategory.value === 'all' || currentCategory.value === 'scenic')" class="suggestion-section">
                   <div class="section-title">
                     <el-icon><Location /></el-icon>
@@ -215,7 +227,7 @@
                       <img
                         :src="getImageUrl(item.imageUrl)"
                         :alt="item.name"
-                        @error="$event.target.src = 'https://via.placeholder.com/48x48?text=No+Image'"
+                        @error="$event.target.src = noImage"
                       />
                     </div>
                     <div class="item-content">
@@ -223,14 +235,14 @@
                       <div class="item-subtitle">
                         <el-icon><Location /></el-icon>
                         {{ item.location || '未知地区' }}
-                        <span v-if="item.price && item.price > 0" class="price">¥{{ item.price }}</span>
+                        <span v-if="item.price && item.price > 0" class="price">￥{{ item.price }}</span>
                         <span v-else class="price free">免费</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <!-- 攻略推荐（综合模式或攻略模式显示） -->
+                <!-- 攻略推荐 -->
                 <div v-if="searchSuggestions.guides.length > 0 && (currentCategory.value === 'all' || currentCategory.value === 'guide')" class="suggestion-section">
                   <div class="section-title">
                     <el-icon><Document /></el-icon>
@@ -248,7 +260,7 @@
                       <img
                         :src="getImageUrl(item.coverImage)"
                         :alt="item.title"
-                        @error="$event.target.src = 'https://via.placeholder.com/48x48?text=No+Image'"
+                        @error="$event.target.src = noImage"
                       />
                     </div>
                     <div class="item-content">
@@ -274,52 +286,83 @@
             mode="horizontal"
             :ellipsis="false"
             class="main-menu"
-            :router="true"
+            :router="false"
             :default-active="activeMenuIndex"
+            @select="handleMenuSelect"
           >
-            <el-menu-item index="/">
-              <span>首页</span>
+            <el-menu-item :index="headerContent.homeMenuUrl || '/'" @click="preventHeaderNavigation">
+              <inline-editable-text v-model="headerContent.homeMenuText" :edit-mode="headerEditMode" tag="span" maxlength="20" />
+              <el-input v-if="headerEditMode" v-model="headerContent.homeMenuUrl" class="menu-link-input" size="small" placeholder="链接" />
             </el-menu-item>
 
-            <el-menu-item index="/scenic">
-              <span>景点</span>
+            <el-menu-item :index="headerContent.scenicMenuUrl || '/scenic'" @click="preventHeaderNavigation">
+              <inline-editable-text v-model="headerContent.scenicMenuText" :edit-mode="headerEditMode" tag="span" maxlength="20" />
+              <el-input v-if="headerEditMode" v-model="headerContent.scenicMenuUrl" class="menu-link-input" size="small" placeholder="链接" />
             </el-menu-item>
 
-            <el-menu-item index="/guide">
-              <span>攻略</span>
+            <el-menu-item :index="headerContent.guideMenuUrl || '/guide'" @click="preventHeaderNavigation">
+              <inline-editable-text v-model="headerContent.guideMenuText" :edit-mode="headerEditMode" tag="span" maxlength="20" />
+              <el-input v-if="headerEditMode" v-model="headerContent.guideMenuUrl" class="menu-link-input" size="small" placeholder="链接" />
             </el-menu-item>
 
-            <el-menu-item index="/accommodation">
-              <span>住宿</span>
+            <el-menu-item :index="headerContent.accommodationMenuUrl || '/accommodation'" @click="preventHeaderNavigation">
+              <inline-editable-text v-model="headerContent.accommodationMenuText" :edit-mode="headerEditMode" tag="span" maxlength="20" />
+              <el-input v-if="headerEditMode" v-model="headerContent.accommodationMenuUrl" class="menu-link-input" size="small" placeholder="链接" />
             </el-menu-item>
 
             <el-sub-menu index="/around">
               <template #title>
-                <span>周边游</span>
+                <inline-editable-text v-model="headerContent.aroundMenuText" :edit-mode="headerEditMode" tag="span" maxlength="20" />
               </template>
               <el-menu-item-group>
-                <template #title>选择出游天数</template>
-                <el-menu-item @click="goToAroundTour('1')">一日游</el-menu-item>
-                <el-menu-item @click="goToAroundTour('2')">二日游</el-menu-item>
-                <el-menu-item @click="goToAroundTour('3')">三日游</el-menu-item>
-                <el-menu-item @click="goToAroundTour('4')">四日游</el-menu-item>
-                <el-menu-item @click="goToAroundTour('5')">五日游</el-menu-item>
+                <template #title>
+                  <inline-editable-text v-model="headerContent.aroundGroupText" :edit-mode="headerEditMode" tag="span" maxlength="30" />
+                </template>
+                <el-menu-item @click="goToAroundTour('1', $event)">
+                  <inline-editable-text v-model="headerContent.aroundOneDayText" :edit-mode="headerEditMode" tag="span" maxlength="20" />
+                  <el-input v-if="headerEditMode" v-model="headerContent.aroundOneDayUrl" class="menu-link-input" size="small" placeholder="链接" />
+                </el-menu-item>
+                <el-menu-item @click="goToAroundTour('2', $event)">
+                  <inline-editable-text v-model="headerContent.aroundTwoDayText" :edit-mode="headerEditMode" tag="span" maxlength="20" />
+                  <el-input v-if="headerEditMode" v-model="headerContent.aroundTwoDayUrl" class="menu-link-input" size="small" placeholder="链接" />
+                </el-menu-item>
+                <el-menu-item @click="goToAroundTour('3', $event)">
+                  <inline-editable-text v-model="headerContent.aroundThreeDayText" :edit-mode="headerEditMode" tag="span" maxlength="20" />
+                  <el-input v-if="headerEditMode" v-model="headerContent.aroundThreeDayUrl" class="menu-link-input" size="small" placeholder="链接" />
+                </el-menu-item>
+                <el-menu-item @click="goToAroundTour('4', $event)">
+                  <inline-editable-text v-model="headerContent.aroundFourDayText" :edit-mode="headerEditMode" tag="span" maxlength="20" />
+                  <el-input v-if="headerEditMode" v-model="headerContent.aroundFourDayUrl" class="menu-link-input" size="small" placeholder="链接" />
+                </el-menu-item>
+                <el-menu-item @click="goToAroundTour('5', $event)">
+                  <inline-editable-text v-model="headerContent.aroundFiveDayText" :edit-mode="headerEditMode" tag="span" maxlength="20" />
+                  <el-input v-if="headerEditMode" v-model="headerContent.aroundFiveDayUrl" class="menu-link-input" size="small" placeholder="链接" />
+                </el-menu-item>
               </el-menu-item-group>
             </el-sub-menu>
 
             <el-sub-menu index="/cruise">
               <template #title>
-                <span>邮轮出行</span>
+                <inline-editable-text v-model="headerContent.cruiseMenuText" :edit-mode="headerEditMode" tag="span" maxlength="20" />
               </template>
               <el-menu-item-group>
-                <template #title>选择邮轮类型</template>
-                <el-menu-item @click="goToCruise('sanxia')">三峡邮轮</el-menu-item>
-                <el-menu-item @click="goToCruise('xisha')">西沙邮轮</el-menu-item>
+                <template #title>
+                  <inline-editable-text v-model="headerContent.cruiseGroupText" :edit-mode="headerEditMode" tag="span" maxlength="30" />
+                </template>
+                <el-menu-item @click="goToCruise('sanxia', $event)">
+                  <inline-editable-text v-model="headerContent.sanxiaCruiseText" :edit-mode="headerEditMode" tag="span" maxlength="20" />
+                  <el-input v-if="headerEditMode" v-model="headerContent.sanxiaCruiseUrl" class="menu-link-input" size="small" placeholder="链接" />
+                </el-menu-item>
+                <el-menu-item @click="goToCruise('xisha', $event)">
+                  <inline-editable-text v-model="headerContent.xishaCruiseText" :edit-mode="headerEditMode" tag="span" maxlength="20" />
+                  <el-input v-if="headerEditMode" v-model="headerContent.xishaCruiseUrl" class="menu-link-input" size="small" placeholder="链接" />
+                </el-menu-item>
               </el-menu-item-group>
             </el-sub-menu>
 
-            <el-menu-item index="/tickets">
-              <span>行程预订</span>
+            <el-menu-item :index="headerContent.ticketsMenuUrl || '/tickets'" @click="preventHeaderNavigation">
+              <inline-editable-text v-model="headerContent.ticketsMenuText" :edit-mode="headerEditMode" tag="span" maxlength="20" />
+              <el-input v-if="headerEditMode" v-model="headerContent.ticketsMenuUrl" class="menu-link-input" size="small" placeholder="链接" />
             </el-menu-item>
           </el-menu>
         </div>
@@ -371,12 +414,12 @@
               >
                 {{ link.label }}
               </a>
-              <span v-if="footerConfig.licenseNumber">{{ fieldLabel('licenseNumber', '许可编号') }}：{{ footerConfig.licenseNumber }}</span>
+              <span v-if="footerConfig.licenseNumber">{{ fieldLabel('licenseNumber', '许可证号') }}：{{ footerConfig.licenseNumber }}</span>
             </div>
 
             <div class="footer-line">
               <span v-if="footerConfig.reportEmail">{{ fieldLabel('reportEmail', '服务邮箱') }}：{{ footerConfig.reportEmail }}</span>
-              <span v-if="footerConfig.minorReportEmail">{{ fieldLabel('minorReportEmail', '未成年人信息保护邮箱') }}：{{ footerConfig.minorReportEmail }}</span>
+              <span v-if="footerConfig.minorReportEmail">{{ fieldLabel('minorReportEmail', '未成年人保护邮箱') }}：{{ footerConfig.minorReportEmail }}</span>
             </div>
 
             <div class="footer-line">
@@ -386,12 +429,12 @@
             </div>
 
             <div class="footer-line">
-              <span v-if="footerConfig.address">{{ fieldLabel('address', '公司总部地址') }}：{{ footerConfig.address }}</span>
+              <span v-if="footerConfig.address">{{ fieldLabel('address', '公司地址') }}：{{ footerConfig.address }}</span>
               <span v-if="footerConfig.serviceTime">{{ fieldLabel('serviceTime', '服务时间') }}：{{ footerConfig.serviceTime }}</span>
             </div>
 
             <div v-if="visibleLinks(footerConfig.friendlyLinks).length" class="footer-line footer-friends">
-              <span>合作链接</span>
+              <span>鍚堜綔閾炬帴</span>
               <a
                 v-for="link in visibleLinks(footerConfig.friendlyLinks)"
                 :key="`${link.label}-${link.url}`"
@@ -413,7 +456,7 @@
             </div>
           </section>
 
-          <section v-if="visibleCertificates.length" class="footer-certs" aria-label="荣誉证书">
+          <section v-if="visibleCertificates.length" class="footer-certs" aria-label="鑽ｈ獕璇佷功">
             <div class="footer-cert-list">
               <article v-for="item in visibleCertificates" :key="item.title" class="footer-cert-item">
                 <img v-if="item.imageUrl" :src="getFooterAssetUrl(item.imageUrl)" :alt="item.title" @error="hideBrokenImage" />
@@ -463,9 +506,12 @@ import { useUserStore } from '@/store/user'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import NotificationBell from '@/components/NotificationBell.vue'
+import InlineEditableText from '@/components/frontend/InlineEditableText.vue'
 import request from '@/utils/request'
 import { getPublicFooterConfig } from '@/api/siteFooter'
-import wechatQrImage from '@/assets/wechat.jpg'
+import { getPublicPageContent, savePageContent } from '@/api/pageContent'
+import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
+import noImage from '@/assets/images/no-image.png'
 import {
   User,
   Reading,
@@ -485,12 +531,59 @@ const userStore = useUserStore()
 const router = useRouter()
 const route = useRoute()
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
+const { siteAssets, loadSiteAssets } = useSiteAssets()
 
 // 位置相关
 const DEFAULT_CITY = '重庆'
 const LOCATION_STORAGE_KEY = 'frontend_selected_city'
 const currentCity = ref(DEFAULT_CITY)
 const showWechatQR = ref(false)
+const logoUrl = computed(() => getAssetUrl(siteAssets.value.logoUrl, noImage))
+const wechatQrUrl = computed(() => getAssetUrl(siteAssets.value.wechatQrUrl, noImage))
+
+const cloneData = (data) => JSON.parse(JSON.stringify(data))
+const createDefaultHeaderContent = () => ({
+  welcomeText: '您好，欢迎来到重庆侠客行国际旅行社官网',
+  brandName: '侠客行国旅',
+  brandSubtitle: 'XIAKEXING TRAVEL',
+  logoLinkUrl: '/',
+  aboutText: '关于侠客行',
+  aboutLinkUrl: '/about',
+  wechatText: '微信',
+  wechatQrText: '扫码关注微信公众号',
+  homeMenuText: '首页',
+  homeMenuUrl: '/',
+  scenicMenuText: '景点',
+  scenicMenuUrl: '/scenic',
+  guideMenuText: '攻略',
+  guideMenuUrl: '/guide',
+  accommodationMenuText: '住宿',
+  accommodationMenuUrl: '/accommodation',
+  aroundMenuText: '周边游',
+  aroundGroupText: '选择出游天数',
+  aroundOneDayText: '一日游',
+  aroundOneDayUrl: '',
+  aroundTwoDayText: '二日游',
+  aroundTwoDayUrl: '',
+  aroundThreeDayText: '三日游',
+  aroundThreeDayUrl: '',
+  aroundFourDayText: '四日游',
+  aroundFourDayUrl: '',
+  aroundFiveDayText: '五日游',
+  aroundFiveDayUrl: '',
+  cruiseMenuText: '邮轮出行',
+  cruiseGroupText: '选择邮轮类型',
+  sanxiaCruiseText: '三峡邮轮',
+  sanxiaCruiseUrl: '',
+  xishaCruiseText: '西沙邮轮',
+  xishaCruiseUrl: '',
+  ticketsMenuText: '行程预订',
+  ticketsMenuUrl: '/tickets'
+})
+const headerContent = ref(createDefaultHeaderContent())
+const headerEditMode = ref(false)
+const headerSaving = ref(false)
+const headerSnapshot = ref(null)
 
 const defaultFooterFieldLabels = () => ({
   enabled: '前台展示状态',
@@ -500,50 +593,50 @@ const defaultFooterFieldLabels = () => ({
   consultationPhone: '旅行咨询电话',
   cruisePhone: '团队与邮轮咨询',
   serviceTime: '服务时间',
-  address: '公司总部地址',
+  address: '公司地址',
   icpNumber: 'ICP备案号',
   icpUrl: 'ICP备案链接',
   policeNumber: '公安备案号',
   policeUrl: '公安备案链接',
-  licenseNumber: '许可编号',
+  licenseNumber: '许可证号',
   complaintPhone: '投诉与服务监督',
   technicalSupport: '法律与技术支持',
   reportEmail: '服务邮箱',
-  minorReportEmail: '未成年人信息保护邮箱',
+  minorReportEmail: '未成年人保护邮箱',
   copyright: '版权信息'
 })
 
 const createDefaultFooterConfig = () => ({
   enabled: true,
-  companyName: '侠客行国际旅行社有限公司',
-  brandName: '侠客行国旅',
-  slogan: '扎根重庆，连接山城、三峡与西南山河的品质旅行服务',
+  companyName: '旅行社有限公司',
+  brandName: '品牌名称',
+  slogan: '连接目的地与品质旅行服务',
   consultationPhone: '400-800-5178',
   cruisePhone: '023-6789-5178',
-  serviceTime: '09:00 - 20:00，节假日专人在线',
-  address: '重庆市渝中区解放碑商圈时代旅行中心 18F',
-  copyright: '© 2021-2026 侠客行国旅 版权所有',
+  serviceTime: '09:00 - 20:00',
+  address: '公司地址',
+  copyright: '© 2021-2026 版权所有',
   icpNumber: '',
   icpUrl: 'https://beian.miit.gov.cn/',
   policeNumber: '',
   policeUrl: 'https://beian.mps.gov.cn/',
   licenseNumber: 'L-CQ-XXK-2026',
   complaintPhone: '12345 / 023-6789-5178',
-  technicalSupport: '侠客行数字旅行中心',
+  technicalSupport: '数字旅行中心',
   reportEmail: 'service@xkxtrip.com',
   minorReportEmail: 'safe@xkxtrip.com',
   fieldLabels: defaultFooterFieldLabels(),
   featureItems: [
-    { title: '守信', description: '行程说明、费用明细与服务标准清楚呈现，重要节点可追踪。', icon: 'shield' },
-    { title: '甄选', description: '围绕重庆、三峡与西南目的地，打磨小而美的品质线路。', icon: 'route' },
-    { title: '陪伴', description: '顾问、导游与客服协同响应，从预订到返程持续跟进。', icon: 'service' },
-    { title: '自在', description: '控制车程、住宿与游览节奏，让旅途保持轻松和松弛感。', icon: 'experience' },
-    { title: '友好', description: '尊重当地风俗与自然环境，倡导低打扰、负责任的旅行。', icon: 'leaf' },
-    { title: '共创', description: '收集真实评价与旅途故事，把反馈转化为下一次优化。', icon: 'share' }
+    { title: '守信', description: '行程说明、费用明细与服务标准清晰呈现。', icon: 'shield' },
+    { title: '甄选', description: '围绕目的地资源打磨品质线路。', icon: 'route' },
+    { title: '陪伴', description: '顾问与客服协同响应，持续跟进。', icon: 'service' },
+    { title: '自在', description: '控制车程、住宿与游览节奏。', icon: 'experience' },
+    { title: '友好', description: '尊重当地风俗与自然环境。', icon: 'leaf' },
+    { title: '共创', description: '收集真实反馈并持续优化。', icon: 'share' }
   ],
   topLinks: [
-    { label: '关于侠客行', url: '/about' },
-    { label: '山城线路', url: '/tickets' },
+    { label: '关于我们', url: '/about' },
+    { label: '旅行线路', url: '/tickets' },
     { label: '目的地灵感', url: '/scenic' },
     { label: '旅行攻略', url: '/guide' },
     { label: '服务承诺', url: '/about' },
@@ -551,7 +644,7 @@ const createDefaultFooterConfig = () => ({
   ],
   complianceLinks: [
     { label: '营业执照', url: '/legal/business-license' },
-    { label: '旅行社业务经营许可', url: '/legal/travel-license' },
+    { label: '旅行社业务经营许可证', url: '/legal/travel-license' },
     { label: '服务规范', url: '/legal/service-standard' },
     { label: '社区公约', url: '/legal/community-guidelines' },
     { label: '安全与隐私保护', url: '/legal/privacy-safety' },
@@ -559,8 +652,8 @@ const createDefaultFooterConfig = () => ({
   ],
   friendlyLinks: [],
   qrCodes: [
-    { label: '侠客行服务号', imageUrl: wechatQrImage, description: '线路上新与出行提醒' },
-    { label: '旅行顾问', imageUrl: wechatQrImage, description: '定制咨询与售后协助' }
+    { label: '服务号', imageUrl: wechatQrUrl.value, description: '线路上新与出行提醒' },
+    { label: '旅行顾问', imageUrl: wechatQrUrl.value, description: '定制咨询与售后协助' }
   ],
   certificates: [],
   legalNotes: ['平台展示的图片、攻略与目的地资料仅用于旅行服务说明，出行前请以订单确认信息和当地实时政策为准。']
@@ -582,10 +675,10 @@ const cityList = ref([
   { code: 'shenzhen', name: '深圳', aliases: ['深圳市', 'Shenzhen'] },
   { code: 'hangzhou', name: '杭州', aliases: ['杭州市', 'Hangzhou'] },
   { code: 'nanjing', name: '南京', aliases: ['南京市', 'Nanjing'] },
-  { code: 'xian', name: '西安', aliases: ['西安市', 'Xi’an', "Xi'an", 'Xian'] }
+  { code: 'xian', name: '西安', aliases: ['西安市', "Xi'an", 'Xian'] }
 ])
 
-// 搜索相关变量
+// 鎼滅储鐩稿叧鍙橀噺
 const searchKeyword = ref('')
 const searchContainer = ref(null)
 const showSearchSuggestions = ref(false)
@@ -596,7 +689,7 @@ const searchSuggestions = reactive({
   lines: []
 })
 
-// 搜索类别 - 添加综合（默认）
+// 搜索类别
 const searchCategories = [
   { value: 'all', label: '综合', icon: 'Grid' },
   { value: 'line', label: '线路', icon: 'Tickets' },
@@ -615,7 +708,7 @@ let searchDebounceTimer = null
 const isLoggedIn = computed(() => !!userStore.token)
 const userName = computed(() => userStore.userInfo?.nickname || userStore.userInfo?.name || userStore.userInfo?.username || '')
 
-// 计算当前激活的菜单索引
+// 璁＄畻褰撳墠婵€娲荤殑鑿滃崟绱㈠紩
 const activeMenuIndex = computed(() => {
   const path = route.path
   if (path === '/') return '/'
@@ -627,9 +720,9 @@ const activeMenuIndex = computed(() => {
   return '/'
 })
 
-// 获取图片完整URL
+// 鑾峰彇鍥剧墖瀹屾暣URL
 const getImageUrl = (url) => {
-  if (!url) return 'https://via.placeholder.com/48x48?text=No+Image'
+  if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
 }
 
@@ -652,7 +745,7 @@ const visibleCertificates = computed(() => {
 const withFallbackQrImages = (qrCodes = [], fallbackQrCodes = []) => {
   return qrCodes.map((item, index) => ({
     ...item,
-    imageUrl: item.imageUrl || fallbackQrCodes[index]?.imageUrl || ''
+    imageUrl: item.imageUrl || fallbackQrCodes[index]?.imageUrl || noImage
   }))
 }
 
@@ -663,9 +756,11 @@ const visibleFeatureItems = computed(() => {
 })
 
 const getFooterAssetUrl = (url) => {
-  if (!url) return ''
+  if (!url) return noImage
   if (/^(https?:|data:|blob:)/.test(url)) return url
-  if (url.startsWith('/img/') || url.startsWith('/assets/')) return url
+  if (url.startsWith('/assets/')) return url
+  if (baseAPI && url.startsWith(`${baseAPI}/`)) return url
+  if (url.startsWith('/img/')) return baseAPI + url
   return url.startsWith('/') ? baseAPI + url : url
 }
 
@@ -718,7 +813,7 @@ const getFooterFeatureIconPaths = (icon) => {
 
 const hideBrokenImage = (event) => {
   if (event?.target) {
-    event.target.style.display = 'none'
+    event.target.src = noImage
   }
 }
 
@@ -744,6 +839,100 @@ const loadFooterConfig = async () => {
   }
 }
 
+const loadHeaderContent = async () => {
+  const fallback = createDefaultHeaderContent()
+  try {
+    const data = await getPublicPageContent('frontend-header')
+    headerContent.value = {
+      ...fallback,
+      ...(data || {})
+    }
+  } catch {
+    headerContent.value = fallback
+  }
+}
+
+const startHeaderEdit = () => {
+  headerSnapshot.value = cloneData(headerContent.value)
+  headerEditMode.value = true
+}
+
+const cancelHeaderEdit = () => {
+  if (headerSnapshot.value) {
+    headerContent.value = cloneData(headerSnapshot.value)
+  }
+  headerEditMode.value = false
+}
+
+const serializeHeaderContent = () => ({
+  welcomeText: headerContent.value.welcomeText,
+  brandName: headerContent.value.brandName,
+  brandSubtitle: headerContent.value.brandSubtitle,
+  logoLinkUrl: headerContent.value.logoLinkUrl,
+  aboutText: headerContent.value.aboutText,
+  aboutLinkUrl: headerContent.value.aboutLinkUrl,
+  wechatText: headerContent.value.wechatText,
+  wechatQrText: headerContent.value.wechatQrText,
+  homeMenuText: headerContent.value.homeMenuText,
+  homeMenuUrl: headerContent.value.homeMenuUrl,
+  scenicMenuText: headerContent.value.scenicMenuText,
+  scenicMenuUrl: headerContent.value.scenicMenuUrl,
+  guideMenuText: headerContent.value.guideMenuText,
+  guideMenuUrl: headerContent.value.guideMenuUrl,
+  accommodationMenuText: headerContent.value.accommodationMenuText,
+  accommodationMenuUrl: headerContent.value.accommodationMenuUrl,
+  aroundMenuText: headerContent.value.aroundMenuText,
+  aroundGroupText: headerContent.value.aroundGroupText,
+  aroundOneDayText: headerContent.value.aroundOneDayText,
+  aroundOneDayUrl: headerContent.value.aroundOneDayUrl,
+  aroundTwoDayText: headerContent.value.aroundTwoDayText,
+  aroundTwoDayUrl: headerContent.value.aroundTwoDayUrl,
+  aroundThreeDayText: headerContent.value.aroundThreeDayText,
+  aroundThreeDayUrl: headerContent.value.aroundThreeDayUrl,
+  aroundFourDayText: headerContent.value.aroundFourDayText,
+  aroundFourDayUrl: headerContent.value.aroundFourDayUrl,
+  aroundFiveDayText: headerContent.value.aroundFiveDayText,
+  aroundFiveDayUrl: headerContent.value.aroundFiveDayUrl,
+  cruiseMenuText: headerContent.value.cruiseMenuText,
+  cruiseGroupText: headerContent.value.cruiseGroupText,
+  sanxiaCruiseText: headerContent.value.sanxiaCruiseText,
+  sanxiaCruiseUrl: headerContent.value.sanxiaCruiseUrl,
+  xishaCruiseText: headerContent.value.xishaCruiseText,
+  xishaCruiseUrl: headerContent.value.xishaCruiseUrl,
+  ticketsMenuText: headerContent.value.ticketsMenuText,
+  ticketsMenuUrl: headerContent.value.ticketsMenuUrl
+})
+
+const preventHeaderNavigation = (event) => {
+  if (headerEditMode.value) {
+    event.preventDefault()
+  }
+}
+
+const handleHeaderConfiguredLink = (url, event) => {
+  event?.preventDefault?.()
+  if (headerEditMode.value) return
+  navigateConfiguredUrl(url)
+}
+
+const handleMenuSelect = (url) => {
+  if (headerEditMode.value) return
+  navigateConfiguredUrl(url)
+}
+
+const saveHeaderContent = async () => {
+  headerSaving.value = true
+  try {
+    await savePageContent('frontend-header', serializeHeaderContent(), { successMsg: '顶部内容已保存' })
+    headerEditMode.value = false
+    headerSnapshot.value = null
+  } catch {
+    ElMessage.error('保存顶部内容失败')
+  } finally {
+    headerSaving.value = false
+  }
+}
+
 // 获取占位符文本
 const getPlaceholder = () => {
   switch (currentCategory.value.value) {
@@ -764,7 +953,7 @@ const handleLocationChange = (cityCode) => {
   }
 }
 
-// 城市名到代码的映射
+// 城市名称到代码的映射
 const cityNameToCode = {
   '重庆': 'chongqing', '宜昌': 'yichang', '海南': 'hainan', '成都': 'chengdu',
   '贵阳': 'guiyang', '昆明': 'kunming', '长沙': 'changsha', '北京': 'beijing',
@@ -772,25 +961,54 @@ const cityNameToCode = {
   '南京': 'nanjing', '西安': 'xian'
 }
 
-// 周边游跳转 - 使用精确天数
-const goToAroundTour = (days) => {
+const navigateConfiguredUrl = (url) => {
+  if (!url) return
+  if (/^(https?:)?\/\//.test(url)) {
+    window.open(url, '_blank', 'noopener,noreferrer')
+    return
+  }
+  router.push(url)
+}
+
+const getConfiguredAroundUrl = (days) => {
+  const fieldMap = {
+    1: 'aroundOneDayUrl',
+    2: 'aroundTwoDayUrl',
+    3: 'aroundThreeDayUrl',
+    4: 'aroundFourDayUrl',
+    5: 'aroundFiveDayUrl'
+  }
+  const configuredUrl = headerContent.value[fieldMap[days]]
+  if (configuredUrl) return configuredUrl
   const cityCode = cityNameToCode[currentCity.value] || 'chongqing'
-  // 周边游直接传精确天数
-  router.push(`/tickets?tourType=around&city=${cityCode}&days=${days}`)
+  return `/tickets?tourType=around&city=${cityCode}&days=${days}`
 }
 
-// 邮轮出行跳转 - 三峡/西沙作为目的地筛选
-const goToCruise = (cruiseType) => {
-  // cruiseType 直接作为目的地值
-  router.push(`/tickets?tourType=cruise&destination=${cruiseType}`)
+// 鍛ㄨ竟娓歌烦杞?- 浣跨敤绮剧‘澶╂暟
+const goToAroundTour = (days, event) => {
+  if (headerEditMode.value) {
+    event?.preventDefault?.()
+    return
+  }
+  navigateConfiguredUrl(getConfiguredAroundUrl(days))
 }
 
-// 搜索类别变更
+// 閭疆鍑鸿璺宠浆 - 涓夊场/瑗挎矙浣滀负鐩殑鍦扮瓫閫?
+const goToCruise = (cruiseType, event) => {
+  if (headerEditMode.value) {
+    event?.preventDefault?.()
+    return
+  }
+  const configuredUrl = cruiseType === 'sanxia' ? headerContent.value.sanxiaCruiseUrl : headerContent.value.xishaCruiseUrl
+  navigateConfiguredUrl(configuredUrl || `/tickets?tourType=cruise&destination=${cruiseType}`)
+}
+
+// 鎼滅储绫诲埆鍙樻洿
 const handleCategoryChange = (categoryValue) => {
   const cat = searchCategories.find(c => c.value === categoryValue)
   if (cat) {
     currentCategory.value = cat
-    // 清空之前的搜索建议
+    // 娓呯┖涔嬪墠鐨勬悳绱㈠缓璁?
     searchSuggestions.scenics = []
     searchSuggestions.guides = []
     searchSuggestions.lines = []
@@ -798,7 +1016,7 @@ const handleCategoryChange = (categoryValue) => {
   }
 }
 
-// 搜索输入处理
+// 鎼滅储杈撳叆澶勭悊
 const handleSearchInput = (value) => {
   if (searchDebounceTimer) {
     clearTimeout(searchDebounceTimer)
@@ -814,12 +1032,12 @@ const handleSearchInput = (value) => {
   }, 300)
 }
 
-// 获取搜索建议
+// 鑾峰彇鎼滅储寤鸿
 const fetchSearchSuggestions = async (keyword) => {
   if (!keyword) return
 
   try {
-    // 清空之前的建议
+    // 娓呯┖涔嬪墠鐨勫缓璁?
     searchSuggestions.scenics = []
     searchSuggestions.guides = []
     searchSuggestions.lines = []
@@ -827,7 +1045,7 @@ const fetchSearchSuggestions = async (keyword) => {
     const category = currentCategory.value.value
 
     if (category === 'all') {
-      // 综合搜索：同时获取景点、攻略和线路建议
+      // 缁煎悎鎼滅储锛氬悓鏃惰幏鍙栨櫙鐐广€佹敾鐣ュ拰绾胯矾寤鸿
       const [scenicResponse, guideResponse] = await Promise.all([
         request.get('/scenic/suggestions', {
           keyword,
@@ -847,7 +1065,7 @@ const fetchSearchSuggestions = async (keyword) => {
       searchSuggestions.scenics = Array.isArray(scenicResponse) ? scenicResponse : (scenicResponse?.data || [])
       searchSuggestions.guides = Array.isArray(guideResponse) ? guideResponse : (guideResponse?.data || [])
 
-      // 单独获取线路建议（使用行程接口）
+      // 鍗曠嫭鑾峰彇绾胯矾寤鸿锛堜娇鐢ㄨ绋嬫帴鍙ｏ級
       await request.get('/tour/page', {
         title: keyword,
         currentPage: 1,
@@ -859,7 +1077,7 @@ const fetchSearchSuggestions = async (keyword) => {
         }
       })
     } else if (category === 'scenic') {
-      // 只获取景点建议
+      // 鍙幏鍙栨櫙鐐瑰缓璁?
       const response = await request.get('/scenic/suggestions', {
         keyword,
         limit: 5
@@ -869,7 +1087,7 @@ const fetchSearchSuggestions = async (keyword) => {
 
       searchSuggestions.scenics = Array.isArray(response) ? response : (response?.data || [])
     } else if (category === 'guide') {
-      // 只获取攻略建议
+      // 鍙幏鍙栨敾鐣ュ缓璁?
       const response = await request.get('/guide/suggestions', {
         keyword,
         limit: 5
@@ -879,7 +1097,7 @@ const fetchSearchSuggestions = async (keyword) => {
 
       searchSuggestions.guides = Array.isArray(response) ? response : (response?.data || [])
     } else if (category === 'line') {
-      // 只获取线路建议（使用行程接口）
+      // 鍙幏鍙栫嚎璺缓璁紙浣跨敤琛岀▼鎺ュ彛锛?
       await request.get('/tour/page', {
         title: keyword,
         currentPage: 1,
@@ -903,7 +1121,7 @@ const fetchSearchSuggestions = async (keyword) => {
   }
 }
 
-// 键盘事件处理
+// 閿洏浜嬩欢澶勭悊
 const handleSearchKeydown = (event) => {
   const totalItems = searchSuggestions.scenics.length + searchSuggestions.guides.length + searchSuggestions.lines.length
 
@@ -931,27 +1149,27 @@ const handleSearchKeydown = (event) => {
   }
 }
 
-// 获得焦点
+// 鑾峰緱鐒︾偣
 const handleSearchFocus = () => {
   if (searchKeyword.value.trim() && hasSuggestions.value) {
     showSearchSuggestions.value = true
   }
 }
 
-// 失去焦点
+// 澶卞幓鐒︾偣
 const handleSearchBlur = () => {
   setTimeout(() => {
     hideSearchSuggestions()
   }, 200)
 }
 
-// 隐藏建议
+// 闅愯棌寤鸿
 const hideSearchSuggestions = () => {
   showSearchSuggestions.value = false
   selectedSuggestionIndex.value = -1
 }
 
-// 获取攻略建议的索引（线路在最上，然后景点，然后攻略）
+// 鑾峰彇鏀荤暐寤鸿鐨勭储寮曪紙绾胯矾鍦ㄦ渶涓婏紝鐒跺悗鏅偣锛岀劧鍚庢敾鐣ワ級
 const getGuideIndex = (index) => {
   if (currentCategory.value === 'all') {
     return searchSuggestions.lines.length + searchSuggestions.scenics.length + index
@@ -959,50 +1177,50 @@ const getGuideIndex = (index) => {
   return index
 }
 
-// 获取线路建议的索引（线路在最上面）
+// 鑾峰彇绾胯矾寤鸿鐨勭储寮曪紙绾胯矾鍦ㄦ渶涓婇潰锛?
 const getLineIndex = (index) => {
   return index
 }
 
-// 选择建议项
+// 閫夋嫨寤鸿椤?
 const selectSuggestion = (index) => {
   const lineCount = searchSuggestions.lines.length
   const scenicCount = searchSuggestions.scenics.length
   if (index < lineCount) {
-    // 线路
+    // 绾胯矾
     const line = searchSuggestions.lines[index]
     goToTicketDetail(line.id)
   } else if (index < lineCount + scenicCount) {
-    // 景点
+    // 鏅偣
     const scenic = searchSuggestions.scenics[index - lineCount]
     goToScenicDetail(scenic.id)
   } else {
-    // 攻略
+    // 鏀荤暐
     const guide = searchSuggestions.guides[index - lineCount - scenicCount]
     goToGuideDetail(guide.id)
   }
 }
 
-// 跳转到景点详情
+// 璺宠浆鍒版櫙鐐硅鎯?
 const goToScenicDetail = (id) => {
   router.push(`/scenic/${id}`)
   hideSearchSuggestions()
 }
 
-// 跳转到攻略详情
+// 璺宠浆鍒版敾鐣ヨ鎯?
 const goToGuideDetail = (id) => {
   router.push(`/guide/detail/${id}`)
   hideSearchSuggestions()
 }
 
-// 跳转到行程详情
+// 璺宠浆鍒拌绋嬭鎯?
 const goToTicketDetail = (id) => {
   router.push(`/ticket/booking/${id}`)
   hideSearchSuggestions()
 }
 
-// 跳转到线路详情（兼容旧名称）
-// 执行搜索提交
+// 璺宠浆鍒扮嚎璺鎯咃紙鍏煎鏃у悕绉帮級
+// 鎵ц鎼滅储鎻愪氦
 const handleSearchSubmit = () => {
   if (!searchKeyword.value.trim()) return
 
@@ -1010,20 +1228,20 @@ const handleSearchSubmit = () => {
 
   switch (currentCategory.value.value) {
     case 'line':
-      // 线路搜索跳转到行程预订页面
+      // 绾胯矾鎼滅储璺宠浆鍒拌绋嬮璁㈤〉闈?
       router.push(`/tickets?search=${keyword}`)
       break
     case 'scenic':
-      // 景点搜索跳转到景点列表页
+      // 鏅偣鎼滅储璺宠浆鍒版櫙鐐瑰垪琛ㄩ〉
       router.push(`/scenic?search=${keyword}`)
       break
     case 'guide':
-      // 攻略搜索跳转到攻略列表页
+      // 鏀荤暐鎼滅储璺宠浆鍒版敾鐣ュ垪琛ㄩ〉
       router.push(`/guide?search=${keyword}`)
       break
     case 'all':
     default:
-      // 综合搜索默认跳转到行程预订页面（线路）
+      // 缁煎悎鎼滅储榛樿璺宠浆鍒拌绋嬮璁㈤〉闈紙绾胯矾锛?
       router.push(`/tickets?search=${keyword}`)
   }
 
@@ -1032,9 +1250,9 @@ const handleSearchSubmit = () => {
 
 const handleAddFavorite = () => {
   try {
-    window.external.addToFavorites(window.location.href, '侠客行国旅')
+    window.external.addToFavorites(window.location.href, headerContent.value.brandName || document.title)
   } catch (e) {
-    // 通用浏览器收藏方法
+    // 閫氱敤娴忚鍣ㄦ敹钘忔柟娉?
     var url = window.location.href
     var title = document.title
     if (window.sidebar && window.sidebar.addPanel) {
@@ -1044,21 +1262,21 @@ const handleAddFavorite = () => {
       // IE
       window.external.AddToFavoritesCb(url, title)
     } else {
-      // Chrome等现代浏览器（无法自动收藏，需提示用户）
-      ElMessage.info('请按 Ctrl+D 键收藏本站')
+      // Chrome 等现代浏览器无法自动收藏，需要提示用户。
+      ElMessage.info('请按 Ctrl+D 收藏本站')
     }
   }
 }
 
 const handleQRCodeError = (e) => {
-  // 图片加载失败时隐藏
+  // 图片加载失败时隐藏。
   e.target.parentElement.style.display = 'none'
 }
 
 const normalizeLocationName = (value = '') => {
   return String(value)
     .trim()
-    .replace(/(省|市|地区|自治州|特别行政区)$/g, '')
+    .replace(/(省|市|地区|自治区|特别行政区)$/g, '')
     .toLowerCase()
 }
 
@@ -1079,7 +1297,7 @@ const applyDefaultCity = () => {
   currentCity.value = DEFAULT_CITY
 }
 
-// 通过公网 IP 自动定位。失败或未命中展示城市时，默认回到重庆。
+// 通过公网 IP 自动定位，失败时回到默认城市。
 const fetchLocationByIP = async () => {
   const savedCityCode = localStorage.getItem(LOCATION_STORAGE_KEY)
   const savedCity = cityList.value.find(city => city.code === savedCityCode)
@@ -1164,9 +1382,10 @@ const handleLogout = () => {
 }
 
 onMounted(() => {
-  // 页面加载时尝试通过IP获取位置
+  // 椤甸潰鍔犺浇鏃跺皾璇曢€氳繃IP鑾峰彇浣嶇疆
   fetchLocationByIP()
-  loadFooterConfig()
+  loadHeaderContent()
+  loadSiteAssets().then(loadFooterConfig)
 })
 </script>
 
@@ -1178,7 +1397,7 @@ onMounted(() => {
   background-color: #FFFFFF;
 }
 
-// ==================== 三层页眉样式 ====================
+// ==================== 涓夊眰椤电湁鏍峰紡 ====================
 
 .header {
   background: #ffffff;
@@ -1187,7 +1406,7 @@ onMounted(() => {
   margin-bottom: 0;
 }
 
-// 第一层：顶部信息栏
+// 绗竴灞傦細椤堕儴淇℃伅鏍?
 .header-top {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   color: #fff;
@@ -1381,6 +1600,36 @@ onMounted(() => {
     }
   }
 
+  .header-edit-btn {
+    height: 24px;
+    padding: 0 8px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 22px;
+
+    &:hover {
+      border-color: #ffbd00;
+      color: #ffdf74;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    &.is-plain {
+      color: #c9d1d9;
+    }
+  }
+
+  .header-link-input {
+    width: 180px;
+  }
+
   .wechat-link {
     color: #07c160;
     cursor: pointer;
@@ -1435,7 +1684,7 @@ onMounted(() => {
   }
 }
 
-// 第二层：Logo和搜索框
+// 绗簩灞傦細Logo鍜屾悳绱㈡
 .header-middle {
   background: #fff;
   border-bottom: 1px solid #eee;
@@ -1481,7 +1730,7 @@ onMounted(() => {
   }
 }
 
-// 搜索栏包装器 - 位置选择器 + 搜索框组合
+// 鎼滅储鏍忓寘瑁呭櫒 - 浣嶇疆閫夋嫨鍣?+ 鎼滅储妗嗙粍鍚?
 .search-bar-wrapper {
   flex: 1;
   max-width: 700px;
@@ -1490,7 +1739,7 @@ onMounted(() => {
   position: relative;
 }
 
-// 智能搜索框样式
+// 鏅鸿兘鎼滅储妗嗘牱寮?
 .smart-search-wrapper {
   flex: 1;
   display: flex;
@@ -1498,7 +1747,7 @@ onMounted(() => {
   position: relative;
 }
 
-// 搜索类别选择器
+// 鎼滅储绫诲埆閫夋嫨鍣?
 .category-dropdown {
   .category-selector {
     display: flex;
@@ -1601,7 +1850,7 @@ onMounted(() => {
   }
 }
 
-// 搜索建议下拉框
+// 鎼滅储寤鸿涓嬫媺妗?
 .suggestions-dropdown {
   position: absolute;
   top: 100%;
@@ -1708,7 +1957,7 @@ onMounted(() => {
   }
 }
 
-// 滚动条样式
+// 婊氬姩鏉℃牱寮?
 .suggestions-dropdown::-webkit-scrollbar {
   width: 6px;
 }
@@ -1727,7 +1976,7 @@ onMounted(() => {
   }
 }
 
-// 第三层：主导航菜单
+// 绗笁灞傦細涓诲鑸彍鍗?
 .header-bottom {
   background: #fff;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -1773,17 +2022,22 @@ onMounted(() => {
     margin-right: 20px;
   }
 
+  .menu-link-input {
+    width: 150px;
+    margin-left: 8px;
+  }
+
   :deep(.el-sub-menu) {
     margin-right: 20px;
   }
 
-  // 隐藏sub-menu的箭头
+  // 闅愯棌sub-menu鐨勭澶?
   :deep(.el-sub-menu__icon-arrow) {
     display: none;
   }
 }
 
-// 主内容区域
+// 涓诲唴瀹瑰尯鍩?
 .main-content {
   flex: 1;
   padding: 0;
@@ -2070,7 +2324,7 @@ onMounted(() => {
   font-size: 13px;
 }
 
-// 现代旅行品牌信息矩阵页脚
+// 鐜颁唬鏃呰鍝佺墝淇℃伅鐭╅樀椤佃剼
 .footer {
   background: #363636;
   color: #c8d0d7;

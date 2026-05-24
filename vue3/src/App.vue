@@ -25,6 +25,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import SiteAccessNotice from '@/components/frontend/SiteAccessNotice.vue'
 import { getPublicSiteAccessConfig } from '@/api/siteAccess'
+import noImage from '@/assets/images/no-image.png'
 
 const route = useRoute()
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
@@ -87,7 +88,7 @@ const accessBlock = computed(() => {
 
 const resolvedSupportQrImage = computed(() => {
   const url = accessConfig.supportQrImageUrl
-  if (!url) return ''
+  if (!url) return noImage
   if (/^(https?:)?\/\//.test(url) || url.startsWith('data:')) return url
   return `${baseAPI}${url.startsWith('/') ? url : `/${url}`}`
 })

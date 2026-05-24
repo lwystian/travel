@@ -265,6 +265,7 @@ import {
   Location, CollectionTag, Timer, Sunny, Loading, Star, StarFilled,
   Document, InfoFilled, CopyDocument, Share, ChatDotRound, Tickets
 } from '@element-plus/icons-vue'
+import noImage from '@/assets/images/no-image.png'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const route = useRoute()
@@ -283,7 +284,7 @@ const isLoggedIn = computed(() => userStore.isLoggedIn)
 
 // 获取图片完整URL
 const getImageUrl = (url) => {
-  if (!url) return '/default-scenic.jpg'
+  if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
 }
 
@@ -608,7 +609,7 @@ const fetchRecommendedTours = async (scenicName, location) => {
 
 // 获取行程图片
 const getTourImage = (tour) => {
-  if (!tour) return 'https://picsum.photos/seed/tour/400/260'
+  if (!tour) return noImage
   // 优先使用 mainImage
   if (tour.mainImage) {
     return tour.mainImage.startsWith('http') ? tour.mainImage : baseAPI + tour.mainImage
@@ -624,7 +625,7 @@ const getTourImage = (tour) => {
       // JSON解析失败，使用默认图片
     }
   }
-  return 'https://picsum.photos/seed/tour/400/260'
+  return noImage
 }
 
 // 格式化价格

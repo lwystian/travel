@@ -155,6 +155,7 @@ import { Check, Close, Delete, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
+import noImage from '@/assets/images/no-image.png'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const tableData = ref([])
@@ -263,7 +264,7 @@ const statusMeta = (status) => {
 }
 
 const resolveAsset = (url) => {
-  if (!url) return ''
+  if (!url) return noImage
   if (/^(https?:)?\/\//.test(url) || url.startsWith('data:')) return url
   return `${baseAPI}${url.startsWith('/') ? url : `/${url}`}`
 }

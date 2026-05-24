@@ -352,6 +352,7 @@ import { ElMessage } from 'element-plus'
 import { Checked, Delete, Link, Medal, OfficeBuilding, Picture, UploadFilled } from '@element-plus/icons-vue'
 import { getFooterConfig, saveFooterConfig } from '@/api/siteFooter'
 import request from '@/utils/request'
+import noImage from '@/assets/images/no-image.png'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const loading = ref(false)
@@ -668,7 +669,7 @@ const uploadImage = async (options, target) => {
 }
 
 const getImageUrl = (url) => {
-  if (!url) return ''
+  if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
 }
 

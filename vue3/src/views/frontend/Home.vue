@@ -4,14 +4,28 @@
       <home-carousel />
     </section>
 
+    <div v-if="userStore.isAdmin" class="home-admin-bar">
+      <div>
+        <strong>首页编辑模式</strong>
+        <span>可直接修改首页个性化文案，保存后写入数据库</span>
+      </div>
+      <div class="home-admin-actions">
+        <el-button v-if="!editMode" type="primary" @click="startEdit">开启编辑</el-button>
+        <template v-else>
+          <el-button type="primary" :loading="savingContent" @click="saveHomeContent">保存</el-button>
+          <el-button :disabled="savingContent" @click="cancelEdit">取消</el-button>
+        </template>
+      </div>
+    </div>
+
     <main class="home-main">
       <section class="trust-strip">
         <div class="section-container trust-grid">
           <div v-for="item in trustMetrics" :key="item.label" class="trust-item">
-            <div class="trust-value">{{ item.value }}</div>
+            <inline-editable-text v-model="item.value" :edit-mode="editMode" tag="div" class="trust-value" maxlength="20" />
             <div class="trust-copy">
-              <span>{{ item.label }}</span>
-              <small>{{ item.desc }}</small>
+              <inline-editable-text v-model="item.label" :edit-mode="editMode" tag="span" maxlength="40" />
+              <inline-editable-text v-model="item.desc" :edit-mode="editMode" tag="small" multiline :rows="2" maxlength="120" />
             </div>
           </div>
         </div>
@@ -21,13 +35,21 @@
         <div class="section-container">
           <div class="section-heading">
             <div>
-              <span class="eyebrow">Featured Programs</span>
+              <inline-editable-text v-model="sectionContent.featured.eyebrow" :edit-mode="editMode" tag="span" class="eyebrow" maxlength="40" />
+              <inline-editable-text v-model="sectionContent.featured.title" :edit-mode="editMode" tag="h2" maxlength="60" />
+              <inline-editable-text v-model="sectionContent.featured.desc" :edit-mode="editMode" tag="p" multiline :rows="2" maxlength="260" />
+              <template v-if="false">
               <h2>精选行程</h2>
               <p>以目的地资源、履约能力和服务标准为核心，甄选适合家庭、企业与高端定制需求的旅行产品。</p>
+              </template>
             </div>
-            <router-link to="/tickets" class="section-link">
-              查看全部行程 <el-icon><ArrowRight /></el-icon>
-            </router-link>
+            <div class="editable-action-wrap">
+              <a :href="sectionContent.featured.linkUrl" class="section-link" @click="handleConfiguredLinkClick(sectionContent.featured.linkUrl, $event)">
+                <inline-editable-text v-model="sectionContent.featured.linkText" :edit-mode="editMode" tag="span" maxlength="40" />
+                <el-icon><ArrowRight /></el-icon>
+              </a>
+              <el-input v-if="editMode" v-model="sectionContent.featured.linkUrl" class="link-url-input" size="small" placeholder="跳转链接，如 /tickets" />
+            </div>
           </div>
 
           <el-skeleton :loading="tourLoading" animated :throttle="500">
@@ -110,9 +132,13 @@
         <div class="section-container">
           <div class="section-heading compact-heading">
             <div>
-              <span class="eyebrow">Service Capability</span>
+              <inline-editable-text v-model="sectionContent.capability.eyebrow" :edit-mode="editMode" tag="span" class="eyebrow" maxlength="40" />
+              <inline-editable-text v-model="sectionContent.capability.title" :edit-mode="editMode" tag="h2" maxlength="80" />
+              <inline-editable-text v-model="sectionContent.capability.desc" :edit-mode="editMode" tag="p" multiline :rows="2" maxlength="260" />
+              <template v-if="false">
               <h2>企业级旅行服务能力</h2>
               <p>围绕出行前咨询、资源确认、订单履约和售后响应建立标准化流程，让每一次出行都有清晰保障。</p>
+              </template>
             </div>
           </div>
 
@@ -121,8 +147,8 @@
               <div class="capability-icon">
                 <el-icon><component :is="item.icon" /></el-icon>
               </div>
-              <h3>{{ item.title }}</h3>
-              <p>{{ item.desc }}</p>
+              <inline-editable-text v-model="item.title" :edit-mode="editMode" tag="h3" maxlength="50" />
+              <inline-editable-text v-model="item.desc" :edit-mode="editMode" tag="p" multiline :rows="3" maxlength="220" />
             </article>
           </div>
         </div>
@@ -131,18 +157,26 @@
       <section class="enterprise-section scenario-section">
         <div class="section-container scenario-layout">
           <div class="scenario-copy">
-            <span class="eyebrow">Travel Solutions</span>
+            <inline-editable-text v-model="sectionContent.scenario.eyebrow" :edit-mode="editMode" tag="span" class="eyebrow" maxlength="40" />
+            <inline-editable-text v-model="sectionContent.scenario.title" :edit-mode="editMode" tag="h2" maxlength="100" />
+            <inline-editable-text v-model="sectionContent.scenario.desc" :edit-mode="editMode" tag="p" multiline :rows="3" maxlength="320" />
+            <template v-if="false">
             <h2>面向不同客户场景，提供更稳妥的出行方案</h2>
             <p>不是简单陈列线路，而是围绕预算、人数、出行节奏、目的地资源和履约风险进行方案组合，帮助客户更快做出可靠选择。</p>
-            <router-link to="/tickets" class="section-link scenario-link">
-              浏览全部产品 <el-icon><ArrowRight /></el-icon>
-            </router-link>
+            </template>
+            <div class="editable-action-wrap">
+              <a :href="sectionContent.scenario.linkUrl" class="section-link scenario-link" @click="handleConfiguredLinkClick(sectionContent.scenario.linkUrl, $event)">
+                <inline-editable-text v-model="sectionContent.scenario.linkText" :edit-mode="editMode" tag="span" maxlength="40" />
+                <el-icon><ArrowRight /></el-icon>
+              </a>
+              <el-input v-if="editMode" v-model="sectionContent.scenario.linkUrl" class="link-url-input" size="small" placeholder="跳转链接，如 /tickets" />
+            </div>
           </div>
           <div class="scenario-grid">
             <article v-for="item in scenarioList" :key="item.title" class="scenario-card">
-              <span>{{ item.index }}</span>
-              <h3>{{ item.title }}</h3>
-              <p>{{ item.desc }}</p>
+              <inline-editable-text v-model="item.index" :edit-mode="editMode" tag="span" maxlength="8" />
+              <inline-editable-text v-model="item.title" :edit-mode="editMode" tag="h3" maxlength="50" />
+              <inline-editable-text v-model="item.desc" :edit-mode="editMode" tag="p" multiline :rows="3" maxlength="220" />
             </article>
           </div>
         </div>
@@ -152,13 +186,21 @@
         <div class="section-container">
           <div class="section-heading">
             <div>
-              <span class="eyebrow">Travel Insight</span>
+              <inline-editable-text v-model="sectionContent.insight.eyebrow" :edit-mode="editMode" tag="span" class="eyebrow" maxlength="40" />
+              <inline-editable-text v-model="sectionContent.insight.title" :edit-mode="editMode" tag="h2" maxlength="60" />
+              <inline-editable-text v-model="sectionContent.insight.desc" :edit-mode="editMode" tag="p" multiline :rows="2" maxlength="260" />
+              <template v-if="false">
               <h2>旅行攻略</h2>
               <p>从目的地经验、路线规划到出行提示，为客户提供更可靠的决策参考。</p>
+              </template>
             </div>
-            <router-link to="/guide" class="section-link">
-              查看全部攻略 <el-icon><ArrowRight /></el-icon>
-            </router-link>
+            <div class="editable-action-wrap">
+              <a :href="sectionContent.insight.linkUrl" class="section-link" @click="handleConfiguredLinkClick(sectionContent.insight.linkUrl, $event)">
+                <inline-editable-text v-model="sectionContent.insight.linkText" :edit-mode="editMode" tag="span" maxlength="40" />
+                <el-icon><ArrowRight /></el-icon>
+              </a>
+              <el-input v-if="editMode" v-model="sectionContent.insight.linkUrl" class="link-url-input" size="small" placeholder="跳转链接，如 /guide" />
+            </div>
           </div>
 
           <el-skeleton :loading="guideLoading" animated :throttle="500">
@@ -197,14 +239,18 @@
       <section class="assurance-section">
         <div class="section-container assurance-layout">
           <div class="assurance-title">
-            <span class="eyebrow">Operational Standard</span>
+            <inline-editable-text v-model="sectionContent.assurance.eyebrow" :edit-mode="editMode" tag="span" class="eyebrow" maxlength="40" />
+            <inline-editable-text v-model="sectionContent.assurance.title" :edit-mode="editMode" tag="h2" maxlength="110" />
+            <inline-editable-text v-model="sectionContent.assurance.desc" :edit-mode="editMode" tag="p" multiline :rows="4" maxlength="420" />
+            <template v-if="false">
             <h2>把旅行服务拆成可确认、可通知、可追踪的业务节点</h2>
             <p>从信息核验、支付安全到行前通知和售后跟进，每个关键环节都有明确反馈，帮助客户减少等待、降低信息遗漏风险，让出行安排更安心、更可控。</p>
+            </template>
           </div>
           <div class="assurance-list">
             <div v-for="item in assuranceList" :key="item.title" class="assurance-item">
-              <strong>{{ item.title }}</strong>
-              <span>{{ item.desc }}</span>
+              <inline-editable-text v-model="item.title" :edit-mode="editMode" tag="strong" maxlength="50" />
+              <inline-editable-text v-model="item.desc" :edit-mode="editMode" tag="span" multiline :rows="2" maxlength="220" />
             </div>
           </div>
         </div>
@@ -213,16 +259,20 @@
       <section class="process-section">
         <div class="section-container process-layout">
           <div class="process-copy">
-            <span class="eyebrow">Booking Process</span>
+            <inline-editable-text v-model="sectionContent.process.eyebrow" :edit-mode="editMode" tag="span" class="eyebrow" maxlength="40" />
+            <inline-editable-text v-model="sectionContent.process.title" :edit-mode="editMode" tag="h2" maxlength="100" />
+            <inline-editable-text v-model="sectionContent.process.desc" :edit-mode="editMode" tag="p" multiline :rows="3" maxlength="320" />
+            <template v-if="false">
             <h2>从咨询到出行，全流程清晰可追踪</h2>
             <p>官网提交需求后，由客服顾问进行订单确认、合同与支付引导，并在出行前完成必要信息核验和提醒。</p>
+            </template>
           </div>
           <div class="process-steps">
             <div v-for="(step, index) in serviceProcess" :key="step.title" class="process-step">
               <span>{{ String(index + 1).padStart(2, '0') }}</span>
               <div>
-                <h3>{{ step.title }}</h3>
-                <p>{{ step.desc }}</p>
+                <inline-editable-text v-model="step.title" :edit-mode="editMode" tag="h3" maxlength="50" />
+                <inline-editable-text v-model="step.desc" :edit-mode="editMode" tag="p" multiline :rows="2" maxlength="220" />
               </div>
             </div>
           </div>
@@ -235,8 +285,13 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
+import noImage from '@/assets/images/no-image.png'
 import HomeCarousel from '@/components/frontend/HomeCarousel.vue'
+import InlineEditableText from '@/components/frontend/InlineEditableText.vue'
+import { useUserStore } from '@/store/user'
+import { getPublicPageContent, savePageContent } from '@/api/pageContent'
 import {
   ArrowRight,
   View,
@@ -251,12 +306,16 @@ import {
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const userStore = useUserStore()
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 
 const tourList = ref([])
 const tourLoading = ref(true)
 const guideList = ref([])
 const guideLoading = ref(true)
+const editMode = ref(false)
+const savingContent = ref(false)
+const editingSnapshot = ref(null)
 
 const trustMetrics = [
   { value: '24h', label: '服务响应', desc: '订单咨询与出行问题快速跟进' },
@@ -292,6 +351,124 @@ const serviceProcess = [
   { title: '安全支付', desc: '仅展示后台启用渠道，由后端生成支付表单并跳转。' },
   { title: '客服对接', desc: '付款后客服进行电话确认，协助完成后续出行安排。' }
 ]
+
+const defaultSectionContent = {
+  featured: {
+    eyebrow: 'Featured Programs',
+    title: '精选行程',
+    desc: '以目的地资源、履约能力和服务标准为核心，甄选适合家庭、企业与高端定制需求的旅行产品。',
+    linkText: '查看全部行程',
+    linkUrl: '/tickets'
+  },
+  capability: {
+    eyebrow: 'Service Capability',
+    title: '企业级旅行服务能力',
+    desc: '围绕出行前咨询、资源确认、订单履约和售后响应建立标准化流程，让每一次出行都有清晰保障。'
+  },
+  scenario: {
+    eyebrow: 'Travel Solutions',
+    title: '面向不同客户场景，提供更稳定的出行方案',
+    desc: '不是简单陈列线路，而是围绕预算、人数、出行节奏、目的地资源和履约风险进行方案组合，帮助客户更快做出可靠选择。',
+    linkText: '浏览全部产品',
+    linkUrl: '/tickets'
+  },
+  insight: {
+    eyebrow: 'Travel Insight',
+    title: '旅行攻略',
+    desc: '从目的地经验、路线规划到出行提示，为客户提供更可靠的决策参考。',
+    linkText: '查看全部攻略',
+    linkUrl: '/guide'
+  },
+  assurance: {
+    eyebrow: 'Operational Standard',
+    title: '把旅行服务拆成可确认、可通知、可追踪的业务节点',
+    desc: '从信息核验、支付安全到行前通知和售后跟进，每个关键环节都有明确反馈，帮助客户减少等待、降低信息遗漏风险。'
+  },
+  process: {
+    eyebrow: 'Booking Process',
+    title: '从咨询到出行，全流程清晰可追踪',
+    desc: '官网提交需求后，由客服顾问进行订单确认、合同与支付引导，并在出行前完成必要信息核验和提醒。'
+  }
+}
+
+const cloneData = (data) => JSON.parse(JSON.stringify(data))
+const sectionContent = ref(cloneData(defaultSectionContent))
+const capabilityIcons = [OfficeBuilding, Service, Medal, Location]
+
+const replaceList = (target, source, mapper = item => item) => {
+  if (!Array.isArray(source)) return
+  target.splice(0, target.length, ...source.map((item, index) => mapper(item || {}, index)))
+}
+
+const applyHomeContent = (content = {}) => {
+  sectionContent.value = {
+    ...cloneData(defaultSectionContent),
+    ...(content.sections || {})
+  }
+  replaceList(trustMetrics, content.trustMetrics)
+  replaceList(capabilityList, content.capabilityList, (item, index) => ({
+    title: item.title || '',
+    desc: item.desc || '',
+    icon: capabilityIcons[index] || Service
+  }))
+  replaceList(scenarioList, content.scenarioList)
+  replaceList(assuranceList, content.assuranceList)
+  replaceList(serviceProcess, content.serviceProcess)
+}
+
+const serializeHomeContent = () => ({
+  sections: sectionContent.value,
+  trustMetrics,
+  capabilityList: capabilityList.map(({ title, desc }) => ({ title, desc })),
+  scenarioList,
+  assuranceList,
+  serviceProcess
+})
+
+const handleConfiguredLinkClick = (url, event) => {
+  event?.preventDefault?.()
+  if (editMode.value) return
+  if (!url) return
+  if (/^(https?:)?\/\//.test(url)) {
+    window.open(url, '_blank', 'noopener,noreferrer')
+    return
+  }
+  router.push(url)
+}
+
+const loadHomeContent = async () => {
+  try {
+    const data = await getPublicPageContent('home')
+    applyHomeContent(data || {})
+  } catch {
+    applyHomeContent({})
+  }
+}
+
+const startEdit = () => {
+  editingSnapshot.value = cloneData(serializeHomeContent())
+  editMode.value = true
+}
+
+const cancelEdit = () => {
+  if (editingSnapshot.value) {
+    applyHomeContent(editingSnapshot.value)
+  }
+  editMode.value = false
+}
+
+const saveHomeContent = async () => {
+  savingContent.value = true
+  try {
+    await savePageContent('home', serializeHomeContent(), { successMsg: '首页内容已保存' })
+    editMode.value = false
+    editingSnapshot.value = null
+  } catch {
+    ElMessage.error('保存首页内容失败')
+  } finally {
+    savingContent.value = false
+  }
+}
 
 const featuredTour = computed(() => tourList.value[0] || null)
 const secondaryTours = computed(() => tourList.value.slice(1, 4))
@@ -353,7 +530,7 @@ const fetchHotGuides = async () => {
 }
 
 const getImageUrl = (url) => {
-  if (!url) return ''
+  if (!url) return noImage
   let imageUrl = url
   if (typeof imageUrl === 'string' && imageUrl.trim().startsWith('[')) {
     try {
@@ -363,7 +540,7 @@ const getImageUrl = (url) => {
       imageUrl = ''
     }
   }
-  if (!imageUrl) return ''
+  if (!imageUrl) return noImage
   return imageUrl.startsWith('http') ? imageUrl : baseAPI + imageUrl
 }
 
@@ -408,6 +585,7 @@ const goToGuideDetail = (guideId) => {
 }
 
 onMounted(() => {
+  loadHomeContent()
   fetchTours()
   fetchHotGuides()
 })
@@ -427,6 +605,41 @@ onMounted(() => {
   margin: 0;
   padding: 0;
   position: relative;
+}
+
+.home-admin-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: min(1180px, calc(100% - 40px));
+  margin: 14px auto 0;
+  padding: 12px 16px;
+  border: 1px solid rgba(31, 122, 224, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 30px rgba(22, 46, 84, 0.10);
+  text-align: left;
+}
+
+.home-admin-bar strong {
+  display: block;
+  color: #14233f;
+  font-size: 15px;
+}
+
+.home-admin-bar span {
+  color: #6d7890;
+  font-size: 13px;
+}
+
+.home-admin-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
 }
 
 .home-main {
@@ -668,6 +881,17 @@ onMounted(() => {
     color: #115e59;
     transform: translateX(2px);
   }
+}
+
+.editable-action-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.link-url-input {
+  width: min(260px, 70vw);
 }
 
 .program-layout {

@@ -90,15 +90,8 @@ public class AuthConfigService extends ServiceImpl<AuthProviderConfigMapper, Aut
         }
         String selectedTemplateCode = resolveSmsTestTemplateCode(config, templateCode);
         String code = String.format("%06d", new Random().nextInt(1000000));
-        aliyunSmsSenderService.sendTemplate(config, phone.trim(), selectedTemplateCode, Map.of(
-                "code", code,
-                "orderNo", "TEST" + System.currentTimeMillis(),
-                "tourName", "测试行程",
-                "departureDate", java.time.LocalDate.now().plusDays(7).toString(),
-                "amount", "1.00",
-                "contactName", "测试联系人",
-                "userName", "测试用户"
-        ));
+        aliyunSmsSenderService.sendTemplate(config, phone.trim(), selectedTemplateCode,
+                buildSmsTestTemplateParams(config, selectedTemplateCode, code));
         return AuthConfigTestResultDTO.ok(
                 "短信测试发送成功",
                 "已通过当前阿里云短信配置向测试手机号发送模板测试短信。",
@@ -117,6 +110,20 @@ public class AuthConfigService extends ServiceImpl<AuthProviderConfigMapper, Aut
             return selected;
         }
         throw new ServiceException("只能选择当前已配置的短信模板Code进行测试");
+    }
+
+    private Map<String, ?> buildSmsTestTemplateParams(AliyunSmsConfigDTO config, String templateCode, String code) {
+        if (templateCode.equals(config.getTemplateCode())) {
+            return Map.of("code", code);
+        }
+        return Map.of(
+                "orderNo", "TEST" + System.currentTimeMillis(),
+                "tourName", "TestTour",
+                "departureDate", java.time.LocalDate.now().plusDays(7).format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE),
+                "amount", "100",
+                "contactName", "TestUser",
+                "userName", "TestUser"
+        );
     }
 
     public AuthConfigTestResultDTO testEmailConfig(String email) {

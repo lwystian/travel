@@ -1,7 +1,6 @@
 package org.example.springboot.config;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import jakarta.annotation.Resource;
 import org.example.springboot.entity.User;
 import org.example.springboot.mapper.UserMapper;
@@ -15,7 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Component
 public class SuperAdminBootstrap implements ApplicationRunner {
@@ -45,31 +43,26 @@ public class SuperAdminBootstrap implements ApplicationRunner {
             return;
         }
 
-        User root = userMapper.selectOne(new LambdaQueryWrapper<User>()
-                .eq(User::getUsername, username)
-                .last("LIMIT 1"));
-        if (root != null) {
-            normalizeRootAccount(root, true);
-            return;
-        }
-
         User existingSuperAdmin = userMapper.selectOne(new LambdaQueryWrapper<User>()
                 .eq(User::getRoleCode, RolePermission.SUPER_ADMIN)
-                .orderByDesc(User::getStatus)
-                .orderByAsc(User::getId)
                 .last("LIMIT 1"));
         if (existingSuperAdmin != null) {
-            existingSuperAdmin.setUsername(username);
-            normalizeRootAccount(existingSuperAdmin, true);
-            LOGGER.warn("Renamed existing SUPER_ADMIN id={} to configured root username={}.", existingSuperAdmin.getId(), username);
+            LOGGER.info("SUPER_ADMIN account already exists. Bootstrap skipped. userId={}", existingSuperAdmin.getId());
             return;
         }
 
-        clearRootPhoneFromOthers(null);
+        User existingUsername = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getUsername, username)
+                .last("LIMIT 1"));
+        if (existingUsername != null) {
+            LOGGER.warn("Super admin bootstrap skipped because configured username already belongs to a non-super-admin user. username={}, userId={}", username, existingUsername.getId());
+            return;
+        }
+
         User user = new User();
         user.setUsername(username);
-        user.setNickname("超级管理员");
-        user.setPhone(phone);
+        user.setNickname("Super Administrator");
+        user.setPhone(resolveBootstrapPhone());
         user.setPassword(passwordEncoder.encode(initialPassword));
         user.setRoleCode(RolePermission.SUPER_ADMIN);
         user.setStatus(1);
@@ -77,56 +70,21 @@ public class SuperAdminBootstrap implements ApplicationRunner {
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
         userMapper.insert(user);
-        LOGGER.warn("No active admin account found. Created emergency SUPER_ADMIN account. username={}, phone={}. Change the initial password immediately.", username, phone);
+        LOGGER.warn("No SUPER_ADMIN account found. Created bootstrap SUPER_ADMIN account. username={}, phone={}. Change the initial password immediately.", username, user.getPhone());
     }
 
-    private void normalizeRootAccount(User root, boolean resetPasswordWhenBlank) {
-        clearRootPhoneFromOthers(root.getId());
-        root.setPhone(phone);
-        root.setRoleCode(RolePermission.SUPER_ADMIN);
-        root.setStatus(1);
-        if (isBlank(root.getNickname())) {
-            root.setNickname("超级管理员");
-        }
-        if (resetPasswordWhenBlank && isBlank(root.getPassword())) {
-            root.setPassword(passwordEncoder.encode(initialPassword));
-        }
-        root.setUpdateTime(LocalDateTime.now());
-        userMapper.updateById(root);
-        demoteOtherSuperAdmins(root.getId());
-    }
-
-    private void demoteOtherSuperAdmins(Long keeperId) {
-        List<User> superAdmins = userMapper.selectList(new LambdaQueryWrapper<User>()
-                .eq(User::getRoleCode, RolePermission.SUPER_ADMIN)
-                .orderByDesc(User::getStatus)
-                .orderByAsc(User::getId));
-        if (superAdmins == null || superAdmins.isEmpty()) {
-            return;
-        }
-        for (User duplicate : superAdmins) {
-            if (duplicate.getId() != null && duplicate.getId().equals(keeperId)) {
-                continue;
-            }
-            duplicate.setRoleCode(RolePermission.ADMIN);
-            duplicate.setUpdateTime(LocalDateTime.now());
-            userMapper.updateById(duplicate);
-            LOGGER.warn("Duplicate SUPER_ADMIN found. Kept user id={}, demoted user id={} to ADMIN.", keeperId, duplicate.getId());
-        }
-    }
-
-    private void clearRootPhoneFromOthers(Long ownerId) {
+    private String resolveBootstrapPhone() {
         if (isBlank(phone)) {
-            return;
+            return null;
         }
-        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<User>()
+        User existingPhone = userMapper.selectOne(new LambdaQueryWrapper<User>()
                 .eq(User::getPhone, phone)
-                .set(User::getPhone, null)
-                .set(User::getUpdateTime, LocalDateTime.now());
-        if (ownerId != null) {
-            wrapper.ne(User::getId, ownerId);
+                .last("LIMIT 1"));
+        if (existingPhone != null) {
+            LOGGER.warn("Configured bootstrap phone is already used by userId={}. New SUPER_ADMIN will be created without phone to avoid overwriting existing data.", existingPhone.getId());
+            return null;
         }
-        userMapper.update(null, wrapper);
+        return phone;
     }
 
     private boolean isBlank(String value) {

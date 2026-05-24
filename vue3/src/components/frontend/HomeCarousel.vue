@@ -16,6 +16,7 @@
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import request from '@/utils/request'
+import noImage from '@/assets/images/no-image.png'
 
 const carouselList = ref([])
 const loading = ref(false)
@@ -32,7 +33,7 @@ const updateCarouselHeight = () => {
 }
 
 const getImageUrl = (url) => {
-  if (!url) return ''
+  if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
 }
 
@@ -108,7 +109,6 @@ onBeforeUnmount(() => {
 </style>
 
 <style>
-/* 全局样式 - 圆点指示器 */
 .home-carousel .el-carousel {
   width: 100%;
   height: var(--home-carousel-height, 482px);

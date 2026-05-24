@@ -131,6 +131,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
+import noImage from '@/assets/images/no-image.png'
 import {
   Clock,
   Delete,
@@ -416,7 +417,7 @@ const getTourImage = (tour) => {
 }
 
 const getImageUrl = (url) => {
-  if (!url) return '/default-image.jpg'
+  if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
 }
 

@@ -2,7 +2,7 @@
 <template>
   <div class="scenic-frontend-container">
     <!-- Hero 区域 - 背景图片适中 -->
-    <div class="hero-section" ref="heroSection" :style="{ '--page-hero-height': `${heroHeight}px` }">
+    <div class="hero-section" ref="heroSection" :style="{ '--page-hero-height': `${heroHeight}px`, '--scenic-hero-url': `url(${noImage})` }">
       <div class="hero-overlay"></div>
       <div class="hero-content">
         <div class="hero-text">
@@ -172,6 +172,7 @@ import { ref, reactive, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import request from '@/utils/request'
 import { Search, Location, Refresh, Star, ChatDotRound } from '@element-plus/icons-vue'
+import noImage from '@/assets/images/no-image.png'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const router = useRouter()
@@ -333,7 +334,7 @@ const goDetail = (id) => {
 }
 
 const getImageUrl = (url) => {
-  if (!url) return 'https://picsum.photos/seed/scape/400/260'
+  if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
 }
 
@@ -410,7 +411,7 @@ $border: #e9ecef;
   position: relative;
   width: 100%;
   height: var(--page-hero-height, calc(100vh - 215px));
-  background: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80') center bottom / cover no-repeat;
+  background: var(--scenic-hero-url) center bottom / cover no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;

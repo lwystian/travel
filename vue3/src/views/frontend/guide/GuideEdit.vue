@@ -87,6 +87,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import WangEditor from '@/components/WangEditor.vue'
 import request from '@/utils/request'
+import noImage from '@/assets/images/no-image.png'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
 
@@ -106,7 +107,7 @@ const userStore = useUserStore()
 
 // 获取图片完整URL
 const getImageUrl = (url) => {
-  if (!url) return ''
+  if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
 }
 

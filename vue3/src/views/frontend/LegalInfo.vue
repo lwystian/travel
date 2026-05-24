@@ -1,6 +1,6 @@
 <template>
   <main class="legal-page">
-    <section class="legal-hero">
+    <section class="legal-hero" :style="legalHeroStyle">
       <div class="legal-hero__content">
         <p>Trust Center</p>
         <template v-if="editMode">
@@ -125,6 +125,8 @@ import { ElMessage } from 'element-plus'
 import { getPublicFooterConfig, saveFooterConfig } from '@/api/siteFooter'
 import { useUserStore } from '@/store/user'
 import request from '@/utils/request'
+import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
+import noImage from '@/assets/images/no-image.png'
 
 const route = useRoute()
 const userStore = useUserStore()
@@ -134,6 +136,10 @@ const editableLegalPages = ref([])
 const editMode = ref(false)
 const saving = ref(false)
 const uploading = ref(false)
+const { siteAssets, loadSiteAssets } = useSiteAssets()
+const legalHeroStyle = computed(() => ({
+  '--legal-bg-url': `url("${getAssetUrl(siteAssets.value.legalHeroUrl, noImage)}")`
+}))
 
 const legalPages = [
   {
@@ -431,7 +437,7 @@ const saveLegalPages = async () => {
 }
 
 const getFooterAssetUrl = (url) => {
-  if (!url) return ''
+  if (!url) return noImage
   if (/^(https?:|data:|blob:)/.test(url)) return url
   if (url.startsWith('/img/') || url.startsWith('/assets/')) return url
   return url.startsWith('/') ? `${baseAPI}${url}` : url
@@ -446,6 +452,7 @@ const loadFooterConfig = async () => {
 }
 
 onMounted(loadFooterConfig)
+onMounted(loadSiteAssets)
 </script>
 
 <style scoped>
@@ -458,7 +465,7 @@ onMounted(loadFooterConfig)
 .legal-hero {
   background:
     linear-gradient(135deg, rgba(15, 34, 63, 0.92), rgba(34, 77, 112, 0.82)),
-    url('@/assets/bg.jpg') center/cover;
+    var(--legal-bg-url) center/cover;
   color: #fff;
   padding: 72px 24px 64px;
 }

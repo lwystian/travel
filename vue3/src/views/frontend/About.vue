@@ -1,127 +1,163 @@
 <template>
   <div class="about-page">
+    <div v-if="userStore.isAdmin" class="about-admin-bar">
+      <div>
+        <strong>页面编辑模式</strong>
+        <span>可直接维护当前页面的展示文案</span>
+      </div>
+      <div class="about-admin-actions">
+        <el-button v-if="!editMode" type="primary" @click="startEdit">开启编辑</el-button>
+        <template v-else>
+          <el-button type="primary" :loading="savingContent" @click="saveAboutContent">保存</el-button>
+          <el-button :disabled="savingContent" @click="cancelEdit">取消</el-button>
+        </template>
+      </div>
+    </div>
     <section class="about-hero">
-      <img class="hero-image" src="@/assets/bg.jpg" alt="旅行目的地海岸与旅店" />
+      <img class="hero-image" :src="aboutHeroUrl" alt="旅行目的地海岸与旅店" />
       <div class="hero-shade"></div>
       <div class="hero-content">
-        <p class="hero-kicker">ABOUT XIAKEXING TRAVEL</p>
-        <h1>重庆侠客行国际旅行社有限公司</h1>
-        <p class="hero-lead">
+        <inline-editable-text v-model="pageContent.hero.kicker" :edit-mode="editMode" tag="p" class="hero-kicker" maxlength="60" />
+        <inline-editable-text v-model="pageContent.hero.title" :edit-mode="editMode" tag="h1" maxlength="90" />
+        <inline-editable-text v-model="pageContent.hero.lead" :edit-mode="editMode" tag="p" class="hero-lead" multiline :rows="3" maxlength="360" />
+        <p v-if="false" class="hero-lead">
           立足山城重庆，面向家庭出游、周边短线、三峡邮轮、目的地度假与团队定制，为旅客提供更清晰、更安心的旅行服务。
         </p>
         <div class="hero-actions">
-          <router-link to="/tickets" class="primary-action">
-            查看行程
+          <a :href="pageContent.hero.primaryLinkUrl" class="primary-action" @click="handleConfiguredLinkClick(pageContent.hero.primaryLinkUrl, $event)">
+            <inline-editable-text v-model="pageContent.hero.primaryLinkText" :edit-mode="editMode" tag="span" maxlength="30" />
             <el-icon><ArrowRight /></el-icon>
-          </router-link>
-          <router-link to="/guide" class="secondary-action">阅读攻略</router-link>
+          </a>
+          <a :href="pageContent.hero.secondaryLinkUrl" class="secondary-action" @click="handleConfiguredLinkClick(pageContent.hero.secondaryLinkUrl, $event)">
+            <inline-editable-text v-model="pageContent.hero.secondaryLinkText" :edit-mode="editMode" tag="span" maxlength="30" />
+          </a>
+        </div>
+        <div v-if="editMode" class="link-edit-grid">
+          <el-input v-model="pageContent.hero.primaryLinkUrl" size="small" placeholder="主按钮链接，如 /tickets" />
+          <el-input v-model="pageContent.hero.secondaryLinkUrl" size="small" placeholder="次按钮链接，如 /guide" />
         </div>
       </div>
       <div class="license-panel">
+        <inline-editable-text v-model="pageContent.license.label" :edit-mode="editMode" tag="span" class="panel-label" maxlength="60" />
+        <inline-editable-text v-model="pageContent.license.number" :edit-mode="editMode" tag="strong" maxlength="50" />
+        <inline-editable-text v-model="pageContent.license.desc" :edit-mode="editMode" tag="span" maxlength="120" />
+        <template v-if="false">
         <span class="panel-label">旅行社业务经营许可证</span>
-        <strong>L-CQ-100181</strong>
+        <inline-editable-text v-model="pageContent.license.number" :edit-mode="editMode" tag="strong" maxlength="50" />
         <span>境内旅游业务、入境旅游业务</span>
+        </template>
       </div>
     </section>
 
     <section class="fact-band">
       <div class="fact-item" v-for="item in facts" :key="item.label">
         <el-icon><component :is="item.icon" /></el-icon>
-        <span>{{ item.label }}</span>
-        <strong>{{ item.value }}</strong>
+        <inline-editable-text v-model="item.label" :edit-mode="editMode" tag="span" maxlength="40" />
+        <inline-editable-text v-model="item.value" :edit-mode="editMode" tag="strong" maxlength="60" />
       </div>
     </section>
 
     <section class="intro-section">
       <div class="intro-copy">
-        <p class="section-kicker">山城出发，走向更远</p>
-        <h2>把复杂的行程，变成可靠的安排</h2>
+        <inline-editable-text v-model="pageContent.intro.kicker" :edit-mode="editMode" tag="p" class="section-kicker" maxlength="60" />
+        <inline-editable-text v-model="pageContent.intro.title" :edit-mode="editMode" tag="h2" maxlength="80" />
+        <inline-editable-text v-model="pageContent.intro.paragraph1" :edit-mode="editMode" tag="p" multiline :rows="4" maxlength="520" />
+        <inline-editable-text v-model="pageContent.intro.paragraph2" :edit-mode="editMode" tag="p" multiline :rows="4" maxlength="520" />
+        <template v-if="false">
         <p>
           侠客行国旅面向重庆本地及来渝游客，围绕热门景区、城市周边、长江三峡、亲子休闲、团队出行等场景，提供线路展示、行程预订、攻略参考与出行服务衔接。
         </p>
         <p>
           公开名录显示，公司登记在重庆市九龙坡区，许可经营范围包含境内旅游业务与入境旅游业务。页面展示的信息以政府公开名录为准，平台内容侧重帮助用户快速了解服务方向与出行体验。
         </p>
+        </template>
       </div>
       <div class="identity-board">
         <div class="identity-row">
-          <span>公司名称</span>
-          <strong>重庆侠客行国际旅行社有限公司</strong>
+          <inline-editable-text v-model="pageContent.identity.companyLabel" :edit-mode="editMode" tag="span" maxlength="40" />
+          <template v-if="false"><span>公司名称</span></template>
+          <inline-editable-text v-model="pageContent.identity.companyName" :edit-mode="editMode" tag="strong" maxlength="90" />
         </div>
         <div class="identity-row">
-          <span>许可证号</span>
-          <strong>L-CQ-100181</strong>
+          <inline-editable-text v-model="pageContent.identity.licenseLabel" :edit-mode="editMode" tag="span" maxlength="40" />
+          <template v-if="false"><span>许可证号</span></template>
+          <inline-editable-text v-model="pageContent.identity.licenseNumber" :edit-mode="editMode" tag="strong" maxlength="50" />
         </div>
         <div class="identity-row">
-          <span>所在区域</span>
-          <strong>重庆市九龙坡区</strong>
+          <inline-editable-text v-model="pageContent.identity.regionLabel" :edit-mode="editMode" tag="span" maxlength="40" />
+          <template v-if="false"><span>所在区域</span></template>
+          <inline-editable-text v-model="pageContent.identity.region" :edit-mode="editMode" tag="strong" maxlength="80" />
         </div>
         <div class="identity-row">
-          <span>业务范围</span>
-          <strong>境内旅游业务、入境旅游业务</strong>
+          <inline-editable-text v-model="pageContent.identity.scopeLabel" :edit-mode="editMode" tag="span" maxlength="40" />
+          <template v-if="false"><span>业务范围</span></template>
+          <inline-editable-text v-model="pageContent.identity.scope" :edit-mode="editMode" tag="strong" maxlength="120" />
         </div>
       </div>
     </section>
 
     <section class="service-section">
       <div class="section-heading">
-        <p class="section-kicker">SERVICE MATRIX</p>
-        <h2>围绕真实出行场景组织服务</h2>
+        <inline-editable-text v-model="pageContent.serviceHeading.kicker" :edit-mode="editMode" tag="p" class="section-kicker" maxlength="60" />
+        <inline-editable-text v-model="pageContent.serviceHeading.title" :edit-mode="editMode" tag="h2" maxlength="90" />
       </div>
       <div class="service-grid">
         <article class="service-card" v-for="service in services" :key="service.title">
           <div class="service-icon">
             <el-icon><component :is="service.icon" /></el-icon>
           </div>
-          <h3>{{ service.title }}</h3>
-          <p>{{ service.desc }}</p>
+          <inline-editable-text v-model="service.title" :edit-mode="editMode" tag="h3" maxlength="50" />
+          <inline-editable-text v-model="service.desc" :edit-mode="editMode" tag="p" multiline :rows="3" maxlength="220" />
         </article>
       </div>
     </section>
 
     <section class="route-section">
       <div class="route-copy">
-        <p class="section-kicker">TRAVEL THEMES</p>
-        <h2>从重庆出发的多元旅行主题</h2>
-        <p>
+        <inline-editable-text v-model="pageContent.route.kicker" :edit-mode="editMode" tag="p" class="section-kicker" maxlength="60" />
+        <inline-editable-text v-model="pageContent.route.title" :edit-mode="editMode" tag="h2" maxlength="90" />
+        <inline-editable-text v-model="pageContent.route.desc" :edit-mode="editMode" tag="p" multiline :rows="4" maxlength="520" />
+        <p v-if="false">
           重庆兼具城市观光、山水峡江、温泉休闲、红色文化与西南交通枢纽优势。侠客行国旅的产品表达可以围绕“短线高频、长线精选、邮轮慢游、团队定制”展开，让游客在出发前就看清行程节奏与服务边界。
         </p>
       </div>
       <div class="route-list">
         <div class="route-item" v-for="route in routes" :key="route.name">
-          <span>{{ route.tag }}</span>
-          <strong>{{ route.name }}</strong>
-          <p>{{ route.text }}</p>
+          <inline-editable-text v-model="route.tag" :edit-mode="editMode" tag="span" maxlength="30" />
+          <inline-editable-text v-model="route.name" :edit-mode="editMode" tag="strong" maxlength="60" />
+          <inline-editable-text v-model="route.text" :edit-mode="editMode" tag="p" multiline :rows="3" maxlength="220" />
         </div>
       </div>
     </section>
 
     <section class="process-section">
       <div class="section-heading">
-        <p class="section-kicker">HOW WE WORK</p>
-        <h2>把出行服务拆成清楚的四步</h2>
+        <inline-editable-text v-model="pageContent.processHeading.kicker" :edit-mode="editMode" tag="p" class="section-kicker" maxlength="60" />
+        <inline-editable-text v-model="pageContent.processHeading.title" :edit-mode="editMode" tag="h2" maxlength="90" />
       </div>
       <div class="process-rail">
         <div class="process-step" v-for="(step, index) in process" :key="step.title">
           <span class="step-number">{{ String(index + 1).padStart(2, '0') }}</span>
-          <h3>{{ step.title }}</h3>
-          <p>{{ step.text }}</p>
+          <inline-editable-text v-model="step.title" :edit-mode="editMode" tag="h3" maxlength="50" />
+          <inline-editable-text v-model="step.text" :edit-mode="editMode" tag="p" multiline :rows="3" maxlength="220" />
         </div>
       </div>
     </section>
 
     <section class="source-section">
       <div>
-        <p class="section-kicker">PUBLIC RECORD</p>
-        <h2>公开信息来源</h2>
-        <p>
+        <inline-editable-text v-model="pageContent.source.kicker" :edit-mode="editMode" tag="p" class="section-kicker" maxlength="60" />
+        <inline-editable-text v-model="pageContent.source.title" :edit-mode="editMode" tag="h2" maxlength="90" />
+        <inline-editable-text v-model="pageContent.source.desc" :edit-mode="editMode" tag="p" multiline :rows="3" maxlength="320" />
+        <p v-if="false">
           页面中的许可证号、地址区域与业务范围，依据重庆市九龙坡区人民政府公开的公共文旅机构名录整理。
         </p>
       </div>
-      <a href="https://cqjlp.gov.cn/bmjz/qzfbm_97119/qwhlyw_97727/zwgk_97124/gkml/jczwgk/ggwhfwly/ggfw/ggwljgml/202601/t20260116_15326517.html" target="_blank" rel="noopener noreferrer" class="source-link">
-        查看政府公开名录
+      <a :href="pageContent.source.linkUrl" target="_blank" rel="noopener noreferrer" class="source-link" @click="handleConfiguredLinkClick(pageContent.source.linkUrl, $event)">
+        <inline-editable-text v-model="pageContent.source.linkText" :edit-mode="editMode" tag="span" maxlength="40" />
         <el-icon><ArrowRight /></el-icon>
       </a>
+      <el-input v-if="editMode" v-model="pageContent.source.linkUrl" class="source-link-input" size="small" placeholder="政府公开名录链接" />
     </section>
   </div>
 </template>
@@ -138,15 +174,87 @@ import {
   Van,
   Medal
 } from '@element-plus/icons-vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
+import noImage from '@/assets/images/no-image.png'
+import InlineEditableText from '@/components/frontend/InlineEditableText.vue'
+import { useUserStore } from '@/store/user'
+import { getPublicPageContent, savePageContent } from '@/api/pageContent'
 
-const facts = [
+const { siteAssets, loadSiteAssets } = useSiteAssets()
+const userStore = useUserStore()
+const router = useRouter()
+const aboutHeroUrl = computed(() => getAssetUrl(siteAssets.value.aboutHeroUrl, noImage))
+const editMode = ref(false)
+const savingContent = ref(false)
+const editingSnapshot = ref(null)
+
+const defaultPageContent = {
+  hero: {
+    kicker: 'ABOUT XIAKEXING TRAVEL',
+    title: '重庆侠客行国际旅行社有限公司',
+    lead: '立足山城重庆，面向家庭出游、周边短线、三峡邮轮、目的地度假与团队定制，为旅客提供更清晰、更安心的旅行服务。',
+    primaryLinkText: '查看行程',
+    primaryLinkUrl: '/tickets',
+    secondaryLinkText: '阅读攻略',
+    secondaryLinkUrl: '/guide'
+  },
+  license: {
+    label: '旅行社业务经营许可证',
+    number: 'L-CQ-100181',
+    desc: '境内旅游业务、入境旅游业务'
+  },
+  intro: {
+    kicker: '山城出发，走向更远',
+    title: '把复杂的行程，变成可靠的安排',
+    paragraph1: '侠客行国旅面向重庆本地及来渝游客，围绕热门景区、城市周边、长江三峡、亲子休闲、团队出行等场景，提供线路展示、行程预订、攻略参考与出行服务衔接。',
+    paragraph2: '公开名录显示，公司登记在重庆市九龙坡区，许可经营范围包含境内旅游业务与入境旅游业务。页面展示的信息以政府公开名录为准，平台内容侧重帮助用户快速了解服务方向与出行体验。'
+  },
+  identity: {
+    companyLabel: '公司名称',
+    companyName: '重庆侠客行国际旅行社有限公司',
+    licenseLabel: '许可证号',
+    licenseNumber: 'L-CQ-100181',
+    regionLabel: '所在区域',
+    region: '重庆市九龙坡区',
+    scopeLabel: '业务范围',
+    scope: '境内旅游业务、入境旅游业务'
+  },
+  serviceHeading: {
+    kicker: 'SERVICE MATRIX',
+    title: '围绕真实出行场景组织服务'
+  },
+  route: {
+    kicker: 'TRAVEL THEMES',
+    title: '从重庆出发的多元旅行主题',
+    desc: '重庆兼具城市观光、山水峡江、温泉休闲、红色文化与西南交通枢纽优势。侠客行国旅的产品表达可以围绕“短线高频、长线精选、邮轮慢游、团队定制”展开，让游客在出发前就看清行程节奏与服务边界。'
+  },
+  processHeading: {
+    kicker: 'HOW WE WORK',
+    title: '把出行服务拆成清楚的四步'
+  },
+  source: {
+    kicker: 'PUBLIC RECORD',
+    title: '公开信息来源',
+    desc: '页面中的许可证号、地址区域与业务范围，依据重庆市九龙坡区人民政府公开的公共文旅机构名录整理。',
+    linkText: '查看政府公开名录',
+    linkUrl: 'https://cqjlp.gov.cn/bmjz/qzfbm_97119/qwhlyw_97727/zwgk_97124/gkml/jczwgk/ggwhfwly/ggfw/ggwljgml/202601/t20260116_15326517.html'
+  }
+}
+
+const cloneData = (data) => JSON.parse(JSON.stringify(data))
+const pageContent = ref(cloneData(defaultPageContent))
+
+const facts = reactive([
   { label: '许可资质', value: 'L-CQ-100181', icon: Medal },
   { label: '服务范围', value: '境内 / 入境', icon: Flag },
   { label: '城市据点', value: '重庆九龙坡', icon: Location },
   { label: '平台服务', value: '线路 / 攻略 / 预订', icon: Tickets }
-]
+])
 
-const services = [
+const services = reactive([
   {
     title: '周边短线',
     icon: Van,
@@ -167,9 +275,9 @@ const services = [
     icon: Guide,
     desc: '通过目的地攻略、用户游记和路线建议，帮助游客做出更稳妥的选择。'
   }
-]
+])
 
-const routes = [
+const routes = reactive([
   {
     tag: 'CHONGQING',
     name: '山城城市游',
@@ -185,14 +293,99 @@ const routes = [
     name: '周末微度假',
     text: '以温泉、古镇、山地避暑和亲子体验为核心，降低决策成本。'
   }
-]
+])
 
-const process = [
+const process = reactive([
   { title: '需求确认', text: '明确人数、预算、出发日期、偏好和特殊需求。' },
   { title: '线路匹配', text: '根据天数和目的地，匹配平台线路或制定团队方案。' },
   { title: '行前说明', text: '确认费用包含、集合信息、证件要求和注意事项。' },
   { title: '服务跟进', text: '围绕订单、通知、攻略和售后反馈形成闭环。' }
-]
+])
+
+const factIcons = [Medal, Flag, Location, Tickets]
+const serviceIcons = [Van, Ship, Service, Guide]
+
+const replaceList = (target, source, mapper = item => item) => {
+  if (!Array.isArray(source)) return
+  target.splice(0, target.length, ...source.map((item, index) => mapper(item || {}, index)))
+}
+
+const applyAboutContent = (content = {}) => {
+  pageContent.value = {
+    ...cloneData(defaultPageContent),
+    ...(content.pageContent || {})
+  }
+  replaceList(facts, content.facts, (item, index) => ({
+    label: item.label || '',
+    value: item.value || '',
+    icon: factIcons[index] || Medal
+  }))
+  replaceList(services, content.services, (item, index) => ({
+    title: item.title || '',
+    desc: item.desc || '',
+    icon: serviceIcons[index] || Service
+  }))
+  replaceList(routes, content.routes)
+  replaceList(process, content.process)
+}
+
+const serializeAboutContent = () => ({
+  pageContent: pageContent.value,
+  facts: facts.map(({ label, value }) => ({ label, value })),
+  services: services.map(({ title, desc }) => ({ title, desc })),
+  routes,
+  process
+})
+
+const handleConfiguredLinkClick = (url, event) => {
+  event?.preventDefault?.()
+  if (editMode.value) return
+  if (!url) return
+  if (/^(https?:)?\/\//.test(url)) {
+    window.open(url, '_blank', 'noopener,noreferrer')
+    return
+  }
+  router.push(url)
+}
+
+const loadAboutContent = async () => {
+  try {
+    const data = await getPublicPageContent('about')
+    applyAboutContent(data || {})
+  } catch {
+    applyAboutContent({})
+  }
+}
+
+const startEdit = () => {
+  editingSnapshot.value = cloneData(serializeAboutContent())
+  editMode.value = true
+}
+
+const cancelEdit = () => {
+  if (editingSnapshot.value) {
+    applyAboutContent(editingSnapshot.value)
+  }
+  editMode.value = false
+}
+
+const saveAboutContent = async () => {
+  savingContent.value = true
+  try {
+    await savePageContent('about', serializeAboutContent(), { successMsg: '关于页内容已保存' })
+    editMode.value = false
+    editingSnapshot.value = null
+  } catch {
+    ElMessage.error('保存关于页内容失败')
+  } finally {
+    savingContent.value = false
+  }
+}
+
+onMounted(() => {
+  loadSiteAssets()
+  loadAboutContent()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -200,6 +393,41 @@ const process = [
   min-height: 100vh;
   background: #f6f8fb;
   color: #172033;
+}
+
+.about-admin-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: min(1180px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 12px 16px;
+  border: 1px solid rgba(31, 122, 224, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 30px rgba(22, 46, 84, 0.10);
+  text-align: left;
+}
+
+.about-admin-bar strong {
+  display: block;
+  color: #14233f;
+  font-size: 15px;
+}
+
+.about-admin-bar span {
+  color: #6d7890;
+  font-size: 13px;
+}
+
+.about-admin-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
 }
 
 .about-hero {
@@ -267,6 +495,13 @@ const process = [
   gap: 14px;
   margin-top: 34px;
   flex-wrap: wrap;
+}
+
+.link-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 260px));
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .primary-action,
@@ -577,6 +812,10 @@ const process = [
     background: #008b8b;
     transform: translateY(-2px);
   }
+}
+
+.source-link-input {
+  width: min(360px, 100%);
 }
 
 @media (max-width: 1024px) {

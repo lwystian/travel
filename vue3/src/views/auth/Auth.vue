@@ -1,5 +1,5 @@
 <template>
-  <div class="auth-container">
+  <div class="auth-container" :style="authBackgroundStyle">
     <div class="auth-box">
       <div class="auth-header" v-if="showHeader">
         <div class="logo"><el-icon><Place /></el-icon></div>
@@ -25,8 +25,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { Place } from '@element-plus/icons-vue'
+import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
+import noImage from '@/assets/images/no-image.png'
 
 const props = defineProps({
   formData: {
@@ -52,6 +54,10 @@ const props = defineProps({
 })
 
 const formRef = ref(null)
+const { siteAssets, loadSiteAssets } = useSiteAssets()
+const authBackgroundStyle = computed(() => ({
+  '--auth-bg-url': `url("${getAssetUrl(siteAssets.value.authBackgroundUrl, noImage)}")`
+}))
 
 const emit = defineEmits(['submit'])
 
@@ -66,6 +72,8 @@ const handleSubmit = () => {
 defineExpose({
   formRef
 })
+
+onMounted(loadSiteAssets)
 </script>
 
 <style lang="scss" scoped>
@@ -75,7 +83,7 @@ defineExpose({
   display: flex;
   justify-content: center;
   align-items: center;
-  background-image: url('@/assets/bg.jpg');
+  background-image: var(--auth-bg-url);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

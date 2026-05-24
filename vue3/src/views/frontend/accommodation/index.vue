@@ -1,7 +1,7 @@
 <template>
   <div class="accommodation-frontend-container">
     <!-- 顶部 Hero 区：背景图 + 标题 + 搜索框 -->
-    <div ref="heroSection" class="hero-section" :style="{ '--page-hero-height': `${heroHeight}px` }">
+    <div ref="heroSection" class="hero-section" :style="heroStyle">
       <div class="hero-overlay"></div>
       <!-- 装饰性波浪分隔线 -->
       <div class="hero-wave-divider"></div>
@@ -238,6 +238,8 @@
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import request from '@/utils/request'
+import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
+import defaultPlaceholder from '@/assets/images/no-image.png'
 import {
   Location,
   Star,
@@ -249,8 +251,13 @@ import {
 
 const router = useRouter()
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
+const { siteAssets, loadSiteAssets } = useSiteAssets()
 const heroSection = ref(null)
 const heroHeight = ref(420)
+const heroStyle = computed(() => ({
+  '--page-hero-height': `${heroHeight.value}px`,
+  '--accommodation-hero-url': `url("${getAssetUrl(siteAssets.value.accommodationHeroUrl, defaultPlaceholder)}")`
+}))
 
 const updateHeroHeight = () => {
   if (!heroSection.value) return
@@ -378,7 +385,7 @@ const fetchAccommodationTypes = async () => {
 }
 
 const getImageUrl = url => {
-  if (!url) return require('@/assets/images/no-image.png')
+  if (!url) return getAssetUrl(siteAssets.value.placeholderImageUrl, defaultPlaceholder)
   if (url.startsWith('http')) return url
   return baseAPI + url
 }
@@ -427,6 +434,7 @@ const getDisplayRating = rating => {
 }
 
 onMounted(() => {
+  loadSiteAssets()
   fetchScenicOptions()
   fetchAccommodationTypes()
   fetchAccommodations()
@@ -464,7 +472,7 @@ $border: #ececec;
   position: relative;
   height: var(--page-hero-height, calc(100vh - 180px));
   min-height: 380px;
-  background: url('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1920&q=80')
+  background: var(--accommodation-hero-url)
     center / cover no-repeat;
   display: flex;
   align-items: center;

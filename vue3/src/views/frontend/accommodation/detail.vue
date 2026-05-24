@@ -290,6 +290,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { useUserStore } from '@/store/user'
 import { shareCurrentPage } from '@/utils/share'
+import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
+import defaultPlaceholder from '@/assets/images/no-image.png'
 import {
   Location, Star, Phone, Delete, House, MapLocation,
   Document, InfoFilled, Money, ChatDotRound, EditPen, Share
@@ -299,6 +301,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
+const { siteAssets, loadSiteAssets } = useSiteAssets()
 
 // 数据状态
 const accommodation = ref(null)
@@ -438,7 +441,7 @@ const fetchSimilarAccommodations = async () => {
 
 // 处理图片URL
 const getImageUrl = (url) => {
-  if (!url) return require('@/assets/images/no-image.png')
+  if (!url) return getAssetUrl(siteAssets.value.placeholderImageUrl, defaultPlaceholder)
   if (url.startsWith('http')) return url
   return baseAPI + url
 }
@@ -539,6 +542,7 @@ const handleShare = () => {
 
 // 初始加载
 onMounted(() => {
+  loadSiteAssets()
   fetchAccommodationDetail()
   fetchAccommodationReviews()
 })

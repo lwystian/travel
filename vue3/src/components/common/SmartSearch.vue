@@ -49,7 +49,7 @@
             <img
               :src="getImageUrl(item.imageUrl)"
               :alt="item.name"
-              @error="$event.target.src = 'https://via.placeholder.com/48x48?text=No+Image'"
+              @error="$event.target.src = noImage"
             />
           </div>
           <div class="item-content">
@@ -82,7 +82,7 @@
             <img
               :src="getImageUrl(item.coverImage)"
               :alt="item.title"
-              @error="$event.target.src = 'https://via.placeholder.com/48x48?text=No+Image'"
+              @error="$event.target.src = noImage"
             />
           </div>
           <div class="item-content">
@@ -105,6 +105,7 @@ import { ref, reactive, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, Location, Document, User } from '@element-plus/icons-vue'
 import request from '@/utils/request'
+import noImage from '@/assets/images/no-image.png'
 
 const props = defineProps({
   placeholder: {
@@ -134,7 +135,7 @@ let debounceTimer = null
 
 // 获取图片完整URL
 const getImageUrl = (url) => {
-  if (!url) return 'https://via.placeholder.com/48x48?text=No+Image'
+  if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
 }
 

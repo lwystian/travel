@@ -1,125 +1,146 @@
-# 旅游系统 Docker Compose 生产部署说明
+# 旅游系统 Docker Compose 部署说明
 
-这套部署把所有需要持久化的数据都放在同一个宿主机目录下：
+## 1. 部署目录
+
+部署相关文件都在 `deploy/` 下：
 
 ```text
-${TRAVEL_DATA_DIR}/
-  mysql/data      # MySQL 数据
-  mysql/logs      # MySQL 日志
-  redis/data      # Redis AOF/RDB 数据
-  app/files       # 后端上传的图片、视频等资源
-  app/logs        # Spring Boot 日志
-  app/backup      # 系统备份目录
-  nginx/logs      # Nginx 访问日志
+deploy/
+  docker-compose.yml
+  .env.example
+  mysql/conf.d/
+  mysql/initdb/
 ```
 
-后续迁移时，复制项目代码、`.env` 和 `${TRAVEL_DATA_DIR}` 即可。
+## 2. 最简部署
 
-## 1. 服务器准备
+服务器只需要安装 Docker Engine 和 Docker Compose Plugin。
 
-在 Linux 服务器安装 Docker Engine 和 Docker Compose Plugin，然后创建统一数据目录：
-
-```bash
-sudo mkdir -p /opt/travel-data/{mysql/data,mysql/logs,redis/data,app/files,app/logs,app/backup,nginx/logs}
-sudo chown -R "$USER":"$USER" /opt/travel-data
-```
-
-如果你的服务器使用独立磁盘，建议把磁盘挂载到 `/opt/travel-data`，这样迁移和扩容会很舒服。
-
-## 2. 环境变量配置
-
-在项目根目录复制模板：
+进入部署目录：
 
 ```bash
+cd deploy
 cp .env.example .env
 ```
 
-然后编辑 `.env`：
+编辑 `deploy/.env`，至少修改这些值：
 
-- 修改所有 `change-this-*` 密码。
-- `TRAVEL_DATA_DIR` 保持 `/opt/travel-data`，或改成你的统一数据目录。
-- `APP_SECURITY_ALLOWED_ORIGINS` 改成真实域名/IP，例如：`https://travel.example.com,http://1.2.3.4`。
-- `APP_SECURITY_PASSWORD_ENCRYPTION_ENABLED=true` 是登录/注册密码 RSA 加密开关，生产环境建议保持开启。
-- `APP_SUPER_ADMIN_*` 是首次启动时自动初始化超级管理员的配置。
+```env
+MYSQL_ROOT_PASSWORD=change-this-root-password
+MYSQL_PASSWORD=change-this-app-password
+REDIS_PASSWORD=change-this-redis-password
+APP_SUPER_ADMIN_INITIAL_PASSWORD=change-this-admin-password
+USER_DEFAULT_PASSWORD=change-this-default-password
+APP_SECURITY_ALLOWED_ORIGINS=https://your-domain.com,http://your-server-ip
+```
 
-生产环境不要把 `.env` 提交到 Git。
+启动：
 
-## 3. 数据库初始化
+```bash
+docker compose up -d --build
+```
 
-如果你有完整 SQL 备份，把 `.sql` 文件放到：
+Compose 会自动创建默认数据目录：
+
+```text
+deploy/travel-data/
+  mysql/data    MySQL 数据
+  redis/data    Redis 持久化数据
+  app/files     上传的图片、视频等资源
+  app/logs      后端文件日志
+  app/backup    后台导出的日志备份
+```
+
+不需要手动执行 `mkdir` 或 `chown`。
+
+## 3. SQL 放在哪里
+
+首次部署新系统时，默认会执行：
+
+```text
+deploy/mysql/initdb/tourism_system_initial.sql
+```
+
+如果你有自己的完整 SQL 备份，并且是全新空库初始化，把 `.sql` 文件放到：
 
 ```text
 deploy/mysql/initdb/
 ```
 
-注意：这个目录里的 SQL 只会在 `${TRAVEL_DATA_DIR}/mysql/data` 为空、MySQL 第一次初始化时执行。
+MySQL 官方镜像只会在 `/var/lib/mysql` 为空时执行这个目录里的 SQL。也就是说，只在第一次初始化数据库时自动导入。
 
-如果数据库已经初始化过，需要手动导入：
+如果数据库已经启动过，需要手动恢复备份。命令在 `deploy/` 目录执行：
 
 ```bash
 docker compose exec -T mysql mysql -u root -p tourism_system < backup.sql
 ```
 
-## 4. 构建并启动
-
-```bash
-docker compose --env-file .env up -d --build
-```
-
-查看状态：
-
-```bash
-docker compose ps
-docker compose logs -f backend
-```
-
-访问：
-
-```text
-http://你的服务器IP/
-```
-
-接口文档：
-
-```text
-http://你的服务器IP/doc.html
-```
-
-## 5. 日常更新
-
-上传或拉取新代码后，只需要重新构建应用镜像：
-
-```bash
-docker compose --env-file .env build backend frontend
-docker compose --env-file .env up -d backend frontend
-```
-
-MySQL、Redis、上传资源、日志、备份都在 `${TRAVEL_DATA_DIR}`，不会跟随容器重建丢失。
-
-## 6. 备份与迁移
-
-冷迁移：
+如果要重新初始化空库，先停止服务并删除数据库数据目录：
 
 ```bash
 docker compose down
-sudo tar -czf travel-data.tar.gz -C /opt travel-data
+rm -rf ./travel-data/mysql/data
+docker compose up -d
 ```
 
-新服务器恢复到同一路径，再带着同一份 `.env` 启动即可。
+生产环境执行删除前必须确认已经备份。
 
-在线数据库备份：
+## 4. 使用固定数据目录
+
+默认 `TRAVEL_DATA_DIR=./travel-data`，路径相对 `deploy/`，适合简单部署和项目整体迁移。
+
+如果你希望数据固定放在服务器目录，例如 `/opt/travel-data`，只需要在 `deploy/.env` 改：
+
+```env
+TRAVEL_DATA_DIR=/opt/travel-data
+```
+
+Compose 会自动创建需要的子目录。若服务器权限策略较严格，才需要手动调整目录权限。
+
+## 5. 更新应用
+
+在 `deploy/` 目录执行：
+
+```bash
+docker compose up -d --build backend frontend
+```
+
+MySQL、Redis、上传文件和备份目录都在 `TRAVEL_DATA_DIR` 下，不会因为重建容器丢失。
+
+## 6. 备份
+
+数据库备份：
 
 ```bash
 docker compose exec mysql mysqldump -u root -p tourism_system > tourism_system.sql
 ```
 
-## 7. HTTPS 建议
+完整迁移时，复制项目代码、`deploy/.env` 和 `TRAVEL_DATA_DIR` 即可。
 
-当前 compose 只暴露 HTTP。生产环境建议在宿主机或云负载均衡上做 HTTPS，例如 Caddy、Nginx、宝塔、1Panel、云厂商负载均衡均可。
+## 7. 日志
 
-启用 HTTPS 后，把 `.env` 里的来源限制改成你的 HTTPS 域名：
+容器日志：
+
+```bash
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f mysql
+```
+
+后端文件日志在：
+
+```text
+${TRAVEL_DATA_DIR}/app/logs
+```
+
+MySQL 和 Nginx 日志默认使用 Docker 日志系统，不再额外挂载到宿主机目录，减少部署目录和权限问题。
+
+## 8. HTTPS
+
+当前 Compose 只暴露 HTTP。生产环境建议在服务器或云负载均衡上配置 HTTPS，例如 Caddy、Nginx、宝塔面板或云厂商负载均衡。
+
+启用 HTTPS 后，把 `deploy/.env` 中的来源限制改为真实域名：
 
 ```env
 APP_SECURITY_ALLOWED_ORIGINS=https://travel.example.com
-APP_SECURITY_PASSWORD_ENCRYPTION_ENABLED=true
 ```

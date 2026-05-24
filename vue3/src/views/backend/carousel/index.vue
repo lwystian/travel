@@ -128,6 +128,7 @@ import { ref, computed, reactive, onMounted } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
+import noImage from '@/assets/images/no-image.png'
 
 // 基础 API 路径
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
@@ -155,12 +156,12 @@ const form = reactive({
 
 // 图片预览
 const imageUrl = computed(() => {
-  return form.imageUrl ? (form.imageUrl.startsWith('http') ? form.imageUrl : baseAPI + form.imageUrl) : ''
+  return form.imageUrl ? (form.imageUrl.startsWith('http') ? form.imageUrl : baseAPI + form.imageUrl) : noImage
 })
 
 // 获取图片URL
 const getImageUrl = (url) => {
-  if (!url) return ''
+  if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
 }
 

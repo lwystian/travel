@@ -4,7 +4,7 @@
     <div ref="bannerRef" class="banner" :style="{ '--page-hero-height': `${bannerHeight}px` }">
       <img
         class="banner-img"
-        src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1920&h=600&fit=crop"
+        :src="noImage"
         alt="banner"
       />
       <div class="banner-mask">
@@ -115,6 +115,7 @@ import { ref, reactive, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import request from '@/utils/request'
 import { Edit } from '@element-plus/icons-vue'
+import noImage from '@/assets/images/no-image.png'
 import { ElMessage } from 'element-plus'
 
 // 全国省市数据
@@ -432,7 +433,7 @@ const currentTab = ref('热门游记')
 
 // 获取图片完整URL
 const getImageUrl = (url) => {
-  if (!url) return ''
+  if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
 }
 

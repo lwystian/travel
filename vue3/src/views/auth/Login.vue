@@ -1,7 +1,7 @@
 <template>
-  <div class="auth-page">
+  <div class="auth-page" :style="authBackgroundStyle">
     <main class="auth-card">
-      <section class="visual-panel">
+      <section class="visual-panel" :style="authBackgroundStyle">
         <div class="brand">
           <div class="brand-logo">侠客行</div>
           <div>
@@ -102,7 +102,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Key, Lock, Phone } from '@element-plus/icons-vue'
@@ -111,10 +111,13 @@ import { encryptPassword } from '@/utils/passwordCrypto'
 import { useUserStore } from '@/store/user'
 import AgreementDialog from '@/components/auth/AgreementDialog.vue'
 import GeetestBox from '@/components/auth/GeetestBox.vue'
+import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
+import noImage from '@/assets/images/no-image.png'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const { siteAssets, loadSiteAssets } = useSiteAssets()
 
 const activeTab = ref('password')
 const loading = ref(false)
@@ -127,6 +130,9 @@ const geetestRequired = ref(true)
 const passwordFormRef = ref(null)
 const codeFormRef = ref(null)
 const captchaRef = ref(null)
+const authBackgroundStyle = computed(() => ({
+  '--auth-bg-url': `url("${getAssetUrl(siteAssets.value.authBackgroundUrl, noImage)}")`
+}))
 
 const passwordForm = reactive({
   phone: '',
@@ -244,6 +250,8 @@ const submitLogin = async () => {
     loading.value = false
   }
 }
+
+onMounted(loadSiteAssets)
 </script>
 
 <style scoped>
@@ -255,7 +263,7 @@ const submitLogin = async () => {
   justify-content: center;
   background:
     linear-gradient(135deg, rgba(13, 36, 55, 0.6), rgba(8, 78, 93, 0.42)),
-    url('@/assets/bg.jpg') center/cover no-repeat;
+    var(--auth-bg-url) center/cover no-repeat;
 }
 
 .auth-card {
@@ -274,7 +282,7 @@ const submitLogin = async () => {
   color: #fff;
   background:
     linear-gradient(160deg, rgba(14, 116, 144, 0.92), rgba(22, 163, 74, 0.78)),
-    url('@/assets/bg.jpg') center/cover no-repeat;
+    var(--auth-bg-url) center/cover no-repeat;
   display: flex;
   flex-direction: column;
 }

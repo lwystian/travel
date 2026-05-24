@@ -272,6 +272,7 @@ import {
   Timer, Location, MapLocation, Star, User, Document, MagicStick,
   CircleCheck, Shop, OfficeBuilding, Refresh, Check, Clock, Picture
 } from '@element-plus/icons-vue'
+import noImage from '@/assets/images/no-image.png'
 
 const route = useRoute()
 const router = useRouter()
@@ -296,7 +297,7 @@ const currentImage = computed(() => {
   if (images.value.length > 0 && currentImageIndex.value < images.value.length) {
     return getImageUrl(images.value[currentImageIndex.value])
   }
-  return 'https://picsum.photos/seed/tour/1200/600'
+  return noImage
 })
 
 const parsedTags = computed(() => {
@@ -374,7 +375,7 @@ const getThemeName = (theme) => {
 
 // 获取图片URL
 const getImageUrl = (url) => {
-  if (!url) return 'https://picsum.photos/seed/tour/400/300'
+  if (!url) return noImage
   if (url.startsWith('http')) return url
   return baseAPI + url
 }

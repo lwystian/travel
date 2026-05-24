@@ -76,6 +76,12 @@ export const backendRoutes = [
         meta: { title: '网站页脚', icon: 'OfficeBuilding' }
       },
       {
+        path: 'site-assets',
+        name: 'SiteAssetConfig',
+        component: () => import('@/views/backend/site/AssetConfig.vue'),
+        meta: { title: '站点素材', icon: 'Picture' }
+      },
+      {
         path: 'site-settings',
         redirect: '/back/site-settings/site-access'
       },

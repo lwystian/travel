@@ -121,6 +121,7 @@ import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
 import { View, Calendar, Star, StarFilled, Share, User, ArrowRight } from '@element-plus/icons-vue'
 import { shareCurrentPage } from '@/utils/share'
+import noImage from '@/assets/images/no-image.png'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const route = useRoute()
@@ -133,7 +134,7 @@ const relatedGuides = ref([])
 
 // 获取图片完整URL
 const getImageUrl = (url) => {
-  if (!url) return ''
+  if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
 }
 

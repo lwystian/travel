@@ -323,51 +323,27 @@
             </div>
             <div class="booking-item">
               <span class="booking-label">成人：</span>
-              <div
-                class="number-input-wrapper"
-                @mouseenter="showAdultDropdown = true"
-                @mouseleave="showAdultDropdown = false"
-              >
-                <div class="number-input">
-                  <button class="num-btn" @click="decreaseAdult">-</button>
-                  <input type="text" :value="adultCount" readonly />
-                  <button class="num-btn" @click="increaseAdult">+</button>
-                </div>
-                <div v-show="showAdultDropdown" class="person-dropdown">
-                  <div
-                    v-for="num in personCountOptions"
-                    :key="`adult-${num}`"
-                    :class="['dropdown-option', { active: adultCount === num }]"
-                    @click="setAdultCount(num)"
-                  >
-                    {{ num }}人
-                  </div>
-                </div>
-              </div>
+              <el-input-number
+                v-model="adultCount"
+                class="person-input-number"
+                :min="1"
+                :max="MAX_PERSON_COUNT"
+                :step="1"
+                :precision="0"
+                controls-position="right"
+              />
             </div>
             <div v-if="hasChildPrice" class="booking-item">
               <span class="booking-label">儿童：</span>
-              <div
-                class="number-input-wrapper"
-                @mouseenter="showChildDropdown = true"
-                @mouseleave="showChildDropdown = false"
-              >
-                <div class="number-input">
-                  <button class="num-btn" @click="decreaseChild">-</button>
-                  <input type="text" :value="childCount" readonly />
-                  <button class="num-btn" @click="increaseChild">+</button>
-                </div>
-                <div v-show="showChildDropdown" class="person-dropdown">
-                  <div
-                    v-for="num in personCountOptions"
-                    :key="`child-${num}`"
-                    :class="['dropdown-option', { active: childCount === num }]"
-                    @click="setChildCount(num)"
-                  >
-                    {{ num }}人
-                  </div>
-                </div>
-              </div>
+              <el-input-number
+                v-model="childCount"
+                class="person-input-number"
+                :min="0"
+                :max="MAX_PERSON_COUNT"
+                :step="1"
+                :precision="0"
+                controls-position="right"
+              />
             </div>
             <div v-if="isSelectionComplete" class="booking-total">
               <div class="total-detail">
@@ -627,7 +603,6 @@ import request from '@/utils/request'
 // 常量定义
 // =============================================
 const MAX_PERSON_COUNT = 50
-const personCountOptions = Array.from({ length: 51 }, (_, i) => i)
 const weekDays = ['日', '一', '二', '三', '四', '五', '六']
 const weekdayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
@@ -782,8 +757,6 @@ const selectedPackageType = ref('')
 const selectedTrip = ref('')
 const adultCount = ref(1)
 const childCount = ref(0)
-const showAdultDropdown = ref(false)
-const showChildDropdown = ref(false)
 const currentBatch = ref(null)
 
 // 酒店预订相关
@@ -1105,28 +1078,6 @@ const refreshCurrentBatchPrice = () => {
     const batch = batchDatesWithDisplay.value.find(b => b.date === selectedBatchDate.value)
     if (batch) currentBatch.value = batch
   }
-}
-
-const increaseAdult = () => {
-  if (adultCount.value < MAX_PERSON_COUNT) adultCount.value++
-}
-const decreaseAdult = () => {
-  if (adultCount.value > 0) adultCount.value--
-}
-const setAdultCount = (num) => {
-  adultCount.value = num
-  showAdultDropdown.value = false
-}
-
-const increaseChild = () => {
-  if (childCount.value < MAX_PERSON_COUNT) childCount.value++
-}
-const decreaseChild = () => {
-  if (childCount.value > 0) childCount.value--
-}
-const setChildCount = (num) => {
-  childCount.value = num
-  showChildDropdown.value = false
 }
 
 // 酒店预订相关方法
@@ -2027,71 +1978,24 @@ onMounted(() => {
   color: #999;
 }
 
-.number-input-wrapper {
-  position: relative;
-  display: inline-block;
+.person-input-number {
+  width: 104px;
+  flex: 0 0 104px;
 }
 
-.number-input {
-  display: flex;
-  align-items: center;
-  border: 1px solid #ddd;
+.person-input-number :deep(.el-input__wrapper) {
+  min-height: 32px;
   border-radius: 4px;
-  flex-shrink: 0;
 }
 
-.number-input input {
-  width: 30px;
-  text-align: center;
-  border: none;
+.person-input-number :deep(.el-input__inner) {
   font-size: 13px;
-  padding: 4px 0;
-  outline: none;
-}
-
-.num-btn {
-  background: #FFFFFF;
-  border: none;
-  padding: 4px 10px;
-  cursor: pointer;
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.num-btn:hover {
-  background: #eee;
-}
-
-.person-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  max-height: 200px;
-  overflow-y: auto;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 100;
-  margin-top: 2px;
-}
-
-.dropdown-option {
-  padding: 8px 12px;
-  cursor: pointer;
   text-align: center;
-  font-size: 13px;
-  transition: background 0.15s;
 }
 
-.dropdown-option:hover {
-  background: #fff8f5;
-}
-
-.dropdown-option.active {
-  background: #f60;
-  color: #fff;
+.person-input-number :deep(.el-input-number__decrease),
+.person-input-number :deep(.el-input-number__increase) {
+  width: 26px;
 }
 
 .submit-btn {

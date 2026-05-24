@@ -284,6 +284,7 @@
 import { ref, onMounted, computed } from 'vue'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import noImage from '@/assets/images/no-image.png'
 
 const currentType = ref('featured')
 const recommendList = ref([])
@@ -305,7 +306,7 @@ const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 
 // 获取图片完整URL
 const getImageUrl = (url) => {
-  if (!url) return ''
+  if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
 }
 

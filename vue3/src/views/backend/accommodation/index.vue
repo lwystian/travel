@@ -251,6 +251,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { Delete, Edit, Plus } from '@element-plus/icons-vue'
+import noImage from '@/assets/images/no-image.png'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 
@@ -361,7 +362,7 @@ const fetchAccommodationTypes = async () => {
 
 // 处理图片URL
 const getImageUrl = (url) => {
-  if (!url) return ''
+  if (!url) return noImage
   if (url.startsWith('http')) return url
   return baseAPI + url
 }
