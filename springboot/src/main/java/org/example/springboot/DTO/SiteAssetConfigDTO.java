@@ -11,5 +11,7 @@ public class SiteAssetConfigDTO {
     private String aboutHeroUrl = "";
     private String legalHeroUrl = "";
     private String accommodationHeroUrl = "";
+    private String scenicHeroUrl = "";
+    private String guideHeroUrl = "";
     private String placeholderImageUrl = "";
 }

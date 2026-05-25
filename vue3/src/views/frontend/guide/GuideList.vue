@@ -4,7 +4,7 @@
     <div ref="bannerRef" class="banner" :style="{ '--page-hero-height': `${bannerHeight}px` }">
       <img
         class="banner-img"
-        :src="noImage"
+        :src="guideHeroUrl"
         alt="banner"
       />
       <div class="banner-mask">
@@ -111,12 +111,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import request from '@/utils/request'
 import { Edit } from '@element-plus/icons-vue'
 import noImage from '@/assets/images/no-image.png'
 import { ElMessage } from 'element-plus'
+import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
 
 // 全国省市数据
 const destinationOptions = [
@@ -405,8 +406,10 @@ const getDestinationLabel = (dest) => {
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const router = useRouter()
 const route = useRoute()
+const { siteAssets, loadSiteAssets } = useSiteAssets()
 const bannerRef = ref(null)
 const bannerHeight = ref(480)
+const guideHeroUrl = computed(() => getAssetUrl(siteAssets.value.guideHeroUrl, noImage))
 
 const updateBannerHeight = () => {
   if (!bannerRef.value) return
@@ -552,6 +555,7 @@ watch(() => route.query.search, (newSearch, oldSearch) => {
 
 // 生命周期
 onMounted(() => {
+  loadSiteAssets()
   handleUrlParams()
   nextTick(updateBannerHeight)
   setTimeout(updateBannerHeight, 100)

@@ -2,7 +2,7 @@
 <template>
   <div class="scenic-frontend-container">
     <!-- Hero 区域 - 背景图片适中 -->
-    <div class="hero-section" ref="heroSection" :style="{ '--page-hero-height': `${heroHeight}px`, '--scenic-hero-url': `url(${noImage})` }">
+    <div class="hero-section" ref="heroSection" :style="heroStyle">
       <div class="hero-overlay"></div>
       <div class="hero-content">
         <div class="hero-text">
@@ -167,20 +167,26 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import request from '@/utils/request'
 import { Search, Location, Refresh, Star, ChatDotRound } from '@element-plus/icons-vue'
 import noImage from '@/assets/images/no-image.png'
+import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const router = useRouter()
 const route = useRoute()
+const { siteAssets, loadSiteAssets } = useSiteAssets()
 
 // DOM 引用
 const heroSection = ref(null)
 const mainSection = ref(null)
 const heroHeight = ref(420)
+const heroStyle = computed(() => ({
+  '--page-hero-height': `${heroHeight.value}px`,
+  '--scenic-hero-url': `url("${getAssetUrl(siteAssets.value.scenicHeroUrl, noImage)}")`
+}))
 
 const updateHeroHeight = () => {
   if (!heroSection.value) return
@@ -369,6 +375,7 @@ const parseTags = (tags) => {
 
 // 生命周期
 onMounted(() => {
+  loadSiteAssets()
   fetchCategories()
   handleUrlParams()
   nextTick(updateHeroHeight)

@@ -57,6 +57,8 @@ const form = reactive({
   aboutHeroUrl: '',
   legalHeroUrl: '',
   accommodationHeroUrl: '',
+  scenicHeroUrl: '',
+  guideHeroUrl: '',
   placeholderImageUrl: ''
 })
 
@@ -68,6 +70,8 @@ const assetItems = [
   { key: 'aboutHeroUrl', title: '关于我们头图', desc: '关于页面首屏展示图片。' },
   { key: 'legalHeroUrl', title: '合规页面背景', desc: '营业执照、隐私安全等合规说明页面头图。' },
   { key: 'accommodationHeroUrl', title: '住宿列表头图', desc: '住宿列表页搜索首屏背景。' },
+  { key: 'scenicHeroUrl', title: '景点列表头图', desc: '景点列表页搜索首屏背景。' },
+  { key: 'guideHeroUrl', title: '攻略列表头图', desc: '攻略列表页搜索首屏背景。' },
   { key: 'placeholderImageUrl', title: '默认占位图', desc: '住宿等业务数据缺少图片时显示。' }
 ]
 

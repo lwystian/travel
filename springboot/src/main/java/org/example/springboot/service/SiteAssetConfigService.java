@@ -64,6 +64,8 @@ public class SiteAssetConfigService extends ServiceImpl<AuthProviderConfigMapper
         dto.setAboutHeroUrl(normalizeImagePath(dto.getAboutHeroUrl()));
         dto.setLegalHeroUrl(normalizeImagePath(dto.getLegalHeroUrl()));
         dto.setAccommodationHeroUrl(normalizeImagePath(dto.getAccommodationHeroUrl()));
+        dto.setScenicHeroUrl(normalizeImagePath(dto.getScenicHeroUrl()));
+        dto.setGuideHeroUrl(normalizeImagePath(dto.getGuideHeroUrl()));
         dto.setPlaceholderImageUrl(normalizeImagePath(dto.getPlaceholderImageUrl()));
     }
 
@@ -103,6 +105,8 @@ public class SiteAssetConfigService extends ServiceImpl<AuthProviderConfigMapper
         addImagePath(images, dto.getAboutHeroUrl());
         addImagePath(images, dto.getLegalHeroUrl());
         addImagePath(images, dto.getAccommodationHeroUrl());
+        addImagePath(images, dto.getScenicHeroUrl());
+        addImagePath(images, dto.getGuideHeroUrl());
         addImagePath(images, dto.getPlaceholderImageUrl());
         return images;
     }
