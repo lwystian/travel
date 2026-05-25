@@ -1626,11 +1626,18 @@ onMounted(() => {
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       z-index: 1000;
+      width: 140px;
+      box-sizing: border-box;
 
       img {
         width: 120px;
         height: 120px;
         display: block;
+        max-width: 120px;
+        max-height: 120px;
+        aspect-ratio: 1 / 1;
+        object-fit: contain;
+        object-position: center;
       }
 
       p {
