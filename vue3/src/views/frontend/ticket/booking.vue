@@ -1493,7 +1493,7 @@ onMounted(() => {
 .main-content {
   display: flex;
   flex-wrap: wrap;
-  max-width: 1320px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 20px;
   gap: 30px;

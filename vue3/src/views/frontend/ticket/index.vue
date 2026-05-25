@@ -244,7 +244,7 @@
       >
         <!-- 左侧图片 -->
         <div class="card-image">
-          <img :src="item.mainImage" :alt="item.title" />
+          <img :src="item.mainImage" :alt="item.title" loading="lazy" decoding="async" />
           <span class="image-tag">{{ item.tag }}</span>
         </div>
 
@@ -321,7 +321,7 @@
           <h3>精选推荐</h3>
           <div class="recommend-list">
             <div class="recommend-card" v-for="item in recommendList" :key="item.id" @click="goToDetail(item.id)">
-              <img :src="item.mainImage" :alt="item.title" />
+              <img :src="item.mainImage" :alt="item.title" loading="lazy" decoding="async" />
               <div class="recommend-info">
                 <h4>{{ item.title }}</h4>
                 <p class="recommend-price">¥{{ formatPrice(item.minPrice) }}起</p>
@@ -950,7 +950,7 @@ onMounted(() => {
 }
 
 .filters-container {
-  max-width: 1320px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 20px;
 }
@@ -1144,7 +1144,7 @@ onMounted(() => {
    行程列表样式
 ============================================= */
 .tickets-list {
-  max-width: 1320px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 20px;
 }

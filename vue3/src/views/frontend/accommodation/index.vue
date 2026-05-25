@@ -171,7 +171,7 @@
             @click="goToDetail(item.id)"
           >
             <div class="card-image">
-              <img :src="getImageUrl(item.imageUrl)" :alt="item.name" />
+              <img :src="getImageUrl(item.imageUrl)" :alt="item.name" loading="lazy" decoding="async" />
               <div class="card-badges">
                 <span v-if="item.type" class="badge">{{ item.type }}</span>
               </div>
@@ -517,7 +517,7 @@ $border: #ececec;
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1680px;
   height: 100%;
   padding: 0 20px;
   display: flex;
@@ -632,7 +632,7 @@ $border: #ececec;
 }
 
 .section-container {
-  max-width: 1200px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 0 20px 60px;
 }

@@ -61,7 +61,7 @@
         <!-- 攻略列表 -->
         <div v-for="item in tableData" :key="item.id" class="article-item" @click="goDetail(item.id)">
           <div class="article-cover">
-            <img :src="getImageUrl(item.coverImage)" :alt="item.title" />
+            <img :src="getImageUrl(item.coverImage)" :alt="item.title" loading="lazy" decoding="async" />
             <span v-if="item.isEssence" class="essence-tag">精华游记</span>
           </div>
           <div class="article-info">
@@ -76,7 +76,7 @@
                 <span class="meta-text">{{ getDestinationLabel(item.destination) }}</span>
               </div>
               <div class="meta-item">
-                <img :src="getImageUrl(item.userAvatar)" class="avatar" :alt="item.userNickname" />
+                <img :src="getImageUrl(item.userAvatar)" class="avatar" :alt="item.userNickname" loading="lazy" decoding="async" />
                 <span class="meta-text author">{{ item.userNickname || '旅行者' + item.userId }}</span>
               </div>
               <div class="meta-item">
@@ -666,7 +666,7 @@ onBeforeUnmount(() => {
 
 /* 内容区 */
 .content {
-  max-width: 1100px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 30px 20px;
 }

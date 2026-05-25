@@ -107,7 +107,7 @@
                     class="program-card"
                     @click="goToTourDetail(item.id)"
                   >
-                    <img :src="getImageUrl(item.mainImage)" :alt="item.title" />
+                    <img :src="getImageUrl(item.mainImage)" :alt="item.title" loading="lazy" decoding="async" />
                     <div class="program-card-body">
                       <div class="program-card-top">
                         <span>{{ getTourTypeName(item.tourType) }}</span>
@@ -218,7 +218,7 @@
                   @click="goToGuideDetail(item.id)"
                 >
                   <div class="insight-image">
-                    <img :src="getImageUrl(item.coverImage)" :alt="item.title" />
+                    <img :src="getImageUrl(item.coverImage)" :alt="item.title" loading="lazy" decoding="async" />
                     <span><el-icon><View /></el-icon>{{ item.views || 0 }}</span>
                   </div>
                   <div class="insight-body">
@@ -615,7 +615,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  width: min(1180px, calc(100% - 40px));
+  width: min(1600px, calc(100% - 64px));
   margin: 14px auto 0;
   padding: 12px 16px;
   border: 1px solid rgba(31, 122, 224, 0.18);
@@ -679,7 +679,7 @@ onMounted(() => {
 }
 
 .section-container {
-  width: min(1240px, calc(100% - 48px));
+  width: min(1680px, calc(100% - 64px));
   margin: 0 auto;
 }
 
@@ -800,7 +800,7 @@ onMounted(() => {
     position: absolute;
     left: 50%;
     top: 22px;
-    width: min(1240px, calc(100% - 48px));
+    width: min(1680px, calc(100% - 64px));
     height: 1px;
     transform: translateX(-50%);
     background: linear-gradient(90deg, transparent, rgba(15, 118, 110, 0.16), rgba(59, 130, 246, 0.12), transparent);
@@ -1198,7 +1198,7 @@ onMounted(() => {
     position: absolute;
     left: 50%;
     bottom: 0;
-    width: min(1240px, calc(100% - 48px));
+    width: min(1680px, calc(100% - 64px));
     height: 1px;
     transform: translateX(-50%);
     background: linear-gradient(90deg, transparent, rgba(15, 118, 110, 0.28), transparent);

@@ -489,7 +489,7 @@ onMounted(() => {
 .hero-content {
   position: relative;
   z-index: 1;
-  max-width: 1200px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 40px 24px;
   height: 100%;
@@ -583,7 +583,7 @@ onMounted(() => {
 }
 
 .section-container {
-  max-width: 1200px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 0 24px;
 }

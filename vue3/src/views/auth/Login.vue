@@ -257,9 +257,9 @@ onMounted(loadSiteAssets)
 <style scoped>
 .auth-page {
   min-height: 100vh;
-  padding: 22px 32px 32px;
+  padding: 32px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   background:
     linear-gradient(135deg, rgba(13, 36, 55, 0.6), rgba(8, 78, 93, 0.42)),
@@ -268,7 +268,7 @@ onMounted(loadSiteAssets)
 
 .auth-card {
   width: min(980px, 100%);
-  height: min(660px, calc(100vh - 54px));
+  height: min(660px, calc(100vh - 64px));
   display: grid;
   grid-template-columns: 1.05fr 0.95fr;
   border-radius: 18px;

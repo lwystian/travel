@@ -89,14 +89,23 @@ public class TourService {
 
         applySort(queryWrapper, sortType);
 
+        boolean needsComputedPrice = StringUtils.isNotBlank(priceRange)
+                || "price_asc".equals(sortType)
+                || "price_desc".equals(sortType);
+        long safeCurrent = currentPage == null || currentPage < 1 ? 1 : currentPage;
+        long safeSize = size == null || size < 1 ? 10 : Math.min(size, 100);
+        if (!needsComputedPrice) {
+            Page<Tour> page = tourMapper.selectPage(new Page<>(safeCurrent, safeSize), queryWrapper);
+            fillMinPrices(page.getRecords());
+            return page;
+        }
+
         List<Tour> matchedTours = tourMapper.selectList(queryWrapper);
         fillMinPrices(matchedTours);
         List<Tour> filteredTours = applyPriceFilter(matchedTours, priceRange);
         sortByComputedFields(filteredTours, sortType);
 
         long total = filteredTours.size();
-        long safeCurrent = currentPage == null || currentPage < 1 ? 1 : currentPage;
-        long safeSize = size == null || size < 1 ? 10 : Math.min(size, 100);
         int fromIndex = (int) Math.min((safeCurrent - 1) * safeSize, total);
         int toIndex = (int) Math.min(fromIndex + safeSize, total);
         Page<Tour> page = new Page<>(safeCurrent, safeSize);

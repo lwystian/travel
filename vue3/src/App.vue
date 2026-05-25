@@ -29,7 +29,9 @@ import noImage from '@/assets/images/no-image.png'
 
 const route = useRoute()
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
+const ACCESS_CONFIG_CACHE_TTL = 5 * 60 * 1000
 const accessReady = ref(false)
+const accessLoadedAt = ref(0)
 const accessConfig = reactive({
   siteEnabled: true,
   rejectMobile: false,
@@ -98,10 +100,17 @@ const loadSiteAccess = async () => {
     accessReady.value = true
     return
   }
-  accessReady.value = false
+  if (accessLoadedAt.value && Date.now() - accessLoadedAt.value < ACCESS_CONFIG_CACHE_TTL) {
+    accessReady.value = true
+    return
+  }
+  if (!accessLoadedAt.value) {
+    accessReady.value = false
+  }
   try {
     const data = await getPublicSiteAccessConfig()
     Object.assign(accessConfig, data || {})
+    accessLoadedAt.value = Date.now()
   } catch {
     // 访问控制配置拉取失败时保持默认开放，避免网络抖动误伤用户访问。
   } finally {

@@ -96,7 +96,7 @@
           >
             <!-- 左侧图片区域 - 固定宽高 -->
             <div class="card-image-horizontal">
-              <img :src="getImageUrl(item.imageUrl)" :alt="item.name" />
+              <img :src="getImageUrl(item.imageUrl)" :alt="item.name" loading="lazy" decoding="async" />
               <div class="rating-badge-horizontal">
                 <el-icon><Star /></el-icon>
                 <span>{{ getDisplayRating(item.rating) }}</span>
@@ -517,7 +517,7 @@ $border: #e9ecef;
 }
 
 .section-container {
-  max-width: 1300px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 0 20px;
 }

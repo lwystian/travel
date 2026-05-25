@@ -1385,7 +1385,7 @@ onMounted(() => {
 }
 
 .header-top-container {
-  max-width: 1400px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 0 20px;
   height: 40px;
@@ -1669,7 +1669,7 @@ onMounted(() => {
 }
 
 .header-middle-container {
-  max-width: 1400px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 20px;
   display: flex;
@@ -1961,7 +1961,7 @@ onMounted(() => {
 }
 
 .header-bottom-container {
-  max-width: 1400px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 0 20px;
 }
@@ -2034,7 +2034,7 @@ onMounted(() => {
 }
 
 .footer-content {
-  max-width: 1400px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 0 28px;
 }
@@ -2311,7 +2311,7 @@ onMounted(() => {
 
 .footer-content {
   width: 100%;
-  max-width: 1570px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 0 34px;
 }

@@ -565,7 +565,7 @@ watch(() => accommodation.value, (newVal) => {
 
   // 通用容器样式
   .section-container {
-    max-width: 1200px;
+    max-width: 1680px;
     margin: 0 auto;
     padding: 0 20px;
   }
@@ -627,7 +627,7 @@ watch(() => accommodation.value, (newVal) => {
     z-index: 10;
     color: white;
     text-align: center;
-    max-width: 1200px;
+    max-width: 1680px;
     width: 100%;
     padding: 0 40px;
   }

@@ -350,7 +350,7 @@ onMounted(fetchGuide)
     z-index: 10;
     color: white;
     text-align: center;
-    max-width: 1200px;
+    max-width: 1680px;
     width: 100%;
     padding: 0 40px;
   }
@@ -478,7 +478,7 @@ onMounted(fetchGuide)
 }
 
 .content-container {
-  max-width: 1200px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 0 20px;
 }

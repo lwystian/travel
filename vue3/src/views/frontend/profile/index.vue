@@ -1504,14 +1504,14 @@ onUnmounted(() => {
 
   // 通用容器样式
   .section-container {
-    max-width: 1300px;
+    max-width: 1680px;
     margin: 0 auto;
     padding: 40px 20px;
   }
 
   // 页面头部容器
   .page-header-wrapper {
-    max-width: 1300px;
+    max-width: 1680px;
     margin: 0 auto;
     padding: 34px 20px 0;
   }

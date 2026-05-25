@@ -106,7 +106,7 @@ onMounted(fetchCollections)
 
 <style lang="scss" scoped>
 .collection-list {
-  max-width: 1200px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 20px;
   

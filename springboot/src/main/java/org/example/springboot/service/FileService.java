@@ -45,7 +45,7 @@ public class FileService {
         LOGGER.info("upload FILE:{}", file.getOriginalFilename());
         String path = FileUtil.saveFile(file, null, fileType.getTypeName());
         if (com.baomidou.mybatisplus.core.toolkit.StringUtils.isNotBlank(path)) {
-            return Result.success(path);
+            return Result.success(withVersion(path));
         }
         return Result.error("-1", "文件上传失败");
     }
@@ -64,6 +64,7 @@ public class FileService {
         }
 
         List<String> successPaths = new ArrayList<>();
+        List<String> returnedPaths = new ArrayList<>();
         List<String> failedFiles = new ArrayList<>();
 
         for (MultipartFile file : files) {
@@ -80,6 +81,7 @@ public class FileService {
                 String path = FileUtil.saveFile(file, null, FileType.COMMON.getTypeName());
                 if (StringUtils.hasText(path)) {
                     successPaths.add(path);
+                    returnedPaths.add(withVersion(path));
                 } else {
                     failedFiles.add(file.getOriginalFilename() + ": 文件上传失败");
                 }
@@ -102,7 +104,15 @@ public class FileService {
             }
             return null;
         }
-        return successPaths;
+        return returnedPaths;
+    }
+
+    private String withVersion(String path) {
+        if (!StringUtils.hasText(path)) {
+            return path;
+        }
+        String separator = path.contains("?") ? "&" : "?";
+        return path + separator + "v=" + System.currentTimeMillis();
     }
 
     private boolean isAllowedFile(MultipartFile file, FileType fileType) {

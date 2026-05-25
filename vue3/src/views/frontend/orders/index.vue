@@ -448,7 +448,7 @@ onUnmounted(() => {
 }
 
 .orders-shell {
-  width: min(1240px, calc(100% - 40px));
+  width: min(1680px, calc(100% - 64px));
   margin: 0 auto;
   padding: 36px 0 64px;
 }

@@ -35,33 +35,18 @@
 ),
 
 $font-family: (
-  'primary': ('Source Han Sans Regular', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif),
+  'primary': (-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif),
 ),
 
 );
 
 @use "element-plus/theme-chalk/src/index.scss" as *;
 
-// 导入字体
-@font-face {
-  font-family: 'Source Han Sans Bold';
-  src: url('../assets/font/SourceHanSans-Bold.otf') format('opentype');
-  font-weight: bold;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Source Han Sans Regular';
-  src: url('../assets/font/SourceHanSans-Regular.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
+$app-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
 
 // 全局字体设置
 html, body {
-  font-family: 'Source Han Sans Regular', sans-serif !important;
+  font-family: $app-font-family;
 }
 
 // 添加表单样式覆盖
@@ -72,7 +57,7 @@ html, body {
     
     // 表单标签样式
     .el-form-item__label {
-      font-family: 'Source Han Sans Regular', sans-serif !important;
+      font-family: $app-font-family;
       font-weight: 500;
       color: #555555;
       padding-bottom: 8px;
@@ -87,13 +72,11 @@ html, body {
 
 // 标题样式
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Source Han Sans Bold', sans-serif !important;
   font-weight: bold;
 }
 
 // 正文样式
 p, div, span {
-  font-family: 'Source Han Sans Regular', sans-serif !important;
   line-height: 1.6;
 }
 
@@ -107,9 +90,8 @@ p, div, span {
 .el-dialog__title,
 .el-popover,
 .el-message {
-  font-family: 'Source Han Sans Regular', sans-serif !important;
+  font-family: $app-font-family;
 }
-
 
 
 

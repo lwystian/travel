@@ -2,6 +2,7 @@ const { defineConfig } = require('@vue/cli-service')
 const proxyTarget = process.env.VUE_APP_PROXY_TARGET || 'http://localhost:3001'
 module.exports = defineConfig({
   transpileDependencies: true,
+  productionSourceMap: false,
   chainWebpack: config => {
     if (process.env.NODE_ENV === 'production') {
       config.optimization.minimizer('terser').tap(args => {
