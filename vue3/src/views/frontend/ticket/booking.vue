@@ -925,8 +925,9 @@ const isSelectionComplete = computed(() => {
 const currentBatchCanBook = computed(() => {
   if (!currentBatch.value) return false
   const statusOk = currentBatch.value.status === '可报名'
+  const requiredCount = adultCount.value + (hasChildPrice.value ? childCount.value : 0)
   // 可用余位 = 剩余余位 - 已锁定库存
-  const remainingOk = ((currentBatch.value.remaining ?? 0) - (currentBatch.value.occupied ?? 0)) >= adultCount.value
+  const remainingOk = ((currentBatch.value.remaining ?? 0) - (currentBatch.value.occupied ?? 0)) >= requiredCount
   return statusOk && remainingOk
 })
 
@@ -937,9 +938,10 @@ const cannotBookReason = computed(() => {
     return `该批次${currentBatch.value.status}，不可预订`
   }
   // 可用余位 = 剩余余位 - 已锁定库存
+  const requiredCount = adultCount.value + (hasChildPrice.value ? childCount.value : 0)
   const remaining = (currentBatch.value.remaining ?? 0) - (currentBatch.value.occupied ?? 0)
-  if (remaining < adultCount.value) {
-    return `余位不足，当前剩余${remaining}个名额，需要${adultCount.value}人`
+  if (remaining < requiredCount) {
+    return `余位不足，当前剩余${remaining}个名额，需要${requiredCount}人`
   }
   return ''
 })
@@ -1128,7 +1130,11 @@ const viewHotelDetail = (accommodationId) => {
 const initDefaultSelection = () => {
   if (batchDates.value.length > 0) {
     // 默认选中第一个可报名的批次
-    const firstBookableBatch = batchDates.value.find(b => b.status === '可报名') || batchDates.value[0]
+    const requiredCount = adultCount.value + (hasChildPrice.value ? childCount.value : 0)
+    const firstBookableBatch = batchDates.value.find(b => {
+      const remaining = (b.remaining ?? 0) - (b.occupied ?? 0)
+      return b.status === '可报名' && remaining >= requiredCount
+    }) || batchDates.value[0]
     selectedBatchDate.value = firstBookableBatch.date
     selectedDate.value = firstBookableBatch.date
 
@@ -1141,7 +1147,7 @@ const initDefaultSelection = () => {
       weekdayName: weekdayNames[new Date(firstBookableBatch.date).getDay()],
       finalAdultPrice: tripAdultPrice + (firstBookableBatch.adultDateExtraFee || 0) + batchExtra,
       finalChildPrice: hasChildPrice.value ? (tripChildPrice + (firstBookableBatch.childDateExtraFee || 0) + batchExtra) : 0,
-      canBook: firstBookableBatch.status === '可报名'
+      canBook: firstBookableBatch.status === '可报名' && ((firstBookableBatch.remaining ?? 0) - (firstBookableBatch.occupied ?? 0)) >= requiredCount
     }
   }
 }

@@ -268,7 +268,7 @@
             <span class="row-label">推荐班期：</span>
             <span class="row-date">{{ item.recommendDate }}</span>
             <span class="row-label more-label">更多班期：</span>
-            <span class="row-more">{{ item.moreDates }}</span>
+            <span class="row-more">{{ formatMoreDatesForDisplay(item.moreDates) }}</span>
           </div>
 
           <div class="card-row feature-row">
@@ -376,6 +376,24 @@ const parseTags = (tags) => {
     }
   }
   return []
+}
+
+const formatMoreDatesForDisplay = (value) => {
+  if (!value) return ''
+  const normalize = item => {
+    const text = String(item || '').trim()
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(text)) {
+      const [, month, day] = text.split('-')
+      return `${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+    }
+    if (/^\d{1,2}-\d{1,2}$/.test(text)) {
+      const [month, day] = text.split('-')
+      return `${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+    }
+    return text
+  }
+  const items = Array.isArray(value) ? value : String(value).split(/[、,，\s]+/)
+  return items.map(normalize).filter(Boolean).join('、')
 }
 
 // 全国省市数据
@@ -663,6 +681,7 @@ const applyFilterLabels = data => {
 
 const normalizeTours = records => (records || []).map(item => ({
   ...item,
+  moreDates: formatMoreDatesForDisplay(item.moreDates),
   tags: parseTags(item.tags)
 }))
 

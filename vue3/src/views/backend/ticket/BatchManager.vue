@@ -22,51 +22,51 @@
 
     <!-- 班期列表 -->
     <div class="batch-section">
-      <el-table :data="batches" border style="width: 100%" v-loading="loading">
-        <el-table-column prop="id" label="ID" width="70" />
-        <el-table-column label="出发日期" width="120">
-          <template #default="scope">
-            <span :class="{ 'expired': isExpired(scope.row.departureDate) }">
-              {{ scope.row.departureDate }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column label="成人附加费" width="110">
-          <template #default="scope">
-            <span class="price">
-              {{ scope.row.adultDateExtraFee > 0 ? '+¥' + scope.row.adultDateExtraFee : '-' }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column label="儿童附加费" width="110">
-          <template #default="scope">
-            <span class="price">
-              {{ scope.row.childDateExtraFee > 0 ? '+¥' + scope.row.childDateExtraFee : '-' }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column label="余位/锁定/容量" width="120">
-          <template #default="scope">
-            <span :class="{ 'warning': (scope.row.remaining - (scope.row.occupied || 0)) <= 5 }">
-              {{ (scope.row.remaining || 0) - (scope.row.occupied || 0) }}/{{ scope.row.occupied || 0 }}/{{ scope.row.maxCapacity }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="90">
-          <template #default="scope">
-            <el-tag :type="getStatusType(scope.row.status)" size="small">
-              {{ scope.row.status }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="scope">
-            <el-button type="primary" size="small" @click="handleEditBatch(scope.row)">编辑</el-button>
-            <el-button type="warning" size="small" @click="handleUpdateRemaining(scope.row)">余位</el-button>
-            <el-button type="danger" size="small" @click="handleDeleteBatch(scope.row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div v-loading="loading" class="batch-table-wrap">
+        <table class="batch-table">
+          <colgroup>
+            <col style="width: 8%;">
+            <col style="width: 17%;">
+            <col style="width: 15%;">
+            <col style="width: 15%;">
+            <col style="width: 17%;">
+            <col style="width: 12%;">
+            <col style="width: 16%;">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>出发日期</th>
+              <th>成人附加费</th>
+              <th>儿童附加费</th>
+              <th>余位/锁定/容量</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in batches" :key="row.id">
+              <td>{{ row.id }}</td>
+              <td><span :class="{ 'expired': isExpired(row.departureDate) }">{{ row.departureDate }}</span></td>
+              <td><span class="price">{{ row.adultDateExtraFee > 0 ? '+¥' + row.adultDateExtraFee : '-' }}</span></td>
+              <td><span class="price">{{ row.childDateExtraFee > 0 ? '+¥' + row.childDateExtraFee : '-' }}</span></td>
+              <td>
+                <span :class="{ 'warning': getAvailableSeats(row) <= 5 }">
+                  {{ getAvailableSeats(row) }}/{{ row.occupied || 0 }}/{{ row.maxCapacity || 0 }}
+                </span>
+              </td>
+              <td><el-tag :type="getStatusType(row.status)" size="small">{{ row.status }}</el-tag></td>
+              <td>
+                <div class="table-actions">
+                  <el-button type="primary" size="small" @click="handleEditBatch(row)">编辑</el-button>
+                  <el-button type="warning" size="small" @click="handleUpdateRemaining(row)">余位</el-button>
+                  <el-button type="danger" size="small" @click="handleDeleteBatch(row)">删除</el-button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <el-empty v-if="batches.length === 0 && !loading" description="暂无班期，请添加" :image-size="80" />
     </div>
@@ -105,10 +105,10 @@
           </el-select>
         </el-form-item>
         <el-form-item label="余位" prop="remaining">
-          <el-input-number v-model="batchForm.remaining" :min="0" :max="999" style="width: 100%;" />
+          <el-input-number v-model="batchForm.remaining" :min="batchForm.occupied || 0" :max="batchForm.maxCapacity || 999" style="width: 100%;" />
         </el-form-item>
         <el-form-item label="最大容量" prop="maxCapacity">
-          <el-input-number v-model="batchForm.maxCapacity" :min="1" :max="999" style="width: 100%;" />
+          <el-input-number v-model="batchForm.maxCapacity" :min="Math.max(1, batchForm.remaining || 0)" :max="999" style="width: 100%;" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -126,37 +126,16 @@
       :close-on-click-modal="false"
     >
       <el-form ref="batchAddFormRef" :model="batchAddForm" label-width="100px">
-        <el-form-item label="开始日期">
+        <el-form-item label="出发日期">
           <el-date-picker
-            v-model="batchAddForm.startDate"
-            type="date"
-            placeholder="选择开始日期"
+            v-model="batchAddForm.dates"
+            type="dates"
+            placeholder="可一次选择多个出发日期"
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
             :disabled-date="disabledDate"
             style="width: 100%;"
           />
-        </el-form-item>
-        <el-form-item label="结束日期">
-          <el-date-picker
-            v-model="batchAddForm.endDate"
-            type="date"
-            placeholder="选择结束日期"
-            format="YYYY-MM-DD"
-            value-format="YYYY-MM-DD"
-            :disabled-date="disabledDate"
-            style="width: 100%;"
-          />
-        </el-form-item>
-        <el-form-item label="重复周期">
-          <el-select v-model="batchAddForm.frequency" placeholder="选择重复周期" style="width: 100%;">
-            <el-option label="每天" :value="1" />
-            <el-option label="每2天" :value="2" />
-            <el-option label="每3天" :value="3" />
-            <el-option label="每5天" :value="5" />
-            <el-option label="每周" :value="7" />
-            <el-option label="每2周" :value="14" />
-          </el-select>
         </el-form-item>
         <el-form-item label="成人附加费">
           <el-input-number v-model="batchAddForm.adultDateExtraFee" :precision="2" :min="0" :step="10" style="width: 100%;" />
@@ -165,10 +144,10 @@
           <el-input-number v-model="batchAddForm.childDateExtraFee" :precision="2" :min="0" :step="10" style="width: 100%;" />
         </el-form-item>
         <el-form-item label="余位">
-          <el-input-number v-model="batchAddForm.remaining" :min="0" :max="999" style="width: 100%;" />
+          <el-input-number v-model="batchAddForm.remaining" :min="0" :max="batchAddForm.maxCapacity || 999" style="width: 100%;" />
         </el-form-item>
         <el-form-item label="最大容量">
-          <el-input-number v-model="batchAddForm.maxCapacity" :min="1" :max="999" style="width: 100%;" />
+          <el-input-number v-model="batchAddForm.maxCapacity" :min="Math.max(1, batchAddForm.remaining || 0)" :max="999" style="width: 100%;" />
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="batchAddForm.status" placeholder="请选择状态" style="width: 100%;">
@@ -197,8 +176,14 @@
         <el-form-item label="当前余位">
           <span>{{ currentBatch?.remaining }}</span>
         </el-form-item>
+        <el-form-item label="锁定名额">
+          <span>{{ currentBatch?.occupied || 0 }}</span>
+        </el-form-item>
+        <el-form-item label="最大容量">
+          <span>{{ currentBatch?.maxCapacity || 0 }}</span>
+        </el-form-item>
         <el-form-item label="新余位">
-          <el-input-number v-model="newRemaining" :min="0" :max="999" style="width: 100%;" />
+          <el-input-number v-model="newRemaining" :min="currentBatch?.occupied || 0" :max="currentBatch?.maxCapacity || 999" style="width: 100%;" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -266,9 +251,7 @@ const batchAddDialogVisible = ref(false)
 const batchAddLoading = ref(false)
 const batchAddFormRef = ref(null)
 const batchAddForm = ref({
-  startDate: '',
-  endDate: '',
-  frequency: 7,
+  dates: [],
   adultDateExtraFee: 0,
   childDateExtraFee: 0,
   remaining: 30,
@@ -310,6 +293,37 @@ const isExpired = (dateStr) => {
   return new Date(dateStr) < new Date(new Date().toDateString())
 }
 
+const getAvailableSeats = (batch) => {
+  return Math.max(0, (batch?.remaining || 0) - (batch?.occupied || 0))
+}
+
+const normalizeBatchCapacity = (batch) => {
+  const occupied = Number(batch.occupied || 0)
+  const remaining = Number(batch.remaining || 0)
+  const maxCapacity = Number(batch.maxCapacity || 0)
+  return {
+    ...batch,
+    occupied,
+    remaining: Math.max(occupied, remaining),
+    maxCapacity: Math.max(1, remaining, maxCapacity)
+  }
+}
+
+const validateBatchCapacity = (batch) => {
+  const occupied = Number(batch.occupied || 0)
+  const remaining = Number(batch.remaining || 0)
+  const maxCapacity = Number(batch.maxCapacity || 0)
+  if (remaining < occupied) {
+    ElMessage.warning(`余位不能小于已锁定名额（当前锁定 ${occupied}）`)
+    return false
+  }
+  if (remaining > maxCapacity) {
+    ElMessage.warning('余位不能大于最大容量')
+    return false
+  }
+  return true
+}
+
 const getStatusType = (status) => {
   switch (status) {
     case '可报名': return 'success'
@@ -339,7 +353,7 @@ const showAddBatchDialog = () => {
 
 const handleEditBatch = (row) => {
   isBatchEdit.value = true
-  batchForm.value = { ...row }
+  batchForm.value = normalizeBatchCapacity(row)
   batchDialogVisible.value = true
 }
 
@@ -362,9 +376,13 @@ const handleDeleteBatch = (row) => {
 const submitBatch = async () => {
   batchFormRef.value.validate(async (valid) => {
     if (!valid) return
+    const data = normalizeBatchCapacity({
+      ...batchForm.value,
+      tourId: props.tourId
+    })
+    if (!validateBatchCapacity(data)) return
     batchLoading.value = true
     try {
-      const data = { ...batchForm.value, tourId: props.tourId }
       if (isBatchEdit.value) {
         await updateTourBatch(batchForm.value.id, data)
         ElMessage.success('更新成功')
@@ -384,9 +402,7 @@ const submitBatch = async () => {
 
 const showBatchAddDialog = () => {
   batchAddForm.value = {
-    startDate: '',
-    endDate: '',
-    frequency: 7,
+    dates: [],
     adultDateExtraFee: 0,
     childDateExtraFee: 0,
     remaining: 30,
@@ -397,36 +413,25 @@ const showBatchAddDialog = () => {
 }
 
 const submitBatchAdd = async () => {
-  if (!batchAddForm.value.startDate || !batchAddForm.value.endDate) {
-    ElMessage.warning('请选择开始和结束日期')
+  const dates = [...new Set(batchAddForm.value.dates || [])].sort()
+  if (!dates.length) {
+    ElMessage.warning('请选择出发日期')
     return
   }
-  if (new Date(batchAddForm.value.startDate) > new Date(batchAddForm.value.endDate)) {
-    ElMessage.warning('开始日期不能晚于结束日期')
-    return
-  }
+  const normalizedForm = normalizeBatchCapacity(batchAddForm.value)
+  if (!validateBatchCapacity(normalizedForm)) return
 
   batchAddLoading.value = true
   try {
-    // 生成日期列表
-    const dates = []
-    let current = new Date(batchAddForm.value.startDate)
-    const end = new Date(batchAddForm.value.endDate)
-
-    while (current <= end) {
-      dates.push(current.toISOString().split('T')[0])
-      current.setDate(current.getDate() + batchAddForm.value.frequency)
-    }
-
     // 构建班期列表
     const batchList = dates.map(date => ({
       tourId: props.tourId,
       departureDate: date,
-      adultDateExtraFee: batchAddForm.value.adultDateExtraFee,
-      childDateExtraFee: batchAddForm.value.childDateExtraFee,
-      status: batchAddForm.value.status,
-      remaining: batchAddForm.value.remaining,
-      maxCapacity: batchAddForm.value.maxCapacity
+      adultDateExtraFee: normalizedForm.adultDateExtraFee,
+      childDateExtraFee: normalizedForm.childDateExtraFee,
+      status: normalizedForm.status,
+      remaining: normalizedForm.remaining,
+      maxCapacity: normalizedForm.maxCapacity
     }))
 
     await addTourBatchesBatch(batchList)
@@ -442,17 +447,21 @@ const submitBatchAdd = async () => {
 
 const handleUpdateRemaining = (row) => {
   currentBatch.value = row
-  newRemaining.value = row.remaining
+  newRemaining.value = Math.max(row.remaining || 0, row.occupied || 0)
   remainingDialogVisible.value = true
 }
 
 const submitRemaining = async () => {
   if (!currentBatch.value) return
+  const data = normalizeBatchCapacity({
+    ...currentBatch.value,
+    remaining: newRemaining.value,
+    tourId: props.tourId
+  })
+  if (!validateBatchCapacity(data)) return
   try {
     await updateTourBatch(currentBatch.value.id, {
-      ...currentBatch.value,
-      remaining: newRemaining.value,
-      tourId: props.tourId
+      ...data
     })
     ElMessage.success('余位更新成功')
     remainingDialogVisible.value = false
@@ -486,6 +495,58 @@ const submitRemaining = async () => {
 .batch-section {
   max-height: 500px;
   overflow-y: auto;
+}
+
+.batch-table-wrap {
+  width: 100%;
+}
+
+.batch-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  border: 1px solid #ebeef5;
+  font-size: 14px;
+}
+
+.batch-table th,
+.batch-table td {
+  height: 40px;
+  padding: 6px 8px;
+  text-align: center;
+  vertical-align: middle;
+  border-right: 1px solid #ebeef5;
+  border-bottom: 1px solid #ebeef5;
+  box-sizing: border-box;
+}
+
+.batch-table th {
+  color: #909399;
+  font-weight: 600;
+  background: #f8fafc;
+}
+
+.batch-table td {
+  color: #606266;
+  background: #fff;
+  word-break: break-word;
+}
+
+.table-actions {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.table-actions :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
+.capacity-tip {
+  margin: -4px 0 8px 100px;
+  color: #909399;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .price {

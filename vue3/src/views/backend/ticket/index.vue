@@ -56,9 +56,9 @@
 
     <!-- 行程列表表格 -->
     <el-card shadow="never" class="table-card">
-      <el-table :data="tourList" border style="width: 100%" v-loading="loading">
-        <el-table-column prop="id" label="ID" width="70" />
-        <el-table-column label="行程封面" width="120">
+      <el-table :data="tourList" border style="width: 100%" v-loading="loading" header-align="center">
+        <el-table-column prop="id" label="ID" width="70" align="center" header-align="center" />
+        <el-table-column label="行程封面" width="120" align="center" header-align="center">
           <template #default="scope">
             <el-image
               v-if="scope.row.mainImage"
@@ -78,41 +78,41 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="subtitle" label="副标题" min-width="120" show-overflow-tooltip />
-        <el-table-column label="出发地-目的地" width="140">
+        <el-table-column prop="subtitle" label="副标题" min-width="120" show-overflow-tooltip align="center" header-align="center" />
+        <el-table-column label="出发地-目的地" width="140" align="center" header-align="center">
           <template #default="scope">
             <span>{{ getCityLabel(scope.row.city) }}</span>
             <span v-if="scope.row.destination"> → {{ getDestinationLabel(scope.row.destination) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="行程天数" width="90">
+        <el-table-column label="行程天数" width="90" align="center" header-align="center">
           <template #default="scope">
             {{ scope.row.days }}天{{ scope.row.days > 1 ? scope.row.days - 1 + '晚' : '' }}
           </template>
         </el-table-column>
-        <el-table-column label="最低价" width="100">
+        <el-table-column label="最低价" width="100" align="center" header-align="center">
           <template #default="scope">
             <span class="price">¥{{ scope.row.minPrice }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="评分" width="80">
+        <el-table-column label="评分" width="80" align="center" header-align="center">
           <template #default="scope">
             <el-rate v-model="scope.row.starRating" disabled text-color="#ff9900" />
           </template>
         </el-table-column>
-        <el-table-column label="标签" width="150">
+        <el-table-column label="标签" width="150" align="center" header-align="center">
           <template #default="scope">
             <el-tag v-for="tag in parseTags(scope.row.tags)" :key="tag" size="small" style="margin-right: 4px; margin-bottom: 2px;">{{ tag }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="80">
+        <el-table-column label="状态" width="80" align="center" header-align="center">
           <template #default="scope">
             <el-tag :type="scope.row.status === 1 ? 'success' : 'info'">
               {{ scope.row.status === 1 ? '上架' : '下架' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
+        <el-table-column label="操作" width="100" fixed="right" align="center" header-align="center">
           <template #default="scope">
             <el-dropdown trigger="click" @command="(cmd) => handleAction(cmd, scope.row)">
               <el-button type="primary" size="small">
@@ -222,9 +222,14 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="出发月份" prop="month">
-              <el-select v-model="tourForm.month" placeholder="请选择出发月份" style="width: 100%;">
-                <el-option v-for="m in 12" :key="m" :label="m + '月'" :value="m"></el-option>
-              </el-select>
+              <el-date-picker
+                v-model="tourForm.month"
+                type="month"
+                placeholder="请选择出发月份"
+                format="YYYY-MM"
+                value-format="M"
+                style="width: 100%;"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -234,12 +239,26 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="推荐日期" prop="recommendDate">
-              <el-input v-model="tourForm.recommendDate" placeholder="如：2026-05-01 周五" />
+              <el-date-picker
+                v-model="tourForm.recommendDate"
+                type="date"
+                placeholder="请选择推荐日期"
+                format="YYYY-MM-DD"
+                value-format="YYYY-MM-DD"
+                style="width: 100%;"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="更多日期" prop="moreDates">
-              <el-input v-model="tourForm.moreDates" placeholder="如：05-10、05-15、05-20" />
+              <el-date-picker
+                v-model="moreDateValues"
+                type="dates"
+                placeholder="请选择更多日期"
+                format="MM-DD"
+                value-format="YYYY-MM-DD"
+                style="width: 100%;"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -507,10 +526,68 @@ const detailManagerTourTitle = ref('')
 
 // 标签输入
 const tagsInput = ref('')
+const moreDateValues = ref([])
 const parsedTags = computed(() => {
   if (!tagsInput.value) return []
   return tagsInput.value.split(',').map(t => t.trim()).filter(t => t)
 })
+
+const normalizeMonthValue = (value) => {
+  if (!value) return ''
+  if (typeof value === 'number') return String(value)
+  if (/^\d{4}-\d{1,2}$/.test(value)) return String(Number(value.split('-')[1]))
+  return String(Number(value))
+}
+
+const parseMoreDates = (value) => {
+  if (!value) return []
+  const currentYear = new Date().getFullYear()
+  const normalizeDate = (item) => {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(item)) return item
+    if (/^\d{1,2}-\d{1,2}$/.test(item)) {
+      const [month, day] = item.split('-')
+      return `${currentYear}-${String(Number(month)).padStart(2, '0')}-${String(Number(day)).padStart(2, '0')}`
+    }
+    return item
+  }
+  if (Array.isArray(value)) return value.filter(Boolean)
+  return String(value)
+    .split(/[、,，\s]+/)
+    .map(item => item.trim())
+    .map(normalizeDate)
+    .filter(Boolean)
+}
+
+const formatMoreDates = (dates) => {
+  return (dates || [])
+    .filter(Boolean)
+    .map(item => {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(item)) return item.slice(5)
+      return item
+    })
+    .sort()
+    .join('、')
+}
+
+const formatMoreDatesForDisplay = (value) => {
+  if (!value) return ''
+  const items = Array.isArray(value) ? value : String(value).split(/[、,，\s]+/)
+  return items
+    .map(item => {
+      const text = String(item || '').trim()
+      if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(text)) {
+        const [, month, day] = text.split('-')
+        return `${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+      }
+      if (/^\d{1,2}-\d{1,2}$/.test(text)) {
+        const [month, day] = text.split('-')
+        return `${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+      }
+      return text
+    })
+    .filter(Boolean)
+    .join('、')
+}
 
 // 解析标签（处理字符串或数组格式）
 const parseTags = (tags) => {
@@ -577,7 +654,7 @@ const tourForm = reactive({
   city: '',
   destination: '',
   days: 1,
-  month: new Date().getMonth() + 1,
+  month: String(new Date().getMonth() + 1),
   starRating: 5,
   recommendDate: '',
   moreDates: '',
@@ -615,6 +692,7 @@ const fetchTours = async () => {
         // 确保每条记录的 tags 是数组格式
         tourList.value = (res.records || []).map(item => ({
           ...item,
+          moreDates: formatMoreDatesForDisplay(item.moreDates),
           tags: parseTags(item.tags)
         }))
         total.value = res.total || 0
@@ -679,6 +757,8 @@ const handleEdit = (row) => {
   })
   // 解析并设置标签输入
   tagsInput.value = parseTags(row.tags).join(', ')
+  tourForm.month = normalizeMonthValue(row.month)
+  moreDateValues.value = parseMoreDates(row.moreDates)
   dialogVisible.value = true
 }
 
@@ -740,10 +820,11 @@ const resetForm = () => {
   Object.assign(tourForm, {
     id: null, title: '', subtitle: '', mainImage: '', tag: '',
     tourType: '', city: '', destination: '', days: 1,
-    month: new Date().getMonth() + 1, starRating: 5,
+    month: String(new Date().getMonth() + 1), starRating: 5,
     recommendDate: '', moreDates: '', feature: '', tags: '',
     enrolledCount: 0, theme: '', status: 1
   })
+  moreDateValues.value = []
 }
 
 // 管理预订详情
@@ -768,7 +849,12 @@ const submitForm = async () => {
     formLoading.value = true
     try {
       // 将标签转换为逗号分隔的字符串
-      const submitData = { ...tourForm, tags: parsedTags.value.join(',') }
+      const submitData = {
+        ...tourForm,
+        month: Number(normalizeMonthValue(tourForm.month)),
+        moreDates: formatMoreDates(moreDateValues.value),
+        tags: parsedTags.value.join(',')
+      }
 
       if (isEdit.value) {
         await request.put(`/tour/${tourForm.id}`, submitData, {

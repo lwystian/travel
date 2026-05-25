@@ -70,6 +70,50 @@ html, body {
   }
 }
 
+.is-image-drop-ready {
+  position: relative;
+  outline: 2px dashed rgba(64, 158, 255, 0.48) !important;
+  outline-offset: 3px;
+  border-radius: 8px;
+  transition: outline-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+}
+
+.is-image-drop-active,
+.el-upload.is-image-dragover,
+.el-upload.is-image-dragover .el-upload-dragger {
+  border-color: var(--el-color-primary) !important;
+  background-color: var(--el-color-primary-light-9) !important;
+  outline-color: var(--el-color-primary) !important;
+  box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.16), 0 12px 34px rgba(64, 158, 255, 0.16) !important;
+}
+
+.is-image-drop-ready::after,
+.is-image-drop-active::after {
+  content: '拖拽图片到这里上传';
+  position: absolute;
+  inset: 6px;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  border: 1px dashed rgba(64, 158, 255, 0.45);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--el-color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0.92;
+}
+
+.is-image-drop-active::after {
+  content: '松开鼠标上传图片';
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  opacity: 1;
+}
+
 // 标题样式
 h1, h2, h3, h4, h5, h6 {
   font-weight: bold;
@@ -92,7 +136,4 @@ p, div, span {
 .el-message {
   font-family: $app-font-family;
 }
-
-
-
 

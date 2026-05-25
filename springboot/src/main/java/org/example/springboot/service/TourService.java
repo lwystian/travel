@@ -97,6 +97,7 @@ public class TourService {
         if (!needsComputedPrice) {
             Page<Tour> page = tourMapper.selectPage(new Page<>(safeCurrent, safeSize), queryWrapper);
             fillMinPrices(page.getRecords());
+            normalizeTourDates(page.getRecords());
             return page;
         }
 
@@ -110,7 +111,9 @@ public class TourService {
         int toIndex = (int) Math.min(fromIndex + safeSize, total);
         Page<Tour> page = new Page<>(safeCurrent, safeSize);
         page.setTotal(total);
-        page.setRecords(filteredTours.subList(fromIndex, toIndex));
+        List<Tour> records = filteredTours.subList(fromIndex, toIndex);
+        normalizeTourDates(records);
+        page.setRecords(records);
         return page;
     }
 
@@ -173,8 +176,10 @@ public class TourService {
                     .orderByDesc(Tour::getCreateTime)
                     .last("LIMIT " + (max - tours.size())));
             fillMinPrices(more);
+            normalizeTourDates(more);
             tours.addAll(more);
         }
+        normalizeTourDates(tours);
         return tours.size() > max ? tours.subList(0, max) : tours;
     }
 
@@ -190,7 +195,47 @@ public class TourService {
                 tour.setMinPrice(minPrice);
             }
         }
+        normalizeTourDates(tours);
         return tours;
+    }
+
+    private void normalizeTourDates(List<Tour> tours) {
+        if (tours == null || tours.isEmpty()) {
+            return;
+        }
+        for (Tour tour : tours) {
+            normalizeTourDates(tour);
+        }
+    }
+
+    private void normalizeTourDates(Tour tour) {
+        if (tour == null) {
+            return;
+        }
+        tour.setMoreDates(formatMoreDatesForDisplay(tour.getMoreDates()));
+    }
+
+    private String formatMoreDatesForDisplay(String value) {
+        if (!StringUtils.isNotBlank(value)) {
+            return value;
+        }
+        return Arrays.stream(value.split("[、,，\\s]+"))
+                .map(String::trim)
+                .filter(StringUtils::isNotBlank)
+                .map(this::formatDateWithoutYear)
+                .collect(Collectors.joining("、"));
+    }
+
+    private String formatDateWithoutYear(String value) {
+        if (value.matches("\\d{4}-\\d{1,2}-\\d{1,2}")) {
+            String[] parts = value.split("-");
+            return String.format("%02d-%02d", Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+        }
+        if (value.matches("\\d{1,2}-\\d{1,2}")) {
+            String[] parts = value.split("-");
+            return String.format("%02d-%02d", Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
+        }
+        return value;
     }
 
     private void applyKeywordFilter(LambdaQueryWrapper<Tour> queryWrapper, String keyword) {
@@ -495,6 +540,7 @@ public class TourService {
             updateTour.setCode(tour.getCode());
             tourMapper.updateById(updateTour);
         }
+        normalizeTourDates(tour);
         return tour;
     }
 
@@ -778,6 +824,7 @@ public class TourService {
      */
     @Transactional
     public void addTour(Tour tour) {
+        normalizeTourDates(tour);
         // 设置默认状态为上架
         if (tour.getStatus() == null) {
             tour.setStatus(1);
@@ -844,6 +891,7 @@ public class TourService {
         if (existTour == null) {
             throw new ServiceException("行程不存在");
         }
+        normalizeTourDates(tour);
         tourMapper.updateById(tour);
     }
 
@@ -949,6 +997,7 @@ public class TourService {
                 tour.setMinPrice(minPrice);
             }
         }
+        normalizeTourDates(tours);
         return tours;
     }
 
@@ -1021,6 +1070,7 @@ public class TourService {
                 tour.setMinPrice(minPrice);
             }
         }
+        normalizeTourDates(tours);
         return tours;
     }
 
@@ -1085,6 +1135,7 @@ public class TourService {
         if (tours.isEmpty()) {
             tours = getDefaultFeaturedTours();
         }
+        normalizeTourDates(tours);
         
         return tours;
     }
@@ -1127,6 +1178,7 @@ public class TourService {
         if (tours.isEmpty()) {
             tours = getDefaultMoreTours();
         }
+        normalizeTourDates(tours);
         
         return tours;
     }
@@ -1148,6 +1200,7 @@ public class TourService {
                 tour.setMinPrice(minPrice);
             }
         }
+        normalizeTourDates(tours);
         return tours;
     }
 
@@ -1210,6 +1263,7 @@ public class TourService {
                     if (minPrice != null) {
                         tour.setMinPrice(minPrice);
                     }
+                    normalizeTourDates(tour);
                     result.add(tour);
                 }
             }
@@ -1230,6 +1284,7 @@ public class TourService {
                 tour.setMinPrice(minPrice);
             }
         }
+        normalizeTourDates(tours);
         return tours;
     }
 
