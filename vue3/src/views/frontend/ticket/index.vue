@@ -412,15 +412,18 @@ const cityMap = {
 // 解析标签（处理字符串或数组格式）
 const parseTags = (tags) => {
   if (!tags) return []
-  if (Array.isArray(tags)) return tags
+  if (Array.isArray(tags)) return tags.map(t => String(t).trim()).filter(Boolean)
   if (typeof tags === 'string') {
     // 尝试解析JSON数组
     try {
-      return JSON.parse(tags)
-    } catch {
-      // 如果不是JSON，按逗号分隔
-      return tags.split(',').map(t => t.trim()).filter(t => t)
+      const parsed = JSON.parse(tags)
+      if (Array.isArray(parsed)) {
+        return parsed.map(t => String(t).trim()).filter(Boolean)
+      }
+    } catch (error) {
+      void error
     }
+    return tags.split(/[,\s，、]+/).map(t => t.trim()).filter(Boolean)
   }
   return []
 }
@@ -699,7 +702,7 @@ const isDataLoaded = ref(false)
 // =============================================
 // 辅助函数：获取标签显示名称
 // =============================================
-const getCityLabel = (value) => cityMap[value] || value
+const getCityLabel = (value) => cityMap[value] || getDestinationLabel(value) || value
 const getDaysLabel = (value) => daysMap[value] || value
 const getMonthLabel = (value) => monthMap[value] || value + '月'
 const getPriceLabel = (value) => priceMap[value] || value
@@ -819,7 +822,7 @@ const hasFilterOptions = computed(() => {
 // =============================================
 
 const getFilterTotalCount = (key) => {
-  if (hasSearched.value && totalCount.value > 0) return totalCount.value
+  if (hasSearched.value) return totalCount.value
   const items = availableFilters.value[key]
   if (!Array.isArray(items)) return 0
   return items.reduce((sum, item) => sum + Number(item.count || 0), 0)

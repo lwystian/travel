@@ -551,16 +551,19 @@ const getTourTypeName = (type) => {
 
 const getTags = (tagsStr) => {
   if (!tagsStr) return []
-  if (Array.isArray(tagsStr)) return tagsStr
+  if (Array.isArray(tagsStr)) return tagsStr.map(t => String(t).trim()).filter(Boolean)
   if (typeof tagsStr === 'string') {
     if (tagsStr.startsWith('[')) {
       try {
-        return JSON.parse(tagsStr)
-      } catch {
-        return tagsStr.split(',').map(t => t.trim()).filter(Boolean)
+        const parsed = JSON.parse(tagsStr)
+        if (Array.isArray(parsed)) {
+          return parsed.map(t => String(t).trim()).filter(Boolean)
+        }
+      } catch (error) {
+        void error
       }
     }
-    return tagsStr.split(',').map(t => t.trim()).filter(Boolean)
+    return tagsStr.split(/[,\s，、]+/).map(t => t.trim()).filter(Boolean)
   }
   return []
 }

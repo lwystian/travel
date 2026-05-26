@@ -161,6 +161,13 @@ public class TourOrderAlipayService {
     }
 
     /**
+     * 校验支付宝同步回跳签名。同步回跳只作为用户体验兜底，最终仍以异步通知为准。
+     */
+    public boolean verifyAlipayReturn(Map<String, String> params) {
+        return alipayPaymentStrategy.verifyNotifySign(params);
+    }
+
+    /**
      * 处理支付成功
      */
     @Transactional

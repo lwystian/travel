@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -136,6 +138,8 @@ public class TourOrderPayController {
         logger.info("收到同步回调: {}", params);
 
         String orderNo = params.get("out_trade_no");
+        String tradeNo = params.get("trade_no");
+        String amount = params.get("total_amount");
         String status = "failed";
 
         if (orderNo != null && !orderNo.isEmpty()) {
@@ -144,13 +148,16 @@ public class TourOrderPayController {
                 if (order != null) {
                     if (order.getStatus() == 1) {
                         status = "success";
-                    } else {
-                        logger.info("尝试处理支付: {}", orderNo);
-                        String result = tourOrderAlipayService.processPaySuccess(orderNo, null, null);
+                    } else if (tourOrderAlipayService.verifyAlipayReturn(params)) {
+                        logger.info("同步回调验签通过，尝试兜底处理支付: {}", orderNo);
+                        String result = tourOrderAlipayService.processPaySuccess(orderNo, tradeNo, amount);
                         if ("success".equals(result)) {
                             status = "success";
                             logger.info("支付处理成功: {}", orderNo);
                         }
+                    } else {
+                        status = "processing";
+                        logger.warn("同步回调验签未通过或订单尚未收到异步通知: {}", orderNo);
                     }
                 }
             } catch (Exception e) {
@@ -158,14 +165,20 @@ public class TourOrderPayController {
             }
         }
 
-        String redirectUrl = buildReturnUrl(orderNo, status);
+        String redirectUrl = buildReturnUrl(request, orderNo, status);
         logger.info("同步回调处理完成，重定向到: {}", redirectUrl);
         response.sendRedirect(redirectUrl);
     }
 
-    private String buildReturnUrl(String orderNo, String status) {
-        String baseReturnUrl = "/payment/result";
-        return baseReturnUrl + "?out_trade_no=" + orderNo + "&status=" + status;
+    private String buildReturnUrl(HttpServletRequest request, String orderNo, String status) {
+        String baseReturnUrl = buildPublicOrigin(request) + "/payment/result";
+        return baseReturnUrl
+                + "?out_trade_no=" + encode(orderNo)
+                + "&status=" + encode(status);
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
     }
 
     private String buildPublicOrigin(HttpServletRequest request) {

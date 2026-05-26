@@ -701,10 +701,14 @@ const tourForm = reactive({
 // 表单验证规则
 const tourRules = {
   title: [{ required: true, message: '请输入行程名称', trigger: 'blur' }],
-  tourType: [{ required: true, message: '请输入行程类型', trigger: 'blur' }],
+  mainImage: [{ required: true, message: '请上传行程封面', trigger: 'change' }],
+  tourType: [{ required: true, message: '请选择行程类型', trigger: 'change' }],
   city: [{ required: true, message: '请选择出发城市', trigger: 'change' }],
   destination: [{ required: true, message: '请选择或输入目的地', trigger: 'change' }],
-  days: [{ required: true, message: '请输入行程天数', trigger: 'blur' }]
+  days: [{ required: true, message: '请输入行程天数', trigger: 'blur' }],
+  month: [{ required: true, message: '请选择出发月份', trigger: 'change' }],
+  recommendDate: [{ required: true, message: '请选择推荐日期', trigger: 'change' }],
+  feature: [{ required: true, message: '请输入行程特色', trigger: 'blur' }]
 }
 
 // 获取行程列表
@@ -899,16 +903,17 @@ void previewImage
 // 提交表单
 const submitForm = async () => {
   tourFormRef.value.validate(async (valid) => {
-    if (!valid) return
+    if (!valid) {
+      ElMessage.warning('请先补充必填项，再保存行程')
+      return
+    }
+    const missing = getTourMissingFields(tourForm)
+    if (missing.length) {
+      ElMessage.warning(`请补充${missing.join('、')}后再保存`)
+      return
+    }
     formLoading.value = true
     try {
-      if (tourForm.status === 1) {
-        const missing = getTourMissingFields(tourForm)
-        if (missing.length) {
-          ElMessage.warning(`行程信息未完整，不能上架：请补充${missing.join('、')}`)
-          tourForm.status = 0
-        }
-      }
       // 将标签转换为空格分隔的字符串
       const submitData = {
         ...tourForm,

@@ -304,9 +304,17 @@ const currentImage = computed(() => {
 const parsedTags = computed(() => {
   if (!tour.value.tags) return []
   if (typeof tour.value.tags === 'string') {
-    return tour.value.tags.split(/[,，]/).filter(t => t.trim())
+    try {
+      const parsed = JSON.parse(tour.value.tags)
+      if (Array.isArray(parsed)) {
+        return parsed.map(t => String(t).trim()).filter(Boolean)
+      }
+    } catch (error) {
+      void error
+    }
+    return tour.value.tags.split(/[,\s，、]+/).map(t => t.trim()).filter(Boolean)
   }
-  return Array.isArray(tour.value.tags) ? tour.value.tags : []
+  return Array.isArray(tour.value.tags) ? tour.value.tags.map(t => String(t).trim()).filter(Boolean) : []
 })
 
 const features = computed(() => {

@@ -70,7 +70,8 @@ public class TourService {
         // 添加查询条件
         applyKeywordFilter(queryWrapper, title);
         if (StringUtils.isNotBlank(tourType)) {
-            queryWrapper.eq(Tour::getTourType, tourType);
+            List<String> tourTypeValues = expandTourTypeValues(tourType);
+            queryWrapper.in(Tour::getTourType, tourTypeValues);
         }
         if (StringUtils.isNotBlank(city)) {
             queryWrapper.eq(Tour::getCity, city);
@@ -324,6 +325,45 @@ public class TourService {
             }
         });
         return new ArrayList<>(keywords);
+    }
+
+    private List<String> expandTourTypeValues(String tourType) {
+        LinkedHashSet<String> values = new LinkedHashSet<>();
+        String raw = tourType.trim();
+        values.add(raw);
+        String normalized = normalizeTourTypeValueForQuery(raw);
+        if (StringUtils.isNotBlank(normalized)) {
+            values.add(normalized);
+            String displayLabel = getKeywordDisplayLabel(normalized);
+            if (StringUtils.isNotBlank(displayLabel)) {
+                values.add(displayLabel);
+            }
+        }
+        return new ArrayList<>(values);
+    }
+
+    private String normalizeTourTypeValueForQuery(String tourType) {
+        if (!StringUtils.isNotBlank(tourType)) {
+            return "";
+        }
+        return switch (tourType.trim().toLowerCase()) {
+            case "around", "周边", "周边游" -> "around";
+            case "long", "长线", "长线游" -> "long";
+            case "team", "跟团", "跟团游" -> "team";
+            case "free", "自由行" -> "free";
+            case "private", "私家团" -> "private";
+            case "custom", "定制游" -> "custom";
+            case "local", "当地参团", "当地游" -> "local";
+            case "selfdrive", "自驾", "自驾游" -> "selfdrive";
+            case "parent_child", "亲子", "亲子游" -> "parent_child";
+            case "study", "研学", "研学游" -> "study";
+            case "photography", "摄影", "摄影游" -> "photography";
+            case "outdoor", "徒步", "户外徒步" -> "outdoor";
+            case "cruise", "邮轮", "邮轮出行" -> "cruise";
+            case "wellness", "康养", "康养度假" -> "wellness";
+            case "other", "其它", "其他" -> "other";
+            default -> tourType.trim();
+        };
     }
 
     private void applyDaysFilter(LambdaQueryWrapper<Tour> queryWrapper, String days, String tourType) {
