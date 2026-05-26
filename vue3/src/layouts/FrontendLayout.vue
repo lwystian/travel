@@ -176,11 +176,11 @@
                 class="suggestions-dropdown"
                 @mousedown.prevent
               >
-                <!-- 线路推荐 -->
+                <!-- 行程推荐 -->
                 <div v-if="searchSuggestions.lines.length > 0 && (currentCategory.value === 'all' || currentCategory.value === 'line')" class="suggestion-section">
                   <div class="section-title">
                     <el-icon><Tickets /></el-icon>
-                    <span>线路推荐</span>
+                    <span>行程推荐</span>
                   </div>
                   <div
                     v-for="(item, index) in searchSuggestions.lines"
@@ -192,18 +192,17 @@
                   >
                     <div class="item-image">
                       <img
-                        :src="getImageUrl(item.ticketImage)"
-                        :alt="item.ticketName"
+                        :src="getTourSuggestionImage(item)"
+                        :alt="getTourSuggestionTitle(item)"
                         @error="$event.target.src = noImage"
                       />
                     </div>
                     <div class="item-content">
-                      <div class="item-title">{{ item.ticketName }}</div>
+                      <div class="item-title">{{ getTourSuggestionTitle(item) }}</div>
                       <div class="item-subtitle">
                         <el-icon><Ticket /></el-icon>
-                        {{ item.description || '精彩线路' }}
-                        <span v-if="item.discountPrice && item.discountPrice > 0" class="price">￥{{ item.discountPrice }}</span>
-                        <span v-else-if="item.price && item.price > 0" class="price">￥{{ item.price }}</span>
+                        <span class="suggestion-desc">{{ getTourSuggestionDesc(item) }}</span>
+                        <span v-if="getTourSuggestionPrice(item)" class="price">￥{{ getTourSuggestionPrice(item) }}</span>
                       </div>
                     </div>
                   </div>
@@ -434,7 +433,7 @@
             </div>
 
             <div v-if="visibleLinks(footerConfig.friendlyLinks).length" class="footer-line footer-friends">
-              <span>鍚堜綔閾炬帴</span>
+              <span>合作链接</span>
               <a
                 v-for="link in visibleLinks(footerConfig.friendlyLinks)"
                 :key="`${link.label}-${link.url}`"
@@ -655,7 +654,7 @@ const cityList = ref([
   { code: 'xian', name: '西安', aliases: ['西安市', "Xi'an", 'Xian'] }
 ])
 
-// 鎼滅储鐩稿叧鍙橀噺
+// 搜索相关变量
 const searchKeyword = ref('')
 const searchContainer = ref(null)
 const showSearchSuggestions = ref(false)
@@ -669,7 +668,7 @@ const searchSuggestions = reactive({
 // 搜索类别
 const searchCategories = [
   { value: 'all', label: '综合', icon: 'Grid' },
-  { value: 'line', label: '线路', icon: 'Tickets' },
+  { value: 'line', label: '行程', icon: 'Tickets' },
   { value: 'scenic', label: '景点', icon: 'Bicycle' },
   { value: 'guide', label: '攻略', icon: 'Reading' }
 ]
@@ -685,7 +684,7 @@ let searchDebounceTimer = null
 const isLoggedIn = computed(() => !!userStore.token)
 const userName = computed(() => userStore.userInfo?.nickname || userStore.userInfo?.name || userStore.userInfo?.username || '')
 
-// 璁＄畻褰撳墠婵€娲荤殑鑿滃崟绱㈠紩
+// 计算当前激活的菜单索引
 const activeMenuIndex = computed(() => {
   const path = route.path
   if (path === '/') return '/'
@@ -697,10 +696,47 @@ const activeMenuIndex = computed(() => {
   return '/'
 })
 
-// 鑾峰彇鍥剧墖瀹屾暣URL
+// 获取图片完整URL
 const getImageUrl = (url) => {
   if (!url) return noImage
-  return url.startsWith('http') ? url : baseAPI + url
+  let imageUrl = url
+  if (typeof imageUrl === 'string' && imageUrl.trim().startsWith('[')) {
+    try {
+      const images = JSON.parse(imageUrl)
+      imageUrl = Array.isArray(images) ? images.find(Boolean) : imageUrl
+    } catch {
+      imageUrl = ''
+    }
+  }
+  if (!imageUrl) return noImage
+  if (/^(https?:|data:|blob:)/.test(imageUrl)) return imageUrl
+  if (baseAPI && imageUrl.startsWith(`${baseAPI}/`)) return imageUrl
+  return imageUrl.startsWith('/') ? baseAPI + imageUrl : `${baseAPI}/${imageUrl}`
+}
+
+const getTourSuggestionImage = (item = {}) => {
+  return getImageUrl(item.mainImage || item.coverImage || item.imageUrl || item.ticketImage)
+}
+
+const getTourSuggestionTitle = (item = {}) => {
+  return item.title || item.ticketName || item.name || '行程产品'
+}
+
+const getTourSuggestionDesc = (item = {}) => {
+  const parts = [
+    item.days ? `${item.days}天${item.days > 1 ? `${item.days - 1}晚` : ''}` : '',
+    item.destinationName || item.destinationLabel || item.destination || '',
+    item.subtitle || item.description || ''
+  ].filter(Boolean)
+  return parts.join(' · ') || '精选行程'
+}
+
+const getTourSuggestionPrice = (item = {}) => {
+  const price = item.minPrice ?? item.discountPrice ?? item.price
+  if (price === null || price === undefined || price === '') return ''
+  const number = Number(price)
+  if (Number.isNaN(number) || number <= 0) return ''
+  return number.toLocaleString('zh-CN')
 }
 
 const visibleLinks = (links = []) => {
@@ -907,8 +943,8 @@ const saveHeaderContent = async () => {
 // 获取占位符文本
 const getPlaceholder = () => {
   switch (currentCategory.value.value) {
-    case 'all': return '搜索旅行线路、景点、攻略...'
-    case 'line': return '搜索线路...'
+    case 'all': return '搜索旅行行程、景点、攻略...'
+    case 'line': return '搜索行程...'
     case 'scenic': return '搜索景点...'
     case 'guide': return '搜索攻略...'
     default: return '搜索景点、酒店、攻略...'
@@ -955,7 +991,7 @@ const getConfiguredAroundUrl = (days) => {
   return `/tickets?tourType=around&city=${cityCode}&days=${days}`
 }
 
-// 鍛ㄨ竟娓歌烦杞?- 浣跨敤绮剧‘澶╂暟
+// 周边游跳转 - 使用精确天数
 const goToAroundTour = (days, event) => {
   if (headerEditMode.value) {
     event?.preventDefault?.()
@@ -964,7 +1000,7 @@ const goToAroundTour = (days, event) => {
   navigateConfiguredUrl(getConfiguredAroundUrl(days))
 }
 
-// 閭疆鍑鸿璺宠浆 - 涓夊场/瑗挎矙浣滀负鐩殑鍦扮瓫閫?
+// 邮轮出行跳转 - 三峡/西沙作为目的地筛选
 const goToCruise = (cruiseType, event) => {
   if (headerEditMode.value) {
     event?.preventDefault?.()
@@ -974,12 +1010,12 @@ const goToCruise = (cruiseType, event) => {
   navigateConfiguredUrl(configuredUrl || `/tickets?tourType=cruise&destination=${cruiseType}`)
 }
 
-// 鎼滅储绫诲埆鍙樻洿
+// 搜索类别变更
 const handleCategoryChange = (categoryValue) => {
   const cat = searchCategories.find(c => c.value === categoryValue)
   if (cat) {
     currentCategory.value = cat
-    // 娓呯┖涔嬪墠鐨勬悳绱㈠缓璁?
+    // 清空之前的搜索建议
     searchSuggestions.scenics = []
     searchSuggestions.guides = []
     searchSuggestions.lines = []
@@ -987,7 +1023,7 @@ const handleCategoryChange = (categoryValue) => {
   }
 }
 
-// 鎼滅储杈撳叆澶勭悊
+// 搜索输入处理
 const handleSearchInput = (value) => {
   if (searchDebounceTimer) {
     clearTimeout(searchDebounceTimer)
@@ -1003,12 +1039,12 @@ const handleSearchInput = (value) => {
   }, 300)
 }
 
-// 鑾峰彇鎼滅储寤鸿
+// 获取搜索建议
 const fetchSearchSuggestions = async (keyword) => {
   if (!keyword) return
 
   try {
-    // 娓呯┖涔嬪墠鐨勫缓璁?
+    // 清空之前的建议
     searchSuggestions.scenics = []
     searchSuggestions.guides = []
     searchSuggestions.lines = []
@@ -1016,7 +1052,7 @@ const fetchSearchSuggestions = async (keyword) => {
     const category = currentCategory.value.value
 
     if (category === 'all') {
-      // 缁煎悎鎼滅储锛氬悓鏃惰幏鍙栨櫙鐐广€佹敾鐣ュ拰绾胯矾寤鸿
+      // 综合搜索：同时获取景点、攻略和行程建议
       const [scenicResponse, guideResponse] = await Promise.all([
         request.get('/scenic/suggestions', {
           keyword,
@@ -1036,11 +1072,11 @@ const fetchSearchSuggestions = async (keyword) => {
       searchSuggestions.scenics = Array.isArray(scenicResponse) ? scenicResponse : (scenicResponse?.data || [])
       searchSuggestions.guides = Array.isArray(guideResponse) ? guideResponse : (guideResponse?.data || [])
 
-      // 鍗曠嫭鑾峰彇绾胯矾寤鸿锛堜娇鐢ㄨ绋嬫帴鍙ｏ級
+      // 单独获取行程建议（使用行程接口）
       await request.get('/tour/page', {
-        title: keyword,
+        keyword,
         currentPage: 1,
-        size: 3
+        pageSize: 3
       }, {
         showDefaultMsg: false,
         onSuccess: (res) => {
@@ -1048,7 +1084,7 @@ const fetchSearchSuggestions = async (keyword) => {
         }
       })
     } else if (category === 'scenic') {
-      // 鍙幏鍙栨櫙鐐瑰缓璁?
+      // 只获取景点建议
       const response = await request.get('/scenic/suggestions', {
         keyword,
         limit: 5
@@ -1058,7 +1094,7 @@ const fetchSearchSuggestions = async (keyword) => {
 
       searchSuggestions.scenics = Array.isArray(response) ? response : (response?.data || [])
     } else if (category === 'guide') {
-      // 鍙幏鍙栨敾鐣ュ缓璁?
+      // 只获取攻略建议
       const response = await request.get('/guide/suggestions', {
         keyword,
         limit: 5
@@ -1068,11 +1104,11 @@ const fetchSearchSuggestions = async (keyword) => {
 
       searchSuggestions.guides = Array.isArray(response) ? response : (response?.data || [])
     } else if (category === 'line') {
-      // 鍙幏鍙栫嚎璺缓璁紙浣跨敤琛岀▼鎺ュ彛锛?
+      // 只获取行程建议（使用行程接口）
       await request.get('/tour/page', {
-        title: keyword,
+        keyword,
         currentPage: 1,
-        size: 5
+        pageSize: 5
       }, {
         showDefaultMsg: false,
         onSuccess: (res) => {
@@ -1092,7 +1128,7 @@ const fetchSearchSuggestions = async (keyword) => {
   }
 }
 
-// 閿洏浜嬩欢澶勭悊
+// 键盘事件处理
 const handleSearchKeydown = (event) => {
   const totalItems = searchSuggestions.scenics.length + searchSuggestions.guides.length + searchSuggestions.lines.length
 
@@ -1120,14 +1156,14 @@ const handleSearchKeydown = (event) => {
   }
 }
 
-// 鑾峰緱鐒︾偣
+// 获得焦点
 const handleSearchFocus = () => {
   if (searchKeyword.value.trim() && hasSuggestions.value) {
     showSearchSuggestions.value = true
   }
 }
 
-// 澶卞幓鐒︾偣
+// 失去焦点
 const handleSearchBlur = () => {
   setTimeout(() => {
     hideSearchSuggestions()
@@ -1140,7 +1176,7 @@ const hideSearchSuggestions = () => {
   selectedSuggestionIndex.value = -1
 }
 
-// 鑾峰彇鏀荤暐寤鸿鐨勭储寮曪紙绾胯矾鍦ㄦ渶涓婏紝鐒跺悗鏅偣锛岀劧鍚庢敾鐣ワ級
+// 获取攻略建议的索引（行程在最上，然后景点，然后攻略）
 const getGuideIndex = (index) => {
   if (currentCategory.value === 'all') {
     return searchSuggestions.lines.length + searchSuggestions.scenics.length + index
@@ -1148,17 +1184,17 @@ const getGuideIndex = (index) => {
   return index
 }
 
-// 鑾峰彇绾胯矾寤鸿鐨勭储寮曪紙绾胯矾鍦ㄦ渶涓婇潰锛?
+// 获取行程建议的索引（行程在最上面）
 const getLineIndex = (index) => {
   return index
 }
 
-// 閫夋嫨寤鸿椤?
+// 选择建议项
 const selectSuggestion = (index) => {
   const lineCount = searchSuggestions.lines.length
   const scenicCount = searchSuggestions.scenics.length
   if (index < lineCount) {
-    // 绾胯矾
+    // 行程
     const line = searchSuggestions.lines[index]
     goToTicketDetail(line.id)
   } else if (index < lineCount + scenicCount) {
@@ -1172,26 +1208,26 @@ const selectSuggestion = (index) => {
   }
 }
 
-// 璺宠浆鍒版櫙鐐硅鎯?
+// 跳转到景点详情
 const goToScenicDetail = (id) => {
   router.push(`/scenic/${id}`)
   hideSearchSuggestions()
 }
 
-// 璺宠浆鍒版敾鐣ヨ鎯?
+// 跳转到攻略详情
 const goToGuideDetail = (id) => {
   router.push(`/guide/detail/${id}`)
   hideSearchSuggestions()
 }
 
-// 璺宠浆鍒拌绋嬭鎯?
+// 跳转到行程详情
 const goToTicketDetail = (id) => {
   router.push(`/ticket/booking/${id}`)
   hideSearchSuggestions()
 }
 
-// 璺宠浆鍒扮嚎璺鎯咃紙鍏煎鏃у悕绉帮級
-// 鎵ц鎼滅储鎻愪氦
+// 跳转到行程详情
+// 执行搜索提交
 const handleSearchSubmit = () => {
   if (!searchKeyword.value.trim()) return
 
@@ -1199,20 +1235,20 @@ const handleSearchSubmit = () => {
 
   switch (currentCategory.value.value) {
     case 'line':
-      // 绾胯矾鎼滅储璺宠浆鍒拌绋嬮璁㈤〉闈?
+      // 行程搜索跳转到行程预订页面
       router.push(`/tickets?search=${keyword}`)
       break
     case 'scenic':
-      // 鏅偣鎼滅储璺宠浆鍒版櫙鐐瑰垪琛ㄩ〉
+      // 景点搜索跳转到景点列表页
       router.push(`/scenic?search=${keyword}`)
       break
     case 'guide':
-      // 鏀荤暐鎼滅储璺宠浆鍒版敾鐣ュ垪琛ㄩ〉
+      // 攻略搜索跳转到攻略列表页
       router.push(`/guide?search=${keyword}`)
       break
     case 'all':
     default:
-      // 缁煎悎鎼滅储榛樿璺宠浆鍒拌绋嬮璁㈤〉闈紙绾胯矾锛?
+      // 综合搜索默认跳转到行程预订页面（行程）
       router.push(`/tickets?search=${keyword}`)
   }
 
@@ -1223,7 +1259,7 @@ const handleAddFavorite = () => {
   try {
     window.external.addToFavorites(window.location.href, headerContent.value.brandName || document.title)
   } catch (e) {
-    // 閫氱敤娴忚鍣ㄦ敹钘忔柟娉?
+    // 通用浏览器收藏方法
     var url = window.location.href
     var title = document.title
     if (window.sidebar && window.sidebar.addPanel) {
@@ -1353,7 +1389,7 @@ const handleLogout = () => {
 }
 
 onMounted(() => {
-  // 椤甸潰鍔犺浇鏃跺皾璇曢€氳繃IP鑾峰彇浣嶇疆
+  // 页面加载时尝试通过IP获取位置
   fetchLocationByIP()
   loadHeaderContent()
   loadSiteAssets().then(loadFooterConfig)
@@ -1368,7 +1404,7 @@ onMounted(() => {
   background-color: #FFFFFF;
 }
 
-// ==================== 涓夊眰椤电湁鏍峰紡 ====================
+// ==================== 三层页头样式 ====================
 
 .header {
   background: #ffffff;
@@ -1377,7 +1413,7 @@ onMounted(() => {
   margin-bottom: 0;
 }
 
-// 绗竴灞傦細椤堕儴淇℃伅鏍?
+// 第一层：顶部信息栏
 .header-top {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   color: #fff;
@@ -1385,9 +1421,9 @@ onMounted(() => {
 }
 
 .header-top-container {
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-fluid));
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0;
   height: 40px;
   display: flex;
   align-items: center;
@@ -1662,16 +1698,16 @@ onMounted(() => {
   }
 }
 
-// 绗簩灞傦細Logo鍜屾悳绱㈡
+// 第二层：Logo和搜索框
 .header-middle {
   background: #fff;
   border-bottom: 1px solid #eee;
 }
 
 .header-middle-container {
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-fluid));
   margin: 0 auto;
-  padding: 20px;
+  padding: 20px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1708,7 +1744,7 @@ onMounted(() => {
   }
 }
 
-// 鎼滅储鏍忓寘瑁呭櫒 - 浣嶇疆閫夋嫨鍣?+ 鎼滅储妗嗙粍鍚?
+// 搜索栏包装容器 - 位置选择器 + 搜索框组合
 .search-bar-wrapper {
   flex: 1;
   max-width: 700px;
@@ -1717,7 +1753,7 @@ onMounted(() => {
   position: relative;
 }
 
-// 鏅鸿兘鎼滅储妗嗘牱寮?
+// 智能搜索框样式
 .smart-search-wrapper {
   flex: 1;
   display: flex;
@@ -1725,7 +1761,7 @@ onMounted(() => {
   position: relative;
 }
 
-// 鎼滅储绫诲埆閫夋嫨鍣?
+// 搜索类别选择器
 .category-dropdown {
   .category-selector {
     display: flex;
@@ -1828,7 +1864,7 @@ onMounted(() => {
   }
 }
 
-// 鎼滅储寤鸿涓嬫媺妗?
+// 搜索建议下拉框
 .suggestions-dropdown {
   position: absolute;
   top: 100%;
@@ -1906,18 +1942,26 @@ onMounted(() => {
       text-overflow: ellipsis;
     }
 
-    .item-subtitle {
-      font-size: 13px;
-      color: #64748b;
-      display: flex;
-      align-items: center;
+      .item-subtitle {
+        font-size: 13px;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 4px;
 
-      .el-icon {
-        margin-right: 4px;
-        font-size: 12px;
-      }
+        .el-icon {
+          font-size: 12px;
+          flex: 0 0 auto;
+        }
 
-      .price {
+        .suggestion-desc {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .price {
         margin-left: auto;
         font-weight: 600;
         color: #e94560;
@@ -1935,7 +1979,7 @@ onMounted(() => {
   }
 }
 
-// 婊氬姩鏉℃牱寮?
+// 滚动条样式
 .suggestions-dropdown::-webkit-scrollbar {
   width: 6px;
 }
@@ -1954,16 +1998,16 @@ onMounted(() => {
   }
 }
 
-// 绗笁灞傦細涓诲鑸彍鍗?
+// 第三层：主导航菜单
 .header-bottom {
   background: #fff;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .header-bottom-container {
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-fluid));
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0;
 }
 
 .main-menu {
@@ -2009,13 +2053,13 @@ onMounted(() => {
     margin-right: 20px;
   }
 
-  // 闅愯棌sub-menu鐨勭澶?
+  // 隐藏sub-menu的箭头
   :deep(.el-sub-menu__icon-arrow) {
     display: none;
   }
 }
 
-// 涓诲唴瀹瑰尯鍩?
+// 主内容区域
 .main-content {
   flex: 1;
   padding: 0;
@@ -2034,9 +2078,9 @@ onMounted(() => {
 }
 
 .footer-content {
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-fluid));
   margin: 0 auto;
-  padding: 0 28px;
+  padding: 0;
 }
 
 .footer-nav {
@@ -2302,7 +2346,7 @@ onMounted(() => {
   font-size: 13px;
 }
 
-// 鐜颁唬鏃呰鍝佺墝淇℃伅鐭╅樀椤佃剼
+// 现代旅行品牌信息矩阵页脚
 .footer {
   background: #363636;
   color: #c8d0d7;
@@ -2310,10 +2354,9 @@ onMounted(() => {
 }
 
 .footer-content {
-  width: 100%;
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-fluid));
   margin: 0 auto;
-  padding: 0 34px;
+  padding: 0;
 }
 
 .footer-feature-grid {
@@ -2770,7 +2813,7 @@ onMounted(() => {
 @media (max-width: 768px) {
   .header-top-container {
     height: auto;
-    padding: 10px;
+    padding: 10px 0;
   }
 
   .welcome-message {
@@ -2792,7 +2835,7 @@ onMounted(() => {
 
   .header-middle-container {
     flex-direction: column;
-    padding: 15px;
+    padding: 15px 0;
   }
 
   .logo-section {
@@ -2862,7 +2905,7 @@ onMounted(() => {
   }
 
   .footer-content {
-    padding: 0 16px;
+    padding: 0;
   }
 
   .footer-nav {

@@ -27,6 +27,12 @@ public class FileController {
     public Result<?> upLoad(@RequestParam("file") MultipartFile file) {
       return   fileService.upLoad(file, FileType.IMG);
     }
+
+    @Operation(summary = "video upload")
+    @PostMapping("/upload/video")
+    public Result<?> uploadVideo(@RequestParam("file") MultipartFile file) {
+        return fileService.upLoad(file, FileType.VIDEO);
+    }
     @Operation(summary = "多文件上传，并且在有失败时删除已上传成功的文件")
     @PostMapping("/uploadMultiple")
     public Result<?> uploadMultiple(@RequestParam("files") List<MultipartFile> files) {
@@ -34,7 +40,6 @@ public class FileController {
         return !strings.isEmpty() ? Result.success(strings):Result.error("-1","文件上传失败！");
     }
 }
-
 
 
 

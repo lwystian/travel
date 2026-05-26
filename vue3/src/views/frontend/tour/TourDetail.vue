@@ -268,6 +268,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
+import { getTourTypeLabel } from '@/utils/tourTypes'
 import {
   Timer, Location, MapLocation, Star, User, Document, MagicStick,
   CircleCheck, Shop, OfficeBuilding, Refresh, Check, Clock, Picture
@@ -349,13 +350,7 @@ const formatCity = (city) => {
 
 // 获取行程类型名称
 const getTourTypeName = (type) => {
-  const typeMap = {
-    'around': '周边游',
-    'long': '长线游',
-    'team': '跟团游',
-    'cruise': '邮轮出行'
-  }
-  return typeMap[type] || '旅行'
+  return getTourTypeLabel(type, '旅行')
 }
 
 // 获取主题名称
@@ -489,9 +484,9 @@ onMounted(() => {
 .hero-content {
   position: relative;
   z-index: 1;
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-wide));
   margin: 0 auto;
-  padding: 40px 24px;
+  padding: 40px 0;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -583,9 +578,9 @@ onMounted(() => {
 }
 
 .section-container {
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-wide));
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0;
 }
 
 .content-grid {

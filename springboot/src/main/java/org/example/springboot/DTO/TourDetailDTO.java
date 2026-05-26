@@ -53,6 +53,9 @@ public class TourDetailDTO {
         private String departure;
         private Integer enrolledCount;
         private String notice;
+        private String recommendDate;
+        private String moreDates;
+        private String detailContent;
     }
 
     @Data

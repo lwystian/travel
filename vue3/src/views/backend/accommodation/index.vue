@@ -200,7 +200,7 @@
         </el-form-item>
         
         <el-form-item label="特色服务" prop="features">
-          <el-input v-model="form.features" placeholder="请输入特色服务，用逗号分隔" />
+          <el-input v-model="form.features" placeholder="请输入特色服务，用空格分隔，如：近景区 免费停车 含早餐" />
         </el-form-item>
         
         <el-form-item label="住宿图片">
@@ -288,6 +288,12 @@ const form = reactive({
   features: '',
   distance: '',
 })
+
+const normalizeSpaceSeparated = (value) => String(value || '')
+  .split(/[,\s，、]+/)
+  .map(item => item.trim())
+  .filter(Boolean)
+  .join(' ')
 
 // 表单验证规则
 const rules = {
@@ -430,6 +436,7 @@ const handleEdit = (row) => {
   
   // 填充表单数据
   Object.assign(form, { ...row })
+  form.features = normalizeSpaceSeparated(row.features)
 }
 
 // 删除住宿
@@ -513,9 +520,13 @@ const submitForm = async () => {
     if (valid) {
       formLoading.value = true
       try {
+        const submitData = {
+          ...form,
+          features: normalizeSpaceSeparated(form.features)
+        }
         if (isEdit.value) {
           // 更新
-          await request.put(`/accommodation/${form.id}`, form, {
+          await request.put(`/accommodation/${form.id}`, submitData, {
             successMsg: '更新成功',
             onSuccess: () => {
               dialogVisible.value = false
@@ -524,7 +535,7 @@ const submitForm = async () => {
           })
         } else {
           // 新增
-          await request.post('/accommodation', form, {
+          await request.post('/accommodation', submitData, {
             successMsg: '添加成功',
             onSuccess: () => {
               dialogVisible.value = false

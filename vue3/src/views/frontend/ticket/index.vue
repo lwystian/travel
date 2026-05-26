@@ -1,10 +1,10 @@
 <template>
   <div class="tickets-page">
     <!-- 筛选区域 - 移除了搜索框 -->
-    <div class="filters-section" v-if="hasSearched">
+    <div class="filters-section" v-if="hasFilterOptions">
       <div class="filters-container">
-        <!-- 动态筛选条件行 - 只要有搜索结果就显示 -->
-        <div class="filters-wrapper" v-if="hasSearched">
+        <!-- 动态筛选条件行 -->
+        <div class="filters-wrapper">
           <div class="filters-row">
             <!-- 行程类型筛选 - 动态生成 -->
             <div class="filter-item" v-if="availableFilters.tourTypes.length > 0">
@@ -16,7 +16,7 @@
                   @click="removeFilter('tourType')"
                 >
                   全部
-                  <span class="filter-count">({{ totalCount }})</span>
+                  <span class="filter-count">({{ getFilterTotalCount('tourTypes') }})</span>
                 </span>
                 <span
                   v-for="item in availableFilters.tourTypes"
@@ -40,7 +40,7 @@
                   @click="removeFilter('city')"
                 >
                   全部
-                  <span class="filter-count">({{ totalCount }})</span>
+                  <span class="filter-count">({{ getFilterTotalCount('cities') }})</span>
                 </span>
                 <span
                   v-for="item in availableFilters.cities"
@@ -63,7 +63,7 @@
                   @click="removeFilter('destination')"
                 >
                   全部
-                  <span class="filter-count">({{ totalCount }})</span>
+                  <span class="filter-count">({{ getFilterTotalCount('destinations') }})</span>
                 </span>
                 <span
                   v-for="item in availableFilters.destinations"
@@ -86,7 +86,7 @@
                   @click="removeFilter('days')"
                 >
                   全部
-                  <span class="filter-count">({{ totalCount }})</span>
+                  <span class="filter-count">({{ getFilterTotalCount('daysList') }})</span>
                 </span>
                 <span
                   v-for="item in availableFilters.daysList"
@@ -109,7 +109,7 @@
                   @click="removeFilter('month')"
                 >
                   全部
-                  <span class="filter-count">({{ totalCount }})</span>
+                  <span class="filter-count">({{ getFilterTotalCount('months') }})</span>
                 </span>
                 <span
                   v-for="item in availableFilters.months"
@@ -132,7 +132,7 @@
                   @click="removeFilter('priceRange')"
                 >
                   全部
-                  <span class="filter-count">({{ totalCount }})</span>
+                  <span class="filter-count">({{ getFilterTotalCount('priceRanges') }})</span>
                 </span>
                 <span
                   v-for="item in availableFilters.priceRanges"
@@ -155,7 +155,7 @@
                   @click="removeFilter('theme')"
                 >
                   全部
-                  <span class="filter-count">({{ totalCount }})</span>
+                  <span class="filter-count">({{ getFilterTotalCount('themes') }})</span>
                 </span>
                 <span
                   v-for="item in availableFilters.themes"
@@ -244,7 +244,7 @@
       >
         <!-- 左侧图片 -->
         <div class="card-image">
-          <img :src="item.mainImage" :alt="item.title" loading="lazy" decoding="async" />
+          <img :src="getTourImage(item.mainImage)" :alt="item.title" loading="lazy" decoding="async" />
           <span class="image-tag">{{ item.tag }}</span>
         </div>
 
@@ -320,11 +320,54 @@
         <div class="recommend-section">
           <h3>精选推荐</h3>
           <div class="recommend-list">
-            <div class="recommend-card" v-for="item in recommendList" :key="item.id" @click="goToDetail(item.id)">
-              <img :src="item.mainImage" :alt="item.title" loading="lazy" decoding="async" />
-              <div class="recommend-info">
-                <h4>{{ item.title }}</h4>
-                <p class="recommend-price">¥{{ formatPrice(item.minPrice) }}起</p>
+            <div
+              v-for="item in recommendList"
+              :key="item.id"
+              class="ticket-card recommend-ticket-card"
+              @click="goToDetail(item.id)"
+            >
+              <div class="card-image">
+                <img :src="getTourImage(item.mainImage)" :alt="item.title" loading="lazy" decoding="async" />
+                <span class="image-tag">{{ item.tag }}</span>
+              </div>
+
+              <div class="card-content">
+                <div class="card-title">
+                  <div class="star-badge">
+                    <span class="num">{{ item.starRating || 4.8 }}</span>
+                    <span class="star">★</span>
+                  </div>
+                  <h3>{{ item.title }}</h3>
+                </div>
+
+                <div class="card-row departure-row">
+                  <span class="row-label departure-label">出发城市：</span>
+                  <span class="row-departure">{{ item.subtitle }}</span>
+                </div>
+
+                <div class="card-row">
+                  <span class="row-label">推荐班期：</span>
+                  <span class="row-date">{{ item.recommendDate }}</span>
+                  <span class="row-label more-label">更多班期：</span>
+                  <span class="row-more">{{ formatMoreDatesForDisplay(item.moreDates) }}</span>
+                </div>
+
+                <div class="card-row feature-row">
+                  <span class="row-label">班期特色：</span>
+                  <span class="row-feature">{{ item.feature }}</span>
+                </div>
+
+                <div class="card-tags">
+                  <span class="card-tag" v-for="tag in item.tags" :key="tag">{{ tag }}</span>
+                </div>
+              </div>
+
+              <div class="card-price">
+                <div class="price-wrapper">
+                  <span class="currency">¥</span>
+                  <span class="price">{{ formatPrice(item.minPrice) }}</span>
+                  <span class="unit">起/人</span>
+                </div>
               </div>
             </div>
           </div>
@@ -346,7 +389,11 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Search, Loading, Close } from '@element-plus/icons-vue'
 import { getTourPage, getTourFilters, getHotTourKeywords, getTicketFeaturedTours } from '@/api/tour'
+import noImage from '@/assets/images/no-image.png'
+import { getTourTypeLabel } from '@/utils/tourTypes'
 void Search
+
+const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -657,8 +704,23 @@ const getDaysLabel = (value) => daysMap[value] || value
 const getMonthLabel = (value) => monthMap[value] || value + '月'
 const getPriceLabel = (value) => priceMap[value] || value
 const getThemeLabel = (value) => value || ''
-const getTourTypeLabel = (value) => value || ''
 const displaySearchKeyword = computed(() => searchDisplayKeyword.value || searchKeyword.value)
+
+const getTourImage = (url) => {
+  if (!url) return noImage
+  let imageUrl = url
+  if (typeof imageUrl === 'string' && imageUrl.trim().startsWith('[')) {
+    try {
+      const images = JSON.parse(imageUrl)
+      imageUrl = Array.isArray(images) ? images.find(Boolean) : imageUrl
+    } catch {
+      imageUrl = ''
+    }
+  }
+  if (!imageUrl) return noImage
+  if (imageUrl.startsWith('http') || imageUrl.startsWith('data:')) return imageUrl
+  return imageUrl.startsWith('/') ? `${baseAPI}${imageUrl}` : `${baseAPI}/${imageUrl}`
+}
 
 const decorateFilterItems = (items = [], labelGetter) => {
   return items.map(item => ({
@@ -748,9 +810,20 @@ const hasActiveFilters = computed(() => {
          activeFilters.value.theme
 })
 
+const hasFilterOptions = computed(() => {
+  return Object.values(availableFilters.value).some(items => Array.isArray(items) && items.length > 0)
+})
+
 // =============================================
 // 方法
 // =============================================
+
+const getFilterTotalCount = (key) => {
+  if (hasSearched.value && totalCount.value > 0) return totalCount.value
+  const items = availableFilters.value[key]
+  if (!Array.isArray(items)) return 0
+  return items.reduce((sum, item) => sum + Number(item.count || 0), 0)
+}
 
 // 格式化价格
 const formatPrice = (price) => {
@@ -969,9 +1042,9 @@ onMounted(() => {
 }
 
 .filters-container {
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-wide));
   margin: 0 auto;
-  padding: 20px;
+  padding: 20px 0;
 }
 
 /* 筛选条件外层橙色细框 */
@@ -1163,9 +1236,9 @@ onMounted(() => {
    行程列表样式
 ============================================= */
 .tickets-list {
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-wide));
   margin: 0 auto;
-  padding: 20px;
+  padding: 20px 0;
 }
 
 .ticket-card {
@@ -1412,50 +1485,13 @@ onMounted(() => {
 }
 
 .recommend-list {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.recommend-card {
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.recommend-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.recommend-card img {
-  width: 100%;
-  height: 160px;
-  object-fit: cover;
-}
-
-.recommend-info {
-  padding: 12px;
-}
-
-.recommend-info h4 {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 8px 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.recommend-price {
-  font-size: 16px;
-  font-weight: 600;
-  color: #f60;
-  margin: 0;
+.recommend-ticket-card {
+  margin-bottom: 0;
 }
 
 /* 分页样式 */
@@ -1484,12 +1520,6 @@ onMounted(() => {
 }
 
 /* 响应式 */
-@media (max-width: 1024px) {
-  .recommend-list {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (max-width: 768px) {
   .ticket-card {
     flex-direction: column;
@@ -1521,10 +1551,6 @@ onMounted(() => {
   .sort-bar {
     flex-direction: column;
     align-items: flex-start;
-  }
-  
-  .recommend-list {
-    grid-template-columns: 1fr;
   }
   
   .filter-label {

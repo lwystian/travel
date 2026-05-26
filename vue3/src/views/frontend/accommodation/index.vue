@@ -516,10 +516,9 @@ $border: #ececec;
 .hero-content {
   position: relative;
   z-index: 2;
-  width: 100%;
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-fluid));
   height: 100%;
-  padding: 0 20px;
+  padding: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -632,9 +631,9 @@ $border: #ececec;
 }
 
 .section-container {
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-wide));
   margin: 0 auto;
-  padding: 0 20px 60px;
+  padding: 0 0 60px;
 }
 
 /* 筛选条 */

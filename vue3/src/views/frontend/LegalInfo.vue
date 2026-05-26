@@ -505,7 +505,7 @@ onMounted(loadSiteAssets)
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   gap: 24px;
-  width: min(1120px, calc(100% - 48px));
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-readable));
   margin: -34px auto 72px;
   align-items: start;
 }

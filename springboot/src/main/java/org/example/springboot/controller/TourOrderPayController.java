@@ -55,10 +55,11 @@ public class TourOrderPayController {
     @GetMapping("/pay/{orderId}")
     public Result<String> generatePayForm(
             @PathVariable Long orderId,
-            @RequestParam(defaultValue = "alipay") String paymentType) {
+            @RequestParam(defaultValue = "alipay") String paymentType,
+            HttpServletRequest request) {
         logger.info("请求生成支付表单，订单ID: {}, 支付方式: {}", orderId, paymentType);
         try {
-            String formHtml = tourOrderAlipayService.generatePayForm(orderId, paymentType);
+            String formHtml = tourOrderAlipayService.generatePayForm(orderId, paymentType, buildPublicOrigin(request));
             return Result.success(formHtml);
         } catch (Exception e) {
             logger.error("生成支付表单失败: {}", e.getMessage());
@@ -163,8 +164,35 @@ public class TourOrderPayController {
     }
 
     private String buildReturnUrl(String orderNo, String status) {
-        String baseReturnUrl = "http://localhost:8081/payment/result";
+        String baseReturnUrl = "/payment/result";
         return baseReturnUrl + "?out_trade_no=" + orderNo + "&status=" + status;
+    }
+
+    private String buildPublicOrigin(HttpServletRequest request) {
+        String proto = firstHeader(request, "X-Forwarded-Proto");
+        if (proto == null || proto.isBlank()) {
+            proto = request.getScheme();
+        }
+        String host = firstHeader(request, "X-Forwarded-Host");
+        if (host == null || host.isBlank()) {
+            host = request.getHeader("Host");
+        }
+        if (host == null || host.isBlank()) {
+            host = request.getServerName();
+            int port = request.getServerPort();
+            if (port > 0 && port != 80 && port != 443) {
+                host += ":" + port;
+            }
+        }
+        return proto + "://" + host;
+    }
+
+    private String firstHeader(HttpServletRequest request, String name) {
+        String value = request.getHeader(name);
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.split(",")[0].trim();
     }
 
     private Map<String, String> convertRequestParamsToMap(HttpServletRequest request) {

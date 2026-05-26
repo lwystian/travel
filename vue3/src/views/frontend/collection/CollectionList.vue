@@ -106,9 +106,9 @@ onMounted(fetchCollections)
 
 <style lang="scss" scoped>
 .collection-list {
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-wide));
   margin: 0 auto;
-  padding: 20px;
+  padding: 20px 0;
   
   .page-title {
     margin-bottom: 30px;

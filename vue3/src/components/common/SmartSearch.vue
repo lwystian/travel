@@ -266,7 +266,7 @@ const handleSearch = () => {
   if (!searchKeyword.value.trim()) return
   
   searching.value = true
-  router.push(`/scenic?search=${encodeURIComponent(searchKeyword.value.trim())}`)
+  router.push(`/tickets?search=${encodeURIComponent(searchKeyword.value.trim())}`)
   hideSuggestions()
   
   setTimeout(() => {

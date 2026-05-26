@@ -261,6 +261,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import axios from 'axios'
 import { shareCurrentPage } from '@/utils/share'
+import { getTourTypeLabel } from '@/utils/tourTypes'
 import {
   Location, CollectionTag, Timer, Sunny, Loading, Star, StarFilled,
   Document, InfoFilled, CopyDocument, Share, ChatDotRound, Tickets
@@ -637,13 +638,7 @@ const formatPrice = (price) => {
 
 // 获取行程类型名称
 const getTourTypeName = (type) => {
-  const typeMap = {
-    'around': '周边游',
-    'long': '长线游',
-    'team': '跟团游',
-    'cruise': '邮轮出行'
-  }
-  return typeMap[type] || '旅行'
+  return getTourTypeLabel(type, '旅行')
 }
 
 // 格式化城市名称
@@ -844,9 +839,8 @@ onMounted(fetchDetail)
   position: relative;
   z-index: 10;
   color: white;
-  padding: 30px 40px;
-  width: 100%;
-  max-width: 1680px;
+  padding: 30px 0;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-wide));
   margin: 0 auto;
 }
 
@@ -961,9 +955,9 @@ onMounted(fetchDetail)
 }
 
 .section-container {
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-wide));
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 40px 0;
 }
 
 .content-grid {

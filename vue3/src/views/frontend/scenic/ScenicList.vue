@@ -517,9 +517,9 @@ $border: #e9ecef;
 }
 
 .section-container {
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-wide));
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0;
 }
 
 /* 分类栏 */

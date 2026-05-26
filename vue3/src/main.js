@@ -12,6 +12,7 @@ import './styles/element-variables.scss'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 // 导入初始化样式
 import './assets/global.css'
+import './styles/content-display.css'
 // 导入动画样式
 import './assets/animations.css'
 // 中文

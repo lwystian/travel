@@ -31,6 +31,13 @@ public class FileService {
             "image/x-icon",
             "image/vnd.microsoft.icon"
     );
+    private static final Set<String> VIDEO_CONTENT_TYPES = Set.of(
+            "video/mp4",
+            "video/webm",
+            "video/quicktime",
+            "video/x-msvideo",
+            "video/avi"
+    );
 
     @Operation(summary = "文件上传")
     public Result<?> upLoad(MultipartFile file, FileType fileType) {
@@ -128,6 +135,13 @@ public class FileService {
             String contentType = file.getContentType();
             if (contentType == null || !IMAGE_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
                 LOGGER.warn("Rejected image upload by content type: filename={}, contentType={}", file.getOriginalFilename(), contentType);
+                return false;
+            }
+        }
+        if (FileType.VIDEO.equals(fileType)) {
+            String contentType = file.getContentType();
+            if (contentType == null || !VIDEO_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
+                LOGGER.warn("Rejected video upload by content type: filename={}, contentType={}", file.getOriginalFilename(), contentType);
                 return false;
             }
         }

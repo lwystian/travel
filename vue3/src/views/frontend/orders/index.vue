@@ -448,7 +448,7 @@ onUnmounted(() => {
 }
 
 .orders-shell {
-  width: min(1680px, calc(100% - 64px));
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-page));
   margin: 0 auto;
   padding: 36px 0 64px;
 }
@@ -1010,7 +1010,7 @@ onUnmounted(() => {
 
 @media (max-width: 980px) {
   .orders-shell {
-    width: min(100% - 24px, 1240px);
+    width: min(var(--frontend-container-safe-width), var(--frontend-container-page));
     padding-top: 24px;
   }
 

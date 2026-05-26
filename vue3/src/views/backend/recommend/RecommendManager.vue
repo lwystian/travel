@@ -285,6 +285,7 @@ import { ref, onMounted, computed } from 'vue'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import noImage from '@/assets/images/no-image.png'
+import { getTourTypeLabel } from '@/utils/tourTypes'
 
 const currentType = ref('featured')
 const recommendList = ref([])
@@ -312,13 +313,7 @@ const getImageUrl = (url) => {
 
 // 获取行程类型名称
 const getTourTypeName = (type) => {
-  const typeMap = {
-    'around': '周边游',
-    'long': '长线游',
-    'team': '跟团游',
-    'cruise': '邮轮出行'
-  }
-  return typeMap[type] || '精选游'
+  return getTourTypeLabel(type, '精选游')
 }
 
 // 格式化价格显示

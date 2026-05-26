@@ -66,6 +66,10 @@ public class TourOrderAlipayService {
      * @return 支付表单HTML
      */
     public String generatePayForm(Long orderId, String paymentType) {
+        return generatePayForm(orderId, paymentType, null);
+    }
+
+    public String generatePayForm(Long orderId, String paymentType, String publicOrigin) {
         if (paymentType == null || paymentType.isEmpty()) {
             paymentType = "alipay";
         }
@@ -101,7 +105,15 @@ public class TourOrderAlipayService {
             throw new ServiceException(paymentType + " 未配置或未启用");
         }
 
+        AlipayPaymentStrategy requestAlipayStrategy = null;
         try {
+            if (strategy instanceof AlipayPaymentStrategy alipayStrategy && publicOrigin != null && !publicOrigin.isBlank()) {
+                requestAlipayStrategy = alipayStrategy;
+                requestAlipayStrategy.setRequestCallbackUrls(
+                        publicOrigin + "/api/tour-order-pay/return",
+                        publicOrigin + "/api/tour-order-pay/notify"
+                );
+            }
             String formHtml = strategy.generatePayForm(
                     orderId,
                     order.getOrderNo(),
@@ -114,6 +126,10 @@ public class TourOrderAlipayService {
         } catch (Exception e) {
             logger.error("生成支付表单失败，订单号: {}，错误: {}", order.getOrderNo(), e.getMessage());
             throw new ServiceException("生成支付表单失败: " + e.getMessage());
+        } finally {
+            if (requestAlipayStrategy != null) {
+                requestAlipayStrategy.clearRequestCallbackUrls();
+            }
         }
     }
 

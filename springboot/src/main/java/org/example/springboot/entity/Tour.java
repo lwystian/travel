@@ -89,6 +89,8 @@ public class Tour {
     @Schema(description = "出团通知")
     private String notice;
 
+    private String detailContent;
+
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
 

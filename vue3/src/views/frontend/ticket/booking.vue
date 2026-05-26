@@ -279,12 +279,22 @@
             <button
               v-for="pkg in batchPackages"
               :key="pkg.id"
-              :class="['package-btn', { active: selectedBatchPackage === pkg.id }]"
+              :class="['package-btn', 'batch-package-btn', { active: selectedBatchPackage === pkg.id }]"
               @click="selectBatchPackage(pkg.id)"
             >
-              {{ pkg.name }}
+              <span class="package-name">{{ pkg.name }}</span>
               <span v-if="pkg.extraFeePerPerson > 0" class="package-price">+¥{{ pkg.extraFeePerPerson }}/人</span>
               <span v-else class="package-price-free">标准</span>
+              <span v-if="pkg.description" class="package-hover-card" role="tooltip">
+                <span class="package-hover-title">套餐说明</span>
+                <span class="package-hover-name">{{ pkg.name }}</span>
+                <span class="package-hover-desc">{{ pkg.description }}</span>
+                <span class="package-hover-foot">
+                  <span>费用规则</span>
+                  <strong v-if="pkg.extraFeePerPerson > 0">每人加价 ¥{{ pkg.extraFeePerPerson }}</strong>
+                  <strong v-else>标准套餐</strong>
+                </span>
+              </span>
             </button>
           </div>
         </div>
@@ -493,6 +503,73 @@
       </div>
     </div>
 
+    <section id="tour-detail-section" ref="tourDetailSectionRef" class="tour-detail-section">
+      <div class="tour-detail-panel">
+        <div
+          ref="detailNavRef"
+          :class="['detail-nav', { 'is-fixed': isDetailNavFixed }]"
+          :style="detailNavFixedStyle"
+        >
+          <nav class="detail-nav-tabs" aria-label="行程详情目录">
+            <button class="detail-nav-tab active" type="button" @click="isTourDetailExpanded = true">
+              行程详细
+            </button>
+          </nav>
+          <div class="detail-nav-tools">
+            <span class="detail-nav-meta">{{ productInfo.days || 1 }} 天</span>
+            <button
+              class="detail-toggle-btn"
+              type="button"
+              :aria-expanded="isTourDetailExpanded"
+              aria-controls="tour-detail-content-panel"
+              :title="isTourDetailExpanded ? '收起行程详细' : '展开行程详细'"
+              @click="isTourDetailExpanded = !isTourDetailExpanded"
+            >
+              <span>{{ isTourDetailExpanded ? '收起' : '展开' }}</span>
+              <el-icon :class="['detail-toggle-icon', { expanded: isTourDetailExpanded }]"><ArrowDown /></el-icon>
+            </button>
+          </div>
+        </div>
+        <div v-if="isDetailNavFixed" class="detail-nav-placeholder" :style="{ height: `${detailNavHeight}px` }"></div>
+
+        <transition name="detail-collapse">
+          <div v-show="isTourDetailExpanded" id="tour-detail-content-panel" class="tour-detail-body">
+            <aside class="tour-detail-aside">
+              <div class="tour-detail-kicker">Travel Detail</div>
+              <h2>行程详细</h2>
+              <p>清晰查看每日安排、费用说明、注意事项与补充信息。</p>
+              <div class="detail-summary-list">
+                <div>
+                  <span>天数</span>
+                  <strong>{{ productInfo.days || 1 }} 天</strong>
+                </div>
+                <div v-if="productInfo.departure">
+                  <span>出发地</span>
+                  <strong>{{ formatCity(productInfo.departure) }}</strong>
+                </div>
+                <div v-if="productInfo.tourType">
+                  <span>类型</span>
+                  <strong>{{ getTourTypeName(productInfo.tourType) }}</strong>
+                </div>
+              </div>
+            </aside>
+
+            <div class="tour-detail-main">
+              <header class="tour-detail-card-head">
+                <div>
+                  <span>Itinerary</span>
+                  <h3>{{ productInfo.title || '行程安排' }}</h3>
+                </div>
+                <em>{{ productInfo.code || 'Tour' }}</em>
+              </header>
+              <article v-if="renderedDetailContent" class="tour-detail-content content-display" v-html="renderedDetailContent"></article>
+              <div v-else class="tour-detail-empty">暂无行程详细内容</div>
+            </div>
+          </div>
+        </transition>
+      </div>
+    </section>
+
     <el-dialog
       v-model="bookingConfirmVisible"
       width="720px"
@@ -591,13 +668,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Check } from '@element-plus/icons-vue'
+import { ArrowDown, Check } from '@element-plus/icons-vue'
 import { getTourDetailFull } from '@/api/tour'
 import { createTourOrder } from '@/api/tourOrder'
 import request from '@/utils/request'
+import { renderContent } from '@/utils/contentRenderer'
+import { getTourTypeLabel } from '@/utils/tourTypes'
 
 // =============================================
 // 常量定义
@@ -646,14 +725,6 @@ const themeMap = {
   'photography': '摄影游'
 }
 
-// 行程类型映射
-const tourTypeMap = {
-  'around': '周边游',
-  'long': '长线游',
-  'team': '跟团游',
-  'cruise': '邮轮出行'
-}
-
 // 格式化城市名称
 const formatCity = (city) => {
   return cityMap[city] || city || ''
@@ -666,7 +737,7 @@ const getThemeName = (theme) => {
 
 // 获取行程类型名称
 const getTourTypeName = (type) => {
-  return tourTypeMap[type] || '旅行'
+  return getTourTypeLabel(type, '旅行')
 }
 
 const route = useRoute()
@@ -685,8 +756,11 @@ const productInfo = ref({
   tourType: '',
   theme: '',
   enrolledCount: 0,
-  notice: ''
+  notice: '',
+  detailContent: ''
 })
+
+const renderedDetailContent = computed(() => renderContent(productInfo.value.detailContent))
 
 const productTags = ref([])
 const productFeatures = ref([])
@@ -694,6 +768,12 @@ const supplierInfo = ref({ name: '' })
 const refundPolicy = ref({ support: '', special: '' })
 const isTourCollected = ref(false)
 const favoriteLoading = ref(false)
+const isTourDetailExpanded = ref(true)
+const tourDetailSectionRef = ref(null)
+const detailNavRef = ref(null)
+const isDetailNavFixed = ref(false)
+const detailNavHeight = ref(56)
+const detailNavFixedStyle = ref({})
 
 // =============================================
 // 媒体数据配置（从后端获取）
@@ -1187,7 +1267,8 @@ const fetchProductDetail = async () => {
           tourType: data.tour.tourType || '',
           theme: data.tour.theme || '',
           enrolledCount: data.tour.enrolledCount || 0,
-          notice: data.tour.notice || ''
+          notice: data.tour.notice || '',
+          detailContent: data.tour.detailContent || ''
         }
       }
       await checkTourCollectionStatus()
@@ -1410,6 +1491,37 @@ const handleCopy = () => {
   ElMessage.success('已复制')
 }
 
+const updateDetailNavPosition = () => {
+  const sectionEl = tourDetailSectionRef.value
+  const navEl = detailNavRef.value
+  if (!sectionEl || !navEl) return
+
+  const sectionRect = sectionEl.getBoundingClientRect()
+  const sectionStyle = window.getComputedStyle(sectionEl)
+  const paddingLeft = parseFloat(sectionStyle.paddingLeft) || 0
+  const paddingRight = parseFloat(sectionStyle.paddingRight) || 0
+  const navHeight = navEl.offsetHeight || 56
+  const shouldFix = sectionRect.top <= 0 && sectionRect.bottom > navHeight
+
+  detailNavHeight.value = navHeight
+  isDetailNavFixed.value = shouldFix
+  detailNavFixedStyle.value = shouldFix
+    ? {
+        left: `${sectionRect.left + paddingLeft}px`,
+        width: `${Math.max(sectionRect.width - paddingLeft - paddingRight, 0)}px`
+      }
+    : {}
+}
+
+let detailNavRaf = 0
+const requestDetailNavPositionUpdate = () => {
+  if (detailNavRaf) return
+  detailNavRaf = window.requestAnimationFrame(() => {
+    detailNavRaf = 0
+    updateDetailNavPosition()
+  })
+}
+
 const checkTourCollectionStatus = async () => {
   if (!localStorage.getItem('token')) {
     isTourCollected.value = false
@@ -1478,19 +1590,39 @@ watch(videoUrl, (newUrl) => {
   }
 })
 
+watch(isTourDetailExpanded, () => {
+  nextTick(() => {
+    requestDetailNavPositionUpdate()
+  })
+})
+
 // =============================================
 // 生命周期
 // =============================================
 onMounted(() => {
   nextTick(() => {
     fetchProductDetail()
+    requestDetailNavPositionUpdate()
   })
+  window.addEventListener('scroll', requestDetailNavPositionUpdate, { passive: true })
+  window.addEventListener('resize', requestDetailNavPositionUpdate)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', requestDetailNavPositionUpdate)
+  window.removeEventListener('resize', requestDetailNavPositionUpdate)
+  if (detailNavRaf) {
+    window.cancelAnimationFrame(detailNavRaf)
+    detailNavRaf = 0
+  }
 })
 </script>
 
 <style scoped>
 /* 样式保持不变 */
 .travel-product-page {
+  --page-max-width: var(--frontend-container-wide);
+  --page-padding-x: var(--frontend-container-gutter);
   font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
   background: #FFFFFF;
   min-height: 100vh;
@@ -1499,9 +1631,9 @@ onMounted(() => {
 .main-content {
   display: flex;
   flex-wrap: wrap;
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--page-max-width));
   margin: 0 auto;
-  padding: 20px;
+  padding: 20px 0;
   gap: 30px;
   background: #fff;
   box-sizing: border-box;
@@ -1519,7 +1651,290 @@ onMounted(() => {
 
 .booking-section-wrapper {
   width: 100%;
-  margin: 0 -15px;
+  margin: 0;
+}
+
+.tour-detail-section {
+  width: min(var(--frontend-container-safe-width), var(--page-max-width));
+  margin: 18px auto 0;
+  padding: 0 0 72px;
+  box-sizing: border-box;
+  scroll-margin-top: 130px;
+}
+
+.tour-detail-panel {
+  border: 1px solid rgba(229, 232, 239, 0.92);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(31, 35, 41, 0.06);
+  overflow: visible;
+}
+
+.detail-nav {
+  position: relative;
+  z-index: 180;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 56px;
+  padding: 0 16px;
+  border-bottom: 1px solid #eef1f5;
+  border-radius: 8px 8px 0 0;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  box-sizing: border-box;
+  box-shadow: 0 8px 18px rgba(31, 35, 41, 0.05);
+}
+
+.detail-nav.is-fixed {
+  position: fixed;
+  top: 0;
+  border-radius: 0 0 8px 8px;
+}
+
+.detail-nav-placeholder {
+  width: 100%;
+}
+
+.detail-nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  align-self: stretch;
+}
+
+.detail-nav-tab {
+  position: relative;
+  height: 56px;
+  padding: 0 18px;
+  border: 0;
+  background: transparent;
+  color: #475467;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: color 0.18s ease, background 0.18s ease;
+}
+
+.detail-nav-tab:hover {
+  color: #1f2329;
+  background: #f9fafb;
+}
+
+.detail-nav-tab.active {
+  color: #f60;
+  background: #fff7ed;
+}
+
+.detail-nav-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 999px 999px 0 0;
+  background: #f60;
+}
+
+.detail-nav-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.detail-nav-meta {
+  max-width: 180px;
+  color: #667085;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.detail-toggle-btn {
+  height: 34px;
+  padding: 0 10px 0 12px;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  background: #fff;
+  color: #344054;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+}
+
+.detail-toggle-btn:hover {
+  border-color: #f60;
+  color: #f60;
+  background: #fffaf5;
+}
+
+.detail-toggle-icon {
+  font-size: 14px;
+  transition: transform 0.18s ease;
+}
+
+.detail-toggle-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.tour-detail-body {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 960px);
+  justify-content: center;
+  gap: 24px;
+  align-items: start;
+  padding: 24px;
+}
+
+.tour-detail-aside {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  border: 1px solid #e9edf3;
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 240, 0.92) 0%, rgba(255, 255, 255, 0.96) 54%),
+    #fff;
+  box-shadow: 0 12px 30px rgba(31, 35, 41, 0.06);
+}
+
+.tour-detail-kicker,
+.tour-detail-card-head span {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: #8a6a37;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.tour-detail-aside h2 {
+  margin: 0;
+  color: #1f2329;
+  font-size: 26px;
+  line-height: 1.25;
+}
+
+.tour-detail-aside p {
+  margin: 12px 0 22px;
+  color: #667085;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.detail-summary-list {
+  display: grid;
+  gap: 12px;
+}
+
+.detail-summary-list div {
+  padding: 12px 14px;
+  border: 1px solid #eef1f5;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.detail-summary-list span {
+  display: block;
+  margin-bottom: 4px;
+  color: #98a2b3;
+  font-size: 12px;
+}
+
+.detail-summary-list strong {
+  display: block;
+  color: #1f2329;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.tour-detail-main {
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #e9edf3;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 42px rgba(31, 35, 41, 0.08);
+}
+
+.tour-detail-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  padding: 24px 30px 20px;
+  border-bottom: 1px solid #eef1f5;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+}
+
+.tour-detail-card-head h3 {
+  margin: 0;
+  color: #1f2329;
+  font-size: 22px;
+  line-height: 1.35;
+}
+
+.tour-detail-card-head em {
+  flex: 0 0 auto;
+  max-width: 190px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #f60;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tour-detail-content,
+.tour-detail-empty {
+  flex: 1;
+  padding: 30px;
+  color: #333;
+}
+
+.tour-detail-empty {
+  color: #8c8c8c;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fbfcff;
+}
+
+.detail-collapse-enter-active,
+.detail-collapse-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease, max-height 0.24s ease;
+  overflow: hidden;
+  max-height: 2200px;
+}
+
+.detail-collapse-enter-from,
+.detail-collapse-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+  max-height: 0;
 }
 
 .main-image-container {
@@ -2297,13 +2712,15 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  overflow: visible;
 }
 
 .package-btn {
-  border: 1px solid #f60;
-  color: #f60;
+  position: relative;
+  border: 1px solid #d0d5dd;
+  color: #344054;
   background: #fff;
-  padding: 8px 16px;
+  padding: 9px 16px;
   font-size: 14px;
   border-radius: 4px;
   cursor: pointer;
@@ -2312,10 +2729,113 @@ onMounted(() => {
   align-items: flex-start;
   gap: 4px;
   min-width: 140px;
+  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.package-btn:hover {
+  border-color: #f60;
+  color: #f60;
+  background: #fffaf5;
+  box-shadow: 0 6px 16px rgba(255, 102, 0, 0.1);
 }
 
 .package-btn.active {
+  border-color: #f60;
+  color: #f60;
   background: #fff5f0;
+}
+
+.batch-package-btn {
+  z-index: 1;
+}
+
+.batch-package-btn:hover,
+.batch-package-btn:focus-visible {
+  z-index: 280;
+}
+
+.package-hover-card {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 12px);
+  width: min(380px, 72vw);
+  padding: 16px;
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  background: #fff;
+  color: #344054;
+  box-shadow: 0 18px 42px rgba(16, 24, 40, 0.16);
+  box-sizing: border-box;
+  display: grid;
+  gap: 8px;
+  line-height: 1.65;
+  text-align: left;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+  z-index: 300;
+  pointer-events: none;
+}
+
+.package-hover-card::before {
+  content: '';
+  position: absolute;
+  left: 24px;
+  top: -7px;
+  width: 12px;
+  height: 12px;
+  border-left: 1px solid #e4e7ec;
+  border-top: 1px solid #e4e7ec;
+  background: #fff;
+  transform: rotate(45deg);
+}
+
+.batch-package-btn:hover .package-hover-card,
+.batch-package-btn:focus-visible .package-hover-card {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.package-hover-title {
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.package-hover-name {
+  color: #1f2329;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.package-hover-desc {
+  color: #475467;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: pre-wrap;
+}
+
+.package-hover-foot {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid #eef1f5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #667085;
+  font-size: 12px;
+}
+
+.package-hover-foot strong {
+  color: #f60;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .package-name {
@@ -2348,6 +2868,24 @@ onMounted(() => {
 }
 
 @media (max-width: 1024px) {
+  .tour-detail-section {
+    padding: 24px 16px 56px;
+  }
+
+  .tour-detail-body {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 18px;
+  }
+
+  .tour-detail-aside {
+    position: static;
+  }
+
+  .detail-summary-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .booking-section {
     padding: 10px 12px;
     gap: 10px;
@@ -2372,6 +2910,58 @@ onMounted(() => {
 @media (max-width: 768px) {
   .main-content {
     flex-direction: column;
+  }
+  .detail-nav {
+    align-items: stretch;
+    gap: 8px;
+    padding: 0 10px;
+  }
+  .tour-detail-section {
+    padding: 20px 12px 46px;
+    scroll-margin-top: 112px;
+  }
+  .detail-nav-tab {
+    height: 50px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+  .detail-nav-tools {
+    gap: 8px;
+  }
+  .detail-nav-meta {
+    display: none;
+  }
+  .detail-toggle-btn {
+    height: 32px;
+    align-self: center;
+    padding: 0 8px 0 10px;
+  }
+  .tour-detail-body {
+    padding: 14px;
+  }
+  .tour-detail-aside {
+    padding: 18px;
+  }
+  .tour-detail-aside h2 {
+    font-size: 22px;
+  }
+  .detail-summary-list {
+    grid-template-columns: 1fr;
+  }
+  .tour-detail-card-head {
+    padding: 20px;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .tour-detail-card-head h3 {
+    font-size: 19px;
+  }
+  .tour-detail-card-head em {
+    max-width: 100%;
+  }
+  .tour-detail-content,
+  .tour-detail-empty {
+    padding: 20px;
   }
   .left-section {
     width: 100%;
@@ -2983,6 +3573,27 @@ onMounted(() => {
 
 /* 响应式适配 */
 @media (max-width: 480px) {
+  .tour-detail-aside,
+  .tour-detail-main,
+  .tour-detail-panel {
+    border-radius: 8px;
+  }
+
+  .detail-toggle-btn span {
+    display: none;
+  }
+
+  .detail-toggle-btn {
+    width: 32px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .tour-detail-content,
+  .tour-detail-empty {
+    padding: 18px 16px;
+  }
+
   .hotel-config {
     flex-direction: column;
     gap: 12px;

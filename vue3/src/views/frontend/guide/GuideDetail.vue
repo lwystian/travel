@@ -350,9 +350,8 @@ onMounted(fetchGuide)
     z-index: 10;
     color: white;
     text-align: center;
-    max-width: 1680px;
-    width: 100%;
-    padding: 0 40px;
+    width: min(var(--frontend-container-safe-width), var(--frontend-container-wide));
+    padding: 0;
   }
 
   .breadcrumb {
@@ -478,9 +477,9 @@ onMounted(fetchGuide)
 }
 
 .content-container {
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-page));
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0;
 }
 
 .content-layout {

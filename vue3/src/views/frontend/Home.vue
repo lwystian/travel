@@ -292,6 +292,7 @@ import HomeCarousel from '@/components/frontend/HomeCarousel.vue'
 import InlineEditableText from '@/components/frontend/InlineEditableText.vue'
 import { useUserStore } from '@/store/user'
 import { getPublicPageContent, savePageContent } from '@/api/pageContent'
+import { getTourTypeLabel } from '@/utils/tourTypes'
 import {
   ArrowRight,
   View,
@@ -545,13 +546,7 @@ const getImageUrl = (url) => {
 }
 
 const getTourTypeName = (type) => {
-  const typeMap = {
-    around: '周边游',
-    long: '长线游',
-    team: '跟团游',
-    cruise: '邮轮出行'
-  }
-  return typeMap[type] || '精选游'
+  return getTourTypeLabel(type, '精选游')
 }
 
 const getTags = (tagsStr) => {
@@ -615,7 +610,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  width: min(1600px, calc(100% - 64px));
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-fluid));
   margin: 14px auto 0;
   padding: 12px 16px;
   border: 1px solid rgba(31, 122, 224, 0.18);
@@ -679,7 +674,7 @@ onMounted(() => {
 }
 
 .section-container {
-  width: min(1680px, calc(100% - 64px));
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-fluid));
   margin: 0 auto;
 }
 
@@ -800,7 +795,7 @@ onMounted(() => {
     position: absolute;
     left: 50%;
     top: 22px;
-    width: min(1680px, calc(100% - 64px));
+    width: min(var(--frontend-container-safe-width), var(--frontend-container-fluid));
     height: 1px;
     transform: translateX(-50%);
     background: linear-gradient(90deg, transparent, rgba(15, 118, 110, 0.16), rgba(59, 130, 246, 0.12), transparent);
@@ -1198,7 +1193,7 @@ onMounted(() => {
     position: absolute;
     left: 50%;
     bottom: 0;
-    width: min(1680px, calc(100% - 64px));
+    width: min(var(--frontend-container-safe-width), var(--frontend-container-fluid));
     height: 1px;
     transform: translateX(-50%);
     background: linear-gradient(90deg, transparent, rgba(15, 118, 110, 0.28), transparent);
@@ -1552,7 +1547,7 @@ onMounted(() => {
 
 @media (max-width: 900px) {
   .section-container {
-    width: min(100% - 32px, 760px);
+    width: min(var(--frontend-container-safe-width), var(--frontend-container-readable));
   }
 
   .trust-grid,

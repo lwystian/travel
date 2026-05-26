@@ -403,7 +403,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  width: min(1680px, calc(100% - 64px));
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-fluid));
   margin: 0 auto;
   padding: 12px 16px;
   border: 1px solid rgba(31, 122, 224, 0.18);
@@ -458,7 +458,7 @@ onMounted(() => {
 .hero-content {
   position: relative;
   z-index: 1;
-  width: min(1680px, calc(100% - 64px));
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-fluid));
   margin: 0 auto;
   padding: 76px 0 130px;
   color: #fff;
@@ -575,7 +575,7 @@ onMounted(() => {
 .route-section,
 .process-section,
 .source-section {
-  width: min(1680px, calc(100% - 64px));
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-fluid));
   margin: 0 auto;
 }
 

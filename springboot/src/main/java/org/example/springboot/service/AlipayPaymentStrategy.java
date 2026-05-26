@@ -64,6 +64,8 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
     private TourOrderNotificationService tourOrderNotificationService;
 
     private AlipayConfigDTO configDTO;
+    private final ThreadLocal<String> requestReturnUrl = new ThreadLocal<>();
+    private final ThreadLocal<String> requestNotifyUrl = new ThreadLocal<>();
 
     @PostConstruct
     public void init() {
@@ -132,8 +134,8 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
         try {
             AlipayClient alipayClient = createAlipayClient();
             AlipayTradePagePayRequest request = new AlipayTradePagePayRequest();
-            request.setReturnUrl(configDTO.getReturnUrl());
-            request.setNotifyUrl(configDTO.getNotifyUrl());
+            request.setReturnUrl(resolveUrl(requestReturnUrl.get(), configDTO.getReturnUrl()));
+            request.setNotifyUrl(resolveUrl(requestNotifyUrl.get(), configDTO.getNotifyUrl()));
 
             String timeoutExpress = configDTO.getTimeoutExpress();
             if (timeoutExpress == null || timeoutExpress.isEmpty()) {
@@ -300,6 +302,23 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
         tourOrderMapper.updateById(order);
         logger.info("模拟支付成功，订单ID: {}", orderId);
         tourOrderNotificationService.notifyPaymentSuccess(order);
+    }
+
+    public void setRequestCallbackUrls(String returnUrl, String notifyUrl) {
+        this.requestReturnUrl.set(returnUrl);
+        this.requestNotifyUrl.set(notifyUrl);
+    }
+
+    public void clearRequestCallbackUrls() {
+        this.requestReturnUrl.remove();
+        this.requestNotifyUrl.remove();
+    }
+
+    private String resolveUrl(String requestUrl, String configUrl) {
+        if (requestUrl != null && !requestUrl.isBlank()) {
+            return requestUrl;
+        }
+        return configUrl;
     }
 
     /**

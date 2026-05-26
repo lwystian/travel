@@ -10,7 +10,7 @@ public enum FileType {
 
     // 音频文件
     AUDIO("audio"),
-    VIDEO("video"),
+    VIDEO("videos"),
     COMMON("common");
     // 视频文件
 

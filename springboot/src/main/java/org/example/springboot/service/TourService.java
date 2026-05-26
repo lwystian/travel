@@ -11,6 +11,7 @@ import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,7 @@ public class TourService {
     private static final Logger logger = LoggerFactory.getLogger(TourService.class);
     private static final int HOME_FEATURED_LIMIT = 1;
     private static final int HOME_MORE_LIMIT = 10;
+    private static final int TOUR_CODE_MAX_RETRY = 3;
 
     @Resource
     private TourMapper tourMapper;
@@ -44,6 +46,9 @@ public class TourService {
 
     @Resource
     private HomeRecommendMapper homeRecommendMapper;
+
+    @Resource
+    private JdbcTemplate jdbcTemplate;
 
     /**
      * 分页查询行程（包含计算最低价格）
@@ -242,22 +247,83 @@ public class TourService {
         if (!StringUtils.isNotBlank(keyword)) {
             return;
         }
-        queryWrapper.and(wrapper -> wrapper
-                .like(Tour::getTitle, keyword)
-                .or()
-                .like(Tour::getSubtitle, keyword)
-                .or()
-                .like(Tour::getTags, keyword)
-                .or()
-                .like(Tour::getFeature, keyword)
-                .or()
-                .like(Tour::getDestination, keyword)
-                .or()
-                .like(Tour::getCity, keyword)
-                .or()
-                .like(Tour::getTourType, keyword)
-                .or()
-                .like(Tour::getTheme, keyword));
+        List<String> keywords = expandTourKeywords(keyword);
+        queryWrapper.and(wrapper -> {
+            for (int i = 0; i < keywords.size(); i++) {
+                String item = keywords.get(i);
+                if (i > 0) {
+                    wrapper.or();
+                }
+                wrapper.like(Tour::getTitle, item)
+                        .or()
+                        .like(Tour::getSubtitle, item)
+                        .or()
+                        .like(Tour::getTags, item)
+                        .or()
+                        .like(Tour::getFeature, item)
+                        .or()
+                        .like(Tour::getDestination, item)
+                        .or()
+                        .like(Tour::getCity, item)
+                        .or()
+                        .like(Tour::getTourType, item)
+                        .or()
+                        .like(Tour::getTheme, item)
+                        .or()
+                        .like(Tour::getCode, item);
+            }
+        });
+    }
+
+    private List<String> expandTourKeywords(String keyword) {
+        LinkedHashSet<String> keywords = new LinkedHashSet<>();
+        String cleaned = keyword.trim();
+        keywords.add(cleaned);
+        Map<String, String> aliases = new LinkedHashMap<>();
+        aliases.put("周边游", "around");
+        aliases.put("周边", "around");
+        aliases.put("长线游", "long");
+        aliases.put("长线", "long");
+        aliases.put("跟团游", "team");
+        aliases.put("跟团", "team");
+        aliases.put("自由行", "free");
+        aliases.put("私家团", "private");
+        aliases.put("定制游", "custom");
+        aliases.put("当地参团", "local");
+        aliases.put("当地游", "local");
+        aliases.put("自驾游", "selfdrive");
+        aliases.put("自驾", "selfdrive");
+        aliases.put("亲子游", "parent_child");
+        aliases.put("亲子", "parent_child");
+        aliases.put("研学游", "study");
+        aliases.put("研学", "study");
+        aliases.put("摄影游", "photography");
+        aliases.put("摄影", "photography");
+        aliases.put("户外徒步", "outdoor");
+        aliases.put("徒步", "outdoor");
+        aliases.put("邮轮出行", "cruise");
+        aliases.put("邮轮", "cruise");
+        aliases.put("康养度假", "wellness");
+        aliases.put("康养", "wellness");
+        aliases.put("其它", "other");
+        aliases.put("其他", "other");
+        aliases.put("三峡", "sanxia");
+        aliases.put("重庆", "chongqing");
+        aliases.put("成都", "chengdu");
+        aliases.put("昆明", "kunming");
+        aliases.put("贵阳", "guiyang");
+        aliases.put("三亚", "sanya");
+        aliases.put("西沙", "xisha");
+        aliases.put("西沙群岛", "xisha");
+        aliases.forEach((label, code) -> {
+            if (cleaned.contains(label) || label.contains(cleaned)) {
+                keywords.add(code);
+            }
+            if (cleaned.equalsIgnoreCase(code)) {
+                keywords.add(label);
+            }
+        });
+        return new ArrayList<>(keywords);
     }
 
     private void applyDaysFilter(LambdaQueryWrapper<Tour> queryWrapper, String days, String tourType) {
@@ -400,7 +466,18 @@ public class TourService {
         labels.put("around", "周边游");
         labels.put("long", "长线游");
         labels.put("team", "跟团游");
+        labels.put("free", "自由行");
+        labels.put("private", "私家团");
+        labels.put("custom", "定制游");
+        labels.put("local", "当地参团");
+        labels.put("selfdrive", "自驾游");
+        labels.put("parent_child", "亲子游");
+        labels.put("study", "研学游");
+        labels.put("photography", "摄影游");
+        labels.put("outdoor", "户外徒步");
         labels.put("cruise", "邮轮出行");
+        labels.put("wellness", "康养度假");
+        labels.put("other", "其它");
         labels.put("xisha", "西沙群岛");
         labels.put("sanxia", "三峡");
         labels.put("sanyan", "三峡");
@@ -531,15 +608,7 @@ public class TourService {
         if (tour == null) {
             throw new ServiceException("行程不存在");
         }
-        // 如果没有编码，生成一个
-        if (tour.getCode() == null || tour.getCode().isEmpty()) {
-            tour.setCode(generateTourCode(tour.getTourType()));
-            // 更新数据库
-            Tour updateTour = new Tour();
-            updateTour.setId(id);
-            updateTour.setCode(tour.getCode());
-            tourMapper.updateById(updateTour);
-        }
+        ensurePersistedTourCode(tour);
         normalizeTourDates(tour);
         return tour;
     }
@@ -560,15 +629,14 @@ public class TourService {
         basicInfo.setId(tour.getId());
         basicInfo.setTitle(tour.getTitle());
         basicInfo.setSubtitle(tour.getSubtitle());
-        // 使用存储的 code，如果没有则生成一个
-        if (tour.getCode() != null && !tour.getCode().isEmpty()) {
-            basicInfo.setCode(tour.getCode());
-        } else {
-            basicInfo.setCode(generateTourCode(tour.getTourType()));
-        }
+        ensurePersistedTourCode(tour);
+        basicInfo.setCode(tour.getCode());
         basicInfo.setDays(tour.getDays());
         basicInfo.setDeparture(getCityName(tour.getCity()));
         basicInfo.setEnrolledCount(tour.getEnrolledCount());
+        basicInfo.setRecommendDate(tour.getRecommendDate());
+        basicInfo.setMoreDates(tour.getMoreDates());
+        basicInfo.setDetailContent(tour.getDetailContent());
         // 使用实体的 notice 字段，如果没有则使用默认值
         String notice = tour.getNotice();
         if (notice == null || notice.isEmpty()) {
@@ -602,6 +670,7 @@ public class TourService {
             info.setName(pkg.getName());
             info.setAdultPrice(pkg.getAdultPrice());
             info.setChildPrice(pkg.getChildPrice());
+            info.setDescription(pkg.getDescription());
             return info;
         }).collect(Collectors.toList()));
 
@@ -612,6 +681,7 @@ public class TourService {
             info.setId(pkg.getId());
             info.setName(pkg.getName());
             info.setExtraFeePerPerson(pkg.getExtraFeePerPerson());
+            info.setDescription(pkg.getDescription());
             return info;
         }).collect(Collectors.toList()));
 
@@ -630,8 +700,8 @@ public class TourService {
 
         // 图片信息
         TourDetailDTO.ImageInfo imageInfo = new TourDetailDTO.ImageInfo();
-        imageInfo.setMain(generateMainImages(tour.getImages()));
-        imageInfo.setThumbnails(generateThumbnails(tour.getImages()));
+        imageInfo.setMain(generateMainImages(tour.getMainImage(), tour.getImages()));
+        imageInfo.setThumbnails(generateThumbnails(tour.getMainImage(), tour.getImages()));
         dto.setImages(imageInfo);
 
         // 视频信息
@@ -717,9 +787,9 @@ public class TourService {
                 return mapper.readValue(tags, mapper.getTypeFactory().constructCollectionType(List.class, String.class));
             }
         } catch (Exception e) {
-            // 解析失败，按逗号分隔
+            // 解析失败，按常见分隔符处理
         }
-        return Arrays.stream(tags.split(","))
+        return Arrays.stream(tags.split("[,，、\\s]+"))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toList());
@@ -732,7 +802,7 @@ public class TourService {
         if (feature == null || feature.isEmpty()) {
             return new ArrayList<>();
         }
-        return Arrays.stream(feature.split("[,，]"))
+        return Arrays.stream(feature.split("[,，、\\s]+"))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toList());
@@ -769,6 +839,19 @@ public class TourService {
         return images;
     }
 
+    private List<String> generateMainImages(String coverImage, String imagesJson) {
+        List<String> images = new ArrayList<>();
+        if (StringUtils.isNotBlank(coverImage)) {
+            images.add(coverImage);
+        }
+        for (String image : generateMainImages(imagesJson)) {
+            if (StringUtils.isNotBlank(image) && !images.contains(image)) {
+                images.add(image);
+            }
+        }
+        return images;
+    }
+
     /**
      * 生成缩略图列表
      */
@@ -793,6 +876,19 @@ public class TourService {
         }
         if (thumbnails.isEmpty()) {
             thumbnails.add("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=150&h=100&fit=crop");
+        }
+        return thumbnails;
+    }
+
+    private List<String> generateThumbnails(String coverImage, String imagesJson) {
+        List<String> thumbnails = new ArrayList<>();
+        if (StringUtils.isNotBlank(coverImage)) {
+            thumbnails.add(coverImage);
+        }
+        for (String image : generateThumbnails(imagesJson)) {
+            if (StringUtils.isNotBlank(image) && !thumbnails.contains(image)) {
+                thumbnails.add(image);
+            }
         }
         return thumbnails;
     }
@@ -824,62 +920,119 @@ public class TourService {
      */
     @Transactional
     public void addTour(Tour tour) {
+        normalizeTourType(tour);
         normalizeTourDates(tour);
         // 设置默认状态为上架
         if (tour.getStatus() == null) {
-            tour.setStatus(1);
+            tour.setStatus(0);
         }
-        // 生成业务编码
-        if (tour.getCode() == null || tour.getCode().isEmpty()) {
-            tour.setCode(generateTourCode(tour.getTourType()));
+        if (Integer.valueOf(1).equals(tour.getStatus())) {
+            assertTourComplete(tour);
         }
-        tourMapper.insert(tour);
+        tour.setCode(null);
+        insertTourWithGeneratedCode(tour);
     }
 
     /**
      * 生成行程业务编码
-     * 格式：类型前缀-序号（ZW-001, GT-001, YL-001）
-     * 类型前缀：周边游ZW, 长线游CX, 跟团游GT, 邮轮出行YL
+     * 格式：类型前缀-序号（ZW-0001, GT-0001, YL-0001）
      */
     private String generateTourCode(String tourType) {
-        // 类型前缀映射
-        Map<String, String> prefixMap = new HashMap<>();
-        prefixMap.put("around", "ZW");  // 周边游
-        prefixMap.put("long", "CX");    // 长线游
-        prefixMap.put("team", "GT");    // 跟团游
-        prefixMap.put("cruise", "YL"); // 邮轮出行
+        String prefix = resolveTourCodePrefix(tourType);
+        int nextSeq = nextTourCodeSequence(prefix);
+        return String.format("%s-%04d", prefix, nextSeq);
+    }
 
-        String prefix = prefixMap.getOrDefault(tourType, "QT"); // 默认"其他"
-        if (prefix.equals("QT") && tourType != null) {
-            // 未知类型也尝试用前两个字母
-            prefix = tourType.substring(0, Math.min(2, tourType.length())).toUpperCase();
+    private String resolveTourCodePrefix(String tourType) {
+        if (!StringUtils.isNotBlank(tourType)) {
+            return "TR";
         }
+        return switch (tourType.trim().toLowerCase()) {
+            case "around", "周边", "周边游" -> "ZW";
+            case "long", "长线", "长线游" -> "CX";
+            case "team", "跟团", "跟团游" -> "GT";
+            case "free", "自由行" -> "ZY";
+            case "private", "私家团" -> "SJ";
+            case "custom", "定制游" -> "DZ";
+            case "local", "当地参团", "当地游" -> "DD";
+            case "selfdrive", "自驾", "自驾游" -> "ZJ";
+            case "parent_child", "亲子", "亲子游" -> "QZ";
+            case "study", "研学", "研学游" -> "YX";
+            case "photography", "摄影", "摄影游" -> "SY";
+            case "outdoor", "徒步", "户外徒步" -> "HW";
+            case "cruise", "邮轮", "邮轮出行" -> "YL";
+            case "wellness", "康养", "康养度假" -> "KY";
+            case "other", "其它", "其他" -> "QT";
+            default -> "TR";
+        };
+    }
 
-        // 查询该类型已有的最大序号
-        LambdaQueryWrapper<Tour> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.likeRight(Tour::getCode, prefix + "-");
-        queryWrapper.orderByDesc(Tour::getId);
-        List<Tour> existingTours = tourMapper.selectList(queryWrapper);
+    private int nextTourCodeSequence(String prefix) {
+        jdbcTemplate.update("""
+                INSERT INTO `tour_code_sequence` (`prefix`, `current_seq`)
+                VALUES (?, 0)
+                ON DUPLICATE KEY UPDATE `prefix` = VALUES(`prefix`)
+                """, prefix);
+        jdbcTemplate.update("""
+                UPDATE `tour_code_sequence`
+                SET `current_seq` = LAST_INSERT_ID(`current_seq` + 1)
+                WHERE `prefix` = ?
+                """, prefix);
+        Integer nextSeq = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Integer.class);
+        if (nextSeq == null || nextSeq <= 0) {
+            throw new ServiceException("行程编号流水生成失败");
+        }
+        return nextSeq;
+    }
 
-        int maxSeq = 0;
-        if (existingTours != null && !existingTours.isEmpty()) {
-            for (Tour t : existingTours) {
-                String code = t.getCode();
-                if (code != null && code.contains("-")) {
-                    try {
-                        String seqStr = code.substring(code.indexOf("-") + 1);
-                        int seq = Integer.parseInt(seqStr);
-                        if (seq > maxSeq) {
-                            maxSeq = seq;
-                        }
-                    } catch (NumberFormatException ignored) {
-                    }
+    private void insertTourWithGeneratedCode(Tour tour) {
+        for (int i = 0; i < TOUR_CODE_MAX_RETRY; i++) {
+            tour.setCode(generateTourCode(tour.getTourType()));
+            try {
+                tourMapper.insert(tour);
+                return;
+            } catch (RuntimeException e) {
+                if (!isDuplicateCodeException(e)) {
+                    throw e;
                 }
+                logger.warn("Tour code duplicated when creating tour, retrying. code={}", tour.getCode());
             }
         }
+        throw new ServiceException("行程编号生成失败，请稍后重试");
+    }
 
-        // 生成新编码
-        return String.format("%s-%03d", prefix, maxSeq + 1);
+    private void ensurePersistedTourCode(Tour tour) {
+        if (tour == null || StringUtils.isNotBlank(tour.getCode())) {
+            return;
+        }
+        for (int i = 0; i < TOUR_CODE_MAX_RETRY; i++) {
+            String code = generateTourCode(tour.getTourType());
+            Tour updateTour = new Tour();
+            updateTour.setId(tour.getId());
+            updateTour.setCode(code);
+            try {
+                tourMapper.updateById(updateTour);
+                tour.setCode(code);
+                return;
+            } catch (RuntimeException e) {
+                if (!isDuplicateCodeException(e)) {
+                    throw e;
+                }
+                logger.warn("Tour code duplicated when backfilling tour, retrying. tourId={}, code={}", tour.getId(), code);
+            }
+        }
+        throw new ServiceException("行程编号生成失败，请稍后重试");
+    }
+
+    private boolean isDuplicateCodeException(RuntimeException e) {
+        String message = e.getMessage();
+        Throwable cause = e.getCause();
+        while (cause != null && message == null) {
+            message = cause.getMessage();
+            cause = cause.getCause();
+        }
+        return message != null
+                && (message.contains("Duplicate entry") || message.contains("uk_tour_code") || message.contains("DuplicateKey"));
     }
 
     /**
@@ -891,8 +1044,51 @@ public class TourService {
         if (existTour == null) {
             throw new ServiceException("行程不存在");
         }
+        if (StringUtils.isNotBlank(tour.getTourType())) {
+            normalizeTourType(tour);
+        }
+        ensurePersistedTourCode(existTour);
         normalizeTourDates(tour);
+        if (Integer.valueOf(1).equals(tour.getStatus())) {
+            assertTourComplete(mergeTourForValidation(existTour, tour));
+        }
+        tour.setCode(existTour.getCode());
         tourMapper.updateById(tour);
+    }
+
+    private void normalizeTourType(Tour tour) {
+        if (tour == null) {
+            return;
+        }
+        String normalized = normalizeTourTypeValue(tour.getTourType());
+        if (!StringUtils.isNotBlank(normalized)) {
+            throw new ServiceException("请选择行程类型");
+        }
+        tour.setTourType(normalized);
+    }
+
+    private String normalizeTourTypeValue(String tourType) {
+        if (!StringUtils.isNotBlank(tourType)) {
+            return "";
+        }
+        return switch (tourType.trim().toLowerCase()) {
+            case "around", "周边", "周边游" -> "around";
+            case "long", "长线", "长线游" -> "long";
+            case "team", "跟团", "跟团游" -> "team";
+            case "free", "自由行" -> "free";
+            case "private", "私家团" -> "private";
+            case "custom", "定制游" -> "custom";
+            case "local", "当地参团", "当地游" -> "local";
+            case "selfdrive", "自驾", "自驾游" -> "selfdrive";
+            case "parent_child", "亲子", "亲子游" -> "parent_child";
+            case "study", "研学", "研学游" -> "study";
+            case "photography", "摄影", "摄影游" -> "photography";
+            case "outdoor", "徒步", "户外徒步" -> "outdoor";
+            case "cruise", "邮轮", "邮轮出行" -> "cruise";
+            case "wellness", "康养", "康养度假" -> "wellness";
+            case "other", "其它", "其他" -> "other";
+            default -> throw new ServiceException("行程类型不支持，请从固定选项中选择");
+        };
     }
 
     /**
@@ -930,6 +1126,9 @@ public class TourService {
         if (tour == null) {
             throw new ServiceException("行程不存在");
         }
+        if (Integer.valueOf(1).equals(status)) {
+            assertTourComplete(tour);
+        }
         tour.setStatus(status);
         tourMapper.updateById(tour);
     }
@@ -937,6 +1136,36 @@ public class TourService {
     /**
      * 更新行程图片
      */
+    private Tour mergeTourForValidation(Tour existing, Tour incoming) {
+        Tour merged = new Tour();
+        merged.setTitle(incoming.getTitle() != null ? incoming.getTitle() : existing.getTitle());
+        merged.setMainImage(incoming.getMainImage() != null ? incoming.getMainImage() : existing.getMainImage());
+        merged.setTourType(incoming.getTourType() != null ? incoming.getTourType() : existing.getTourType());
+        merged.setCity(incoming.getCity() != null ? incoming.getCity() : existing.getCity());
+        merged.setDestination(incoming.getDestination() != null ? incoming.getDestination() : existing.getDestination());
+        merged.setDays(incoming.getDays() != null ? incoming.getDays() : existing.getDays());
+        merged.setMonth(incoming.getMonth() != null ? incoming.getMonth() : existing.getMonth());
+        merged.setRecommendDate(incoming.getRecommendDate() != null ? incoming.getRecommendDate() : existing.getRecommendDate());
+        merged.setFeature(incoming.getFeature() != null ? incoming.getFeature() : existing.getFeature());
+        return merged;
+    }
+
+    private void assertTourComplete(Tour tour) {
+        List<String> missing = new ArrayList<>();
+        if (!StringUtils.isNotBlank(tour.getTitle())) missing.add("行程标题");
+        if (!StringUtils.isNotBlank(tour.getMainImage())) missing.add("行程封面");
+        if (!StringUtils.isNotBlank(tour.getTourType())) missing.add("行程类型");
+        if (!StringUtils.isNotBlank(tour.getCity())) missing.add("出发城市");
+        if (!StringUtils.isNotBlank(tour.getDestination())) missing.add("目的地");
+        if (tour.getDays() == null || tour.getDays() <= 0) missing.add("行程天数");
+        if (tour.getMonth() == null || tour.getMonth() < 1 || tour.getMonth() > 12) missing.add("出发月份");
+        if (!StringUtils.isNotBlank(tour.getRecommendDate())) missing.add("推荐日期");
+        if (!StringUtils.isNotBlank(tour.getFeature())) missing.add("行程特色");
+        if (!missing.isEmpty()) {
+            throw new ServiceException("行程信息未完整，不能上架：请补充" + String.join("、", missing));
+        }
+    }
+
     @Transactional
     public void updateTourImages(Long id, List<String> images) {
         logger.debug("Update tour images: id={}, images={}", id, images);

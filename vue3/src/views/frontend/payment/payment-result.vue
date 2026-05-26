@@ -23,6 +23,7 @@ const route = useRoute()
 
 const paymentStatus = ref('processing') // processing, success, failed
 const paymentInfo = ref({})
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
 // 计算结果信息
 const resultInfo = computed(() => {
@@ -31,19 +32,19 @@ const resultInfo = computed(() => {
       return {
         icon: 'success',
         title: '支付成功',
-        subTitle: '您的订单已支付成功，感谢您的购买！我们已将出团通知发送至您的手机，请注意查收。'
+        subTitle: '订单已完成支付，感谢您的预订'
       }
     case 'failed':
       return {
         icon: 'error',
         title: '支付失败',
-        subTitle: '抱歉，您的支付未能完成，订单已保留，您可以稍后重新支付。'
+        subTitle: '未查询到有效支付结果，请返回订单页面重新处理'
       }
-    default: // processing
+    default:
       return {
         icon: 'info',
-        title: '支付确认中',
-        subTitle: '正在等待支付确认，请稍候...'
+        title: '支付处理中',
+        subTitle: '正在查询支付结果，请稍候...'
       }
   }
 })
@@ -59,26 +60,29 @@ const checkPaymentResult = async () => {
     }
 
     // 查询订单实际状态（始终查询，以获取最新状态）
-    const order = await getOrderByOrderNo(outTradeNo)
+    for (let i = 0; i < 8; i++) {
+      const order = await getOrderByOrderNo(outTradeNo)
 
-    if (order) {
-      paymentInfo.value = order
+      if (order) {
+        paymentInfo.value = order
       // 1表示已支付
-      if (order.status == 1) {
-        paymentStatus.value = 'success'
-      } else {
+        if (order.status == 1) {
+          paymentStatus.value = 'success'
+          return
+        } else {
         // 订单未支付，显示处理中并提示用户
-        paymentStatus.value = 'processing'
+          paymentStatus.value = 'processing'
+        }
       }
-    } else {
-      paymentStatus.value = 'failed'
+      await sleep(1500)
     }
+    paymentStatus.value = route.query.status === 'success' ? 'processing' : 'failed'
   } catch (error) {
     console.error('查询支付结果失败:', error)
     // 查询失败时，根据URL参数做初步判断
     const urlStatus = route.query.status
     if (urlStatus === 'success') {
-      paymentStatus.value = 'success'
+      paymentStatus.value = 'processing'
     } else {
       paymentStatus.value = 'failed'
     }

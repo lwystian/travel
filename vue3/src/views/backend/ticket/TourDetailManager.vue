@@ -236,6 +236,23 @@
       </el-tab-pane>
 
       <!-- 酒店预订 -->
+      <el-tab-pane label="行程详细" name="detailContent">
+        <div class="detail-content-section">
+          <el-form label-width="100px">
+            <el-form-item label="行程详细">
+              <rich-markdown-editor
+                v-model="detailContent"
+                height="360px"
+                placeholder="填写前台行程预订页展示的行程详细内容"
+              />
+            </el-form-item>
+          </el-form>
+          <div class="detail-content-actions">
+            <el-button type="primary" @click="saveDetailContent" :loading="detailContentLoading">保存详情</el-button>
+          </div>
+        </div>
+      </el-tab-pane>
+
       <el-tab-pane label="酒店预订" name="hotelBooking">
         <div class="hotel-booking-section">
           <div class="section-header">
@@ -546,6 +563,7 @@ import { ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Upload, InfoFilled } from '@element-plus/icons-vue'
 import request from '@/utils/request'
+import RichMarkdownEditor from '@/components/RichMarkdownEditor.vue'
 import {
   getTourPackages,
   addTourPackage,
@@ -629,6 +647,10 @@ const newRemaining = ref(0)
 // 出团通知
 const notice = ref('')
 const noticeLoading = ref(false)
+const detailContent = ref('')
+const detailContentLoading = ref(false)
+const defaultBatchDates = ref([])
+const defaultBatchesEnsured = ref(false)
 
 // 产品信息（用于默认值）
 const productInfo = ref({ days: 1 })
@@ -666,8 +688,9 @@ watch(dialogVisible, (val) => {
 const loadAllData = async () => {
   loading.value = true
   try {
+    defaultBatchesEnsured.value = false
+    await fetchTourDetail()
     await Promise.all([
-      fetchTourDetail(),
       fetchTripPackages(),
       fetchBatchPackages(),
       fetchBatches(),
@@ -694,6 +717,8 @@ const fetchTourDetail = async () => {
       isVideoInitialized = true
       // 出团通知
       notice.value = res.tour?.notice || ''
+      detailContent.value = res.tour?.detailContent || ''
+      defaultBatchDates.value = buildDefaultBatchDates(res.tour || {})
       // 产品信息
       if (res.tour) {
         productInfo.value = {
@@ -728,12 +753,64 @@ const fetchBatches = async () => {
   try {
     const res = await getTourBatches(props.tourId)
     batches.value = res || []
+    await ensureDefaultBatches()
   } catch (error) {
     console.error('获取班期失败:', error)
   }
 }
 
 // 图片上传
+const buildDefaultBatchDates = (tour = {}) => {
+  const dateSet = new Set()
+  const baseYear = /^\d{4}-\d{2}-\d{2}$/.test(tour.recommendDate || '')
+    ? Number(tour.recommendDate.slice(0, 4))
+    : new Date().getFullYear()
+
+  const addDate = (value) => {
+    if (!value) return
+    const text = String(value).trim()
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(text)) {
+      const [year, month, day] = text.split('-').map(Number)
+      dateSet.add(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`)
+      return
+    }
+    if (/^\d{1,2}-\d{1,2}$/.test(text)) {
+      const [month, day] = text.split('-').map(Number)
+      dateSet.add(`${baseYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`)
+    }
+  }
+
+  addDate(tour.recommendDate)
+  String(tour.moreDates || '').split(/[、,\s，]+/).forEach(addDate)
+
+  const today = new Date(new Date().toDateString())
+  return [...dateSet].filter(date => new Date(date) >= today).sort()
+}
+
+const ensureDefaultBatches = async () => {
+  if (defaultBatchesEnsured.value) return
+  defaultBatchesEnsured.value = true
+  if (!defaultBatchDates.value.length) return
+  const existingDates = new Set((batches.value || []).map(batch => batch.departureDate))
+  const missingDates = defaultBatchDates.value.filter(date => !existingDates.has(date))
+  if (!missingDates.length) return
+
+  const defaultCapacity = Math.max(30, ...batches.value.map(batch => Number(batch.maxCapacity || 0)))
+  const batchList = missingDates.map(date => ({
+    tourId: props.tourId,
+    departureDate: date,
+    adultDateExtraFee: 0,
+    childDateExtraFee: 0,
+    status: '可报名',
+    remaining: defaultCapacity,
+    occupied: 0,
+    maxCapacity: defaultCapacity
+  }))
+  await addTourBatchesBatch(batchList)
+  const res = await getTourBatches(props.tourId)
+  batches.value = res || []
+}
+
 const handleImageUpload = async (options, index) => {
   const { file, onSuccess, onError } = options
   const formData = new FormData()
@@ -772,7 +849,7 @@ const handleVideoUpload = async (options) => {
   const formData = new FormData()
   formData.append('file', file)
   try {
-    const url = await request.upload('/file/upload/img', formData, { showDefaultMsg: false })
+    const url = await request.upload('/file/upload/video', formData, { showDefaultMsg: false })
     if (url) {
       videoUrl.value = url
       saveVideo(true, '视频已保存')
@@ -1063,6 +1140,17 @@ const saveNotice = async () => {
 }
 
 // 保存图片
+const saveDetailContent = async () => {
+  detailContentLoading.value = true
+  try {
+    await request.put(`/tour/${props.tourId}`, { detailContent: detailContent.value }, { successMsg: '保存成功' })
+  } catch (error) {
+    console.error('保存行程详细失败:', error)
+  } finally {
+    detailContentLoading.value = false
+  }
+}
+
 const saveImages = async () => {
   try {
     const imagesToSave = images.value.filter(img => img)

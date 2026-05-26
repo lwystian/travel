@@ -666,9 +666,9 @@ onBeforeUnmount(() => {
 
 /* 内容区 */
 .content {
-  max-width: 1680px;
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-wide));
   margin: 0 auto;
-  padding: 30px 20px;
+  padding: 30px 0;
 }
 
 /* Tab */
