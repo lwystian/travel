@@ -25,6 +25,11 @@ export function getTourOrderDetail(id) {
   return request.get(`/tour-order/${id}`)
 }
 
+// 获取待支付订单联系人编辑信息
+export function getOrderContactForEdit(id) {
+  return request.get(`/tour-order/${id}/contact-edit`)
+}
+
 // 更新订单联系人信息
 export function updateOrderContact(id, contactName, contactPhone) {
   return request.put(`/tour-order/${id}/contact`, null, {

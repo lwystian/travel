@@ -45,6 +45,9 @@ public class TourOrderNotificationService {
     @Resource
     private AliyunSmsSenderService aliyunSmsSenderService;
 
+    @Resource
+    private SiteNotificationService siteNotificationService;
+
     @Autowired(required = false)
     private StringRedisTemplate stringRedisTemplate;
 
@@ -59,11 +62,44 @@ public class TourOrderNotificationService {
 
         try {
             User user = userMapper.selectById(order.getUserId());
+            sendSiteNotifications(order);
             notifyUser(order, user);
             notifyAdmins(order, user);
+            LOGGER.info("订单支付成功通知处理完成。orderId={}, orderNo={}", order.getId(), order.getOrderNo());
         } catch (Exception e) {
             LOGGER.error("订单支付成功通知处理异常。orderId={}, orderNo={}", order.getId(), order.getOrderNo(), e);
         }
+    }
+
+    private void sendSiteNotifications(TourOrder order) {
+        String userContent = "订单 " + safe(order.getOrderNo())
+                + " 已支付成功，我们会为你保留出行名额。请保持预留联系电话 "
+                + displayPhoneForUser(order.getContactPhone())
+                + " 畅通，稍后将有客服与您进行行程对接，确认出行资料、集合安排和服务细节。";
+        siteNotificationService.sendToUser(
+                order.getUserId(),
+                "订单支付成功",
+                userContent,
+                "ORDER",
+                "TOUR_ORDER",
+                String.valueOf(order.getId()),
+                "/orders"
+        );
+
+        String adminContent = "订单 " + safe(order.getOrderNo())
+                + " 已支付成功，请尽快安排客服与用户电话对接。联系人："
+                + safe(order.getContactName())
+                + "，联系电话：" + safe(order.getContactPhone())
+                + "，行程：" + safe(order.getTourName()) + "。";
+        siteNotificationService.sendToAdmins(
+                "新支付行程订单待跟进",
+                adminContent,
+                "ORDER",
+                "TOUR_ORDER",
+                String.valueOf(order.getId()),
+                "/back/order"
+        );
+        LOGGER.info("订单支付成功站内信已创建。orderId={}, orderNo={}, userId={}", order.getId(), order.getOrderNo(), order.getUserId());
     }
 
     private void notifyUser(TourOrder order, User user) {
@@ -292,6 +328,11 @@ public class TourOrderNotificationService {
             return "";
         }
         return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
+    }
+
+    private String displayPhoneForUser(String phone) {
+        String masked = maskPhone(phone);
+        return StringUtils.hasText(masked) ? masked : safe(phone);
     }
 
     private String maskEmail(String email) {

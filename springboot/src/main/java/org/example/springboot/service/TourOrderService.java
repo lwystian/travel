@@ -241,14 +241,21 @@ public class TourOrderService {
             );
             siteNotificationService.sendToAdmins(
                     "新的待付款订单",
-                    currentUser.getUsername() + " 提交了行程订单 " + order.getOrderNo() + "。",
+                    currentUser.getUsername()
+                            + " 提交了行程订单 " + order.getOrderNo()
+                            + "。联系人：" + order.getContactName()
+                            + "，联系电话：" + order.getContactPhone()
+                            + "，行程：" + order.getTourName()
+                            + "，出行人数：成人 " + order.getAdultCount() + " 人"
+                            + (order.getChildCount() != null && order.getChildCount() > 0 ? "，儿童 " + order.getChildCount() + " 人" : "")
+                            + "，订单金额：" + order.getTotalAmount() + " 元。请关注支付状态并做好后续对接准备。",
                     "ORDER",
                     "TOUR_ORDER",
                     String.valueOf(order.getId()),
                     "/back/order"
             );
 
-            return order;
+            return copyMaskedOrderForUser(order);
 
         } catch (ServiceException e) {
             // 业务异常：释放已锁定的库存
@@ -372,9 +379,6 @@ public class TourOrderService {
         order.setUpdateTime(LocalDateTime.now());
 
         tourOrderMapper.updateById(order);
-        siteNotificationService.sendToUser(order.getUserId(), "订单支付成功",
-                "订单 " + order.getOrderNo() + " 已支付成功，我们会为你保留出行名额。",
-                "ORDER", "TOUR_ORDER", String.valueOf(order.getId()), "/orders");
         tourOrderNotificationService.notifyPaymentSuccess(order);
         logger.info("行程订单支付成功：订单号={}", order.getOrderNo());
     }
@@ -481,7 +485,9 @@ public class TourOrderService {
 
         wrapper.orderByDesc(TourOrder::getCreateTime);
 
-        return tourOrderMapper.selectPage(new Page<>(currentPage, size), wrapper);
+        Page<TourOrder> page = tourOrderMapper.selectPage(new Page<>(currentPage, size), wrapper);
+        page.setRecords(page.getRecords().stream().map(this::copyMaskedOrderForUser).toList());
+        return page;
     }
 
     /**
@@ -501,7 +507,35 @@ public class TourOrderService {
             throw new ServiceException("无权查看此订单");
         }
 
-        return order;
+        return RolePermission.isAdmin(currentUser) ? order : copyMaskedOrderForUser(order);
+    }
+
+    /**
+     * 获取待支付订单联系人编辑信息，仅用于用户完善订单表单回填。
+     */
+    public Map<String, Object> getOrderContactForEdit(Long orderId) {
+        TourOrder order = tourOrderMapper.selectById(orderId);
+        if (order == null) {
+            throw new ServiceException("订单不存在");
+        }
+
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null) {
+            throw new ServiceException("用户未登录");
+        }
+        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("无权查看此订单");
+        }
+        if (order.getStatus() != 0) {
+            throw new ServiceException("只有待支付订单可以编辑联系人信息");
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", order.getId());
+        data.put("orderNo", order.getOrderNo());
+        data.put("contactName", order.getContactName());
+        data.put("contactPhone", order.getContactPhone());
+        return data;
     }
 
     /**
@@ -640,6 +674,59 @@ public class TourOrderService {
         wrapper.eq(TourOrder::getUserId, currentUser.getId())
                .eq(TourOrder::getTourId, tour.getId())
                .eq(TourOrder::getStatus, 0); // 待支付状态
-        return tourOrderMapper.selectOne(wrapper);
+        TourOrder pendingOrder = tourOrderMapper.selectOne(wrapper);
+        return pendingOrder == null ? null : copyMaskedOrderForUser(pendingOrder);
+    }
+
+    private TourOrder copyMaskedOrderForUser(TourOrder source) {
+        if (source == null) {
+            return null;
+        }
+        TourOrder copy = new TourOrder();
+        copy.setId(source.getId());
+        copy.setOrderNo(source.getOrderNo());
+        copy.setUserId(source.getUserId());
+        copy.setTourId(source.getTourId());
+        copy.setTourName(source.getTourName());
+        copy.setTourCode(source.getTourCode());
+        copy.setPackageId(source.getPackageId());
+        copy.setPackageName(source.getPackageName());
+        copy.setBatchPackageId(source.getBatchPackageId());
+        copy.setBatchPackageName(source.getBatchPackageName());
+        copy.setDepartureDate(source.getDepartureDate());
+        copy.setAdultCount(source.getAdultCount());
+        copy.setChildCount(source.getChildCount());
+        copy.setAdultUnitPrice(source.getAdultUnitPrice());
+        copy.setChildUnitPrice(source.getChildUnitPrice());
+        copy.setTourAmount(source.getTourAmount());
+        copy.setHotelId(source.getHotelId());
+        copy.setHotelName(source.getHotelName());
+        copy.setHotelDays(source.getHotelDays());
+        copy.setHotelPricePerNight(source.getHotelPricePerNight());
+        copy.setHotelAmount(source.getHotelAmount());
+        copy.setTotalAmount(source.getTotalAmount());
+        copy.setContactName(source.getContactName());
+        copy.setContactPhone(maskPhoneForUser(source.getContactPhone()));
+        copy.setStatus(source.getStatus());
+        copy.setPaymentMethod(source.getPaymentMethod());
+        copy.setPaymentTime(source.getPaymentTime());
+        copy.setRemark(source.getRemark());
+        copy.setCreateTime(source.getCreateTime());
+        copy.setUpdateTime(source.getUpdateTime());
+        return copy;
+    }
+
+    private String maskPhoneForUser(String phone) {
+        if (StringUtils.isBlank(phone)) {
+            return phone;
+        }
+        String value = phone.trim();
+        if (value.matches("^1[3-9]\\d{9}$")) {
+            return value.replaceAll("^(\\d{3})\\d{4}(\\d{4})$", "$1****$2");
+        }
+        if (value.length() <= 4) {
+            return "*".repeat(value.length());
+        }
+        return value.substring(0, 2) + "****" + value.substring(value.length() - 2);
     }
 }

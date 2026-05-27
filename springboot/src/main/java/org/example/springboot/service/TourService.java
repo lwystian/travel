@@ -62,27 +62,19 @@ public class TourService {
             String month,
             String priceRange,
             String theme,
+            String matchMode,
             String sortType,
             Integer currentPage,
             Integer size) {
         LambdaQueryWrapper<Tour> queryWrapper = new LambdaQueryWrapper<>();
 
         // 添加查询条件
-        applyKeywordFilter(queryWrapper, title);
-        if (StringUtils.isNotBlank(tourType)) {
-            List<String> tourTypeValues = expandTourTypeValues(tourType);
-            queryWrapper.in(Tour::getTourType, tourTypeValues);
+        if (isRelaxedMatchMode(matchMode) && StringUtils.isNotBlank(title)) {
+            applyRelaxedDropdownFilter(queryWrapper, title, tourType, city, destination, days, theme);
+        } else {
+            applyKeywordFilter(queryWrapper, title);
+            applyExactTourFilters(queryWrapper, tourType, city, destination, days, theme);
         }
-        if (StringUtils.isNotBlank(city)) {
-            queryWrapper.eq(Tour::getCity, city);
-        }
-        if (StringUtils.isNotBlank(destination)) {
-            queryWrapper.eq(Tour::getDestination, destination);
-        }
-        if (StringUtils.isNotBlank(theme)) {
-            queryWrapper.eq(Tour::getTheme, theme);
-        }
-        applyDaysFilter(queryWrapper, days, tourType);
         if (StringUtils.isNotBlank(month)) {
             try {
                 queryWrapper.eq(Tour::getMonth, Integer.parseInt(month));
@@ -121,6 +113,48 @@ public class TourService {
         normalizeTourDates(records);
         page.setRecords(records);
         return page;
+    }
+
+    private boolean isRelaxedMatchMode(String matchMode) {
+        return "relaxed".equalsIgnoreCase(StringUtils.trimToEmpty(matchMode));
+    }
+
+    private void applyExactTourFilters(
+            LambdaQueryWrapper<Tour> queryWrapper,
+            String tourType,
+            String city,
+            String destination,
+            String days,
+            String theme) {
+        if (StringUtils.isNotBlank(tourType)) {
+            List<String> tourTypeValues = expandTourTypeValues(tourType);
+            queryWrapper.in(Tour::getTourType, tourTypeValues);
+        }
+        if (StringUtils.isNotBlank(city)) {
+            queryWrapper.eq(Tour::getCity, city);
+        }
+        if (StringUtils.isNotBlank(destination)) {
+            queryWrapper.eq(Tour::getDestination, destination);
+        }
+        if (StringUtils.isNotBlank(theme)) {
+            queryWrapper.eq(Tour::getTheme, theme);
+        }
+        applyDaysFilter(queryWrapper, days, tourType);
+    }
+
+    private void applyRelaxedDropdownFilter(
+            LambdaQueryWrapper<Tour> queryWrapper,
+            String keyword,
+            String tourType,
+            String city,
+            String destination,
+            String days,
+            String theme) {
+        queryWrapper.and(wrapper -> {
+            wrapper.nested(exactWrapper -> applyExactTourFilters(exactWrapper, tourType, city, destination, days, theme));
+            wrapper.or();
+            applyKeywordFilter(wrapper, keyword);
+        });
     }
 
     public Map<String, List<Map<String, Object>>> getTourFilters(String keyword) {
@@ -280,48 +314,64 @@ public class TourService {
         LinkedHashSet<String> keywords = new LinkedHashSet<>();
         String cleaned = keyword.trim();
         keywords.add(cleaned);
-        Map<String, String> aliases = new LinkedHashMap<>();
-        aliases.put("周边游", "around");
-        aliases.put("周边", "around");
-        aliases.put("长线游", "long");
-        aliases.put("长线", "long");
-        aliases.put("跟团游", "team");
-        aliases.put("跟团", "team");
-        aliases.put("自由行", "free");
-        aliases.put("私家团", "private");
-        aliases.put("定制游", "custom");
-        aliases.put("当地参团", "local");
-        aliases.put("当地游", "local");
-        aliases.put("自驾游", "selfdrive");
-        aliases.put("自驾", "selfdrive");
-        aliases.put("亲子游", "parent_child");
-        aliases.put("亲子", "parent_child");
-        aliases.put("研学游", "study");
-        aliases.put("研学", "study");
-        aliases.put("摄影游", "photography");
-        aliases.put("摄影", "photography");
-        aliases.put("户外徒步", "outdoor");
-        aliases.put("徒步", "outdoor");
-        aliases.put("邮轮出行", "cruise");
-        aliases.put("邮轮", "cruise");
-        aliases.put("康养度假", "wellness");
-        aliases.put("康养", "wellness");
-        aliases.put("其它", "other");
-        aliases.put("其他", "other");
-        aliases.put("三峡", "sanxia");
-        aliases.put("重庆", "chongqing");
-        aliases.put("成都", "chengdu");
-        aliases.put("昆明", "kunming");
-        aliases.put("贵阳", "guiyang");
-        aliases.put("三亚", "sanya");
-        aliases.put("西沙", "xisha");
-        aliases.put("西沙群岛", "xisha");
-        aliases.forEach((label, code) -> {
+        Map<String, List<String>> aliases = new LinkedHashMap<>();
+        aliases.put("一日游", Arrays.asList("1日游", "一天", "1天"));
+        aliases.put("1日游", Arrays.asList("一日游", "一天", "1天"));
+        aliases.put("一天", Arrays.asList("一日游", "1日游", "1天"));
+        aliases.put("二日游", Arrays.asList("2日游", "两日游", "二天", "两天", "2天"));
+        aliases.put("两日游", Arrays.asList("二日游", "2日游", "二天", "两天", "2天"));
+        aliases.put("2日游", Arrays.asList("二日游", "两日游", "二天", "两天", "2天"));
+        aliases.put("三日游", Arrays.asList("3日游", "三天", "3天"));
+        aliases.put("3日游", Arrays.asList("三日游", "三天", "3天"));
+        aliases.put("四日游", Arrays.asList("4日游", "四天", "4天"));
+        aliases.put("4日游", Arrays.asList("四日游", "四天", "4天"));
+        aliases.put("五日游", Arrays.asList("5日游", "五天", "5天"));
+        aliases.put("5日游", Arrays.asList("五日游", "五天", "5天"));
+        aliases.put("三峡邮轮", Arrays.asList("三峡", "邮轮", "sanxia", "cruise"));
+        aliases.put("西沙邮轮", Arrays.asList("西沙", "西沙群岛", "邮轮", "xisha", "cruise"));
+        aliases.put("周边游", Collections.singletonList("around"));
+        aliases.put("周边", Collections.singletonList("around"));
+        aliases.put("长线游", Collections.singletonList("long"));
+        aliases.put("长线", Collections.singletonList("long"));
+        aliases.put("跟团游", Collections.singletonList("team"));
+        aliases.put("跟团", Collections.singletonList("team"));
+        aliases.put("自由行", Collections.singletonList("free"));
+        aliases.put("私家团", Collections.singletonList("private"));
+        aliases.put("定制游", Collections.singletonList("custom"));
+        aliases.put("当地参团", Collections.singletonList("local"));
+        aliases.put("当地游", Collections.singletonList("local"));
+        aliases.put("自驾游", Collections.singletonList("selfdrive"));
+        aliases.put("自驾", Collections.singletonList("selfdrive"));
+        aliases.put("亲子游", Collections.singletonList("parent_child"));
+        aliases.put("亲子", Collections.singletonList("parent_child"));
+        aliases.put("研学游", Collections.singletonList("study"));
+        aliases.put("研学", Collections.singletonList("study"));
+        aliases.put("摄影游", Collections.singletonList("photography"));
+        aliases.put("摄影", Collections.singletonList("photography"));
+        aliases.put("户外徒步", Collections.singletonList("outdoor"));
+        aliases.put("徒步", Collections.singletonList("outdoor"));
+        aliases.put("邮轮出行", Collections.singletonList("cruise"));
+        aliases.put("邮轮", Collections.singletonList("cruise"));
+        aliases.put("康养度假", Collections.singletonList("wellness"));
+        aliases.put("康养", Collections.singletonList("wellness"));
+        aliases.put("其它", Collections.singletonList("other"));
+        aliases.put("其他", Collections.singletonList("other"));
+        aliases.put("三峡", Collections.singletonList("sanxia"));
+        aliases.put("重庆", Collections.singletonList("chongqing"));
+        aliases.put("成都", Collections.singletonList("chengdu"));
+        aliases.put("昆明", Collections.singletonList("kunming"));
+        aliases.put("贵阳", Collections.singletonList("guiyang"));
+        aliases.put("三亚", Collections.singletonList("sanya"));
+        aliases.put("西沙", Collections.singletonList("xisha"));
+        aliases.put("西沙群岛", Collections.singletonList("xisha"));
+        aliases.forEach((label, values) -> {
             if (cleaned.contains(label) || label.contains(cleaned)) {
-                keywords.add(code);
+                keywords.addAll(values);
             }
-            if (cleaned.equalsIgnoreCase(code)) {
-                keywords.add(label);
+            for (String value : values) {
+                if (cleaned.equalsIgnoreCase(value)) {
+                    keywords.add(label);
+                }
             }
         });
         return new ArrayList<>(keywords);

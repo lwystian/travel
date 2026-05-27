@@ -39,7 +39,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Bell } from '@element-plus/icons-vue'
 import request from '@/utils/request'
@@ -63,12 +63,32 @@ const pageSize = 10
 const total = ref(0)
 const loading = ref(false)
 const hasMore = ref(true)
+let unreadTimer = null
+const UNREAD_POLL_INTERVAL = 15000
 
 const loadUnread = async () => {
   try {
     unreadCount.value = await request.get('/notification/unread-count', {}, { showDefaultMsg: false })
   } catch (error) {
     unreadCount.value = 0
+  }
+}
+
+const startUnreadPolling = () => {
+  stopUnreadPolling()
+  unreadTimer = window.setInterval(loadUnread, UNREAD_POLL_INTERVAL)
+}
+
+const stopUnreadPolling = () => {
+  if (unreadTimer) {
+    window.clearInterval(unreadTimer)
+    unreadTimer = null
+  }
+}
+
+const handleVisibilityChange = () => {
+  if (!document.hidden) {
+    loadUnread()
   }
 }
 
@@ -129,7 +149,16 @@ const handleBellClick = () => {
   }
 }
 
-onMounted(loadUnread)
+onMounted(() => {
+  loadUnread()
+  startUnreadPolling()
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+})
+
+onUnmounted(() => {
+  stopUnreadPolling()
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+})
 </script>
 
 <style scoped>

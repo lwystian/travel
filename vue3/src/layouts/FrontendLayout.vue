@@ -977,6 +977,42 @@ const navigateConfiguredUrl = (url) => {
   router.push(url)
 }
 
+const buildTicketUrl = (params) => {
+  const searchParams = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      searchParams.set(key, String(value))
+    }
+  })
+  return `/tickets?${searchParams.toString()}`
+}
+
+const appendTicketSearchParams = (url, params) => {
+  if (!url || /^(https?:)?\/\//.test(url)) return url
+  const [path, hash = ''] = url.split('#')
+  const [pathname, queryString = ''] = path.split('?')
+  if (pathname !== '/tickets') return url
+  const searchParams = new URLSearchParams(queryString)
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '' && !searchParams.has(key)) {
+      searchParams.set(key, String(value))
+    }
+  })
+  const nextQuery = searchParams.toString()
+  return `${pathname}${nextQuery ? `?${nextQuery}` : ''}${hash ? `#${hash}` : ''}`
+}
+
+const getAroundSearchKeyword = (days) => {
+  const keywordMap = {
+    1: '一日游',
+    2: '二日游',
+    3: '三日游',
+    4: '四日游',
+    5: '五日游'
+  }
+  return keywordMap[days] || `${days}日游`
+}
+
 const getConfiguredAroundUrl = (days) => {
   const fieldMap = {
     1: 'aroundOneDayUrl',
@@ -986,9 +1022,16 @@ const getConfiguredAroundUrl = (days) => {
     5: 'aroundFiveDayUrl'
   }
   const configuredUrl = headerContent.value[fieldMap[days]]
-  if (configuredUrl) return configuredUrl
   const cityCode = cityNameToCode[currentCity.value] || 'chongqing'
-  return `/tickets?tourType=around&city=${cityCode}&days=${days}`
+  const params = {
+    tourType: 'around',
+    city: cityCode,
+    days,
+    search: getAroundSearchKeyword(days),
+    matchMode: 'relaxed'
+  }
+  if (configuredUrl) return appendTicketSearchParams(configuredUrl, params)
+  return buildTicketUrl(params)
 }
 
 // 周边游跳转 - 使用精确天数
@@ -1007,7 +1050,17 @@ const goToCruise = (cruiseType, event) => {
     return
   }
   const configuredUrl = cruiseType === 'sanxia' ? headerContent.value.sanxiaCruiseUrl : headerContent.value.xishaCruiseUrl
-  navigateConfiguredUrl(configuredUrl || `/tickets?tourType=cruise&destination=${cruiseType}`)
+  const keywordMap = {
+    sanxia: '三峡邮轮',
+    xisha: '西沙邮轮'
+  }
+  const params = {
+    tourType: 'cruise',
+    destination: cruiseType,
+    search: keywordMap[cruiseType] || '邮轮',
+    matchMode: 'relaxed'
+  }
+  navigateConfiguredUrl(configuredUrl ? appendTicketSearchParams(configuredUrl, params) : buildTicketUrl(params))
 }
 
 // 搜索类别变更

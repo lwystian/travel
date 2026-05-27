@@ -58,6 +58,12 @@ public class TourOrderController {
         return Result.success(page);
     }
 
+    @Operation(summary = "获取待支付订单联系人编辑信息")
+    @GetMapping("/{id}/contact-edit")
+    public Result<?> getOrderContactForEdit(@PathVariable Long id) {
+        return Result.success(tourOrderService.getOrderContactForEdit(id));
+    }
+
     @Operation(summary = "获取订单详情")
     @GetMapping("/{id}")
     public Result<?> getOrderDetail(@PathVariable Long id) {

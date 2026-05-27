@@ -68,7 +68,7 @@
         <el-table-column prop="contactName" label="联系人" width="100" />
         <el-table-column label="联系电话" width="120">
           <template #default="scope">
-            {{ maskPhone(scope.row.contactPhone, '-') }}
+            {{ scope.row.contactPhone || '-' }}
           </template>
         </el-table-column>
         <el-table-column prop="totalAmount" label="总金额" width="100">
@@ -164,7 +164,7 @@
 
         <el-descriptions title="联系人信息" :column="1" border style="margin-top: 20px">
           <el-descriptions-item label="联系人">{{ currentOrder.contactName }}</el-descriptions-item>
-          <el-descriptions-item label="联系电话">{{ maskPhone(currentOrder.contactPhone, '-') }}</el-descriptions-item>
+          <el-descriptions-item label="联系电话">{{ currentOrder.contactPhone || '-' }}</el-descriptions-item>
           <el-descriptions-item label="备注">{{ currentOrder.remark || '无' }}</el-descriptions-item>
         </el-descriptions>
 
@@ -181,7 +181,7 @@
               <el-table-column prop="name" label="姓名" width="100" />
               <el-table-column label="手机号" width="130">
                 <template #default="scope">
-                  {{ maskPhone(scope.row.phone, '-') }}
+                  {{ scope.row.phone || '-' }}
                 </template>
               </el-table-column>
               <el-table-column label="类型" width="80">
@@ -241,7 +241,6 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { getTravelersByOrderId } from '@/api/traveler'
-import { maskPhone } from '@/utils/mask'
 
 // 分页参数
 const currentPage = ref(1)

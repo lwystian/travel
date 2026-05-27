@@ -1,2 +1,1 @@
-2026-05-26 09:45:25.898 ERROR [http-nio-3001-exec-3] [ba35cc397cdc4f918e5d3cb599515e0d] o.e.springboot.util.JwtTokenUtils - 获取当前登录的token失败，tokennull
-2026-05-26 21:21:34.233 ERROR [http-nio-3001-exec-8] [2b5740ce88e94052baf77551c37d0b6f] o.e.springboot.util.JwtTokenUtils - 获取当前登录的token失败，tokennull
+2026-05-27 09:13:12.425 ERROR [http-nio-3001-exec-8] [fcef61a831504a78940e018dbf1589f8] o.e.springboot.util.JwtTokenUtils - 获取当前登录的token失败，tokennull

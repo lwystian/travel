@@ -52,7 +52,7 @@
             </el-dropdown-item>
             <el-dropdown-item command="frontend">
               <el-icon><House /></el-icon>
-              返回官网
+              返回前台
             </el-dropdown-item>
             <el-dropdown-item v-if="userStore.isAdmin" command="site-settings">
               <el-icon><Setting /></el-icon>
@@ -138,7 +138,7 @@ const handleUserCommand = (command) => {
     return
   }
   if (command === 'frontend') {
-    router.push('/')
+    window.open('/', '_blank', 'noopener,noreferrer')
     return
   }
   if (command === 'site-settings') {

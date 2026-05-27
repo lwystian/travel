@@ -602,6 +602,8 @@ const notificationPageSize = ref(10)
 const notificationTotal = ref(0)
 const notificationUnreadCount = ref(0)
 const notificationReadStatus = ref('')
+let notificationRefreshTimer = null
+const NOTIFICATION_REFRESH_INTERVAL = 15000
 
 // 常用出行人
 const frequentTravelers = ref([])
@@ -1269,6 +1271,28 @@ const fetchNotifications = async () => {
   }
 }
 
+const startNotificationRefresh = () => {
+  stopNotificationRefresh()
+  notificationRefreshTimer = window.setInterval(() => {
+    if (activeTab.value === 'notifications' && !document.hidden) {
+      fetchNotifications()
+    }
+  }, NOTIFICATION_REFRESH_INTERVAL)
+}
+
+const stopNotificationRefresh = () => {
+  if (notificationRefreshTimer) {
+    window.clearInterval(notificationRefreshTimer)
+    notificationRefreshTimer = null
+  }
+}
+
+const handleNotificationVisibilityChange = () => {
+  if (!document.hidden && activeTab.value === 'notifications') {
+    fetchNotifications()
+  }
+}
+
 const handleNotificationFilterChange = () => {
   notificationPage.value = 1
   fetchNotifications()
@@ -1418,6 +1442,9 @@ watch(activeTab, (newTab) => {
     fetchFrequentTravelers()
   } else if (newTab === 'notifications') {
     fetchNotifications()
+    startNotificationRefresh()
+  } else {
+    stopNotificationRefresh()
   }
   if (route.query.tab !== newTab) {
     router.replace({ query: { ...route.query, tab: newTab } })
@@ -1481,12 +1508,16 @@ onMounted(() => {
   getUserInfo();
   if (activeTab.value === 'notifications') {
     fetchNotifications()
+    startNotificationRefresh()
   } else if (activeTab.value === 'travelers') {
     fetchFrequentTravelers()
   }
+  document.addEventListener('visibilitychange', handleNotificationVisibilityChange)
 })
 
 onUnmounted(() => {
+  stopNotificationRefresh()
+  document.removeEventListener('visibilitychange', handleNotificationVisibilityChange)
   if (emailTimer) clearInterval(emailTimer);
   if (phoneTimer) clearInterval(phoneTimer);
   if (passwordTimer) clearInterval(passwordTimer);

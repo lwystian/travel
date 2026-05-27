@@ -250,7 +250,7 @@ import { ref, computed, nextTick, onBeforeUnmount, onMounted, reactive, watch } 
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { getTourOrderDetail, updateOrderContact } from '@/api/tourOrder'
+import { getTourOrderDetail, getOrderContactForEdit, updateOrderContact } from '@/api/tourOrder'
 import { getFrequentTravelers, saveFrequentTraveler, updateFrequentTraveler, deleteFrequentTraveler as deleteFrequentTravelerApi } from '@/api/frequentTraveler'
 import { saveTravelers } from '@/api/traveler'
 import { maskPhone } from '@/utils/mask'
@@ -576,10 +576,13 @@ const loadOrderInfo = async () => {
       error.value = '订单信息不存在'
       return
     }
-    const data = await getTourOrderDetail(orderId)
+    const [data, contactData] = await Promise.all([
+      getTourOrderDetail(orderId),
+      getOrderContactForEdit(orderId)
+    ])
     order.value = data
-    contactForm.name = data.contactName || ''
-    contactForm.phone = data.contactPhone || ''
+    contactForm.name = contactData?.contactName || ''
+    contactForm.phone = contactData?.contactPhone || ''
   } catch (err) {
     console.error('加载订单信息失败:', err)
     error.value = err.message || '加载订单信息失败'

@@ -2,11 +2,18 @@ package org.example.springboot.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import jakarta.annotation.Resource;
+import org.example.springboot.entity.TourOrder;
 import org.example.springboot.entity.Traveler;
 import org.example.springboot.exception.ServiceException;
+import org.example.springboot.mapper.TourOrderMapper;
 import org.example.springboot.mapper.TravelerMapper;
+import org.example.springboot.security.RolePermission;
+import org.example.springboot.util.JwtTokenUtils;
+import org.example.springboot.entity.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -17,14 +24,18 @@ import java.util.List;
  */
 @Service
 public class TravelerService extends ServiceImpl<TravelerMapper, Traveler> {
+    @Resource
+    private TourOrderMapper tourOrderMapper;
 
     /**
      * 根据订单ID获取出行人列表
      */
     public List<Traveler> getByOrderId(Long orderId) {
+        User currentUser = requireOrderAccess(orderId);
         LambdaQueryWrapper<Traveler> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Traveler::getOrderId, orderId).orderByAsc(Traveler::getTravelerIndex);
-        return list(wrapper);
+        List<Traveler> travelers = list(wrapper);
+        return RolePermission.isAdmin(currentUser) ? travelers : maskTravelersForUser(travelers);
     }
 
     /**
@@ -33,7 +44,12 @@ public class TravelerService extends ServiceImpl<TravelerMapper, Traveler> {
     public List<Traveler> getByOrderNo(String orderNo) {
         LambdaQueryWrapper<Traveler> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Traveler::getOrderNo, orderNo).orderByAsc(Traveler::getTravelerIndex);
-        return list(wrapper);
+        List<Traveler> travelers = list(wrapper);
+        if (travelers.isEmpty()) {
+            return travelers;
+        }
+        User currentUser = requireOrderAccess(travelers.get(0).getOrderId());
+        return RolePermission.isAdmin(currentUser) ? travelers : maskTravelersForUser(travelers);
     }
 
     /**
@@ -41,6 +57,7 @@ public class TravelerService extends ServiceImpl<TravelerMapper, Traveler> {
      */
     @Transactional
     public void saveBatch(Long orderId, String orderNo, List<Traveler> travelers) {
+        TourOrder order = requireEditableOrderAccess(orderId);
         // 删除旧的出行人信息
         LambdaQueryWrapper<Traveler> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Traveler::getOrderId, orderId);
@@ -51,12 +68,97 @@ public class TravelerService extends ServiceImpl<TravelerMapper, Traveler> {
         for (int i = 0; i < travelers.size(); i++) {
             Traveler traveler = travelers.get(i);
             traveler.setOrderId(orderId);
-            traveler.setOrderNo(orderNo);
+            traveler.setOrderNo(order.getOrderNo());
             traveler.setTravelerIndex(i + 1);
             traveler.setCreateTime(now);
             traveler.setUpdateTime(now);
         }
         saveBatch(travelers);
+    }
+
+    private TourOrder requireEditableOrderAccess(Long orderId) {
+        TourOrder order = requireOrder(orderId);
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null) {
+            throw new ServiceException("用户未登录");
+        }
+        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("无权修改此订单出行人信息");
+        }
+        if (order.getStatus() != 0) {
+            throw new ServiceException("只有待支付订单可以修改出行人信息");
+        }
+        return order;
+    }
+
+    private User requireOrderAccess(Long orderId) {
+        TourOrder order = requireOrder(orderId);
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null) {
+            throw new ServiceException("用户未登录");
+        }
+        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("无权查看此订单出行人信息");
+        }
+        return currentUser;
+    }
+
+    private TourOrder requireOrder(Long orderId) {
+        if (orderId == null) {
+            throw new ServiceException("订单不存在");
+        }
+        TourOrder order = tourOrderMapper.selectById(orderId);
+        if (order == null) {
+            throw new ServiceException("订单不存在");
+        }
+        return order;
+    }
+
+    private List<Traveler> maskTravelersForUser(List<Traveler> travelers) {
+        return travelers.stream().map(this::copyMaskedTravelerForUser).toList();
+    }
+
+    private Traveler copyMaskedTravelerForUser(Traveler source) {
+        Traveler copy = new Traveler();
+        copy.setId(source.getId());
+        copy.setOrderId(source.getOrderId());
+        copy.setOrderNo(source.getOrderNo());
+        copy.setName(source.getName());
+        copy.setIdType(source.getIdType());
+        copy.setIdNumber(maskIdNumberForUser(source.getIdNumber()));
+        copy.setBirthDate(source.getBirthDate());
+        copy.setGender(source.getGender());
+        copy.setTravelerType(source.getTravelerType());
+        copy.setPhone(maskPhoneForUser(source.getPhone()));
+        copy.setTravelerIndex(source.getTravelerIndex());
+        copy.setCreateTime(source.getCreateTime());
+        copy.setUpdateTime(source.getUpdateTime());
+        return copy;
+    }
+
+    private String maskPhoneForUser(String phone) {
+        if (!StringUtils.hasText(phone)) {
+            return phone;
+        }
+        String value = phone.trim();
+        if (value.matches("^1[3-9]\\d{9}$")) {
+            return value.replaceAll("^(\\d{3})\\d{4}(\\d{4})$", "$1****$2");
+        }
+        if (value.length() <= 4) {
+            return "*".repeat(value.length());
+        }
+        return value.substring(0, 2) + "****" + value.substring(value.length() - 2);
+    }
+
+    private String maskIdNumberForUser(String idNumber) {
+        if (!StringUtils.hasText(idNumber)) {
+            return idNumber;
+        }
+        String value = idNumber.trim();
+        if (value.length() <= 8) {
+            return value.substring(0, 1) + "****" + value.substring(value.length() - 1);
+        }
+        return value.substring(0, 4) + "****" + value.substring(value.length() - 4);
     }
 
     /**

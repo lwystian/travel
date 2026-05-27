@@ -35,11 +35,12 @@ public class TourController {
             @RequestParam(defaultValue = "") String month,
             @RequestParam(defaultValue = "") String priceRange,
             @RequestParam(defaultValue = "") String theme,
+            @RequestParam(defaultValue = "") String matchMode,
             @RequestParam(defaultValue = "default") String sortType,
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "10") Integer pageSize) {
         Page<Tour> page = tourService.getToursByPage(
-            keyword, tourType, city, destination, days, month, priceRange, theme, sortType, currentPage, pageSize);
+            keyword, tourType, city, destination, days, month, priceRange, theme, matchMode, sortType, currentPage, pageSize);
         return Result.success(page);
     }
 

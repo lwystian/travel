@@ -733,6 +733,7 @@ onUnmounted(() => {
 .order-card {
   position: relative;
   display: grid;
+  flex: 0 0 auto;
   min-height: 218px;
   grid-template-rows: auto auto auto;
   gap: 12px;
@@ -741,6 +742,7 @@ onUnmounted(() => {
   border-left-width: 4px;
   border-radius: 8px;
   background: #fff;
+  overflow: visible;
 }
 
 .order-card.pending {

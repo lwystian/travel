@@ -658,6 +658,7 @@ const sortOptions = ref([
 // =============================================
 const searchKeyword = ref('')
 const searchDisplayKeyword = ref('')
+const searchMatchMode = ref('')
 const hasSearched = ref(false)
 const loading = ref(false)
 const initialLoading = ref(false)
@@ -759,6 +760,7 @@ const buildQueryParams = () => ({
   month: activeFilters.value.month,
   priceRange: activeFilters.value.priceRange,
   theme: activeFilters.value.theme,
+  matchMode: searchMatchMode.value,
   sortType: sortType.value,
   currentPage: currentPage.value,
   pageSize: pageSize.value
@@ -843,6 +845,7 @@ const goToDetail = (id) => {
 
 // 执行搜索
 const executeSearch = () => {
+  searchMatchMode.value = ''
   performSearch()
 }
 
@@ -855,6 +858,7 @@ const quickSearch = (keyword) => {
 
 // 切换筛选条件
 const toggleFilter = (type, value) => {
+  searchMatchMode.value = ''
   if (activeFilters.value[type] === value) {
     // 如果点击的是已选中的，则取消
     activeFilters.value[type] = ''
@@ -867,12 +871,14 @@ const toggleFilter = (type, value) => {
 
 // 移除某个筛选条件
 const removeFilter = (type) => {
+  searchMatchMode.value = ''
   activeFilters.value[type] = ''
   performSearch()
 }
 
 // 清除所有筛选条件
 const clearAllFilters = () => {
+  searchMatchMode.value = ''
   activeFilters.value = { tourType: '', city: '', destination: '', days: '', month: '', priceRange: '', theme: '' }
   performSearch()
 }
@@ -881,6 +887,7 @@ const clearAllFilters = () => {
 const resetSearch = () => {
   searchKeyword.value = ''
   searchDisplayKeyword.value = ''
+  searchMatchMode.value = ''
   activeFilters.value = { tourType: '', city: '', destination: '', days: '', month: '', priceRange: '', theme: '' }
   hasSearched.value = false
   sortType.value = 'default'
@@ -909,6 +916,7 @@ const initFromUrl = () => {
   const cityParam = route.query.city
   const daysParam = route.query.days
   const destinationParam = route.query.destination
+  const matchModeParam = route.query.matchMode
 
   let hasParams = false
 
@@ -940,6 +948,11 @@ const initFromUrl = () => {
   // 处理目的地筛选
   if (destinationParam) {
     activeFilters.value.destination = destinationParam
+    hasParams = true
+  }
+
+  if (matchModeParam) {
+    searchMatchMode.value = matchModeParam
     hasParams = true
   }
 
@@ -984,9 +997,10 @@ watch(() => route.query, (query) => {
   const newCity = query.city
   const newDays = query.days
   const newDestination = query.destination
+  const newMatchMode = query.matchMode
 
   // 如果有URL参数需要搜索，先清除所有现有筛选条件
-  const hasParams = newSearch || newTourType || newCity || newDays || newDestination
+  const hasParams = newSearch || newTourType || newCity || newDays || newDestination || newMatchMode
 
   if (hasParams) {
     // 重置所有筛选条件（复用 resetSearch 函数）
@@ -1010,6 +1024,9 @@ watch(() => route.query, (query) => {
     }
     if (newDestination) {
       activeFilters.value.destination = newDestination
+    }
+    if (newMatchMode) {
+      searchMatchMode.value = newMatchMode
     }
 
     hasSearched.value = true
