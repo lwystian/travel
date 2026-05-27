@@ -68,9 +68,6 @@ public class Tour {
     @Schema(description = "已报名人数")
     private Integer enrolledCount;
 
-    @Schema(description = "主题，自由填写，可为空")
-    private String theme;
-
     @Schema(description = "状态: 1-上架, 0-下架")
     private Integer status;
 

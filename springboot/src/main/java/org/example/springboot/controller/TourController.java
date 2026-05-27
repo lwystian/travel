@@ -28,26 +28,42 @@ public class TourController {
     @GetMapping("/page")
     public Result<?> getToursByPage(
             @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "") String search,
             @RequestParam(defaultValue = "") String tourType,
             @RequestParam(defaultValue = "") String city,
             @RequestParam(defaultValue = "") String destination,
             @RequestParam(defaultValue = "") String days,
             @RequestParam(defaultValue = "") String month,
             @RequestParam(defaultValue = "") String priceRange,
-            @RequestParam(defaultValue = "") String theme,
+            @RequestParam(defaultValue = "") String searchMode,
+            @RequestParam(defaultValue = "") String intentDestination,
             @RequestParam(defaultValue = "") String matchMode,
             @RequestParam(defaultValue = "default") String sortType,
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "10") Integer pageSize) {
+        String effectiveKeyword = !keyword.isBlank() ? keyword : search;
         Page<Tour> page = tourService.getToursByPage(
-            keyword, tourType, city, destination, days, month, priceRange, theme, matchMode, sortType, currentPage, pageSize);
+            effectiveKeyword, tourType, city, destination, days, month, priceRange, searchMode, intentDestination, matchMode, sortType, currentPage, pageSize);
         return Result.success(page);
     }
 
     @Operation(summary = "获取前台行程筛选项")
     @GetMapping("/filters")
-    public Result<?> getTourFilters(@RequestParam(defaultValue = "") String keyword) {
-        return Result.success(tourService.getTourFilters(keyword));
+    public Result<?> getTourFilters(
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "") String search,
+            @RequestParam(defaultValue = "") String tourType,
+            @RequestParam(defaultValue = "") String city,
+            @RequestParam(defaultValue = "") String destination,
+            @RequestParam(defaultValue = "") String days,
+            @RequestParam(defaultValue = "") String month,
+            @RequestParam(defaultValue = "") String priceRange,
+            @RequestParam(defaultValue = "") String searchMode,
+            @RequestParam(defaultValue = "") String intentDestination,
+            @RequestParam(defaultValue = "") String matchMode) {
+        String effectiveKeyword = !keyword.isBlank() ? keyword : search;
+        return Result.success(tourService.getTourFilters(
+            effectiveKeyword, tourType, city, destination, days, month, priceRange, searchMode, intentDestination, matchMode));
     }
 
     @Operation(summary = "获取前台热门行程关键词")

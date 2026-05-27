@@ -61,20 +61,15 @@ public class TourService {
             String days,
             String month,
             String priceRange,
-            String theme,
+            String searchMode,
+            String intentDestination,
             String matchMode,
             String sortType,
             Integer currentPage,
             Integer size) {
         LambdaQueryWrapper<Tour> queryWrapper = new LambdaQueryWrapper<>();
 
-        // 添加查询条件
-        if (isRelaxedMatchMode(matchMode) && StringUtils.isNotBlank(title)) {
-            applyRelaxedDropdownFilter(queryWrapper, title, tourType, city, destination, days, theme);
-        } else {
-            applyKeywordFilter(queryWrapper, title);
-            applyExactTourFilters(queryWrapper, tourType, city, destination, days, theme);
-        }
+        applyTourSearchConditions(queryWrapper, title, tourType, city, destination, days, searchMode, intentDestination, matchMode);
         if (StringUtils.isNotBlank(month)) {
             try {
                 queryWrapper.eq(Tour::getMonth, Integer.parseInt(month));
@@ -115,8 +110,36 @@ public class TourService {
         return page;
     }
 
-    private boolean isRelaxedMatchMode(String matchMode) {
-        return "relaxed".equalsIgnoreCase(StringUtils.trimToEmpty(matchMode));
+    private boolean isCruiseIntentMode(String searchMode, String matchMode, String tourType, String intentDestination, String keyword) {
+        if ("cruise".equalsIgnoreCase(StringUtils.trimToEmpty(searchMode))) {
+            return true;
+        }
+        if (!"relaxed".equalsIgnoreCase(StringUtils.trimToEmpty(matchMode))) {
+            return false;
+        }
+        String normalizedType = normalizeTourTypeValueForQuery(tourType);
+        String normalizedDestination = normalizeDestinationValueForQuery(intentDestination);
+        return "cruise".equals(normalizedType)
+                || "sanxia".equals(normalizedDestination)
+                || "xisha".equals(normalizedDestination);
+    }
+
+    private void applyTourSearchConditions(
+            LambdaQueryWrapper<Tour> queryWrapper,
+            String keyword,
+            String tourType,
+            String city,
+            String destination,
+            String days,
+            String searchMode,
+            String intentDestination,
+            String matchMode) {
+        if (isCruiseIntentMode(searchMode, matchMode, tourType, intentDestination, keyword) && StringUtils.isNotBlank(keyword)) {
+            applyCruiseIntentBase(queryWrapper, keyword, intentDestination);
+        } else {
+            applyKeywordFilter(queryWrapper, keyword);
+        }
+        applyExactTourFilters(queryWrapper, tourType, city, destination, days);
     }
 
     private void applyExactTourFilters(
@@ -124,8 +147,7 @@ public class TourService {
             String tourType,
             String city,
             String destination,
-            String days,
-            String theme) {
+            String days) {
         if (StringUtils.isNotBlank(tourType)) {
             List<String> tourTypeValues = expandTourTypeValues(tourType);
             queryWrapper.in(Tour::getTourType, tourTypeValues);
@@ -134,47 +156,84 @@ public class TourService {
             queryWrapper.eq(Tour::getCity, city);
         }
         if (StringUtils.isNotBlank(destination)) {
-            queryWrapper.eq(Tour::getDestination, destination);
-        }
-        if (StringUtils.isNotBlank(theme)) {
-            queryWrapper.eq(Tour::getTheme, theme);
+            queryWrapper.in(Tour::getDestination, expandDestinationValues(destination));
         }
         applyDaysFilter(queryWrapper, days, tourType);
     }
 
-    private void applyRelaxedDropdownFilter(
+    private void applyCruiseIntentBase(
             LambdaQueryWrapper<Tour> queryWrapper,
+            String keyword,
+            String intentDestination) {
+        queryWrapper.and(wrapper -> {
+            wrapper.in(Tour::getTourType, expandTourTypeValues("cruise"));
+            if (StringUtils.isNotBlank(intentDestination)) {
+                wrapper.in(Tour::getDestination, expandDestinationValues(intentDestination));
+            }
+            wrapper.or(keywordWrapper -> applyCruiseMenuKeywordConditions(keywordWrapper, keyword));
+        });
+    }
+
+    public Map<String, List<Map<String, Object>>> getTourFilters(
             String keyword,
             String tourType,
             String city,
             String destination,
             String days,
-            String theme) {
-        queryWrapper.and(wrapper -> {
-            wrapper.nested(exactWrapper -> applyExactTourFilters(exactWrapper, tourType, city, destination, days, theme));
-            wrapper.or();
-            applyKeywordFilter(wrapper, keyword);
-        });
+            String month,
+            String priceRange,
+            String searchMode,
+            String intentDestination,
+            String matchMode) {
+        Map<String, List<Map<String, Object>>> filters = new LinkedHashMap<>();
+        filters.put("tourTypes", getFilterOptionsForGroup(keyword, "", city, destination, days, month, priceRange, searchMode, intentDestination, matchMode, "tourType"));
+        filters.put("cities", getFilterOptionsForGroup(keyword, tourType, "", destination, days, month, priceRange, searchMode, intentDestination, matchMode, "city"));
+        filters.put("destinations", getFilterOptionsForGroup(keyword, tourType, city, "", days, month, priceRange, searchMode, intentDestination, matchMode, "destination"));
+        filters.put("daysList", getFilterOptionsForGroup(keyword, tourType, city, destination, "", month, priceRange, searchMode, intentDestination, matchMode, "days"));
+        filters.put("months", getFilterOptionsForGroup(keyword, tourType, city, destination, days, "", priceRange, searchMode, intentDestination, matchMode, "month"));
+        filters.put("priceRanges", getFilterOptionsForGroup(keyword, tourType, city, destination, days, month, "", searchMode, intentDestination, matchMode, "priceRange"));
+        return filters;
     }
 
     public Map<String, List<Map<String, Object>>> getTourFilters(String keyword) {
+        return getTourFilters(keyword, "", "", "", "", "", "", "", "", "");
+    }
+
+    private List<Map<String, Object>> getFilterOptionsForGroup(
+            String keyword,
+            String tourType,
+            String city,
+            String destination,
+            String days,
+            String month,
+            String priceRange,
+            String searchMode,
+            String intentDestination,
+            String matchMode,
+            String group) {
         LambdaQueryWrapper<Tour> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Tour::getStatus, 1);
-        if (StringUtils.isNotBlank(keyword)) {
-            applyKeywordFilter(queryWrapper, keyword);
+        applyTourSearchConditions(queryWrapper, keyword, tourType, city, destination, days, searchMode, intentDestination, matchMode);
+        if (StringUtils.isNotBlank(month)) {
+            try {
+                queryWrapper.eq(Tour::getMonth, Integer.parseInt(month));
+            } catch (NumberFormatException ignored) {
+            }
         }
+        queryWrapper.eq(Tour::getStatus, 1);
+
         List<Tour> tours = tourMapper.selectList(queryWrapper);
         fillMinPrices(tours);
+        List<Tour> filteredTours = applyPriceFilter(tours, priceRange);
 
-        Map<String, List<Map<String, Object>>> filters = new LinkedHashMap<>();
-        filters.put("tourTypes", countOptions(tours, Tour::getTourType));
-        filters.put("cities", countOptions(tours, Tour::getCity));
-        filters.put("destinations", countOptions(tours, Tour::getDestination));
-        filters.put("daysList", countOptions(tours, tour -> getDaysRange(tour.getDays())));
-        filters.put("months", countOptions(tours, tour -> tour.getMonth() == null ? "" : tour.getMonth().toString()));
-        filters.put("priceRanges", countOptions(tours, tour -> getPriceRange(tour.getMinPrice())));
-        filters.put("themes", countOptions(tours, Tour::getTheme));
-        return filters;
+        return switch (group) {
+            case "tourType" -> countOptions(filteredTours, Tour::getTourType);
+            case "city" -> countOptions(filteredTours, Tour::getCity);
+            case "destination" -> countOptions(filteredTours, Tour::getDestination);
+            case "days" -> countOptions(filteredTours, tour -> getDaysRange(tour.getDays()));
+            case "month" -> countOptions(filteredTours, tour -> tour.getMonth() == null ? "" : tour.getMonth().toString());
+            case "priceRange" -> countOptions(tours, tour -> getPriceRange(tour.getMinPrice()));
+            default -> Collections.emptyList();
+        };
     }
 
     public List<Map<String, String>> getHotKeywords(Integer limit) {
@@ -186,7 +245,6 @@ public class TourService {
         LinkedHashMap<String, HotKeywordItem> counts = new LinkedHashMap<>();
         for (Tour tour : tours) {
             addKeywordCount(counts, tour.getDestination());
-            addKeywordCount(counts, tour.getTheme());
             addKeywordCount(counts, tour.getTourType());
             for (String tag : parseTags(tour.getTags())) {
                 addKeywordCount(counts, tag);
@@ -293,9 +351,13 @@ public class TourService {
                         .or()
                         .like(Tour::getSubtitle, item)
                         .or()
+                        .like(Tour::getTag, item)
+                        .or()
                         .like(Tour::getTags, item)
                         .or()
                         .like(Tour::getFeature, item)
+                        .or()
+                        .like(Tour::getDetailContent, item)
                         .or()
                         .like(Tour::getDestination, item)
                         .or()
@@ -303,11 +365,53 @@ public class TourService {
                         .or()
                         .like(Tour::getTourType, item)
                         .or()
-                        .like(Tour::getTheme, item)
-                        .or()
                         .like(Tour::getCode, item);
             }
         });
+    }
+
+    private void applyCruiseMenuKeywordConditions(LambdaQueryWrapper<Tour> queryWrapper, String keyword) {
+        if (!StringUtils.isNotBlank(keyword)) {
+            return;
+        }
+        List<String> keywords = expandCruiseMenuKeywords(keyword);
+        for (int i = 0; i < keywords.size(); i++) {
+            String item = keywords.get(i);
+            if (i > 0) {
+                queryWrapper.or();
+            }
+            queryWrapper.like(Tour::getTitle, item)
+                    .or()
+                    .like(Tour::getSubtitle, item)
+                    .or()
+                    .like(Tour::getTag, item)
+                    .or()
+                    .like(Tour::getTags, item)
+                    .or()
+                    .like(Tour::getFeature, item)
+                    .or()
+                    .like(Tour::getDetailContent, item);
+        }
+    }
+
+    private List<String> expandCruiseMenuKeywords(String keyword) {
+        LinkedHashSet<String> keywords = new LinkedHashSet<>();
+        String cleaned = StringUtils.trimToEmpty(keyword);
+        if (!StringUtils.isNotBlank(cleaned)) {
+            return new ArrayList<>(keywords);
+        }
+        keywords.add(cleaned);
+        if (cleaned.contains("三峡") || "sanxia".equalsIgnoreCase(cleaned) || "sanyan".equalsIgnoreCase(cleaned)) {
+            keywords.add("三峡");
+            keywords.add("sanxia");
+            keywords.add("sanyan");
+        }
+        if (cleaned.contains("西沙") || "xisha".equalsIgnoreCase(cleaned)) {
+            keywords.add("西沙");
+            keywords.add("西沙群岛");
+            keywords.add("xisha");
+        }
+        return new ArrayList<>(keywords);
     }
 
     private List<String> expandTourKeywords(String keyword) {
@@ -327,8 +431,8 @@ public class TourService {
         aliases.put("4日游", Arrays.asList("四日游", "四天", "4天"));
         aliases.put("五日游", Arrays.asList("5日游", "五天", "5天"));
         aliases.put("5日游", Arrays.asList("五日游", "五天", "5天"));
-        aliases.put("三峡邮轮", Arrays.asList("三峡", "邮轮", "sanxia", "cruise"));
-        aliases.put("西沙邮轮", Arrays.asList("西沙", "西沙群岛", "邮轮", "xisha", "cruise"));
+        aliases.put("三峡邮轮", Arrays.asList("三峡", "sanxia"));
+        aliases.put("西沙邮轮", Arrays.asList("西沙", "西沙群岛", "xisha"));
         aliases.put("周边游", Collections.singletonList("around"));
         aliases.put("周边", Collections.singletonList("around"));
         aliases.put("长线游", Collections.singletonList("long"));
@@ -365,7 +469,7 @@ public class TourService {
         aliases.put("西沙", Collections.singletonList("xisha"));
         aliases.put("西沙群岛", Collections.singletonList("xisha"));
         aliases.forEach((label, values) -> {
-            if (cleaned.contains(label) || label.contains(cleaned)) {
+            if (cleaned.equals(label) || cleaned.contains(label)) {
                 keywords.addAll(values);
             }
             for (String value : values) {
@@ -413,6 +517,47 @@ public class TourService {
             case "wellness", "康养", "康养度假" -> "wellness";
             case "other", "其它", "其他" -> "other";
             default -> tourType.trim();
+        };
+    }
+
+    private List<String> expandDestinationValues(String destination) {
+        LinkedHashSet<String> values = new LinkedHashSet<>();
+        String raw = destination.trim();
+        values.add(raw);
+        String normalized = normalizeDestinationValueForQuery(raw);
+        if (StringUtils.isNotBlank(normalized)) {
+            values.add(normalized);
+            values.addAll(getDestinationAliases(normalized));
+        }
+        return new ArrayList<>(values);
+    }
+
+    private String normalizeDestinationValueForQuery(String destination) {
+        if (!StringUtils.isNotBlank(destination)) {
+            return "";
+        }
+        return switch (destination.trim().toLowerCase()) {
+            case "xisha", "西沙", "西沙群岛" -> "xisha";
+            case "sanxia", "sanyan", "三峡" -> "sanxia";
+            case "chongqing", "重庆" -> "chongqing";
+            case "chengdu", "成都" -> "chengdu";
+            case "kunming", "昆明" -> "kunming";
+            case "guiyang", "贵阳" -> "guiyang";
+            case "sanya", "三亚" -> "sanya";
+            default -> destination.trim();
+        };
+    }
+
+    private List<String> getDestinationAliases(String normalizedDestination) {
+        return switch (normalizedDestination) {
+            case "xisha" -> Arrays.asList("西沙", "西沙群岛");
+            case "sanxia" -> Arrays.asList("三峡", "sanyan");
+            case "chongqing" -> Collections.singletonList("重庆");
+            case "chengdu" -> Collections.singletonList("成都");
+            case "kunming" -> Collections.singletonList("昆明");
+            case "guiyang" -> Collections.singletonList("贵阳");
+            case "sanya" -> Collections.singletonList("三亚");
+            default -> Collections.emptyList();
         };
     }
 

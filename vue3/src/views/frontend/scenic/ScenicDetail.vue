@@ -216,9 +216,6 @@
                   <el-icon><Star /></el-icon>
                   {{ tour.starRating }}
                 </span>
-                <span class="tour-theme" v-if="tour.theme">
-                  {{ getThemeName(tour.theme) }}
-                </span>
               </div>
               <div class="tour-footer">
                 <div class="tour-price" v-if="tour.minPrice !== undefined && tour.minPrice !== null && tour.minPrice !== ''">
@@ -669,21 +666,6 @@ const formatCity = (city) => {
     'qingdao': '青岛'
   }
   return cityMap[city] || city || ''
-}
-
-// 获取主题名称
-const getThemeName = (theme) => {
-  const themeMap = {
-    'scenic': '风景游',
-    'cultural': '文化游',
-    'adventure': '探险游',
-    'hiking': '徒步游',
-    'family': '亲子游',
-    'romantic': '浪漫游',
-    'food': '美食游',
-    'photography': '摄影游'
-  }
-  return themeMap[theme] || theme || ''
 }
 
 // 跳转到行程预订页

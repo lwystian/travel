@@ -42,9 +42,6 @@
             <el-option v-for="city in allCityOptions" :key="city.code" :label="city.name" :value="city.code"></el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="主题" class="search-item">
-          <el-input v-model="searchForm.theme" placeholder="请输入主题" clearable style="width: 120px;" />
-        </el-form-item>
         <el-form-item class="search-buttons">
           <el-button type="primary" @click="handleSearch">
             <el-icon><Search /></el-icon> 查询
@@ -282,11 +279,6 @@
           <el-col :span="12">
             <el-form-item label="已报名人数" prop="enrolledCount">
               <el-input-number v-model="tourForm.enrolledCount" :min="0" style="width: 100%;" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="主题" prop="theme">
-              <el-input v-model="tourForm.theme" placeholder="可自由填写，也可留空" maxlength="40" show-word-limit />
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -541,8 +533,7 @@ const searchForm = reactive({
   title: '',
   tourType: '',
   city: '',
-  destination: '',
-  theme: ''
+  destination: ''
 })
 
 // 对话框
@@ -694,7 +685,6 @@ const tourForm = reactive({
   feature: '',
   tags: [],
   enrolledCount: 0,
-  theme: '',
   status: 1
 })
 
@@ -720,7 +710,6 @@ const fetchTours = async () => {
       tourType: searchForm.tourType,
       city: searchForm.city,
       destination: searchForm.destination,
-      theme: searchForm.theme,
       currentPage: currentPage.value,
       pageSize: pageSize.value
     }, {
@@ -760,7 +749,6 @@ const resetSearch = () => {
   searchForm.tourType = ''
   searchForm.city = ''
   searchForm.destination = ''
-  searchForm.theme = ''
   currentPage.value = 1
   fetchTours()
 }
@@ -880,7 +868,7 @@ const resetForm = () => {
     tourType: '', city: '', destination: '', days: 1,
     month: String(new Date().getMonth() + 1), starRating: 5,
     recommendDate: '', moreDates: '', feature: '', tags: '',
-    enrolledCount: 0, theme: '', status: 1
+    enrolledCount: 0, status: 1
   })
   moreDateValues.value = []
 }

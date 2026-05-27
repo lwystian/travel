@@ -146,34 +146,15 @@
               </div>
             </div>
 
-            <!-- 产品主题筛选 - 动态生成 -->
-            <div class="filter-item" v-if="availableFilters.themes.length > 0">
-              <span class="filter-label">产品主题：</span>
-              <div class="filter-tags">
-                <span
-                  :class="['filter-tag', { active: !activeFilters.theme }]"
-                  @click="removeFilter('theme')"
-                >
-                  全部
-                  <span class="filter-count">({{ getFilterTotalCount('themes') }})</span>
-                </span>
-                <span
-                  v-for="item in availableFilters.themes"
-                  :key="item.value"
-                  :class="['filter-tag', { active: activeFilters.theme === item.value }]"
-                  @click="toggleFilter('theme', item.value)"
-                >
-                  {{ item.label }}
-                  <span class="filter-count">({{ item.count }})</span>
-                </span>
-              </div>
-            </div>
           </div>
 
           <!-- 已选筛选条件汇总 -->
-          <div class="active-filters-bar" v-if="hasActiveFilters">
+          <div class="active-filters-bar" v-if="hasActiveFilters || getSearchIntentLabel()">
             <span class="active-label">已选条件：</span>
             <div class="active-tags">
+              <span v-if="getSearchIntentLabel()" class="active-tag">
+                {{ getSearchIntentLabel() }}
+              </span>
               <span v-if="activeFilters.tourType" class="active-tag">
                 {{ getTourTypeLabel(activeFilters.tourType) }}
                 <el-icon @click="removeFilter('tourType')"><Close /></el-icon>
@@ -198,10 +179,6 @@
                 {{ getPriceLabel(activeFilters.priceRange) }}
                 <el-icon @click="removeFilter('priceRange')"><Close /></el-icon>
               </span>
-              <span v-if="activeFilters.theme" class="active-tag">
-                {{ getThemeLabel(activeFilters.theme) }}
-                <el-icon @click="removeFilter('theme')"><Close /></el-icon>
-              </span>
               <span class="clear-all" @click="clearAllFilters">清除全部</span>
             </div>
           </div>
@@ -210,8 +187,8 @@
         <!-- 排序和结果统计 -->
         <div class="sort-bar" v-if="hasSearched">
           <div class="result-stats">
-            <template v-if="searchKeyword">
-              搜索“<strong class="search-keyword">{{ displaySearchKeyword }}</strong>” 共找到 <strong>{{ totalCount }}</strong> 个行程
+            <template v-if="resultSummaryText">
+              {{ resultSummaryPrefix }}“<strong class="search-keyword">{{ resultSummaryText }}</strong>” 共找到 <strong>{{ totalCount }}</strong> 个行程
             </template>
             <template v-else>
               共找到 <strong>{{ totalCount }}</strong> 个行程
@@ -307,7 +284,7 @@
 
       <!-- 空状态 -->
       <div v-if="totalCount === 0 && hasSearched && !loading" class="empty-state">
-        <el-empty :description="`没有找到“${displaySearchKeyword}”相关的行程`" />
+        <el-empty :description="emptyResultDescription" />
         <el-button type="primary" plain @click="resetSearch">查看全部行程</el-button>
       </div>
 
@@ -590,7 +567,7 @@ const allCityOptions = computed(() => {
 
 // 特殊目的地代码映射
 const specialDestinationMap = {
-  'xisha': '西沙群岛',
+  'xisha': '西沙',
   'sanxia': '三峡',
   'sanyan': '三峡',
   'sanya': '三亚',
@@ -658,6 +635,8 @@ const sortOptions = ref([
 // =============================================
 const searchKeyword = ref('')
 const searchDisplayKeyword = ref('')
+const searchMode = ref('')
+const intentDestination = ref('')
 const searchMatchMode = ref('')
 const hasSearched = ref(false)
 const loading = ref(false)
@@ -675,8 +654,7 @@ const activeFilters = ref({
   destination: '',
   days: '',
   month: '',
-  priceRange: '',
-  theme: ''
+  priceRange: ''
 })
 
 // 基于当前搜索结果可用的筛选选项
@@ -686,8 +664,7 @@ const availableFilters = ref({
   destinations: [],
   daysList: [],
   months: [],
-  priceRanges: [],
-  themes: []
+  priceRanges: []
 })
 
 const ticketList = ref([])
@@ -707,8 +684,40 @@ const getCityLabel = (value) => cityMap[value] || getDestinationLabel(value) || 
 const getDaysLabel = (value) => daysMap[value] || value
 const getMonthLabel = (value) => monthMap[value] || value + '月'
 const getPriceLabel = (value) => priceMap[value] || value
-const getThemeLabel = (value) => value || ''
+const getSearchIntentLabel = () => {
+  if (searchMode.value === 'cruise' && intentDestination.value) {
+    return `${getDestinationLabel(intentDestination.value)}邮轮`
+  }
+  if (searchMode.value === 'around') {
+    return '周边游'
+  }
+  return ''
+}
 const displaySearchKeyword = computed(() => searchDisplayKeyword.value || searchKeyword.value)
+const activeFilterSummaryItems = computed(() => {
+  const items = []
+  const intentLabel = getSearchIntentLabel()
+  if (intentLabel) items.push(intentLabel)
+  if (activeFilters.value.tourType) items.push(getTourTypeLabel(activeFilters.value.tourType))
+  if (activeFilters.value.city) items.push(getCityLabel(activeFilters.value.city))
+  if (activeFilters.value.destination) items.push(getDestinationLabel(activeFilters.value.destination))
+  if (activeFilters.value.days) items.push(getDaysLabel(activeFilters.value.days))
+  if (activeFilters.value.month) items.push(getMonthLabel(activeFilters.value.month))
+  if (activeFilters.value.priceRange) items.push(getPriceLabel(activeFilters.value.priceRange))
+  return items.filter(Boolean)
+})
+const resultSummaryText = computed(() => {
+  const parts = []
+  if (displaySearchKeyword.value) parts.push(displaySearchKeyword.value)
+  parts.push(...activeFilterSummaryItems.value)
+  return Array.from(new Set(parts)).join(' / ')
+})
+const resultSummaryPrefix = computed(() => displaySearchKeyword.value ? '搜索' : '筛选')
+const emptyResultDescription = computed(() => (
+  resultSummaryText.value
+    ? `没有找到“${resultSummaryText.value}”相关的行程`
+    : '没有找到符合条件的行程'
+))
 
 const getTourImage = (url) => {
   if (!url) return noImage
@@ -733,15 +742,94 @@ const decorateFilterItems = (items = [], labelGetter) => {
   }))
 }
 
+const normalizeDestinationValue = (value) => {
+  if (!value) return value
+  const normalized = String(value).trim()
+  const destinationAliasMap = {
+    xisha: 'xisha',
+    '西沙': 'xisha',
+    '西沙群岛': 'xisha',
+    sanxia: 'sanxia',
+    sanyan: 'sanxia',
+    '三峡': 'sanxia'
+  }
+  return destinationAliasMap[normalized] || normalized
+}
+
+const normalizeTourTypeValue = (value) => {
+  if (!value) return value
+  const normalized = String(value).trim()
+  const tourTypeAliasMap = {
+    around: 'around',
+    '周边': 'around',
+    '周边游': 'around',
+    long: 'long',
+    '长线': 'long',
+    '长线游': 'long',
+    team: 'team',
+    '跟团': 'team',
+    '跟团游': 'team',
+    free: 'free',
+    '自由行': 'free',
+    private: 'private',
+    '私家团': 'private',
+    custom: 'custom',
+    '定制游': 'custom',
+    local: 'local',
+    '当地参团': 'local',
+    '当地游': 'local',
+    selfdrive: 'selfdrive',
+    '自驾': 'selfdrive',
+    '自驾游': 'selfdrive',
+    parent_child: 'parent_child',
+    '亲子': 'parent_child',
+    '亲子游': 'parent_child',
+    study: 'study',
+    '研学': 'study',
+    '研学游': 'study',
+    photography: 'photography',
+    '摄影': 'photography',
+    '摄影游': 'photography',
+    outdoor: 'outdoor',
+    '徒步': 'outdoor',
+    '户外徒步': 'outdoor',
+    cruise: 'cruise',
+    '邮轮': 'cruise',
+    '邮轮出行': 'cruise',
+    wellness: 'wellness',
+    '康养': 'wellness',
+    '康养度假': 'wellness',
+    other: 'other',
+    '其它': 'other',
+    '其他': 'other'
+  }
+  return tourTypeAliasMap[normalized] || normalized
+}
+
+const normalizeFilterItems = (items = [], normalizer = value => value) => {
+  const merged = new Map()
+  items.forEach(item => {
+    const value = normalizer(item.value)
+    if (!value) return
+    const existing = merged.get(value)
+    const count = Number(item.count || 0)
+    if (existing) {
+      existing.count += count
+    } else {
+      merged.set(value, { ...item, value, count })
+    }
+  })
+  return Array.from(merged.values())
+}
+
 const applyFilterLabels = data => {
   availableFilters.value = {
-    tourTypes: decorateFilterItems(data?.tourTypes, getTourTypeLabel),
+    tourTypes: decorateFilterItems(normalizeFilterItems(data?.tourTypes, normalizeTourTypeValue), getTourTypeLabel),
     cities: decorateFilterItems(data?.cities, getCityLabel),
-    destinations: decorateFilterItems(data?.destinations, getDestinationLabel),
+    destinations: decorateFilterItems(normalizeFilterItems(data?.destinations, normalizeDestinationValue), getDestinationLabel),
     daysList: decorateFilterItems(data?.daysList, getDaysLabel),
     months: decorateFilterItems(data?.months, getMonthLabel),
-    priceRanges: decorateFilterItems(data?.priceRanges, getPriceLabel),
-    themes: decorateFilterItems(data?.themes, getThemeLabel)
+    priceRanges: decorateFilterItems(data?.priceRanges, getPriceLabel)
   }
 }
 
@@ -753,13 +841,15 @@ const normalizeTours = records => (records || []).map(item => ({
 
 const buildQueryParams = () => ({
   keyword: searchKeyword.value.trim(),
+  search: searchKeyword.value.trim(),
   tourType: activeFilters.value.tourType,
   city: activeFilters.value.city,
   destination: activeFilters.value.destination,
   days: activeFilters.value.days,
   month: activeFilters.value.month,
   priceRange: activeFilters.value.priceRange,
-  theme: activeFilters.value.theme,
+  searchMode: searchMode.value,
+  intentDestination: intentDestination.value,
   matchMode: searchMatchMode.value,
   sortType: sortType.value,
   currentPage: currentPage.value,
@@ -767,7 +857,19 @@ const buildQueryParams = () => ({
 })
 
 const loadFilters = async () => {
-  const filters = await getTourFilters({ keyword: searchKeyword.value.trim() })
+  const filters = await getTourFilters({
+    keyword: searchKeyword.value.trim(),
+    search: searchKeyword.value.trim(),
+    tourType: activeFilters.value.tourType,
+    city: activeFilters.value.city,
+    destination: activeFilters.value.destination,
+    days: activeFilters.value.days,
+    month: activeFilters.value.month,
+    priceRange: activeFilters.value.priceRange,
+    searchMode: searchMode.value,
+    intentDestination: intentDestination.value,
+    matchMode: searchMatchMode.value
+  })
   applyFilterLabels(filters || {})
 }
 
@@ -811,8 +913,7 @@ const hasActiveFilters = computed(() => {
          activeFilters.value.destination ||
          activeFilters.value.days ||
          activeFilters.value.month ||
-         activeFilters.value.priceRange ||
-         activeFilters.value.theme
+         activeFilters.value.priceRange
 })
 
 const hasFilterOptions = computed(() => {
@@ -824,7 +925,6 @@ const hasFilterOptions = computed(() => {
 // =============================================
 
 const getFilterTotalCount = (key) => {
-  if (hasSearched.value) return totalCount.value
   const items = availableFilters.value[key]
   if (!Array.isArray(items)) return 0
   return items.reduce((sum, item) => sum + Number(item.count || 0), 0)
@@ -845,6 +945,8 @@ const goToDetail = (id) => {
 
 // 执行搜索
 const executeSearch = () => {
+  searchMode.value = ''
+  intentDestination.value = ''
   searchMatchMode.value = ''
   performSearch()
 }
@@ -858,7 +960,6 @@ const quickSearch = (keyword) => {
 
 // 切换筛选条件
 const toggleFilter = (type, value) => {
-  searchMatchMode.value = ''
   if (activeFilters.value[type] === value) {
     // 如果点击的是已选中的，则取消
     activeFilters.value[type] = ''
@@ -871,15 +972,13 @@ const toggleFilter = (type, value) => {
 
 // 移除某个筛选条件
 const removeFilter = (type) => {
-  searchMatchMode.value = ''
   activeFilters.value[type] = ''
   performSearch()
 }
 
 // 清除所有筛选条件
 const clearAllFilters = () => {
-  searchMatchMode.value = ''
-  activeFilters.value = { tourType: '', city: '', destination: '', days: '', month: '', priceRange: '', theme: '' }
+  activeFilters.value = { tourType: '', city: '', destination: '', days: '', month: '', priceRange: '' }
   performSearch()
 }
 
@@ -887,8 +986,10 @@ const clearAllFilters = () => {
 const resetSearch = () => {
   searchKeyword.value = ''
   searchDisplayKeyword.value = ''
+  searchMode.value = ''
+  intentDestination.value = ''
   searchMatchMode.value = ''
-  activeFilters.value = { tourType: '', city: '', destination: '', days: '', month: '', priceRange: '', theme: '' }
+  activeFilters.value = { tourType: '', city: '', destination: '', days: '', month: '', priceRange: '' }
   hasSearched.value = false
   sortType.value = 'default'
   currentPage.value = 1
@@ -916,6 +1017,8 @@ const initFromUrl = () => {
   const cityParam = route.query.city
   const daysParam = route.query.days
   const destinationParam = route.query.destination
+  const searchModeParam = route.query.searchMode
+  const intentDestinationParam = route.query.intentDestination
   const matchModeParam = route.query.matchMode
 
   let hasParams = false
@@ -929,7 +1032,7 @@ const initFromUrl = () => {
 
   // 处理行程类型筛选
   if (tourTypeParam) {
-    activeFilters.value.tourType = tourTypeParam
+    activeFilters.value.tourType = normalizeTourTypeValue(tourTypeParam)
     hasParams = true
   }
 
@@ -947,7 +1050,17 @@ const initFromUrl = () => {
 
   // 处理目的地筛选
   if (destinationParam) {
-    activeFilters.value.destination = destinationParam
+    activeFilters.value.destination = normalizeDestinationValue(destinationParam)
+    hasParams = true
+  }
+
+  if (searchModeParam) {
+    searchMode.value = searchModeParam
+    hasParams = true
+  }
+
+  if (intentDestinationParam) {
+    intentDestination.value = normalizeDestinationValue(intentDestinationParam)
     hasParams = true
   }
 
@@ -997,10 +1110,12 @@ watch(() => route.query, (query) => {
   const newCity = query.city
   const newDays = query.days
   const newDestination = query.destination
+  const newSearchMode = query.searchMode
+  const newIntentDestination = query.intentDestination
   const newMatchMode = query.matchMode
 
   // 如果有URL参数需要搜索，先清除所有现有筛选条件
-  const hasParams = newSearch || newTourType || newCity || newDays || newDestination || newMatchMode
+  const hasParams = newSearch || newTourType || newCity || newDays || newDestination || newSearchMode || newIntentDestination || newMatchMode
 
   if (hasParams) {
     // 重置所有筛选条件（复用 resetSearch 函数）
@@ -1014,7 +1129,7 @@ watch(() => route.query, (query) => {
 
     // 应用新的筛选条件
     if (newTourType) {
-      activeFilters.value.tourType = newTourType
+      activeFilters.value.tourType = normalizeTourTypeValue(newTourType)
     }
     if (newCity) {
       activeFilters.value.city = newCity
@@ -1023,7 +1138,13 @@ watch(() => route.query, (query) => {
       activeFilters.value.days = newDays
     }
     if (newDestination) {
-      activeFilters.value.destination = newDestination
+      activeFilters.value.destination = normalizeDestinationValue(newDestination)
+    }
+    if (newSearchMode) {
+      searchMode.value = newSearchMode
+    }
+    if (newIntentDestination) {
+      intentDestination.value = normalizeDestinationValue(newIntentDestination)
     }
     if (newMatchMode) {
       searchMatchMode.value = newMatchMode

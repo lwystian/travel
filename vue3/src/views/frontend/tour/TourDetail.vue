@@ -107,10 +107,6 @@
                   <span class="detail-label">行程类型</span>
                   <span class="detail-value">{{ getTourTypeName(tour.tourType) }}</span>
                 </div>
-                <div class="detail-row" v-if="tour.theme">
-                  <span class="detail-label">产品主题</span>
-                  <span class="detail-value">{{ getThemeName(tour.theme) }}</span>
-                </div>
                 <div class="detail-row" v-if="tour.recommendDate">
                   <span class="detail-label">推荐日期</span>
                   <span class="detail-value">{{ tour.recommendDate }}</span>
@@ -359,21 +355,6 @@ const formatCity = (city) => {
 // 获取行程类型名称
 const getTourTypeName = (type) => {
   return getTourTypeLabel(type, '旅行')
-}
-
-// 获取主题名称
-const getThemeName = (theme) => {
-  const themeMap = {
-    'scenic': '风景游',
-    'cultural': '文化游',
-    'adventure': '探险游',
-    'hiking': '徒步游',
-    'family': '亲子游',
-    'romantic': '浪漫游',
-    'food': '美食游',
-    'photography': '摄影游'
-  }
-  return themeMap[theme] || theme || ''
 }
 
 // 获取图片URL

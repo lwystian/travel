@@ -222,12 +222,6 @@
           <span class="info-text">{{ getTourTypeName(productInfo.tourType) }}</span>
         </div>
 
-        <!-- 产品主题 -->
-        <div class="info-row" v-if="productInfo.theme">
-          <span class="info-label">产品主题：</span>
-          <span class="info-text">{{ getThemeName(productInfo.theme) }}</span>
-        </div>
-
         <!-- 供应商 -->
         <div class="info-row">
           <span class="info-label">供 应 商：</span>
@@ -713,26 +707,9 @@ const cityMap = {
   'yichang': '宜昌'
 }
 
-// 主题映射
-const themeMap = {
-  'scenic': '风景游',
-  'cultural': '文化游',
-  'adventure': '探险游',
-  'hiking': '徒步游',
-  'family': '亲子游',
-  'romantic': '浪漫游',
-  'food': '美食游',
-  'photography': '摄影游'
-}
-
 // 格式化城市名称
 const formatCity = (city) => {
   return cityMap[city] || city || ''
-}
-
-// 获取主题名称
-const getThemeName = (theme) => {
-  return themeMap[theme] || theme || ''
 }
 
 // 获取行程类型名称
@@ -771,7 +748,6 @@ const productInfo = ref({
   days: 1,
   departure: '',
   tourType: '',
-  theme: '',
   enrolledCount: 0,
   notice: '',
   detailContent: ''
@@ -1282,7 +1258,6 @@ const fetchProductDetail = async () => {
           days: data.tour.days || 1,
           departure: data.tour.city || '', // 后端返回的是 city 字段
           tourType: data.tour.tourType || '',
-          theme: data.tour.theme || '',
           enrolledCount: data.tour.enrolledCount || 0,
           notice: data.tour.notice || '',
           detailContent: data.tour.detailContent || ''
