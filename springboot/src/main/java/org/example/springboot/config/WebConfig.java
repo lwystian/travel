@@ -31,6 +31,13 @@ public class WebConfig implements WebMvcConfigurer {
         "/api/user/forget",     // 忘记密码接口
         "/api/email/code/**",   // 注册邮箱验证码接口
         "/api/email/findByEmail/**", // 忘记密码邮箱验证码接口
+        "/api/robots.txt",
+        "/api/sitemap.xml",
+        "/api/sitemap.txt",
+        "/api/sitemap.html",
+        "/api/feed.xml",
+        "/api/rss.xml",
+        "/api/seo/**",
         "/api/img/**",          // 图片资源接口（带前缀）
         "/img/**",              // 图片资源接口（不带前缀）
         "/api/tour-order-pay/notify",

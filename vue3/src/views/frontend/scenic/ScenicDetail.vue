@@ -258,6 +258,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import axios from 'axios'
 import { shareCurrentPage } from '@/utils/share'
+import { updateSeo, seoDescription } from '@/utils/seo'
 import { getTourTypeLabel } from '@/utils/tourTypes'
 import {
   Location, CollectionTag, Timer, Sunny, Loading, Star, StarFilled,
@@ -284,6 +285,11 @@ const isLoggedIn = computed(() => userStore.isLoggedIn)
 const getImageUrl = (url) => {
   if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
+}
+
+const getAbsoluteImageUrl = (url) => {
+  const imageUrl = getImageUrl(url)
+  return imageUrl.startsWith('http') ? imageUrl : `${window.location.origin}${imageUrl}`
 }
 
 // 格式化评价数量
@@ -484,6 +490,21 @@ const fetchDetail = async () => {
     onSuccess: (res) => {
       console.log('景点详情 - 获取成功:', res)
       scenic.value = res
+      updateSeo({
+        title: `${res.name}旅游攻略、门票与路线`,
+        description: res.description || `${res.name}景点介绍、开放时间、周边住宿和推荐行程。`,
+        path: `/scenic/${id}`,
+        image: res.imageUrl,
+        schema: {
+          '@context': 'https://schema.org',
+          '@type': 'TouristAttraction',
+          name: res.name,
+          description: seoDescription(res.description || res.location || `${res.name}景点介绍`),
+          url: `${window.location.origin}/scenic/${id}`,
+          image: res.imageUrl ? getAbsoluteImageUrl(res.imageUrl) : undefined,
+          address: res.location || undefined
+        }
+      })
       // 获取评论统计
       fetchCommentStats(id)
       // 加载天气信息

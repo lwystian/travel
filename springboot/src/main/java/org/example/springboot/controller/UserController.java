@@ -314,6 +314,14 @@ public class UserController {
 
     }
 
+    @Operation(summary = "设置管理员订单通知")
+    @PutMapping({"/{id}/order-notify", "/{id}/order-sms-notify"})
+    public Result<?> updateOrderNotify(@PathVariable Long id, @RequestParam Boolean enabled) {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        userService.updateOrderNotifyEnabled(id, enabled, currentUser);
+        return Result.success(Boolean.TRUE.equals(enabled) ? "已开启订单通知" : "已关闭订单通知");
+    }
+
     @Operation(summary = "管理员重置用户密码")
     @PutMapping("/resetPassword/{id}")
     public Result<?> resetPassword(@PathVariable Long id, @RequestBody UserPasswordUpdateDTO dto) {

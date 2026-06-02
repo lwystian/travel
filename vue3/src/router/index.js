@@ -2,12 +2,14 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import BackendLayout from '@/layouts/BackendLayout.vue'
 import logger from '@/utils/logger'
+import { updateSeo, routeDescription, isRouteIndexable } from '@/utils/seo'
 
 export const backendRoutes = [
   {
     path: '/back',
     component: BackendLayout,
     redirect: '/back/dashboard',
+    meta: { indexable: false },
     children: [
       {
         path: 'dashboard',
@@ -164,13 +166,13 @@ const frontendRoutes = [
         path: '',
         name: 'Home',
         component: () => import('@/views/frontend/Home.vue'),
-        meta: { title: '首页' }
+        meta: { title: '侠客行国旅首页', description: '侠客行国旅提供精品旅游线路、热门景点攻略、住宿推荐和在线行程预订服务。' }
       },
       {
         path: 'about',
         name: 'About',
         component: () => import('@/views/frontend/About.vue'),
-        meta: { title: '关于侠客行' }
+        meta: { title: '关于侠客行', description: '了解侠客行国旅的旅行服务、企业资质、目的地资源与客户服务承诺。' }
       },
       {
         path: 'legal/:type',
@@ -182,49 +184,49 @@ const frontendRoutes = [
         path: 'profile',
         name: 'Profile',
         component: () => import('@/views/frontend/profile/index.vue'),
-        meta: { title: '个人中心', requiresAuth: true }
+        meta: { title: '个人中心', requiresAuth: true, indexable: false }
       },
       {
         path: 'accommodation',
         name: 'AccommodationList',
         component: () => import('@/views/frontend/accommodation/index.vue'),
-        meta: { title: '住宿' }
+        meta: { title: '景区住宿推荐', description: '查询景区周边酒店、民宿和特色住宿，了解价格区间、位置、评分和服务特色。' }
       },
       {
         path: 'accommodation/:id',
         name: 'AccommodationDetail',
         component: () => import('@/views/frontend/accommodation/detail.vue'),
-        meta: { title: '住宿详情' }
+        meta: { title: '住宿详情', description: '查看住宿详情、地址、价格区间、特色服务和周边景点信息。' }
       },
       {
         path: 'tickets',
         name: 'Tickets',
         component: () => import('@/views/frontend/ticket/index.vue'),
-        meta: { title: '行程预订' }
+        meta: { title: '旅游线路预订', description: '浏览侠客行国旅精品旅游线路，按目的地、出发城市、行程天数和价格筛选。' }
       },
       {
         path: 'ticket/booking/:id',
         name: 'TicketBooking',
         component: () => import('@/views/frontend/ticket/booking.vue'),
-        meta: { title: '预订行程', requiresAuth: true }
+        meta: { title: '预订行程', requiresAuth: true, indexable: false }
       },
       {
         path: 'orders',
         name: 'Orders',
         component: () => import('@/views/frontend/orders/index.vue'),
-        meta: { title: '我的订单', requiresAuth: true }
+        meta: { title: '我的订单', requiresAuth: true, indexable: false }
       },
       {
         path: 'scenic',
         name: 'ScenicList',
         component: () => import('@/views/frontend/scenic/ScenicList.vue'),
-        meta: { title: '景点列表' }
+        meta: { title: '热门旅游景点', description: '查看热门景点介绍、开放时间、地理位置、标签和周边旅游线路推荐。' }
       },
       {
         path: 'scenic/:id',
         name: 'ScenicDetail',
         component: () => import('@/views/frontend/scenic/ScenicDetail.vue'),
-        meta: { title: '景点详情' }
+        meta: { title: '景点详情', description: '查看景点介绍、开放时间、地理位置、用户评价和周边行程住宿推荐。' }
       },
       {
         path: 'scenic/category/:categoryId',
@@ -237,67 +239,67 @@ const frontendRoutes = [
         path: 'tour/:id',
         name: 'TourDetail',
         component: () => import('@/views/frontend/tour/TourDetail.vue'),
-        meta: { title: '行程详情' }
+        meta: { title: '行程详情', description: '查看旅游线路详情、行程特色、价格、出发日期、套餐和预订说明。' }
       },
       {
         path: 'guide',
         name: 'GuideList',
         component: () => import('@/views/frontend/guide/GuideList.vue'),
-        meta: { title: '攻略列表' }
+        meta: { title: '旅游攻略', description: '阅读目的地旅游攻略、出行经验、玩法推荐和行程建议。' }
       },
       {
         path: 'guide/detail/:id',
         name: 'GuideDetail',
         component: () => import('@/views/frontend/guide/GuideDetail.vue'),
-        meta: { title: '攻略详情' }
+        meta: { title: '攻略详情', description: '查看旅游攻略详情，了解目的地玩法、路线安排和出行建议。' }
       },
       {
         path: 'guide/edit',
         name: 'GuideEdit',
         component: () => import('@/views/frontend/guide/GuideEdit.vue'),
-        meta: { title: '发布攻略', requiresAuth: true }
+        meta: { title: '发布攻略', requiresAuth: true, indexable: false }
       },
       {
         path: 'my-guide',
         name: 'MyGuideList',
         component: () => import('@/views/frontend/guide/MyGuideList.vue'),
-        meta: { title: '我的攻略', requiresAuth: true }
+        meta: { title: '我的攻略', requiresAuth: true, indexable: false }
       },
       {
         path: 'collection',
         name: 'Collection',
         component: () => import('@/views/frontend/collection/MyCollection.vue'),
-        meta: { title: '我的收藏', requiresAuth: true }
+        meta: { title: '我的收藏', requiresAuth: true, indexable: false }
       },
       {
         path: 'payment/alipay/:id',
         name: 'AlipayPayment',
         component: () => import('@/views/frontend/payment/alipay-form.vue'),
-        meta: { title: '支付宝支付', requiresAuth: true }
+        meta: { title: '支付宝支付', requiresAuth: true, indexable: false }
       },
       {
         path: 'tour-order-confirm/:id',
         name: 'TourOrderConfirm',
         component: () => import('@/views/frontend/payment/tour-order-confirm.vue'),
-        meta: { title: '订单确认', requiresAuth: true }
+        meta: { title: '订单确认', requiresAuth: true, indexable: false }
       },
       {
         path: 'tour-order-pay/:id',
         name: 'TourOrderPay',
         component: () => import('@/views/frontend/payment/tour-order-pay.vue'),
-        meta: { title: '订单支付', requiresAuth: true }
+        meta: { title: '订单支付', requiresAuth: true, indexable: false }
       },
       {
         path: 'payment-failed',
         name: 'PaymentFailed',
         component: () => import('@/views/frontend/payment/payment-failed.vue'),
-        meta: { title: '支付失败' }
+        meta: { title: '支付失败', indexable: false }
       },
       {
         path: 'payment/result',
         name: 'PaymentResult',
         component: () => import('@/views/frontend/payment/payment-result.vue'),
-        meta: { title: '支付结果' }
+        meta: { title: '支付结果', indexable: false }
       }
     ]
   },
@@ -305,13 +307,13 @@ const frontendRoutes = [
     path: '/login',
     name: 'Login',
     component: () => import('@/views/auth/Login.vue'),
-    meta: { title: '登录' }
+    meta: { title: '登录', indexable: false }
   },
   {
     path: '/register',
     name: 'Register',
     component: () => import('@/views/auth/Register.vue'),
-    meta: { title: '注册' }
+    meta: { title: '注册', indexable: false }
   }
 ]
 
@@ -320,7 +322,7 @@ const errorRoutes = [
     path: '/404',
     name: '404',
     component: () => import('@/views/error/404.vue'),
-    meta: { title: '404' }
+    meta: { title: '404', indexable: false }
   },
   {
     path: '/:pathMatch(.*)*',
@@ -347,7 +349,12 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  document.title = to.meta.title ? `${to.meta.title} - 侠客行国旅` : '侠客行国旅'
+  updateSeo({
+    title: to.meta.title,
+    description: routeDescription(to),
+    path: to.path,
+    indexable: isRouteIndexable(to)
+  })
 
   const userStore = useUserStore()
   userStore.syncFromStorage()

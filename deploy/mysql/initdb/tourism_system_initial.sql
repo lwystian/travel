@@ -647,6 +647,7 @@ CREATE TABLE `user` (
   `nickname` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL ,
   `email` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL ,
   `phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL ,
+  `order_notify_enabled` tinyint(1) NOT NULL DEFAULT '0' ,
   `role_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'USER' ,
   `avatar` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL ,
   `status` tinyint DEFAULT '1' ,

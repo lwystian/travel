@@ -121,6 +121,7 @@ import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
 import { View, Calendar, Star, StarFilled, Share, User, ArrowRight } from '@element-plus/icons-vue'
 import { shareCurrentPage } from '@/utils/share'
+import { updateSeo, seoDescription } from '@/utils/seo'
 import { renderContent } from '@/utils/contentRenderer'
 import noImage from '@/assets/images/no-image.png'
 
@@ -138,6 +139,11 @@ const safeGuideContent = computed(() => renderContent(guide.value?.content))
 const getImageUrl = (url) => {
   if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
+}
+
+const getAbsoluteImageUrl = (url) => {
+  const imageUrl = getImageUrl(url)
+  return imageUrl.startsWith('http') ? imageUrl : `${window.location.origin}${imageUrl}`
 }
 
 // 格式化数字
@@ -159,7 +165,27 @@ const fetchGuide = async () => {
       showDefaultMsg: false,
       onSuccess: (res) => {
         guide.value = res
-        document.title = res.title + ' - 旅游攻略'
+        updateSeo({
+          title: `${res.title}旅游攻略`,
+          description: res.content || res.destination || '侠客行国旅旅游攻略，分享目的地玩法、路线和出行建议。',
+          path: `/guide/detail/${id}`,
+          image: res.coverImage,
+          type: 'article',
+          schema: {
+            '@context': 'https://schema.org',
+            '@type': 'Article',
+            headline: res.title,
+            description: seoDescription(res.content || res.destination || '侠客行国旅旅游攻略'),
+            url: `${window.location.origin}/guide/detail/${id}`,
+            image: res.coverImage ? getAbsoluteImageUrl(res.coverImage) : undefined,
+            datePublished: res.createTime || undefined,
+            dateModified: res.updateTime || res.createTime || undefined,
+            author: {
+              '@type': 'Person',
+              name: res.userNickname || `旅行者${res.userId || ''}`
+            }
+          }
+        })
         
         // 如果用户已登录，查询是否已收藏
         if (userStore.isLoggedIn) {

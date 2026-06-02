@@ -279,6 +279,7 @@ public class UserService {
         user.setPassword(StringUtils.isNotBlank(user.getPassword()) ? user.getPassword() : DEFAULT_PWD);
         user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
         user.setRoleCode(StringUtils.isNotBlank(user.getRoleCode()) ? user.getRoleCode() : RolePermission.USER);
+        user.setOrderNotifyEnabled(RolePermission.isSuperAdmin(user));
         user.setStatus(user.getStatus() == null ? 1 : user.getStatus());
         user.setCreateTime(user.getCreateTime() == null ? LocalDateTime.now() : user.getCreateTime());
         user.setUpdateTime(LocalDateTime.now());
@@ -320,6 +321,7 @@ public class UserService {
     }
 
     private void updateUserInternal(Long id, User user, User oldUser) {
+        user.setOrderNotifyEnabled(null);
         String requestedRole = user.getRoleCode() == null ? oldUser.getRoleCode() : RolePermission.normalizeRole(user.getRoleCode());
         if (RolePermission.SUPER_ADMIN.equals(requestedRole)
                 && !RolePermission.isSuperAdmin(oldUser)
@@ -333,6 +335,9 @@ public class UserService {
             throw new ServiceException("不能禁用超级管理员");
         }
         user.setRoleCode(requestedRole);
+        if (!RolePermission.isSuperAdmin(oldUser) && RolePermission.SUPER_ADMIN.equals(requestedRole)) {
+            user.setOrderNotifyEnabled(true);
+        }
 
         if (user.getUsername() != null) {
             User existUser = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, user.getUsername()));
@@ -360,6 +365,53 @@ public class UserService {
         }
 
         clearUserCache(id, oldUser, user);
+    }
+
+    public void updateOrderNotifyEnabled(Long id, Boolean enabled, User actor) {
+        if (!RolePermission.isSuperAdmin(actor)) {
+            throw new ServiceException("只有超级管理员可以配置订单通知");
+        }
+        if (id == null) {
+            throw new ServiceException("用户ID不能为空");
+        }
+        User target = userMapper.selectById(id);
+        if (target == null) {
+            throw new ServiceException("用户不存在");
+        }
+        String roleCode = RolePermission.normalizeRole(target.getRoleCode());
+        if (!RolePermission.SUPER_ADMIN.equals(roleCode) && !RolePermission.ADMIN.equals(roleCode)) {
+            throw new ServiceException("只能为管理员账号配置订单通知");
+        }
+        if (Boolean.TRUE.equals(enabled)) {
+            if (!Integer.valueOf(1).equals(target.getStatus())) {
+                throw new ServiceException("请先启用该管理员账号");
+            }
+            if (!hasOrderNotificationContact(target)) {
+                throw new ServiceException("该管理员未绑定有效邮箱或手机号，无法接收订单通知");
+            }
+        }
+
+        User update = new User();
+        update.setId(id);
+        update.setOrderNotifyEnabled(Boolean.TRUE.equals(enabled));
+        update.setUpdateTime(LocalDateTime.now());
+        if (userMapper.updateById(update) <= 0) {
+            throw new ServiceException("订单通知配置失败");
+        }
+        clearUserCache(id, target, update);
+    }
+
+    private boolean hasOrderNotificationContact(User user) {
+        return user != null && (isValidNotifyEmail(user.getEmail()) || isValidNotifyPhone(user.getPhone()));
+    }
+
+    private boolean isValidNotifyEmail(String email) {
+        return StringUtils.isNotBlank(email)
+                && email.trim().matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    }
+
+    private boolean isValidNotifyPhone(String phone) {
+        return StringUtils.isNotBlank(phone) && phone.trim().matches("^1[3-9]\\d{9}$");
     }
 
     public User updateOwnProfile(Long id, User profile) {

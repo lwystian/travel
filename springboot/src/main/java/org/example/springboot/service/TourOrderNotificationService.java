@@ -125,6 +125,9 @@ public class TourOrderNotificationService {
         Map<String, Object> params = buildSmsParams(order, user);
         String emailContent = buildAdminEmail(order, user);
         for (User admin : admins) {
+            if (!Boolean.TRUE.equals(admin.getOrderNotifyEnabled())) {
+                continue;
+            }
             String email = normalizeEmail(admin.getEmail());
             if (StringUtils.hasText(email)) {
                 sendEmailQuietly(email, "【" + COMPANY_SHORT_NAME + "】新支付行程订单待跟进", emailContent);

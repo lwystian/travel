@@ -290,6 +290,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { useUserStore } from '@/store/user'
 import { shareCurrentPage } from '@/utils/share'
+import { updateSeo, seoDescription } from '@/utils/seo'
 import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
 import defaultPlaceholder from '@/assets/images/no-image.png'
 import {
@@ -364,6 +365,22 @@ const fetchAccommodationDetail = async () => {
     await request.get(`/accommodation/${route.params.id}`, {}, {
       onSuccess: (res) => {
         accommodation.value = res
+        updateSeo({
+          title: `${res.name}住宿推荐`,
+          description: res.description || res.features || `${res.name}住宿详情、价格区间、地址和周边景点推荐。`,
+          path: `/accommodation/${route.params.id}`,
+          image: res.imageUrl,
+          schema: {
+            '@context': 'https://schema.org',
+            '@type': 'LodgingBusiness',
+            name: res.name,
+            description: seoDescription(res.description || res.features || res.address || `${res.name}住宿推荐`),
+            url: `${window.location.origin}/accommodation/${route.params.id}`,
+            image: res.imageUrl ? getAbsoluteImageUrl(res.imageUrl) : undefined,
+            address: res.address || undefined,
+            priceRange: res.priceRange || undefined
+          }
+        })
       }
     })
   } catch (error) {
@@ -444,6 +461,11 @@ const getImageUrl = (url) => {
   if (!url) return getAssetUrl(siteAssets.value.placeholderImageUrl, defaultPlaceholder)
   if (url.startsWith('http')) return url
   return baseAPI + url
+}
+
+const getAbsoluteImageUrl = (url) => {
+  const imageUrl = getImageUrl(url)
+  return imageUrl.startsWith('http') ? imageUrl : `${window.location.origin}${imageUrl}`
 }
 
 // 处理评价分页

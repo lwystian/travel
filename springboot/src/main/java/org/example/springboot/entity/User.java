@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -20,6 +22,7 @@ import java.util.List;
 @Data
 @TableName("user")
 @Schema(description = "用户实体类")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class User {
     @TableId(type = IdType.AUTO)
     @Schema(description = "用户ID")
@@ -42,6 +45,10 @@ public class User {
     @Schema(description = "手机号")
     @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String phone;
+
+    @JsonAlias("orderSmsNotifyEnabled")
+    @Schema(description = "是否接收订单支付通知")
+    private Boolean orderNotifyEnabled;
     
     @Schema(description = "角色编码")
     private String roleCode;

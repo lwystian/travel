@@ -100,6 +100,17 @@
             </span>
           </template>
         </el-table-column>
+        <el-table-column v-if="userStore.isSuperAdmin" prop="orderNotifyEnabled" label="订单通知" width="110" align="center">
+          <template #default="scope">
+            <el-switch
+              v-if="isAdminAccount(scope.row)"
+              v-model="scope.row.orderNotifyEnabled"
+              :disabled="!canEditOrderNotify(scope.row)"
+              @change="handleOrderNotifyChange(scope.row)"
+            ></el-switch>
+            <span v-else class="muted-text">-</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="scope">
             <el-switch
@@ -348,11 +359,31 @@ const getRoleClass = (roleCode) => {
   return 'role-user'
 }
 
+const isAdminAccount = (row) => {
+  return row?.roleCode === 'SUPER_ADMIN' || row?.roleCode === 'ADMIN'
+}
+
+const hasValidPhone = (row) => {
+  return /^1[3-9]\d{9}$/.test(String(row?.phone || '').trim())
+}
+
+const hasValidEmail = (row) => {
+  return /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(String(row?.email || '').trim())
+}
+
+const hasOrderNotifyContact = (row) => {
+  return hasValidPhone(row) || hasValidEmail(row)
+}
+
 const canManageUser = (row) => {
   if (!row || row.id === currentUserId.value) return false
   if (row.protectedAccount) return false
   if (userStore.isSuperAdmin) return true
   return row.roleCode === 'USER'
+}
+
+const canEditOrderNotify = (row) => {
+  return userStore.isSuperAdmin && isAdminAccount(row)
 }
 
 const canDeleteUser = (row) => {
@@ -378,7 +409,10 @@ const fetchUsers = async () => {
         size: pageSize.value
       },{
       onSuccess: (res) => {
-        tableData.value = res.records||[]
+        tableData.value = (res.records || []).map(item => ({
+          ...item,
+          orderNotifyEnabled: item.orderNotifyEnabled === true || item.orderNotifyEnabled === 1
+        }))
         total.value = res.total||0
       }
       }
@@ -478,6 +512,34 @@ const handleStatusChange = async (row) => {
     console.error('更新用户状态失败:', error)
     // 恢复原状态
     row.status = row.status === 1 ? 0 : 1
+  }
+}
+
+const handleOrderNotifyChange = async (row) => {
+  const enabled = row.orderNotifyEnabled === true
+  if (!canEditOrderNotify(row)) {
+    row.orderNotifyEnabled = !enabled
+    ElMessage.warning('只有超级管理员可以配置订单通知')
+    return
+  }
+  if (enabled && row.status !== 1) {
+    row.orderNotifyEnabled = false
+    ElMessage.warning('请先启用该管理员账号')
+    return
+  }
+  if (enabled && !hasOrderNotifyContact(row)) {
+    row.orderNotifyEnabled = false
+    ElMessage.warning('该管理员未绑定有效邮箱或手机号')
+    return
+  }
+  try {
+    await request.put(`/user/${row.id}/order-notify`, null, {
+      params: { enabled },
+      successMsg: enabled ? '已开启订单通知' : '已关闭订单通知'
+    })
+  } catch (error) {
+    console.error('更新订单通知失败:', error)
+    row.orderNotifyEnabled = !enabled
   }
 }
 

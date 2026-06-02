@@ -264,6 +264,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
+import { updateSeo, seoDescription } from '@/utils/seo'
 import { getTourTypeLabel } from '@/utils/tourTypes'
 import {
   Timer, Location, MapLocation, Star, User, Document, MagicStick,
@@ -274,7 +275,7 @@ import noImage from '@/assets/images/no-image.png'
 const route = useRoute()
 const router = useRouter()
 
-const baseAPI = import.meta.env.VITE_BASE_API || '/api'
+const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 
 // 行程数据
 const tour = ref({})
@@ -364,6 +365,11 @@ const getImageUrl = (url) => {
   return baseAPI + url
 }
 
+const getAbsoluteImageUrl = (url) => {
+  const imageUrl = getImageUrl(url)
+  return imageUrl.startsWith('http') ? imageUrl : `${window.location.origin}${imageUrl}`
+}
+
 // 计算总价
 const calculateTotal = () => {
   if (selectedBatchId.value) {
@@ -379,6 +385,21 @@ const fetchTourDetail = async () => {
     const res = await request.get(`/tour/${id}/detail`)
     tourDetail.value = res
     tour.value = res.tour || {}
+    updateSeo({
+      title: `${tour.value.title || '旅游线路'}预订`,
+      description: tour.value.subtitle || tour.value.feature || '侠客行国旅精品旅游线路，查看行程特色、价格和出发日期。',
+      path: `/tour/${id}`,
+      image: tour.value.mainImage,
+      schema: {
+        '@context': 'https://schema.org',
+        '@type': 'Trip',
+        name: tour.value.title || '旅游线路',
+        description: seoDescription(tour.value.subtitle || tour.value.feature || tour.value.detailContent || '侠客行国旅精品旅游线路'),
+        url: `${window.location.origin}/tour/${id}`,
+        image: tour.value.mainImage ? getAbsoluteImageUrl(tour.value.mainImage) : undefined,
+        itinerary: tour.value.destination || undefined
+      }
+    })
     packages.value = res.tripPackages || []
     batches.value = res.batchDates || []
 

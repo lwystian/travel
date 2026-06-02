@@ -20,8 +20,9 @@ public class UserAuthSchemaInitializer {
             ensureEmailNullable();
             ensurePhoneColumn();
             ensurePhoneUniqueIndex();
+            ensureOrderNotifyColumn();
         } catch (Exception e) {
-            LOGGER.warn("初始化手机号认证用户表结构失败，请检查 user.email 是否可空、user.phone 是否存在唯一索引", e);
+            LOGGER.warn("初始化用户认证表结构失败，请检查 user.email、user.phone 和订单短信提醒字段配置", e);
         }
     }
 
@@ -66,5 +67,37 @@ public class UserAuthSchemaInitializer {
             jdbcTemplate.execute("CREATE UNIQUE INDEX uk_user_phone ON `user`(`phone`)");
             LOGGER.info("user.phone 唯一索引已创建");
         }
+    }
+
+    private void ensureOrderNotifyColumn() {
+        if (!hasUserColumn("order_notify_enabled")) {
+            jdbcTemplate.execute("""
+                    ALTER TABLE `user`
+                    ADD COLUMN `order_notify_enabled` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否接收订单支付通知' AFTER `phone`
+                    """);
+            if (hasUserColumn("order_sms_notify_enabled")) {
+                jdbcTemplate.execute("""
+                        UPDATE `user`
+                        SET `order_notify_enabled` = `order_sms_notify_enabled`
+                        """);
+            }
+            jdbcTemplate.execute("""
+                    UPDATE `user`
+                    SET `order_notify_enabled` = 1
+                    WHERE `role_code` = 'SUPER_ADMIN'
+                    """);
+            LOGGER.info("user.order_notify_enabled 字段已创建，超级管理员默认开启订单通知");
+        }
+    }
+
+    private boolean hasUserColumn(String columnName) {
+        Integer count = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'user'
+                  AND COLUMN_NAME = ?
+                """, Integer.class, columnName);
+        return count != null && count > 0;
     }
 }
