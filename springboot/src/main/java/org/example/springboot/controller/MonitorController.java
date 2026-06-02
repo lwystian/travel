@@ -3,6 +3,10 @@ package org.example.springboot.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.example.springboot.common.Result;
+import org.example.springboot.entity.User;
+import org.example.springboot.exception.ServiceException;
+import org.example.springboot.security.RolePermission;
+import org.example.springboot.util.JwtTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -13,7 +17,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/monitor")
 @Tag(name = "系统监控", description = "系统监控相关接口")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class MonitorController {
 
     private static final Logger logger = LoggerFactory.getLogger(MonitorController.class);
@@ -21,6 +24,7 @@ public class MonitorController {
     @GetMapping("/system")
     @Operation(summary = "获取系统状态")
     public Result<Map<String, Object>> getSystemStatus() {
+        requireAdmin();
         try {
             Map<String, Object> result = new HashMap<>();
             
@@ -51,6 +55,14 @@ public class MonitorController {
     @GetMapping("/health")
     @Operation(summary = "健康检查")
     public Result<String> healthCheck() {
+        requireAdmin();
         return Result.success("系统运行正常");
+    }
+
+    private void requireAdmin() {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (!RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("无权限");
+        }
     }
 }

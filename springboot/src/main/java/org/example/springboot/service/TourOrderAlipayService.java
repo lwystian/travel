@@ -2,9 +2,14 @@ package org.example.springboot.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.annotation.PostConstruct;
+import org.example.springboot.entity.TourBatch;
 import org.example.springboot.entity.TourOrder;
+import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
+import org.example.springboot.mapper.TourBatchMapper;
 import org.example.springboot.mapper.TourOrderMapper;
+import org.example.springboot.security.RolePermission;
+import org.example.springboot.util.JwtTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +41,9 @@ public class TourOrderAlipayService {
 
     @Autowired
     private TourOrderNotificationService tourOrderNotificationService;
+
+    @Autowired
+    private TourBatchMapper tourBatchMapper;
 
     /**
      * 支付策略注册表
@@ -86,6 +94,7 @@ public class TourOrderAlipayService {
         if (order.getStatus() != 0) {
             throw new ServiceException("订单状态异常，无法发起支付");
         }
+        assertCanReadOrder(order);
 
         // 3. 验证订单金额
         if (order.getTotalAmount() == null || order.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
@@ -191,6 +200,17 @@ public class TourOrderAlipayService {
             return "fail";
         }
 
+        if (!isNotifyAmountMatched(order, notifyAmount)) {
+            logger.error("支付通知金额不匹配: orderNo={}, notifyAmount={}, orderAmount={}",
+                    outTradeNo, notifyAmount, order.getTotalAmount());
+            return "fail";
+        }
+
+        if (!confirmInventory(order)) {
+            logger.error("支付确认库存失败: orderNo={}", outTradeNo);
+            return "fail";
+        }
+
         order.setStatus(1);
         order.setPaymentMethod("ALIPAY");
         order.setPaymentTime(java.time.LocalDateTime.now());
@@ -212,6 +232,7 @@ public class TourOrderAlipayService {
         if (order == null) {
             throw new ServiceException("订单不存在");
         }
+        assertCanReadOrder(order);
         return order;
     }
 
@@ -221,7 +242,11 @@ public class TourOrderAlipayService {
     public TourOrder getOrderByOrderNo(String orderNo) {
         LambdaQueryWrapper<TourOrder> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(TourOrder::getOrderNo, orderNo);
-        return tourOrderMapper.selectOne(wrapper);
+        TourOrder order = tourOrderMapper.selectOne(wrapper);
+        if (order != null) {
+            assertCanReadOrder(order);
+        }
+        return order;
     }
 
     /**
@@ -238,6 +263,10 @@ public class TourOrderAlipayService {
 
         if (order.getStatus() != 0) {
             throw new ServiceException("订单状态异常，无法支付");
+        }
+        assertCanReadOrder(order);
+        if (!confirmInventory(order)) {
+            throw new ServiceException("库存确认失败，请稍后重试");
         }
 
         order.setStatus(1);
@@ -262,6 +291,42 @@ public class TourOrderAlipayService {
      */
     public Map<String, PaymentStrategy> getAllStrategies() {
         return strategyRegistry;
+    }
+
+    private boolean isNotifyAmountMatched(TourOrder order, String notifyAmount) {
+        if (order.getTotalAmount() == null || notifyAmount == null || notifyAmount.isBlank()) {
+            return false;
+        }
+        try {
+            return order.getTotalAmount().compareTo(new BigDecimal(notifyAmount)) == 0;
+        } catch (NumberFormatException ex) {
+            return false;
+        }
+    }
+
+    private boolean confirmInventory(TourOrder order) {
+        TourBatch batch = tourBatchMapper.selectOne(new LambdaQueryWrapper<TourBatch>()
+                .eq(TourBatch::getTourId, order.getTourId())
+                .eq(TourBatch::getDepartureDate, order.getDepartureDate()));
+        if (batch == null) {
+            return false;
+        }
+        int totalPeople = safeCount(order.getAdultCount()) + safeCount(order.getChildCount());
+        return totalPeople > 0 && tourBatchMapper.confirmOccupancy(batch.getId(), totalPeople) > 0;
+    }
+
+    private int safeCount(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    private void assertCanReadOrder(TourOrder order) {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null) {
+            throw new ServiceException("用户未登录");
+        }
+        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("无权访问此订单");
+        }
     }
 
 }

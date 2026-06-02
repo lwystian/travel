@@ -72,7 +72,7 @@
           <div class="content-layout">
             <!-- 主要内容 -->
             <div class="main-content">
-              <div v-html="guide.content" class="rich-content"></div>
+              <div v-html="safeGuideContent" class="rich-content"></div>
             </div>
 
             <!-- 侧边栏 -->
@@ -113,7 +113,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
@@ -121,6 +121,7 @@ import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
 import { View, Calendar, Star, StarFilled, Share, User, ArrowRight } from '@element-plus/icons-vue'
 import { shareCurrentPage } from '@/utils/share'
+import { renderContent } from '@/utils/contentRenderer'
 import noImage from '@/assets/images/no-image.png'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
@@ -131,6 +132,7 @@ const guide = ref(null)
 const isCollected = ref(false)
 const loading = ref(true)
 const relatedGuides = ref([])
+const safeGuideContent = computed(() => renderContent(guide.value?.content))
 
 // 获取图片完整URL
 const getImageUrl = (url) => {

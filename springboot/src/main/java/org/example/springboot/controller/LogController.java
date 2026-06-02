@@ -5,7 +5,11 @@ import org.example.springboot.common.Result;
 import org.example.springboot.entity.SysLog;
 import org.example.springboot.entity.LoginLog;
 import org.example.springboot.entity.ReviewLog;
+import org.example.springboot.entity.User;
+import org.example.springboot.exception.ServiceException;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.service.*;
+import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +20,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/logs")
-@CrossOrigin(origins = "*")
 public class LogController {
     @Autowired private SysLogService sysLogService;
     @Autowired private LoginLogService loginLogService;
@@ -30,6 +33,7 @@ public class LogController {
             @RequestParam(required = false) String username,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime) {
+        requireAdmin();
         List<SysLog> list = sysLogService.queryLogs(page, limit, username, startTime, endTime);
         long total = sysLogService.countLogs(username, startTime, endTime);
         Map<String, Object> result = new HashMap<>();
@@ -45,6 +49,7 @@ public class LogController {
             @RequestParam(required = false) String username,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime) {
+        requireAdmin();
         List<LoginLog> list = loginLogService.queryLogs(page, limit, username, startTime, endTime);
         long total = loginLogService.countLogs(username, startTime, endTime);
         Map<String, Object> result = new HashMap<>();
@@ -60,6 +65,7 @@ public class LogController {
             @RequestParam(required = false) String username,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime) {
+        requireAdmin();
         List<ReviewLog> list = reviewLogService.queryLogs(page, limit, username, startTime, endTime);
         long total = reviewLogService.countLogs(username, startTime, endTime);
         Map<String, Object> result = new HashMap<>();
@@ -70,6 +76,7 @@ public class LogController {
 
     @PostMapping("/backup")
     public Result<?> backupLogs(@RequestBody Map<String, Object> params) {
+        requireAdmin();
         String tableName = (String) params.get("tableName");
         String startTimeStr = (String) params.get("startTime");
         String endTimeStr = (String) params.get("endTime");
@@ -91,6 +98,7 @@ public class LogController {
 
     @PostMapping("/backupAll")
     public Result<?> backupAllLogs() {
+        requireAdmin();
         Map<String, Object> result = new HashMap<>();
         try {
             // 导出所有日志表
@@ -110,8 +118,16 @@ public class LogController {
     @GetMapping("/backup/list")
     public Result<?> getBackupList(@RequestParam(defaultValue = "1") int page,
                                    @RequestParam(defaultValue = "10") int limit) {
+        requireAdmin();
         Page<org.example.springboot.entity.BackupLog> pageObj = new Page<>(page, limit);
         Page<org.example.springboot.entity.BackupLog> result = backupLogService.page(pageObj);
         return Result.success(result);
+    }
+
+    private void requireAdmin() {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (!RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("无权限");
+        }
     }
 }

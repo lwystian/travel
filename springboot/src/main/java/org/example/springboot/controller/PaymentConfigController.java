@@ -7,7 +7,11 @@ import org.example.springboot.common.Result;
 import org.example.springboot.dto.AlipayConfigDTO;
 import org.example.springboot.dto.PaymentConfigDTO;
 import org.example.springboot.entity.PaymentConfig;
+import org.example.springboot.entity.User;
+import org.example.springboot.exception.ServiceException;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.service.PaymentConfigService;
+import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,6 +42,7 @@ public class PaymentConfigController {
     @Operation(summary = "获取所有支付配置")
     @GetMapping("/list")
     public Result<List<PaymentConfigDTO>> getAllPayments() {
+        requireAdmin();
         return Result.success(paymentConfigService.getAllPayments());
     }
 
@@ -47,6 +52,7 @@ public class PaymentConfigController {
     @Operation(summary = "获取支付配置详情")
     @GetMapping("/{id}")
     public Result<PaymentConfig> getById(@PathVariable Long id) {
+        requireAdmin();
         return Result.success(paymentConfigService.getById(id));
     }
 
@@ -56,6 +62,7 @@ public class PaymentConfigController {
     @Operation(summary = "获取支付配置详情")
     @GetMapping("/detail")
     public Result<AlipayConfigDTO> getPaymentDetail(@RequestParam String paymentType) {
+        requireAdmin();
         return Result.success(paymentConfigService.getPaymentConfigDetail(paymentType));
     }
 
@@ -66,6 +73,7 @@ public class PaymentConfigController {
     @org.example.springboot.annotation.OperationLog(operationType = "UPDATE", description = "保存支付宝支付配置", targetType = "支付配置")
     @PostMapping("/alipay/save")
     public Result<?> saveAlipayConfig(@RequestBody AlipayConfigDTO alipayConfig) {
+        requireAdmin();
         paymentConfigService.saveAlipayConfigDetail(alipayConfig);
         return Result.success("保存成功");
     }
@@ -77,6 +85,7 @@ public class PaymentConfigController {
     @org.example.springboot.annotation.OperationLog(operationType = "CREATE", description = "新增支付配置", targetType = "支付配置")
     @PostMapping("/save")
     public Result<?> savePayment(@RequestBody PaymentConfig config) {
+        requireAdmin();
         paymentConfigService.savePayment(config);
         return Result.success("保存成功");
     }
@@ -88,6 +97,7 @@ public class PaymentConfigController {
     @org.example.springboot.annotation.OperationLog(operationType = "UPDATE", description = "更新支付配置", targetType = "支付配置")
     @PutMapping("/{id}")
     public Result<?> updatePayment(@PathVariable Long id, @RequestBody PaymentConfig config) {
+        requireAdmin();
         paymentConfigService.updatePayment(id, config);
         return Result.success("更新成功");
     }
@@ -99,6 +109,7 @@ public class PaymentConfigController {
     @org.example.springboot.annotation.OperationLog(operationType = "UPDATE", description = "调整支付配置启用状态", targetType = "支付配置")
     @PutMapping("/{id}/toggle")
     public Result<?> toggleEnabled(@PathVariable Long id, @RequestParam boolean enabled) {
+        requireAdmin();
         paymentConfigService.toggleEnabled(id, enabled);
         return Result.success(enabled ? "已启用" : "已禁用");
     }
@@ -110,7 +121,15 @@ public class PaymentConfigController {
     @org.example.springboot.annotation.OperationLog(operationType = "DELETE", description = "删除支付配置", targetType = "支付配置")
     @DeleteMapping("/{id}")
     public Result<?> deletePayment(@PathVariable Long id) {
+        requireAdmin();
         paymentConfigService.deletePayment(id);
         return Result.success("删除成功");
+    }
+
+    private void requireAdmin() {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (!RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("无权限");
+        }
     }
 }

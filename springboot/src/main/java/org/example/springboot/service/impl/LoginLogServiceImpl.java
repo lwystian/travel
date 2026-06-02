@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.springboot.entity.LoginLog;
 import org.example.springboot.mapper.LoginLogMapper;
+import org.example.springboot.security.SecurityValidationUtil;
 import org.example.springboot.service.LoginLogService;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -45,6 +46,8 @@ public class LoginLogServiceImpl extends ServiceImpl<LoginLogMapper, LoginLog> i
 
     @Override
     public List<LoginLog> queryLogs(int page, int limit, String username, LocalDateTime startTime, LocalDateTime endTime) {
+        page = SecurityValidationUtil.clampPage(page);
+        limit = SecurityValidationUtil.clampLimit(limit, 10, 100);
         LambdaQueryWrapper<LoginLog> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(username != null && !username.isEmpty(), LoginLog::getUsername, username);
         wrapper.ge(startTime != null, LoginLog::getCreateTime, startTime);

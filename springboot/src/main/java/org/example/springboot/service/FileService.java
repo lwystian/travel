@@ -13,9 +13,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -50,7 +53,8 @@ public class FileService {
         }
 
         LOGGER.info("upload FILE:{}", file.getOriginalFilename());
-        String path = FileUtil.saveFile(file, null, fileType.getTypeName());
+        String baseDir = Objects.requireNonNull(fileType.getTypeName(), "file type name must not be null");
+        String path = FileUtil.saveFile(file, null, baseDir);
         if (com.baomidou.mybatisplus.core.toolkit.StringUtils.isNotBlank(path)) {
             return Result.success(withVersion(path));
         }
@@ -85,7 +89,8 @@ public class FileService {
                     continue;
                 }
                 LOGGER.info("upload FILE:{}", file.getOriginalFilename());
-                String path = FileUtil.saveFile(file, null, FileType.COMMON.getTypeName());
+                String baseDir = Objects.requireNonNull(FileType.COMMON.getTypeName(), "file type name must not be null");
+                String path = FileUtil.saveFile(file, null, baseDir);
                 if (StringUtils.hasText(path)) {
                     successPaths.add(path);
                     returnedPaths.add(withVersion(path));
@@ -100,7 +105,7 @@ public class FileService {
 
         if (!failedFiles.isEmpty()) {
             for (String path : successPaths) {
-                File uploadedFile = new File(path);
+                File uploadedFile = toStoredFile(path);
                 if (uploadedFile.exists() && uploadedFile.isFile()) {
                     if (uploadedFile.delete()) {
                         LOGGER.info("Deleted successfully uploaded file: {}", path);
@@ -112,6 +117,19 @@ public class FileService {
             return null;
         }
         return returnedPaths;
+    }
+
+    private File toStoredFile(String returnedPath) {
+        String relativePath = returnedPath == null ? "" : returnedPath.split("\\?", 2)[0];
+        if (relativePath.startsWith("/")) {
+            relativePath = relativePath.substring(1);
+        }
+        Path basePath = Paths.get(FileUtil.FILE_BASE_PATH).normalize();
+        Path storedPath = basePath.resolve(relativePath).normalize();
+        if (!storedPath.startsWith(basePath)) {
+            throw new IllegalArgumentException("非法文件路径");
+        }
+        return storedPath.toFile();
     }
 
     private String withVersion(String path) {

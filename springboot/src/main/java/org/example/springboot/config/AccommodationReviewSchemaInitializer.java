@@ -5,7 +5,10 @@ import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+
+import java.util.Objects;
 
 @Component
 public class AccommodationReviewSchemaInitializer {
@@ -23,7 +26,7 @@ public class AccommodationReviewSchemaInitializer {
         addColumn("review_comment", "ALTER TABLE `accommodation_review` ADD COLUMN `review_comment` VARCHAR(500) DEFAULT NULL COMMENT '审核意见'");
     }
 
-    private void addColumn(String columnName, String sql) {
+    private void addColumn(@NonNull String columnName, @NonNull String sql) {
         try {
             Integer count = jdbcTemplate.queryForObject("""
                     SELECT COUNT(*)
@@ -33,7 +36,7 @@ public class AccommodationReviewSchemaInitializer {
                       AND COLUMN_NAME = ?
                     """, Integer.class, columnName);
             if (count == null || count == 0) {
-                jdbcTemplate.execute(sql);
+                jdbcTemplate.execute(Objects.requireNonNull(sql, "schema sql must not be null"));
             }
         } catch (Exception e) {
             LOGGER.warn("初始化住宿评价审核字段失败: {}", columnName, e);

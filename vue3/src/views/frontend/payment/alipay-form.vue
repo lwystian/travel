@@ -6,7 +6,7 @@
     
     <div v-else-if="orderInfo" class="payment-container">
       <div class="header">
-        <div class="logo">支付宝 - 模拟支付</div>
+        <div class="logo">支付宝支付</div>
         <div>请确认支付信息</div>
       </div>
       
@@ -29,7 +29,7 @@
       
       <div class="buttons" v-if="!paying">
         <button class="btn btn-secondary" @click="cancelPayment">取消支付</button>
-        <button class="btn btn-primary" @click="confirmPayment">确认支付</button>
+        <button class="btn btn-primary" @click="confirmPayment">前往支付</button>
       </div>
       
       <div class="loading" v-if="paying">
@@ -86,21 +86,7 @@ const confirmPayment = async () => {
 
   paying.value = true
 
-  try {
-    await request.post(`/tour-order-pay/mock-pay/${route.params.id}`, {}, {
-      showDefaultMsg: false
-    })
-    ElMessage.success('支付成功')
-    // 跳转到支付结果页面
-    router.push(`/payment/result?out_trade_no=${orderInfo.value.orderNo}&status=success`)
-  } catch (error) {
-    console.error('支付失败:', error)
-    ElMessage.error('支付失败，请重试')
-    // 跳转到支付失败页面
-    router.push(`/payment/result?out_trade_no=${orderInfo.value.orderNo}&status=failed`)
-  } finally {
-    paying.value = false
-  }
+  router.replace(`/tour-order-pay/${route.params.id}`)
 }
 
 // 取消支付

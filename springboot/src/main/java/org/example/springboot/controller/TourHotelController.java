@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.TourHotel;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.TourHotelService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +16,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/tour-hotel")
 @Tag(name = "行程酒店管理接口")
-@CrossOrigin
 public class TourHotelController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TourHotelController.class);
@@ -52,6 +52,7 @@ public class TourHotelController {
     @Operation(summary = "添加行程酒店关联")
     @PostMapping
     public Result<?> addTourHotel(@RequestBody TourHotel tourHotel) {
+        SecurityGuards.requireAdmin();
         LOGGER.info("添加行程酒店关联：{}", tourHotel);
         try {
             TourHotel saved = tourHotelService.addTourHotel(tourHotel);
@@ -65,6 +66,7 @@ public class TourHotelController {
     @Operation(summary = "更新行程酒店关联")
     @PutMapping("/{id}")
     public Result<?> updateTourHotel(@PathVariable Long id, @RequestBody TourHotel tourHotel) {
+        SecurityGuards.requireAdmin();
         LOGGER.info("更新行程酒店关联，id={}，数据：{}", id, tourHotel);
         try {
             tourHotel.setId(id);
@@ -79,6 +81,7 @@ public class TourHotelController {
     @Operation(summary = "删除行程酒店关联")
     @DeleteMapping("/{id}")
     public Result<?> deleteTourHotel(@PathVariable Long id) {
+        SecurityGuards.requireAdmin();
         LOGGER.info("删除行程酒店关联，id={}", id);
         try {
             boolean result = tourHotelService.deleteTourHotel(id);

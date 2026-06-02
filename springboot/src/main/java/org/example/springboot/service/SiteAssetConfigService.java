@@ -16,6 +16,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -85,7 +86,7 @@ public class SiteAssetConfigService extends ServiceImpl<AuthProviderConfigMapper
         Set<String> newImages = collectImagePaths(newConfig);
         for (String oldImage : collectImagePaths(oldConfig)) {
             if (!newImages.contains(oldImage) && isLocalImagePath(oldImage)) {
-                boolean deleted = FileUtil.deleteFile(oldImage);
+                boolean deleted = FileUtil.deleteFile(Objects.requireNonNull(oldImage, "image path must not be null"));
                 if (!deleted) {
                     LOGGER.warn("Failed to delete replaced site asset image: {}", oldImage);
                 }

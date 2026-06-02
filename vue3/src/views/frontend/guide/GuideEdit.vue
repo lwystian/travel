@@ -152,7 +152,6 @@ const customUploadCover = async (options) => {
     const formData = new FormData()
     formData.append('file', file)
     await request.post('/file/upload/img', formData, {
-      headers: { token: localStorage.getItem('token') || '' },
       transformRequest: [(data) => data],
       successMsg: '封面上传成功',
       errorMsg: '封面上传失败',

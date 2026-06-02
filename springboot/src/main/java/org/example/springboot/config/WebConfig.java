@@ -2,11 +2,14 @@ package org.example.springboot.config;
 
 import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.util.Objects;
 
 /**
  * Web配置类，用于自定义Spring MVC的行为
@@ -23,15 +26,15 @@ public class WebConfig implements WebMvcConfigurer {
     // 定义不需要JWT验证的路径
     private static final String[] PUBLIC_PATHS = {
         "/api/user/login",      // 登录接口
+        "/api/user/login/email", // 邮箱登录接口
         "/api/auth/**",         // 手机号登录注册、短信验证码、极验公开配置
         "/api/user/forget",     // 忘记密码接口
-        "/api/user/add",        // 用户注册接口
-        "/api/user/{id}",       // 用户信息查询接口
-        "/api/email/**",        // 邮件相关接口
+        "/api/email/code/**",   // 注册邮箱验证码接口
+        "/api/email/findByEmail/**", // 忘记密码邮箱验证码接口
         "/api/img/**",          // 图片资源接口（带前缀）
         "/img/**",              // 图片资源接口（不带前缀）
-        "/api/file/**",         // 文件资源接口（带前缀）
-        "/file/**",             // 文件资源接口（不带前缀）
+        "/api/tour-order-pay/notify",
+        "/api/tour-order-pay/return",
         
         // Swagger和API文档相关路径
         "/api/v3/api-docs/**",
@@ -56,7 +59,7 @@ public class WebConfig implements WebMvcConfigurer {
      */
 
     @Override
-    public void configurePathMatch(PathMatchConfigurer configurer) {
+    public void configurePathMatch(@NonNull PathMatchConfigurer configurer) {
         // 为带有RestController注解的类添加"/api"路径前缀
         // 排除 Knife4j/Swagger 相关的接口（通过包名判断）
         configurer.addPathPrefix(API_PREFIX, clazz ->
@@ -68,11 +71,11 @@ public class WebConfig implements WebMvcConfigurer {
 
 
     @Override
-    public void addInterceptors(InterceptorRegistry registry) {
+    public void addInterceptors(@NonNull InterceptorRegistry registry) {
         // 配置JWT拦截器
-        registry.addInterceptor(jwtInterceptor)
+        registry.addInterceptor(Objects.requireNonNull(jwtInterceptor, "jwtInterceptor must not be null"))
                 .addPathPatterns("/api/**")           // 拦截所有API请求
-                .excludePathPatterns(PUBLIC_PATHS);   // 排除公开接口
+                .excludePathPatterns(Objects.requireNonNull(PUBLIC_PATHS, "public paths must not be null"));   // 排除公开接口
     }
 
     /**
@@ -80,7 +83,7 @@ public class WebConfig implements WebMvcConfigurer {
      * 将 /img/** 请求映射到 files/img/ 目录
      */
     @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+    public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
         // 映射 files 目录下的所有静态资源
         registry.addResourceHandler("/img/**")
                 .addResourceLocations("file:" + System.getProperty("user.dir") + "/files/img/");

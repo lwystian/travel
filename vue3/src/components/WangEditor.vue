@@ -62,9 +62,6 @@ const createEditor = async () => {
           uploadImage: {
             server: props.uploadImgServer,
             fieldName: 'file',
-            headers: {
-              token: localStorage.getItem('token') || ''
-            },
             customInsert(res, insertFn) {
               const url = res.data
               insertFn(url.startsWith('/') ? `/api${url}` : `/api/${url}`)

@@ -11,7 +11,6 @@ import org.example.springboot.entity.TourOrder;
 import org.example.springboot.service.TourOrderService;
 import org.springframework.web.bind.annotation.*;
 
-@CrossOrigin(origins = "*", maxAge = 3600)
 @Tag(name = "行程订单接口")
 @RestController
 @RequestMapping("/tour-order")

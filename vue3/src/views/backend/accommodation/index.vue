@@ -338,9 +338,9 @@ const fetchAccommodations = async () => {
 // 获取景点列表
 const fetchScenicOptions = async () => {
   try {
-    await request.get('/scenic/all', {}, {
+    await request.get('/scenic/page', { currentPage: 1, size: 100 }, {
       onSuccess: (res) => {
-        scenicOptions.value = res
+        scenicOptions.value = res?.records || []
       }
     })
   } catch (error) {
@@ -489,9 +489,6 @@ const customUploadImage = async (options) => {
     
     // 设置上传选项
     const uploadOptions = {
-      headers: {
-        token: localStorage.getItem('token') || ''
-      },
       transformRequest: [(data) => data],
       successMsg: '图片上传成功',
       errorMsg: '图片上传失败',

@@ -3,6 +3,8 @@ package org.example.springboot.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.example.springboot.annotation.OperationLog;
 import org.example.springboot.common.Result;
 import org.example.springboot.dto.GeetestConfigDTO;
@@ -17,6 +19,7 @@ import org.example.springboot.service.GeetestCaptchaService;
 import org.example.springboot.service.PasswordCryptoService;
 import org.example.springboot.service.SmsCodeService;
 import org.example.springboot.service.UserService;
+import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -100,20 +103,22 @@ public class AuthController {
     @Operation(summary = "手机号密码登录")
     @OperationLog(operationType = "LOGIN", description = "手机号密码登录", targetType = "用户账号", logParams = false)
     @PostMapping("/login/password")
-    public Result<User> loginByPhonePassword(@RequestBody PhonePasswordLoginDTO dto) {
+    public Result<User> loginByPhonePassword(@RequestBody PhonePasswordLoginDTO dto, HttpServletRequest request, HttpServletResponse response) {
         requireAgreement(dto.getAgreementAccepted());
         String password = passwordCryptoService.decryptPassword(dto.getEncryptedPassword());
         User user = userService.loginByPhonePassword(dto.getPhone(), password);
+        writeLoginCookie(user, request, response);
         return Result.success("登录成功", user);
     }
 
     @Operation(summary = "手机号验证码登录")
     @OperationLog(operationType = "LOGIN", description = "手机号验证码登录", targetType = "用户账号", logParams = false)
     @PostMapping("/login/code")
-    public Result<User> loginByPhoneCode(@RequestBody PhoneCodeLoginDTO dto) {
+    public Result<User> loginByPhoneCode(@RequestBody PhoneCodeLoginDTO dto, HttpServletRequest request, HttpServletResponse response) {
         requireAgreement(dto.getAgreementAccepted());
         smsCodeService.verifyCode(dto.getPhone(), "LOGIN", dto.getSmsCode());
         User user = userService.loginByPhoneCode(dto.getPhone());
+        writeLoginCookie(user, request, response);
         return Result.success("登录成功", user);
     }
 
@@ -143,5 +148,18 @@ public class AuthController {
         if (!password.matches(PASSWORD_PATTERN)) {
             throw new ServiceException("密码需为8-32位，并同时包含大写字母、小写字母、数字和特殊符号");
         }
+    }
+
+    private void writeLoginCookie(User user, HttpServletRequest request, HttpServletResponse response) {
+        if (user == null || !StringUtils.hasText(user.getToken())) {
+            return;
+        }
+        JwtTokenUtils.writeTokenCookie(response, user.getToken(), isSecureRequest(request));
+        user.setToken(null);
+    }
+
+    private boolean isSecureRequest(HttpServletRequest request) {
+        String forwardedProto = request.getHeader("X-Forwarded-Proto");
+        return request.isSecure() || "https".equalsIgnoreCase(forwardedProto);
     }
 }

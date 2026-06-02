@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.lang.NonNull;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -13,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -33,7 +35,7 @@ public class FileUtil {
         return rootDir.toPath();
     }
 
-    public static String saveFile(MultipartFile file, String folderName, String baseDir) {
+    public static String saveFile(@NonNull MultipartFile file, String folderName, @NonNull String baseDir) {
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || originalFilename.isBlank()) {
             return null;
@@ -64,7 +66,8 @@ public class FileUtil {
 
         try {
             Files.createDirectories(fileDirectory);
-            file.transferTo(uploadFilePath.toFile());
+            File destination = Objects.requireNonNull(uploadFilePath.toFile(), "upload file destination must not be null");
+            file.transferTo(destination);
             LOGGER.info("File saved at: {}", uploadFilePath.toAbsolutePath());
         } catch (IOException e) {
             LOGGER.error("Save file failed: originalFilename={}, baseDir={}, folderName={}", originalFilename, baseDir, folderName, e);
@@ -74,22 +77,23 @@ public class FileUtil {
         return "/" + baseDir + "/" + (folderName != null && !folderName.isBlank() ? Paths.get(folderName).getFileName() + "/" : "") + storedFileName;
     }
 
-    public static String saveImage(MultipartFile file, String folderName) {
+    public static String saveImage(@NonNull MultipartFile file, String folderName) {
         return saveFile(file, folderName, "img");
     }
 
-    public static String saveVideo(MultipartFile file, String folderName) {
+    public static String saveVideo(@NonNull MultipartFile file, String folderName) {
         return saveFile(file, folderName, "videos");
     }
 
-    public static boolean deleteFile(String filename) {
+    public static boolean deleteFile(@NonNull String filename) {
         try {
-            if (filename.startsWith("/")) {
-                filename = filename.substring(1);
+            String safeFilename = Objects.requireNonNull(filename, "filename must not be null");
+            if (safeFilename.startsWith("/")) {
+                safeFilename = safeFilename.substring(1);
             }
 
             Path basePath = Paths.get(FILE_BASE_PATH).normalize();
-            Path filePath = basePath.resolve(filename).normalize();
+            Path filePath = basePath.resolve(safeFilename).normalize();
             if (!filePath.startsWith(basePath)) {
                 LOGGER.warn("Rejected delete path traversal: {}", filename);
                 return false;
@@ -108,7 +112,7 @@ public class FileUtil {
         }
     }
 
-    public static void writeToFile(String fileName, String content) throws IOException {
+    public static void writeToFile(@NonNull String fileName, @NonNull String content) throws IOException {
         File file = new File(fileName);
         LOGGER.debug("Writing to file: {}", file.getAbsolutePath());
         try (FileWriter fileWriter = new FileWriter(file)) {

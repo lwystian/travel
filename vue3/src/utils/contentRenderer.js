@@ -1,3 +1,5 @@
+import { sanitizeHtml } from '@/utils/sanitizeHtml'
+
 const MARKDOWN_PREFIX = '<!--markdown-->'
 
 export const encodeMarkdownContent = (value) => `${MARKDOWN_PREFIX}\n${value || ''}`
@@ -145,7 +147,7 @@ const looksLikeHtml = (value) => /<\/?[a-z][\s\S]*>/i.test(String(value || ''))
 export const renderContent = (value) => {
   const text = String(value || '')
   if (!text.trim()) return ''
-  if (isMarkdownContent(text)) return renderMarkdown(decodeMarkdownContent(text))
-  if (looksLikeHtml(text)) return text
-  return renderMarkdown(text)
+  if (isMarkdownContent(text)) return sanitizeHtml(renderMarkdown(decodeMarkdownContent(text)))
+  if (looksLikeHtml(text)) return sanitizeHtml(text)
+  return sanitizeHtml(renderMarkdown(text))
 }

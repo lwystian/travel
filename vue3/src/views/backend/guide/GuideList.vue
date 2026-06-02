@@ -139,7 +139,7 @@
           <span>浏览量: {{ previewGuideData.views || 0 }}</span>
         </div>
         <el-divider />
-        <div class="preview-content" v-html="previewGuideData.content"></div>
+        <div class="preview-content" v-html="renderContent(previewGuideData.content)"></div>
       </div>
     </el-dialog>
 
@@ -237,6 +237,7 @@ import { ElMessageBox, ElMessage } from 'element-plus'
 import { Search, Refresh, Edit, Delete, View, Plus, Camera, Picture } from '@element-plus/icons-vue'
 import WangEditor from '@/components/WangEditor.vue'
 import { useUserStore } from '@/store/user'
+import { renderContent } from '@/utils/contentRenderer'
 
 // 用户状态
 const userStore = useUserStore()
@@ -443,9 +444,6 @@ const customUploadCover = async (options) => {
     formData.append('file', file)
 
     await request.post('/file/upload/img', formData, {
-      headers: {
-        token: localStorage.getItem('token') || ''
-      },
       transformRequest: [(data) => data],
       successMsg: '图片上传成功',
       onSuccess: (data) => {

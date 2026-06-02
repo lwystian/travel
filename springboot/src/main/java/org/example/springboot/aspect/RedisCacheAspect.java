@@ -12,6 +12,8 @@ import org.example.springboot.util.RedisUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.DefaultParameterNameDiscoverer;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Method;
+import java.util.Objects;
 
 /**
  * Redis缓存切面
@@ -57,7 +60,7 @@ public class RedisCacheAspect {
     public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
         // 获取目标方法
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-        Method method = signature.getMethod();
+        Method method = Objects.requireNonNull(signature.getMethod(), "AOP method must not be null");
         
         // 获取RedisCache注解
         RedisCache redisCache = method.getAnnotation(RedisCache.class);
@@ -76,7 +79,8 @@ public class RedisCacheAspect {
         // 解析SpEL表达式获取实际缓存键
         String cacheKey = prefix;
         if (StringUtils.hasText(key)) {
-            cacheKey = prefix + ":" + parseKey(key, method, joinPoint.getArgs());
+            String cacheKeyExpression = Objects.requireNonNull(key, "cache key expression must not be null");
+            cacheKey = prefix + ":" + parseKey(cacheKeyExpression, method, joinPoint.getArgs());
         } else {
             // 如果未指定key，使用参数的hashCode
             cacheKey = prefix + ":" + argsToString(joinPoint.getArgs());
@@ -140,7 +144,7 @@ public class RedisCacheAspect {
     /**
      * 解析SpEL表达式
      */
-    private String parseKey(String key, Method method, Object[] args) {
+    private String parseKey(@NonNull String key, @NonNull Method method, @Nullable Object[] args) {
         // 获取方法参数名
         String[] parameterNames = nameDiscoverer.getParameterNames(method);
         if (parameterNames == null || parameterNames.length == 0) {
@@ -151,15 +155,18 @@ public class RedisCacheAspect {
         EvaluationContext context = new StandardEvaluationContext();
         
         // 将方法参数加入上下文
-        for (int i = 0; i < parameterNames.length; i++) {
-            context.setVariable(parameterNames[i], args[i]);
+        Object[] safeArgs = args == null ? new Object[0] : args;
+        int parameterCount = Math.min(parameterNames.length, safeArgs.length);
+        for (int i = 0; i < parameterCount; i++) {
+            String parameterName = Objects.requireNonNull(parameterNames[i], "parameter name must not be null");
+            context.setVariable(parameterName, safeArgs[i]);
         }
         
         // 解析表达式
-        Expression expression = parser.parseExpression(key);
+        Expression expression = parser.parseExpression(Objects.requireNonNull(key, "cache key expression must not be null"));
         Object value = expression.getValue(context);
         
-        return value == null ? "" : value.toString();
+        return value == null ? "" : String.valueOf(value);
     }
     
     /**

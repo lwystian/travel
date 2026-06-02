@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.springboot.entity.SysLog;
 import org.example.springboot.mapper.SysLogMapper;
+import org.example.springboot.security.SecurityValidationUtil;
 import org.example.springboot.service.SysLogService;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -57,6 +58,8 @@ public class SysLogServiceImpl extends ServiceImpl<SysLogMapper, SysLog> impleme
 
     @Override
     public List<SysLog> queryLogs(int page, int limit, String username, LocalDateTime startTime, LocalDateTime endTime) {
+        page = SecurityValidationUtil.clampPage(page);
+        limit = SecurityValidationUtil.clampLimit(limit, 10, 100);
         LambdaQueryWrapper<SysLog> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(username != null && !username.isEmpty(), SysLog::getUsername, username);
         wrapper.ge(startTime != null, SysLog::getCreateTime, startTime);

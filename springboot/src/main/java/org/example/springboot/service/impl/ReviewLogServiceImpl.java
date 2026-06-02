@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.springboot.entity.ReviewLog;
 import org.example.springboot.mapper.ReviewLogMapper;
+import org.example.springboot.security.SecurityValidationUtil;
 import org.example.springboot.service.ReviewLogService;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
@@ -41,6 +42,8 @@ public class ReviewLogServiceImpl extends ServiceImpl<ReviewLogMapper, ReviewLog
 
     @Override
     public List<ReviewLog> queryLogs(int page, int limit, String username, LocalDateTime startTime, LocalDateTime endTime) {
+        page = SecurityValidationUtil.clampPage(page);
+        limit = SecurityValidationUtil.clampLimit(limit, 10, 100);
         LambdaQueryWrapper<ReviewLog> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(username != null && !username.isEmpty(), ReviewLog::getUsername, username);
         wrapper.ge(startTime != null, ReviewLog::getCreateTime, startTime);

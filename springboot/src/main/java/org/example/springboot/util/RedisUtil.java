@@ -3,10 +3,13 @@ package org.example.springboot.util;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -20,7 +23,7 @@ public class RedisUtil {
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
 
-    public boolean expire(String key, long time) {
+    public boolean expire(@NonNull String key, long time) {
         try {
             if (time > 0) {
                 redisTemplate.expire(key, time, TimeUnit.SECONDS);
@@ -32,11 +35,11 @@ public class RedisUtil {
         }
     }
 
-    public long getExpire(String key) {
+    public long getExpire(@NonNull String key) {
         return redisTemplate.getExpire(key, TimeUnit.SECONDS);
     }
 
-    public boolean hasKey(String key) {
+    public boolean hasKey(@NonNull String key) {
         try {
             return Boolean.TRUE.equals(redisTemplate.hasKey(key));
         } catch (Exception e) {
@@ -45,28 +48,29 @@ public class RedisUtil {
         }
     }
 
-    public void del(String... key) {
+    public void del(@NonNull String... key) {
         if (key != null && key.length > 0) {
             if (key.length == 1) {
-                redisTemplate.delete(key[0]);
+                redisTemplate.delete(Objects.requireNonNull(key[0], "redis key must not be null"));
             } else {
-                redisTemplate.delete(List.of(key));
+                redisTemplate.delete(Objects.requireNonNull(List.of(key), "redis keys must not be null"));
             }
         }
     }
 
-    public void delByPrefix(String prefix) {
+    public void delByPrefix(@NonNull String prefix) {
         Set<String> keys = redisTemplate.keys(prefix + "*");
         if (keys != null && !keys.isEmpty()) {
             redisTemplate.delete(keys);
         }
     }
 
-    public Object get(String key) {
+    @Nullable
+    public Object get(@Nullable String key) {
         return key == null ? null : redisTemplate.opsForValue().get(key);
     }
 
-    public boolean set(String key, Object value) {
+    public boolean set(@NonNull String key, @NonNull Object value) {
         try {
             redisTemplate.opsForValue().set(key, value);
             return true;
@@ -76,7 +80,7 @@ public class RedisUtil {
         }
     }
 
-    public boolean set(String key, Object value, long time) {
+    public boolean set(@NonNull String key, @NonNull Object value, long time) {
         try {
             if (time > 0) {
                 redisTemplate.opsForValue().set(key, value, time, TimeUnit.SECONDS);
@@ -90,29 +94,32 @@ public class RedisUtil {
         }
     }
 
-    public long incr(String key, long delta) {
+    public long incr(@NonNull String key, long delta) {
         if (delta < 0) {
             throw new RuntimeException("递增因子必须大于等于0");
         }
-        return redisTemplate.opsForValue().increment(key, delta);
+        Long value = redisTemplate.opsForValue().increment(key, delta);
+        return value == null ? 0 : value;
     }
 
-    public long decr(String key, long delta) {
+    public long decr(@NonNull String key, long delta) {
         if (delta < 0) {
             throw new RuntimeException("递减因子必须大于等于0");
         }
-        return redisTemplate.opsForValue().decrement(key, delta);
+        Long value = redisTemplate.opsForValue().decrement(key, delta);
+        return value == null ? 0 : value;
     }
 
-    public Object hget(String key, String item) {
+    @Nullable
+    public Object hget(@NonNull String key, @NonNull String item) {
         return redisTemplate.opsForHash().get(key, item);
     }
 
-    public Map<Object, Object> hmget(String key) {
+    public Map<Object, Object> hmget(@NonNull String key) {
         return redisTemplate.opsForHash().entries(key);
     }
 
-    public boolean hmset(String key, Map<String, Object> map) {
+    public boolean hmset(@NonNull String key, @NonNull Map<String, Object> map) {
         try {
             redisTemplate.opsForHash().putAll(key, map);
             return true;
@@ -122,7 +129,7 @@ public class RedisUtil {
         }
     }
 
-    public boolean hmset(String key, Map<String, Object> map, long time) {
+    public boolean hmset(@NonNull String key, @NonNull Map<String, Object> map, long time) {
         try {
             redisTemplate.opsForHash().putAll(key, map);
             if (time > 0) {
@@ -135,7 +142,7 @@ public class RedisUtil {
         }
     }
 
-    public boolean hset(String key, String item, Object value) {
+    public boolean hset(@NonNull String key, @NonNull String item, @NonNull Object value) {
         try {
             redisTemplate.opsForHash().put(key, item, value);
             return true;
@@ -145,7 +152,7 @@ public class RedisUtil {
         }
     }
 
-    public boolean hset(String key, String item, Object value, long time) {
+    public boolean hset(@NonNull String key, @NonNull String item, @NonNull Object value, long time) {
         try {
             redisTemplate.opsForHash().put(key, item, value);
             if (time > 0) {
@@ -158,15 +165,15 @@ public class RedisUtil {
         }
     }
 
-    public void hdel(String key, Object... item) {
+    public void hdel(@NonNull String key, @NonNull Object... item) {
         redisTemplate.opsForHash().delete(key, item);
     }
 
-    public boolean hHasKey(String key, String item) {
+    public boolean hHasKey(@NonNull String key, @NonNull String item) {
         return redisTemplate.opsForHash().hasKey(key, item);
     }
 
-    public long hsize(String key) {
+    public long hsize(@NonNull String key) {
         try {
             return redisTemplate.opsForHash().size(key);
         } catch (Exception e) {
@@ -175,15 +182,16 @@ public class RedisUtil {
         }
     }
 
-    public double hincr(String key, String item, double by) {
+    public double hincr(@NonNull String key, @NonNull String item, double by) {
         return redisTemplate.opsForHash().increment(key, item, by);
     }
 
-    public double hdecr(String key, String item, double by) {
+    public double hdecr(@NonNull String key, @NonNull String item, double by) {
         return redisTemplate.opsForHash().increment(key, item, -by);
     }
 
-    public Set<Object> sGet(String key) {
+    @Nullable
+    public Set<Object> sGet(@NonNull String key) {
         try {
             return redisTemplate.opsForSet().members(key);
         } catch (Exception e) {
@@ -192,47 +200,51 @@ public class RedisUtil {
         }
     }
 
-    public long sSet(String key, Object... values) {
+    public long sSet(@NonNull String key, @NonNull Object... values) {
         try {
-            return redisTemplate.opsForSet().add(key, values);
+            Long count = redisTemplate.opsForSet().add(key, values);
+            return count == null ? 0 : count;
         } catch (Exception e) {
             log.warn("Redis operation failed: {}", e.getMessage(), e);
             return 0;
         }
     }
 
-    public long sSetAndTime(String key, long time, Object... values) {
+    public long sSetAndTime(@NonNull String key, long time, @NonNull Object... values) {
         try {
             Long count = redisTemplate.opsForSet().add(key, values);
             if (time > 0) {
                 expire(key, time);
             }
-            return count;
+            return count == null ? 0 : count;
         } catch (Exception e) {
             log.warn("Redis operation failed: {}", e.getMessage(), e);
             return 0;
         }
     }
 
-    public long sGetSetSize(String key) {
+    public long sGetSetSize(@NonNull String key) {
         try {
-            return redisTemplate.opsForSet().size(key);
+            Long size = redisTemplate.opsForSet().size(key);
+            return size == null ? 0 : size;
         } catch (Exception e) {
             log.warn("Redis operation failed: {}", e.getMessage(), e);
             return 0;
         }
     }
 
-    public long setRemove(String key, Object... values) {
+    public long setRemove(@NonNull String key, @NonNull Object... values) {
         try {
-            return redisTemplate.opsForSet().remove(key, values);
+            Long count = redisTemplate.opsForSet().remove(key, values);
+            return count == null ? 0 : count;
         } catch (Exception e) {
             log.warn("Redis operation failed: {}", e.getMessage(), e);
             return 0;
         }
     }
 
-    public List<Object> lGet(String key, long start, long end) {
+    @Nullable
+    public List<Object> lGet(@NonNull String key, long start, long end) {
         try {
             return redisTemplate.opsForList().range(key, start, end);
         } catch (Exception e) {
@@ -241,16 +253,18 @@ public class RedisUtil {
         }
     }
 
-    public long lGetListSize(String key) {
+    public long lGetListSize(@NonNull String key) {
         try {
-            return redisTemplate.opsForList().size(key);
+            Long size = redisTemplate.opsForList().size(key);
+            return size == null ? 0 : size;
         } catch (Exception e) {
             log.warn("Redis operation failed: {}", e.getMessage(), e);
             return 0;
         }
     }
 
-    public Object lGetIndex(String key, long index) {
+    @Nullable
+    public Object lGetIndex(@NonNull String key, long index) {
         try {
             return redisTemplate.opsForList().index(key, index);
         } catch (Exception e) {
@@ -259,7 +273,7 @@ public class RedisUtil {
         }
     }
 
-    public boolean lSet(String key, Object value) {
+    public boolean lSet(@NonNull String key, @NonNull Object value) {
         try {
             redisTemplate.opsForList().rightPush(key, value);
             return true;
@@ -269,7 +283,7 @@ public class RedisUtil {
         }
     }
 
-    public boolean lSet(String key, Object value, long time) {
+    public boolean lSet(@NonNull String key, @NonNull Object value, long time) {
         try {
             redisTemplate.opsForList().rightPush(key, value);
             if (time > 0) {
@@ -282,7 +296,7 @@ public class RedisUtil {
         }
     }
 
-    public boolean lSet(String key, List<Object> value) {
+    public boolean lSet(@NonNull String key, @NonNull List<Object> value) {
         try {
             redisTemplate.opsForList().rightPushAll(key, value);
             return true;
@@ -292,7 +306,7 @@ public class RedisUtil {
         }
     }
 
-    public boolean lSet(String key, List<Object> value, long time) {
+    public boolean lSet(@NonNull String key, @NonNull List<Object> value, long time) {
         try {
             redisTemplate.opsForList().rightPushAll(key, value);
             if (time > 0) {
@@ -305,7 +319,7 @@ public class RedisUtil {
         }
     }
 
-    public boolean lUpdateIndex(String key, long index, Object value) {
+    public boolean lUpdateIndex(@NonNull String key, long index, @NonNull Object value) {
         try {
             redisTemplate.opsForList().set(key, index, value);
             return true;
@@ -315,9 +329,10 @@ public class RedisUtil {
         }
     }
 
-    public long lRemove(String key, long count, Object value) {
+    public long lRemove(@NonNull String key, long count, @NonNull Object value) {
         try {
-            return redisTemplate.opsForList().remove(key, count, value);
+            Long removed = redisTemplate.opsForList().remove(key, count, value);
+            return removed == null ? 0 : removed;
         } catch (Exception e) {
             log.warn("Redis operation failed: {}", e.getMessage(), e);
             return 0;

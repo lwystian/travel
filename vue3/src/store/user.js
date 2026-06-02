@@ -4,12 +4,12 @@ import { encryptPassword } from '@/utils/passwordCrypto'
 // import { setToken, removeToken } from '@/utils/auth'
 
 const TOKEN_EXPIRE_KEY = 'tokenExpire'
-const TOKEN_EXPIRE_TIME = 48 * 60 * 60 * 1000 // 48小时
+const TOKEN_EXPIRE_TIME = 2 * 60 * 60 * 1000 // 2小时
 
 export const useUserStore = defineStore('user', {
   state: () => ({
     userInfo: JSON.parse(localStorage.getItem('userInfo')) || null,
-    token: localStorage.getItem('token') || '',
+    token: localStorage.getItem('userInfo') ? 'cookie' : '',
     role: localStorage.getItem('role') || '',
     menus: JSON.parse(localStorage.getItem('menus')) || [],
     tokenExpire: localStorage.getItem(TOKEN_EXPIRE_KEY) || null
@@ -17,7 +17,7 @@ export const useUserStore = defineStore('user', {
 
   getters: {
     // 判断是否登录
-    isLoggedIn: (state) => !!state.token,
+    isLoggedIn: (state) => !!state.userInfo,
     // 判断是否是后台管理员（超级管理员也属于后台管理员）
     isAdmin: (state) => ['SUPER_ADMIN', 'ADMIN'].includes(state.userInfo?.roleCode),
     // 判断是否是超级管理员
@@ -31,7 +31,7 @@ export const useUserStore = defineStore('user', {
     },
     // 判断token是否过期
     isTokenExpired: (state) => {
-      if (!state.tokenExpire) return !state.token
+      if (!state.tokenExpire) return !state.userInfo
       return Date.now() > Number(state.tokenExpire)
     }
   },
@@ -48,12 +48,11 @@ export const useUserStore = defineStore('user', {
       if (!data) return
       
       this.userInfo = data.userInfo || data
-      this.token = data.token
+      this.token = 'cookie'
       this.role = this.userInfo?.roleCode || data.roleCode
       
       // 存储到 LocalStorage
       localStorage.setItem('userInfo', JSON.stringify(this.userInfo))
-      localStorage.setItem('token', this.token || '')
       localStorage.setItem('role', this.role || '')
       
       // 存储token过期时间
@@ -62,15 +61,16 @@ export const useUserStore = defineStore('user', {
       localStorage.setItem(TOKEN_EXPIRE_KEY, expireTime.toString())
     },
     syncFromStorage() {
-      this.token = localStorage.getItem('token') || ''
       this.role = localStorage.getItem('role') || ''
       this.tokenExpire = localStorage.getItem(TOKEN_EXPIRE_KEY) || null
       try {
         this.userInfo = JSON.parse(localStorage.getItem('userInfo')) || null
         this.menus = JSON.parse(localStorage.getItem('menus')) || []
+        this.token = this.userInfo ? 'cookie' : ''
       } catch {
         this.userInfo = null
         this.menus = []
+        this.token = ''
       }
     },
     clearUserInfo() {
@@ -81,7 +81,6 @@ export const useUserStore = defineStore('user', {
       this.tokenExpire = null
       // 清除 LocalStorage
       localStorage.removeItem('userInfo')
-      localStorage.removeItem('token')
       localStorage.removeItem('role')
       localStorage.removeItem('menus')
       localStorage.removeItem(TOKEN_EXPIRE_KEY)
@@ -94,7 +93,7 @@ export const useUserStore = defineStore('user', {
     // 获取用户信息和菜单 - 从localStorage恢复
     async getUserInfo() {
       // 检查token是否过期
-      if (this.isTokenExpired && this.token) {
+      if (this.isTokenExpired && this.userInfo) {
         this.clearUserInfo()
         throw new Error('Token expired')
       }
@@ -137,7 +136,7 @@ export const useUserStore = defineStore('user', {
     // 检查登录状态
     checkLoginStatus() {
       // 先检查token是否存在，再检查是否过期
-      if (!this.token) return false
+      if (!this.userInfo) return false
       if (this.isTokenExpired) {
         this.clearUserInfo()
         return false
@@ -146,7 +145,7 @@ export const useUserStore = defineStore('user', {
     },
     // 刷新token过期时间（在用户活跃时调用）
     refreshTokenExpire() {
-      if (this.token) {
+      if (this.userInfo) {
         const expireTime = Date.now() + TOKEN_EXPIRE_TIME
         this.tokenExpire = expireTime
         localStorage.setItem(TOKEN_EXPIRE_KEY, expireTime.toString())

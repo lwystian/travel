@@ -6,6 +6,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.TourCollection;
+import org.example.springboot.entity.User;
+import org.example.springboot.exception.ServiceException;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.service.TourCollectionService;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.*;
@@ -45,7 +48,7 @@ public class TourCollectionController {
             @RequestParam(required = false) Long userId,
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "10") Integer size) {
-        Long queryUserId = userId == null ? JwtTokenUtils.getCurrentUser().getId() : userId;
+        Long queryUserId = resolveQueryUserId(userId);
         Page<TourCollection> page = tourCollectionService.getUserCollections(queryUserId, currentPage, size);
         return Result.success(page);
     }
@@ -53,8 +56,22 @@ public class TourCollectionController {
     @Operation(summary = "查询用户收藏的行程ID列表")
     @GetMapping("/user/ids")
     public Result<?> getUserCollectionIds(@RequestParam(required = false) Long userId) {
-        Long queryUserId = userId == null ? JwtTokenUtils.getCurrentUser().getId() : userId;
+        Long queryUserId = resolveQueryUserId(userId);
         List<Long> ids = tourCollectionService.getUserCollectionIds(queryUserId);
         return Result.success(ids);
+    }
+
+    private Long resolveQueryUserId(Long requestedUserId) {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null || currentUser.getId() == null) {
+            throw new ServiceException("请先登录");
+        }
+        if (requestedUserId == null || requestedUserId.equals(currentUser.getId())) {
+            return currentUser.getId();
+        }
+        if (!RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("无权限查看该用户收藏");
+        }
+        return requestedUserId;
     }
 }

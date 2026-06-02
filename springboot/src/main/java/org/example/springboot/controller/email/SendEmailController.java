@@ -4,14 +4,15 @@ import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.service.EmailService;
 import org.example.springboot.service.UserService;
+import org.example.springboot.util.JwtTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RequestMapping("/email")
 public class SendEmailController {
     private static final Logger LOGGER = LoggerFactory.getLogger(SendEmailController.class);
@@ -38,10 +39,10 @@ public class SendEmailController {
             }
 
             // 同步发送验证码邮件
-            String code = emailService.sendVerificationCodeAsync(email);
+            emailService.sendVerificationCodeAsync(email);
             LOGGER.info("验证码邮件发送成功：{}", email);
             
-            return Result.success(code);
+            return Result.success("验证码发送成功");
         } catch (Exception e) {
             LOGGER.error("验证码发送失败：{}", e.getMessage(), e);
             return Result.error("验证码发送失败：" + e.getMessage());
@@ -60,10 +61,10 @@ public class SendEmailController {
             }
 
             // 同步发送重置密码邮件
-            String code = emailService.sendResetPasswordEmailAsync(email);
+            emailService.sendResetPasswordEmailAsync(email);
             LOGGER.info("密码重置邮件发送成功：{}", email);
             
-            return Result.success(code);
+            return Result.success("密码重置验证码发送成功");
         } catch (ServiceException e) {
             if (e.getMessage().equals("邮箱不存在")) {
                 return Result.error("邮箱不存在");
@@ -82,6 +83,10 @@ public class SendEmailController {
             @RequestParam String subject, 
             @RequestParam String content) {
         try {
+            User currentUser = JwtTokenUtils.getCurrentUser();
+            if (!RolePermission.isAdmin(currentUser)) {
+                throw new ServiceException("无权限");
+            }
             // 检查邮箱是否存在
             try {
                 userService.getByEmail(email);

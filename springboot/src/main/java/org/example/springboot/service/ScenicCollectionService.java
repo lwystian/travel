@@ -9,13 +9,14 @@ import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.ScenicCollectionMapper;
 import org.example.springboot.mapper.ScenicSpotMapper;
+import org.example.springboot.security.RolePermission;
+import org.example.springboot.security.SecurityValidationUtil;
 import org.example.springboot.util.JwtTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -112,14 +113,9 @@ public class ScenicCollectionService {
      * 查询用户收藏的景点列表（分页）
      */
     public Page<ScenicCollection> getUserCollections(Long userId, Integer currentPage, Integer size) {
-        if (userId == null) {
-            // 获取当前用户
-            User currentUser = JwtTokenUtils.getCurrentUser();
-            if (currentUser == null) {
-                throw new ServiceException("用户未登录");
-            }
-            userId = currentUser.getId();
-        }
+        userId = resolveQueryUserId(userId);
+        currentPage = SecurityValidationUtil.clampPage(currentPage);
+        size = SecurityValidationUtil.clampLimit(size, 10, 100);
         
         // 查询收藏记录
         LambdaQueryWrapper<ScenicCollection> queryWrapper = new LambdaQueryWrapper<>();
@@ -138,14 +134,7 @@ public class ScenicCollectionService {
      * 查询用户收藏的所有景点ID
      */
     public List<Long> getUserCollectionIds(Long userId) {
-        if (userId == null) {
-            // 获取当前用户
-            User currentUser = JwtTokenUtils.getCurrentUser();
-            if (currentUser == null) {
-                return new ArrayList<>();
-            }
-            userId = currentUser.getId();
-        }
+        userId = resolveQueryUserId(userId);
         
         // 查询收藏记录
         LambdaQueryWrapper<ScenicCollection> queryWrapper = new LambdaQueryWrapper<>();
@@ -165,7 +154,10 @@ public class ScenicCollectionService {
     public Map<Long, Boolean> batchIsCollected(List<Long> scenicIds) {
         // 获取当前用户
         User currentUser = JwtTokenUtils.getCurrentUser();
-        if (currentUser == null || scenicIds == null || scenicIds.isEmpty()) {
+        if (scenicIds == null || scenicIds.isEmpty()) {
+            return Map.of();
+        }
+        if (currentUser == null) {
             return scenicIds.stream().collect(Collectors.toMap(id -> id, id -> false));
         }
         
@@ -207,5 +199,19 @@ public class ScenicCollectionService {
                 collection.setScenicInfo(scenicSpotMap.get(collection.getScenicId()));
             }
         });
+    }
+
+    private Long resolveQueryUserId(Long requestedUserId) {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null || currentUser.getId() == null) {
+            throw new ServiceException("用户未登录");
+        }
+        if (requestedUserId == null || requestedUserId.equals(currentUser.getId())) {
+            return currentUser.getId();
+        }
+        if (!RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("无权限查看该用户收藏");
+        }
+        return requestedUserId;
     }
 } 

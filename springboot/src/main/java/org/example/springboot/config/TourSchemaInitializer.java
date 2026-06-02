@@ -5,10 +5,12 @@ import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Component
 public class TourSchemaInitializer {
@@ -26,7 +28,7 @@ public class TourSchemaInitializer {
         addUniqueIndex("uk_tour_code", "ALTER TABLE `tour` ADD UNIQUE INDEX `uk_tour_code` (`code`)");
     }
 
-    private void addColumn(String columnName, String sql) {
+    private void addColumn(@NonNull String columnName, @NonNull String sql) {
         try {
             Integer count = jdbcTemplate.queryForObject("""
                     SELECT COUNT(*)
@@ -36,7 +38,7 @@ public class TourSchemaInitializer {
                       AND COLUMN_NAME = ?
                     """, Integer.class, columnName);
             if (count == null || count == 0) {
-                jdbcTemplate.execute(sql);
+                jdbcTemplate.execute(Objects.requireNonNull(sql, "schema sql must not be null"));
             }
         } catch (Exception e) {
             LOGGER.warn("Initialize tour column failed: {}", columnName, e);
@@ -66,7 +68,7 @@ public class TourSchemaInitializer {
                     try {
                         String prefix = code.substring(0, dashIndex);
                         int seq = Integer.parseInt(code.substring(dashIndex + 1));
-                        maxSeqByPrefix.merge(prefix, seq, Math::max);
+                        maxSeqByPrefix.merge(prefix, seq, this::maxSequence);
                     } catch (NumberFormatException ignored) {
                     }
                 }
@@ -89,7 +91,7 @@ public class TourSchemaInitializer {
         }
     }
 
-    private void addUniqueIndex(String indexName, String sql) {
+    private void addUniqueIndex(@NonNull String indexName, @NonNull String sql) {
         try {
             Integer count = jdbcTemplate.queryForObject("""
                     SELECT COUNT(*)
@@ -99,7 +101,7 @@ public class TourSchemaInitializer {
                       AND INDEX_NAME = ?
                     """, Integer.class, indexName);
             if (count == null || count == 0) {
-                jdbcTemplate.execute(sql);
+                jdbcTemplate.execute(Objects.requireNonNull(sql, "schema sql must not be null"));
             }
         } catch (Exception e) {
             LOGGER.warn("Initialize tour index failed: {}", indexName, e);
@@ -139,7 +141,7 @@ public class TourSchemaInitializer {
                 try {
                     String prefix = code.substring(0, dashIndex);
                     int seq = Integer.parseInt(code.substring(dashIndex + 1));
-                    maxSeqByPrefix.merge(prefix, seq, Math::max);
+                    maxSeqByPrefix.merge(prefix, seq, this::maxSequence);
                 } catch (NumberFormatException ignored) {
                 }
             }
@@ -177,6 +179,10 @@ public class TourSchemaInitializer {
             case "other", "其它", "其他" -> "QT";
             default -> "TR";
         };
+    }
+
+    private Integer maxSequence(Integer left, Integer right) {
+        return Math.max(left == null ? 0 : left, right == null ? 0 : right);
     }
 
     private boolean hasText(String value) {

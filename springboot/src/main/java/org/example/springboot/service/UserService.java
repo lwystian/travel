@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class UserService {
@@ -215,7 +216,13 @@ public class UserService {
         userLoginInfo.put("ip", loginIp);
         userLoginInfo.put("port", loginPort);
 
-        redisUtil.hset(onlineUserKey, dbUser.getId().toString(), dbUser.getUsername());
+        String onlineUserId = String.valueOf(dbUser.getId());
+        String onlineUsername = StringUtils.isNotBlank(dbUser.getUsername()) ? dbUser.getUsername() : onlineUserId;
+        redisUtil.hset(
+                Objects.requireNonNull(onlineUserKey, "online user key must not be null"),
+                Objects.requireNonNull(onlineUserId, "online user id must not be null"),
+                Objects.requireNonNull(onlineUsername, "online username must not be null")
+        );
         redisUtil.set(userInfoKey, userLoginInfo, USER_CACHE_EXPIRE);
 
         return attachRoleInfo(dbUser);

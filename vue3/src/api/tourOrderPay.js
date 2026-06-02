@@ -41,14 +41,3 @@ export function getOrderByOrderNo(orderNo) {
     showDefaultMsg: false
   })
 }
-
-/**
- * 模拟支付（仅用于测试）
- * @param {number} orderId - 订单ID
- * @returns {Promise}
- */
-export function mockPay(orderId) {
-  return request.post(`/tour-order-pay/mock-pay/${orderId}`, {}, {
-    showDefaultMsg: false
-  })
-}

@@ -10,9 +10,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.annotation.PostConstruct;
 import org.example.springboot.dto.AlipayConfigDTO;
 import org.example.springboot.entity.PaymentConfig;
+import org.example.springboot.entity.TourBatch;
 import org.example.springboot.entity.TourOrder;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.PaymentConfigMapper;
+import org.example.springboot.mapper.TourBatchMapper;
 import org.example.springboot.mapper.TourOrderMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Objects;
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -56,6 +60,9 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
 
     @Autowired
     private TourOrderMapper tourOrderMapper;
+
+    @Autowired
+    private TourBatchMapper tourBatchMapper;
 
     @Autowired(required = false)
     private StringRedisTemplate stringRedisTemplate;
@@ -203,6 +210,22 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
             return "success";
         }
 
+        if (order.getStatus() != 0) {
+            logger.warn("订单状态不是待支付，拒绝支付通知: {}, status={}", orderNo, order.getStatus());
+            return "failure";
+        }
+
+        if (!isAmountMatched(order, amount)) {
+            logger.warn("支付宝通知金额不匹配: orderNo={}, notifyAmount={}, orderAmount={}",
+                    orderNo, amount, order.getTotalAmount());
+            return "failure";
+        }
+
+        if (!confirmInventory(order)) {
+            logger.warn("支付宝通知确认库存失败: orderNo={}", orderNo);
+            return "failure";
+        }
+
         order.setStatus(1);
         order.setPaymentTime(LocalDateTime.now());
         order.setPaymentMethod("alipay");
@@ -230,6 +253,11 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
 
         if (!verifyNotifySign(params)) {
             logger.error("支付宝异步通知验签失败");
+            return "failure";
+        }
+
+        if (!isExpectedApp(params.get("app_id"))) {
+            logger.error("支付宝异步通知app_id不匹配: {}", params.get("app_id"));
             return "failure";
         }
 
@@ -271,7 +299,7 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
             stringRedisTemplate.opsForValue().set(
                     "alipay:notify:" + notifyId,
                     "1",
-                    NOTIFY_CACHE_EXPIRE
+                    Objects.requireNonNull(NOTIFY_CACHE_EXPIRE, "notify cache expire must not be null")
             );
         } else {
             notifyIdCache.put(notifyId, System.currentTimeMillis() + NOTIFY_CACHE_EXPIRE.toMillis());
@@ -319,6 +347,36 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
             return requestUrl;
         }
         return configUrl;
+    }
+
+    private boolean isExpectedApp(String appId) {
+        return configDTO != null && configDTO.getAppId() != null && configDTO.getAppId().equals(appId);
+    }
+
+    private boolean isAmountMatched(TourOrder order, String amount) {
+        if (order.getTotalAmount() == null || amount == null || amount.isBlank()) {
+            return false;
+        }
+        try {
+            return order.getTotalAmount().compareTo(new BigDecimal(amount)) == 0;
+        } catch (NumberFormatException ex) {
+            return false;
+        }
+    }
+
+    private boolean confirmInventory(TourOrder order) {
+        TourBatch batch = tourBatchMapper.selectOne(new LambdaQueryWrapper<TourBatch>()
+                .eq(TourBatch::getTourId, order.getTourId())
+                .eq(TourBatch::getDepartureDate, order.getDepartureDate()));
+        if (batch == null) {
+            return false;
+        }
+        int totalPeople = safeCount(order.getAdultCount()) + safeCount(order.getChildCount());
+        return totalPeople > 0 && tourBatchMapper.confirmOccupancy(batch.getId(), totalPeople) > 0;
+    }
+
+    private int safeCount(Integer value) {
+        return value == null ? 0 : value;
     }
 
     /**

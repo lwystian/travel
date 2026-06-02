@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.ScenicCategory;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.ScenicCategoryService;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,6 +41,7 @@ public class ScenicCategoryController {
     @Operation(summary = "添加分类")
     @PostMapping
     public Result<?> addCategory(@RequestBody ScenicCategory category) {
+        SecurityGuards.requireAdmin();
         if (scenicCategoryService.addCategory(category)) {
             return Result.success();
         } else {
@@ -50,6 +52,7 @@ public class ScenicCategoryController {
     @Operation(summary = "更新分类")
     @PutMapping("/{id}")
     public Result<?> updateCategory(@PathVariable Long id, @RequestBody ScenicCategory category) {
+        SecurityGuards.requireAdmin();
         category.setId(id);
         if (scenicCategoryService.updateCategory(category)) {
             return Result.success();
@@ -61,6 +64,7 @@ public class ScenicCategoryController {
     @Operation(summary = "删除分类")
     @DeleteMapping("/{id}")
     public Result<?> deleteCategory(@PathVariable Long id) {
+        SecurityGuards.requireAdmin();
         if (scenicCategoryService.deleteCategory(id)) {
             return Result.success();
         } else {

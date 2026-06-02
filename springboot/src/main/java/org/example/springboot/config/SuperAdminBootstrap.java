@@ -25,21 +25,25 @@ public class SuperAdminBootstrap implements ApplicationRunner {
     @Resource
     private PasswordEncoder passwordEncoder;
 
-    @Value("${app.super-admin.bootstrap-enabled:true}")
+    @Value("${app.super-admin.bootstrap-enabled:false}")
     private boolean bootstrapEnabled;
 
     @Value("${app.super-admin.username:superadmin}")
     private String username;
 
-    @Value("${app.super-admin.phone:15310614553}")
+    @Value("${app.super-admin.phone:}")
     private String phone;
 
-    @Value("${app.super-admin.initial-password:Admin@123456}")
+    @Value("${app.super-admin.initial-password:}")
     private String initialPassword;
 
     @Override
     public void run(ApplicationArguments args) {
         if (!bootstrapEnabled) {
+            return;
+        }
+        if (isBlank(initialPassword)) {
+            LOGGER.warn("Super admin bootstrap is enabled but initial password is not configured. Bootstrap skipped.");
             return;
         }
 

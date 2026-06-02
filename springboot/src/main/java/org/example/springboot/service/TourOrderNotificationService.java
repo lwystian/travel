@@ -20,6 +20,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -263,7 +264,8 @@ public class TourOrderNotificationService {
         String key = "tour:order:paid-notify:" + orderId;
         if (stringRedisTemplate != null) {
             try {
-                Boolean marked = stringRedisTemplate.opsForValue().setIfAbsent(key, "1", NOTIFY_DEDUP_TTL);
+                Boolean marked = stringRedisTemplate.opsForValue()
+                        .setIfAbsent(key, "1", Objects.requireNonNull(NOTIFY_DEDUP_TTL, "notify ttl must not be null"));
                 if (Boolean.TRUE.equals(marked)) {
                     return true;
                 }

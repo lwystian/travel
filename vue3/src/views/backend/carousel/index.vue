@@ -294,9 +294,6 @@ const uploadImage = async (options) => {
 
   try {
     await request.post('/file/upload/img', formData, {
-      headers: {
-        token: localStorage.getItem('token') || '',
-      },
       transformRequest: [(data) => data],
       successMsg: '图片上传成功',
       onSuccess: (data) => {

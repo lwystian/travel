@@ -4,11 +4,10 @@ import router from '@/router'
 import logger from '@/utils/logger'
 
 let isHandlingTokenExpired = false
-const TOKEN_EXPIRE_TIME = 48 * 60 * 60 * 1000
+const TOKEN_EXPIRE_TIME = 2 * 60 * 60 * 1000
 
 const clearAuthStorage = () => {
   localStorage.removeItem('userInfo')
-  localStorage.removeItem('token')
   localStorage.removeItem('role')
   localStorage.removeItem('menus')
   localStorage.removeItem('tokenExpire')
@@ -44,6 +43,7 @@ const handleTokenExpired = () => {
 const service = axios.create({
   baseURL: process.env.VUE_APP_BASE_API || '/api',
   timeout: 15000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json;charset=utf-8',
     'X-Requested-With': 'XMLHttpRequest'
@@ -52,11 +52,6 @@ const service = axios.create({
 
 service.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.token = token
-    }
-
     if (config.method === 'get') {
       config.headers['Cache-Control'] = 'no-cache'
       config.headers.Pragma = 'no-cache'
@@ -85,9 +80,6 @@ const syncAuthFromHeaders = (response) => {
   const refreshedToken = response.headers?.['x-refresh-token']
   const tokenExpire = response.headers?.['x-token-expire']
 
-  if (refreshedToken) {
-    localStorage.setItem('token', refreshedToken)
-  }
   if (tokenExpire) {
     localStorage.setItem('tokenExpire', tokenExpire)
   } else if (refreshedToken) {
@@ -259,11 +251,9 @@ const request = {
   },
 
   upload(url, formData, config = {}) {
-    const token = localStorage.getItem('token') || ''
     return service.post(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
-        token,
         'X-Requested-With': 'XMLHttpRequest'
       },
       ...config

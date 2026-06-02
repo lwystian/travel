@@ -4,8 +4,11 @@ import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -33,7 +36,7 @@ public class RedisLockUtil {
      * @param expire  锁的过期时间（秒）
      * @return 是否获取成功
      */
-    public boolean tryLock(String lockKey, String value, long expire) {
+    public boolean tryLock(@NonNull String lockKey, @NonNull String value, long expire) {
         try {
             // 使用setIfAbsent方法（相当于Redis的SETNX命令）尝试获取锁
             Boolean result = stringRedisTemplate.opsForValue().setIfAbsent(lockKey, value, expire, TimeUnit.SECONDS);
@@ -52,7 +55,7 @@ public class RedisLockUtil {
      * @param value   锁的值
      * @return 是否获取成功
      */
-    public boolean tryLock(String lockKey, String value) {
+    public boolean tryLock(@NonNull String lockKey, @NonNull String value) {
         return tryLock(lockKey, value, DEFAULT_EXPIRE);
     }
 
@@ -63,9 +66,10 @@ public class RedisLockUtil {
      * @param expire  锁的过期时间（秒）
      * @return 锁的值，获取失败返回null
      */
-    public String tryLock(String lockKey, long expire) {
+    @Nullable
+    public String tryLock(@NonNull String lockKey, long expire) {
         // 生成UUID作为锁的值
-        String value = UUID.randomUUID().toString();
+        String value = Objects.requireNonNull(UUID.randomUUID().toString(), "lock value must not be null");
         // 尝试获取锁
         boolean success = tryLock(lockKey, value, expire);
         // 返回锁的值或null
@@ -78,7 +82,8 @@ public class RedisLockUtil {
      * @param lockKey 锁的键
      * @return 锁的值，获取失败返回null
      */
-    public String tryLock(String lockKey) {
+    @Nullable
+    public String tryLock(@NonNull String lockKey) {
         return tryLock(lockKey, DEFAULT_EXPIRE);
     }
 
@@ -89,7 +94,7 @@ public class RedisLockUtil {
      * @param value   锁的值
      * @return 是否释放成功
      */
-    public boolean releaseLock(String lockKey, String value) {
+    public boolean releaseLock(@NonNull String lockKey, @NonNull String value) {
         try {
             // 获取锁的当前值
             String currentValue = stringRedisTemplate.opsForValue().get(lockKey);
@@ -114,7 +119,7 @@ public class RedisLockUtil {
      * @param lockHandler 获取锁后要执行的操作
      * @return 操作是否执行成功
      */
-    public boolean executeWithLock(String lockKey, long expire, Runnable lockHandler) {
+    public boolean executeWithLock(@NonNull String lockKey, long expire, @NonNull Runnable lockHandler) {
         // 获取锁
         String lockValue = tryLock(lockKey, expire);
         // 判断是否获取成功
@@ -138,7 +143,7 @@ public class RedisLockUtil {
      * @param lockHandler 获取锁后要执行的操作
      * @return 操作是否执行成功
      */
-    public boolean executeWithLock(String lockKey, Runnable lockHandler) {
+    public boolean executeWithLock(@NonNull String lockKey, @NonNull Runnable lockHandler) {
         return executeWithLock(lockKey, DEFAULT_EXPIRE, lockHandler);
     }
 } 

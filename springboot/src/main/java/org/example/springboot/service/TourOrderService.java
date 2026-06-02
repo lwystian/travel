@@ -543,6 +543,10 @@ public class TourOrderService {
      */
     public Page<TourOrder> getAllOrders(String orderNo, String contactName, String contactPhone,
                                         Integer status, Integer currentPage, Integer size) {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (!RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("只有管理员可以查看全部订单");
+        }
         LambdaQueryWrapper<TourOrder> wrapper = new LambdaQueryWrapper<>();
 
         if (StringUtils.isNotBlank(orderNo)) {
@@ -608,6 +612,10 @@ public class TourOrderService {
      */
     @Transactional
     public void deleteOrder(Long orderId) {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (!RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("只有管理员可以删除订单");
+        }
         TourOrder order = tourOrderMapper.selectById(orderId);
         if (order == null) {
             throw new ServiceException("订单不存在");

@@ -2,6 +2,7 @@ package org.example.springboot.config;
 
 import org.example.springboot.util.FileUtil;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.NonNull;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -11,7 +12,7 @@ import java.nio.file.Path;
 public class MyInterceptorConfig implements WebMvcConfigurer {
 
     @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+    public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
         Path projectRootPath = null;
         projectRootPath = Path.of(FileUtil.FILE_BASE_PATH);
         String imgFolderPath = projectRootPath.resolve("img").toAbsolutePath().toString();

@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.Accommodation;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.AccommodationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +72,7 @@ public class AccommodationController {
     @Operation(summary = "添加住宿信息")
     @PostMapping
     public Result<?> addAccommodation(@RequestBody Accommodation accommodation) {
+        SecurityGuards.requireAdmin();
         try {
             LOGGER.info("添加住宿信息：{}", accommodation);
             
@@ -90,6 +92,7 @@ public class AccommodationController {
     @Operation(summary = "更新住宿信息")
     @PutMapping("/{id}")
     public Result<?> updateAccommodation(@PathVariable Long id, @RequestBody Accommodation accommodation) {
+        SecurityGuards.requireAdmin();
         try {
             LOGGER.info("更新住宿信息，id={}，数据：{}", id, accommodation);
             
@@ -110,6 +113,7 @@ public class AccommodationController {
     @Operation(summary = "删除住宿信息")
     @DeleteMapping("/{id}")
     public Result<?> deleteAccommodation(@PathVariable Integer id) {
+        SecurityGuards.requireAdmin();
         try {
             LOGGER.info("删除住宿信息，id={}", id);
             

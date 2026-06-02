@@ -8,9 +8,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.example.springboot.common.Result;
 import org.example.springboot.dto.PaymentConfigDTO;
 import org.example.springboot.entity.TourOrder;
+import org.example.springboot.exception.ServiceException;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.service.*;
+import org.example.springboot.util.JwtTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -36,6 +40,9 @@ public class TourOrderPayController {
 
     @Resource
     private PaymentConfigController paymentConfigController;
+
+    @Resource
+    private Environment environment;
 
     /**
      * 获取可用的支付方式列表
@@ -109,12 +116,27 @@ public class TourOrderPayController {
     @PostMapping("/mock-pay/{orderId}")
     public Result<?> mockPay(@PathVariable Long orderId) {
         try {
+            if (isProdProfile()) {
+                throw new ServiceException("生产环境禁止模拟支付");
+            }
+            if (!RolePermission.isAdmin(JwtTokenUtils.getCurrentUser())) {
+                throw new ServiceException("无权限");
+            }
             tourOrderAlipayService.mockPay(orderId);
             return Result.success();
         } catch (Exception e) {
             logger.error("模拟支付失败: {}", e.getMessage());
             return Result.error(e.getMessage());
         }
+    }
+
+    private boolean isProdProfile() {
+        for (String profile : environment.getActiveProfiles()) {
+            if ("prod".equalsIgnoreCase(profile) || "production".equalsIgnoreCase(profile)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

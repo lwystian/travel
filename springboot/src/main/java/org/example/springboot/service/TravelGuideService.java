@@ -6,8 +6,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.annotation.Resource;
 import org.example.springboot.entity.TravelGuide;
 import org.example.springboot.entity.User;
+import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.TravelGuideMapper;
 import org.example.springboot.mapper.UserMapper;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.security.SecurityValidationUtil;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.stereotype.Service;
@@ -79,15 +81,33 @@ public class TravelGuideService {
     }
 
     public void addGuide(TravelGuide guide) {
+        User currentUser = requireCurrentUser();
+        guide.setId(null);
+        guide.setUserId(currentUser.getId());
+        guide.setReviewerId(null);
+        guide.setReviewerName(null);
+        guide.setReviewTime(null);
+        guide.setReviewComment(null);
         filterGuideContent(guide);
-        // 设置默认审核状态为待审核
-        if (guide.getReviewStatus() == null) {
-            guide.setReviewStatus(0); // 0-待审核
-        }
+        guide.setReviewStatus(0);
         travelGuideMapper.insert(guide);
     }
 
     public void updateGuide(TravelGuide guide) {
+        if (guide == null || guide.getId() == null) {
+            throw new ServiceException("攻略不存在");
+        }
+        TravelGuide existing = travelGuideMapper.selectById(guide.getId());
+        if (existing == null) {
+            throw new ServiceException("攻略不存在");
+        }
+        User currentUser = requireCurrentUser();
+        requireOwnerOrAdmin(existing, currentUser);
+        guide.setUserId(existing.getUserId());
+        guide.setReviewerId(null);
+        guide.setReviewerName(null);
+        guide.setReviewTime(null);
+        guide.setReviewComment(null);
         filterGuideContent(guide);
         guide.setReviewStatus(0);
         travelGuideMapper.updateById(guide);
@@ -101,7 +121,28 @@ public class TravelGuideService {
     }
 
     public void deleteGuide(Long id) {
+        TravelGuide existing = travelGuideMapper.selectById(id);
+        if (existing == null) {
+            throw new ServiceException("攻略不存在");
+        }
+        User currentUser = requireCurrentUser();
+        requireOwnerOrAdmin(existing, currentUser);
         travelGuideMapper.deleteById(id);
+    }
+
+    private User requireCurrentUser() {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null || currentUser.getId() == null) {
+            throw new ServiceException("请先登录");
+        }
+        return currentUser;
+    }
+
+    private void requireOwnerOrAdmin(TravelGuide guide, User currentUser) {
+        boolean isOwner = guide.getUserId() != null && guide.getUserId().equals(currentUser.getId());
+        if (!isOwner && !RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("无权限");
+        }
     }
 
     public void addView(Long id) {

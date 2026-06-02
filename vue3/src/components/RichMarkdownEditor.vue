@@ -54,7 +54,7 @@ const innerValue = ref(initialMarkdown ? renderContent(props.modelValue) : (prop
 const markdownValue = ref(initialMarkdown ? decodeMarkdownContent(props.modelValue) : '')
 
 const markdownPlaceholder = computed(() => `${props.placeholder}\n\n支持标题、列表、表格、图片、链接、引用、代码块等常用 Markdown。`)
-const markdownPreview = computed(() => renderMarkdown(markdownValue.value))
+const markdownPreview = computed(() => renderContent(encodeMarkdownContent(markdownValue.value)))
 
 watch(() => props.modelValue, (value) => {
   if (isMarkdownContent(value)) {

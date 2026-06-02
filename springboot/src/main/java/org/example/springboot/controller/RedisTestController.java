@@ -4,14 +4,20 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
+import org.example.springboot.entity.User;
+import org.example.springboot.exception.ServiceException;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.util.RedisLockUtil;
 import org.example.springboot.util.RedisUtil;
+import org.example.springboot.util.JwtTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -36,7 +42,10 @@ public class RedisTestController {
     @Operation(summary = "设置字符串缓存")
     @PostMapping("/string")
     public Result<String> setString(@RequestParam String key, @RequestParam String value, @RequestParam(defaultValue = "60") long expire) {
-        boolean result = redisUtil.set(key, value, expire);
+        requireAdmin();
+        String safeKey = requireText(key, "key不能为空");
+        String safeValue = Objects.requireNonNull(value, "value不能为空");
+        boolean result = redisUtil.set(safeKey, safeValue, expire);
         if (result) {
             return Result.success("设置成功");
         } else {
@@ -50,7 +59,9 @@ public class RedisTestController {
     @Operation(summary = "获取字符串缓存")
     @GetMapping("/string")
     public Result<Object> getString(@RequestParam String key) {
-        Object value = redisUtil.get(key);
+        requireAdmin();
+        String safeKey = requireText(key, "key不能为空");
+        Object value = redisUtil.get(safeKey);
         if (value != null) {
             return Result.success(value);
         } else {
@@ -64,7 +75,10 @@ public class RedisTestController {
     @Operation(summary = "设置哈希缓存")
     @PostMapping("/hash")
     public Result<String> setHash(@RequestParam String key, @RequestBody Map<String, Object> map, @RequestParam(defaultValue = "60") long expire) {
-        boolean result = redisUtil.hmset(key, map, expire);
+        requireAdmin();
+        String safeKey = requireText(key, "key不能为空");
+        Map<String, Object> safeMap = Objects.requireNonNull(map, "map不能为空");
+        boolean result = redisUtil.hmset(safeKey, safeMap, expire);
         if (result) {
             return Result.success("设置成功");
         } else {
@@ -78,7 +92,9 @@ public class RedisTestController {
     @Operation(summary = "获取哈希缓存")
     @GetMapping("/hash")
     public Result<Map<Object, Object>> getHash(@RequestParam String key) {
-        Map<Object, Object> map = redisUtil.hmget(key);
+        requireAdmin();
+        String safeKey = requireText(key, "key不能为空");
+        Map<Object, Object> map = redisUtil.hmget(safeKey);
         return Result.success(map);
     }
 
@@ -88,10 +104,12 @@ public class RedisTestController {
     @Operation(summary = "测试分布式锁")
     @GetMapping("/lock")
     public Result<Map<String, Object>> testLock(@RequestParam String key, @RequestParam(defaultValue = "30") long expire) {
+        requireAdmin();
+        String safeKey = requireText(key, "key不能为空");
         Map<String, Object> result = new HashMap<>();
         
         // 尝试获取锁
-        String lockValue = redisLockUtil.tryLock(key, expire);
+        String lockValue = redisLockUtil.tryLock(safeKey, expire);
         
         if (lockValue != null) {
             try {
@@ -109,7 +127,8 @@ public class RedisTestController {
                 result.put("message", "执行任务时被中断");
             } finally {
                 // 释放锁
-                boolean released = redisLockUtil.releaseLock(key, lockValue);
+                String safeLockValue = Objects.requireNonNull(lockValue, "lock value must not be null");
+                boolean released = redisLockUtil.releaseLock(safeKey, safeLockValue);
                 result.put("released", released);
             }
         } else {
@@ -126,7 +145,9 @@ public class RedisTestController {
     @Operation(summary = "清除指定的缓存")
     @DeleteMapping
     public Result<String> delete(@RequestParam String key) {
-        redisUtil.del(key);
+        requireAdmin();
+        String safeKey = requireText(key, "key不能为空");
+        redisUtil.del(safeKey);
         return Result.success("删除成功");
     }
 
@@ -136,7 +157,24 @@ public class RedisTestController {
     @Operation(summary = "按前缀清除缓存")
     @DeleteMapping("/prefix")
     public Result<String> deleteByPrefix(@RequestParam String prefix) {
-        redisUtil.delByPrefix(prefix);
+        requireAdmin();
+        String safePrefix = requireText(prefix, "prefix不能为空");
+        redisUtil.delByPrefix(safePrefix);
         return Result.success("删除成功");
+    }
+
+    @NonNull
+    private String requireText(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
+        return value;
+    }
+
+    private void requireAdmin() {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (!RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("无权限");
+        }
     }
 } 

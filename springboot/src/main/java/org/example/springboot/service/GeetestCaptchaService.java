@@ -40,8 +40,8 @@ public class GeetestCaptchaService {
         publicConfig.setCaptchaKey(null);
 
         try {
-            String response = restTemplate.getForObject(GEETEST_REGISTER_URL + encode(config.getCaptchaId()), String.class);
-            String challengeSeed = StringUtils.hasText(response) ? response.trim() : "";
+            String registerResponse = restTemplate.getForObject(GEETEST_REGISTER_URL + encode(config.getCaptchaId()), String.class);
+            String challengeSeed = registerResponse == null ? "" : registerResponse.trim();
             if (challengeSeed.length() == 32) {
                 publicConfig.setChallenge(md5(challengeSeed + config.getCaptchaKey()));
                 publicConfig.setSuccess(true);

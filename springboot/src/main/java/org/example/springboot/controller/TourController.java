@@ -8,7 +8,11 @@ import org.example.springboot.dto.TourDetailDTO;
 import org.example.springboot.dto.HomeRecommendDTO;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.Tour;
+import org.example.springboot.entity.User;
+import org.example.springboot.exception.ServiceException;
+import org.example.springboot.security.RolePermission;
 import org.example.springboot.service.TourService;
+import org.example.springboot.util.JwtTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -81,6 +85,7 @@ public class TourController {
     @Operation(summary = "获取所有行程")
     @GetMapping("/all")
     public Result<?> getAllTours() {
+        requireAdmin();
         List<Tour> tours = tourService.getAllTours();
         return Result.success(tours);
     }
@@ -111,6 +116,7 @@ public class TourController {
     @Operation(summary = "获取首页推荐列表（后台管理使用）")
     @GetMapping("/recommends")
     public Result<?> getRecommends(@RequestParam(required = false) String type) {
+        requireAdmin();
         List<HomeRecommendDTO> recommends;
         if (type != null && !type.isEmpty()) {
             recommends = tourService.getRecommendsByTypeDTO(type);
@@ -123,6 +129,7 @@ public class TourController {
     @Operation(summary = "批量保存首页推荐")
     @PostMapping("/recommends")
     public Result<?> saveRecommends(@RequestBody java.util.Map<String, Object> body) {
+        requireAdmin();
         String type = (String) body.get("type");
         @SuppressWarnings("unchecked")
         java.util.List<Number> tourIdList = (java.util.List<Number>) body.get("tourIds");
@@ -148,6 +155,7 @@ public class TourController {
     @Operation(summary = "清空指定类型的首页推荐")
     @DeleteMapping("/recommends/clear")
     public Result<?> clearRecommends(@RequestParam String type) {
+        requireAdmin();
         tourService.clearRecommendsByType(type);
         return Result.success();
     }
@@ -169,6 +177,7 @@ public class TourController {
     @Operation(summary = "新增行程")
     @PostMapping
     public Result<?> addTour(@RequestBody Tour tour) {
+        requireAdmin();
         tourService.addTour(tour);
         return Result.success();
     }
@@ -176,6 +185,7 @@ public class TourController {
     @Operation(summary = "更新行程信息")
     @PutMapping("/{id}")
     public Result<?> updateTour(@PathVariable Long id, @RequestBody Tour tour) {
+        requireAdmin();
         tour.setId(id);
         tourService.updateTour(tour);
         return Result.success();
@@ -184,6 +194,7 @@ public class TourController {
     @Operation(summary = "删除行程")
     @DeleteMapping("/{id}")
     public Result<?> deleteTour(@PathVariable Long id) {
+        requireAdmin();
         tourService.deleteTour(id);
         return Result.success();
     }
@@ -191,6 +202,7 @@ public class TourController {
     @Operation(summary = "更新行程状态")
     @PutMapping("/{id}/status")
     public Result<?> updateTourStatus(@PathVariable Long id, @RequestParam Integer status) {
+        requireAdmin();
         tourService.updateTourStatus(id, status);
         return Result.success();
     }
@@ -198,6 +210,7 @@ public class TourController {
     @Operation(summary = "更新行程图片")
     @PutMapping("/{id}/images")
     public Result<?> updateTourImages(@PathVariable Long id, @RequestBody java.util.Map<String, List<String>> body) {
+        requireAdmin();
         List<String> images = body.get("images");
         logger.debug("Update tour images request: id={}, imageCount={}", id, images == null ? 0 : images.size());
         tourService.updateTourImages(id, images);
@@ -207,6 +220,7 @@ public class TourController {
     @Operation(summary = "更新行程视频")
     @PutMapping("/{id}/video")
     public Result<?> updateTourVideo(@PathVariable Long id, @RequestBody java.util.Map<String, Object> body) {
+        requireAdmin();
         String videoUrl = (String) body.get("videoUrl");
         String videoPoster = (String) body.get("videoPoster");
         Integer videoEnabled = body.get("videoEnabled") != null ? ((Number) body.get("videoEnabled")).intValue() : 0;
@@ -227,6 +241,7 @@ public class TourController {
     @Operation(summary = "删除首页推荐")
     @DeleteMapping("/recommend/{id}")
     public Result<?> deleteRecommend(@PathVariable Long id) {
+        requireAdmin();
         tourService.deleteRecommend(id);
         return Result.success();
     }
@@ -234,6 +249,7 @@ public class TourController {
     @Operation(summary = "更新推荐排序")
     @PutMapping("/recommend/sort")
     public Result<?> updateRecommendSort(@RequestBody java.util.Map<String, Object> body) {
+        requireAdmin();
         @SuppressWarnings("unchecked")
         java.util.List<Number> ids = (java.util.List<Number>) body.get("ids");
         if (ids == null || ids.isEmpty()) {
@@ -241,5 +257,12 @@ public class TourController {
         }
         tourService.updateRecommendSort(ids);
         return Result.success();
+    }
+
+    private void requireAdmin() {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (!RolePermission.isAdmin(currentUser)) {
+            throw new ServiceException("无权限");
+        }
     }
 }

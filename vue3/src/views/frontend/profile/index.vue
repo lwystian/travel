@@ -877,9 +877,6 @@ const customUploadAvatar = async (options) => {
 
     // 设置自定义上传选项
     const uploadOptions = {
-      headers: {
-        token: localStorage.getItem("token") || "",
-      },
       // 不进行JSON处理
       transformRequest: [(data) => data],
       // 自定义成功消息

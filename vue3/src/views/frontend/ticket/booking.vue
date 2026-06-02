@@ -671,6 +671,7 @@ import { createTourOrder } from '@/api/tourOrder'
 import request from '@/utils/request'
 import { renderContent } from '@/utils/contentRenderer'
 import { getTourTypeLabel } from '@/utils/tourTypes'
+import { useUserStore } from '@/store/user'
 
 // =============================================
 // 常量定义
@@ -736,6 +737,7 @@ const parseTags = (tags) => {
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 
 // =============================================
 // 响应式数据
@@ -1515,7 +1517,7 @@ const requestDetailNavPositionUpdate = () => {
 }
 
 const checkTourCollectionStatus = async () => {
-  if (!localStorage.getItem('token')) {
+  if (!userStore.isLoggedIn) {
     isTourCollected.value = false
     return
   }
@@ -1528,7 +1530,7 @@ const checkTourCollectionStatus = async () => {
 }
 
 const handleFavorite = async () => {
-  if (!localStorage.getItem('token')) {
+  if (!userStore.isLoggedIn) {
     const goLogin = await ElMessageBox.confirm('收藏行程需要登录，是否前往登录页？', '提示', {
       confirmButtonText: '去登录',
       cancelButtonText: '取消',

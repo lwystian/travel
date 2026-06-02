@@ -99,21 +99,6 @@
             <el-empty v-else description="暂无可用的支付方式，请联系管理员配置" />
           </article>
 
-          <el-alert
-            v-if="showDebugTip"
-            title="调试模式"
-            type="info"
-            :closable="false"
-            show-icon
-            class="debug-alert"
-          >
-            <template #default>
-              <p>如果无法跳转至真实支付页面，可使用模拟支付进行测试。</p>
-              <el-button type="warning" size="small" @click="handleMockPay" :loading="paying" plain>
-                模拟支付
-              </el-button>
-            </template>
-          </el-alert>
         </section>
 
         <aside class="amount-panel">
@@ -160,7 +145,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Wallet, Check, Lock, CreditCard, ChatDotRound } from '@element-plus/icons-vue'
 import { getTourOrderDetail } from '@/api/tourOrder'
-import { generatePayForm as generatePayFormApi, mockPay as mockPayApi, getOrderByOrderNo, getAvailablePaymentMethods } from '@/api/tourOrderPay'
+import { generatePayForm as generatePayFormApi, getOrderByOrderNo, getAvailablePaymentMethods } from '@/api/tourOrderPay'
 import { maskPhone } from '@/utils/mask'
 
 const route = useRoute()
@@ -173,8 +158,6 @@ const error = ref(null)
 const payFormRef = ref(null)
 const availableMethods = ref([])
 const selectedMethod = ref('alipay')
-
-const showDebugTip = computed(() => route.query.debug === 'true')
 
 const selectedMethodConfig = computed(() => {
   return availableMethods.value.find(m => m.paymentType === selectedMethod.value) || {
@@ -294,36 +277,6 @@ const handlePay = async () => {
   } catch (err) {
     console.error('准备支付失败:', err)
     ElMessage.error(err.message || '准备支付失败，请重试')
-    paying.value = false
-  }
-}
-
-const handleMockPay = async () => {
-  if (!order.value) {
-    ElMessage.error('订单信息不存在')
-    return
-  }
-
-  try {
-    await ElMessageBox.confirm(
-      `确定要模拟支付订单 ${order.value.orderNo} 吗？\n金额：¥${formatPrice(order.value.totalAmount)}`,
-      '模拟支付',
-      {
-        confirmButtonText: '确认模拟支付',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    paying.value = true
-    await mockPayApi(order.value.id, { showDefaultMsg: false })
-    ElMessage.success('模拟支付成功')
-    router.replace(`/payment/result?out_trade_no=${order.value.orderNo}&status=success`)
-  } catch (err) {
-    if (err !== 'cancel') {
-      console.error('模拟支付失败:', err)
-      ElMessage.error(err.message || '模拟支付失败')
-    }
-  } finally {
     paying.value = false
   }
 }

@@ -362,9 +362,9 @@ const fetchAccommodations = async () => {
 
 const fetchScenicOptions = async () => {
   try {
-    await request.get('/scenic/all', {}, {
+    await request.get('/scenic/page', { currentPage: 1, size: 100 }, {
       onSuccess: res => {
-        scenicOptions.value = res || []
+        scenicOptions.value = res?.records || []
       }
     })
   } catch (error) {

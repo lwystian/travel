@@ -5,10 +5,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.example.springboot.common.Result;
 import org.example.springboot.dto.EmailBindCodeDTO;
 import org.example.springboot.dto.EmailBindConfirmDTO;
+import org.example.springboot.dto.ForgotPasswordDTO;
 import org.example.springboot.dto.PhoneChangeCodeDTO;
 import org.example.springboot.dto.PhoneChangeConfirmDTO;
 import org.example.springboot.entity.User;
@@ -71,18 +74,20 @@ public class UserController {
 
     @Operation(summary = "登录")
     @PostMapping("/login")
-    public Result<?> login(@RequestBody User user) {
+    public Result<?> login(@RequestBody User user, HttpServletRequest request, HttpServletResponse response) {
         User loginUser = userService.login(user);
+        writeLoginCookie(loginUser, request, response);
         return Result.success(loginUser);
     }
 
     @Operation(summary = "邮箱登录")
     @PostMapping("/login/email")
-    public Result<?> loginByEmail(@RequestBody User user) {
+    public Result<?> loginByEmail(@RequestBody User user, HttpServletRequest request, HttpServletResponse response) {
         if (!StringUtils.hasText(user.getEmail()) || !StringUtils.hasText(user.getPassword())) {
             return Result.error("邮箱和密码不能为空");
         }
         User loginUser = userService.loginByEmail(user);
+        writeLoginCookie(loginUser, request, response);
         return Result.success(loginUser);
     }
 
@@ -98,10 +103,12 @@ public class UserController {
     }
 
     @Operation(summary = "忘记密码")
-    @GetMapping("/forget")
-    public Result<?> forgetPassword(@RequestParam String email, @RequestParam String newPassword) {
-        // 密码重置失败会抛出异常
-        userService.forgetPassword(email, newPassword);
+    @PostMapping("/forget")
+    public Result<?> forgetPassword(@Valid @RequestBody ForgotPasswordDTO dto) {
+        if (!emailService.verifyCode(dto.getEmail(), "RESET_PASSWORD", dto.getCode())) {
+            throw new ServiceException("邮箱验证码错误或已过期");
+        }
+        userService.forgetPassword(dto.getEmail(), dto.getNewPassword());
         return Result.success("密码重置成功");
     }
 
@@ -320,13 +327,11 @@ public class UserController {
 
     @Operation(summary = "用户登出")
     @PostMapping("/logout")
-    public Result<?> logout(HttpServletRequest request) {
-        String token = request.getHeader("token");
-        if (!StringUtils.hasText(token)) {
-            token = request.getParameter("token");
-        }
+    public Result<?> logout(HttpServletRequest request, HttpServletResponse response) {
+        String token = JwtTokenUtils.resolveToken(request);
         
         userService.logout(token);
+        JwtTokenUtils.clearTokenCookie(response, isSecureRequest(request));
         return Result.success("登出成功");
     }
     
@@ -470,5 +475,18 @@ public class UserController {
             throw new ServiceException("无权限");
         }
         return currentUser;
+    }
+
+    private void writeLoginCookie(User user, HttpServletRequest request, HttpServletResponse response) {
+        if (user == null || !StringUtils.hasText(user.getToken())) {
+            return;
+        }
+        JwtTokenUtils.writeTokenCookie(response, user.getToken(), isSecureRequest(request));
+        user.setToken(null);
+    }
+
+    private boolean isSecureRequest(HttpServletRequest request) {
+        String forwardedProto = request.getHeader("X-Forwarded-Proto");
+        return request.isSecure() || "https".equalsIgnoreCase(forwardedProto);
     }
 }

@@ -157,8 +157,8 @@ public class AuthConfigService extends ServiceImpl<AuthProviderConfigMapper, Aut
             throw new ServiceException("极验验证未启用或未完成 Captcha ID、Captcha Key 配置");
         }
         try {
-            String response = restTemplate.getForObject(GEETEST_REGISTER_URL + java.net.URLEncoder.encode(config.getCaptchaId(), java.nio.charset.StandardCharsets.UTF_8), String.class);
-            String challengeSeed = StringUtils.hasText(response) ? response.trim() : "";
+            String registerResponse = restTemplate.getForObject(GEETEST_REGISTER_URL + java.net.URLEncoder.encode(config.getCaptchaId(), java.nio.charset.StandardCharsets.UTF_8), String.class);
+            String challengeSeed = registerResponse == null ? "" : registerResponse.trim();
             if (challengeSeed.length() != 32) {
                 throw new ServiceException("极验服务返回异常，请检查 Captcha ID 是否正确");
             }

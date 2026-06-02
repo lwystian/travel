@@ -13,6 +13,7 @@ import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.util.HexFormat;
 import java.util.Locale;
+import java.util.Objects;
 
 @Service
 public class SmsCodeService {
@@ -145,17 +146,19 @@ public class SmsCodeService {
     }
 
     private void recordVerifyFailure(String attemptKey, String codeKey) {
-        long ttl = redisTtlSeconds(codeKey);
+        String safeAttemptKey = Objects.requireNonNull(attemptKey, "attempt key must not be null");
+        String safeCodeKey = Objects.requireNonNull(codeKey, "code key must not be null");
+        long ttl = redisTtlSeconds(safeCodeKey);
         if (ttl <= 0) {
             ttl = 300;
         }
         try {
-            long attempts = redisUtil.incr(attemptKey, 1);
+            long attempts = redisUtil.incr(safeAttemptKey, 1);
             if (attempts == 1) {
-                redisUtil.expire(attemptKey, ttl);
+                redisUtil.expire(safeAttemptKey, ttl);
             }
             if (attempts >= MAX_VERIFY_ATTEMPTS) {
-                deleteRedis(codeKey);
+                deleteRedis(safeCodeKey);
                 throw new ServiceException("验证码错误次数过多，请重新获取");
             }
         } catch (ServiceException e) {
@@ -201,7 +204,8 @@ public class SmsCodeService {
     private String safeKeyPart(String value) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8))).substring(0, 32);
+            String safeValue = Objects.requireNonNull(value, "sms key part must not be null");
+            return HexFormat.of().formatHex(digest.digest(safeValue.getBytes(StandardCharsets.UTF_8))).substring(0, 32);
         } catch (Exception e) {
             throw new ServiceException("验证码处理失败");
         }
@@ -209,7 +213,11 @@ public class SmsCodeService {
 
     private boolean setRedis(String key, Object value, long seconds) {
         try {
-            return redisUtil.set(key, value, seconds);
+            return redisUtil.set(
+                    Objects.requireNonNull(key, "redis key must not be null"),
+                    Objects.requireNonNull(value, "redis value must not be null"),
+                    seconds
+            );
         } catch (Exception e) {
             return false;
         }
@@ -217,7 +225,7 @@ public class SmsCodeService {
 
     private String readStringFromRedis(String key) {
         try {
-            Object value = redisUtil.get(key);
+            Object value = redisUtil.get(Objects.requireNonNull(key, "redis key must not be null"));
             return value == null ? null : String.valueOf(value);
         } catch (Exception e) {
             return null;
@@ -226,7 +234,7 @@ public class SmsCodeService {
 
     private Integer readIntegerFromRedis(String key) {
         try {
-            Object value = redisUtil.get(key);
+            Object value = redisUtil.get(Objects.requireNonNull(key, "redis key must not be null"));
             if (value == null) {
                 return null;
             }
@@ -238,7 +246,7 @@ public class SmsCodeService {
 
     private long redisTtlSeconds(String key) {
         try {
-            return redisUtil.getExpire(key);
+            return redisUtil.getExpire(Objects.requireNonNull(key, "redis key must not be null"));
         } catch (Exception e) {
             return -1;
         }
@@ -246,7 +254,7 @@ public class SmsCodeService {
 
     private void deleteRedis(String... keys) {
         try {
-            redisUtil.del(keys);
+            redisUtil.del(Objects.requireNonNull(keys, "redis keys must not be null"));
         } catch (Exception ignored) {
         }
     }
