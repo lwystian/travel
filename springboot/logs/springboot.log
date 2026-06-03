@@ -548,3 +548,888 @@ com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException: Unrecognized f
 2026-06-03 02:07:38.775 INFO  [http-nio-3001-exec-3] [b2018ed2812941e2b35751f929b84e4a] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=5 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
 2026-06-03 02:07:52.106 INFO  [SpringApplicationShutdownHook] [no-request] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
 2026-06-03 02:07:52.113 INFO  [SpringApplicationShutdownHook] [no-request] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-06-03 09:59:15.489 INFO  [background-preinit] [no-request] o.h.validator.internal.util.Version - HV000001: Hibernate Validator 8.0.1.Final
+2026-06-03 09:59:15.539 INFO  [main] [no-request] o.e.springboot.SpringbootApplication - Starting SpringbootApplication using Java 17.0.11 with PID 21144 (D:\code\learn\travel\springboot\target\classes started by 华硕 in D:\code\learn\travel\springboot)
+2026-06-03 09:59:15.540 INFO  [main] [no-request] o.e.springboot.SpringbootApplication - No active profile set, falling back to 1 default profile: "default"
+2026-06-03 09:59:17.097 INFO  [main] [no-request] o.s.d.r.c.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2026-06-03 09:59:17.102 INFO  [main] [no-request] o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-06-03 09:59:17.152 INFO  [main] [no-request] o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 25 ms. Found 0 Redis repository interfaces.
+2026-06-03 09:59:18.397 INFO  [main] [no-request] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 3001 (http)
+2026-06-03 09:59:18.406 INFO  [main] [no-request] o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-3001"]
+2026-06-03 09:59:18.409 INFO  [main] [no-request] o.a.catalina.core.StandardService - Starting service [Tomcat]
+2026-06-03 09:59:18.409 INFO  [main] [no-request] o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.16]
+2026-06-03 09:59:18.495 INFO  [main] [no-request] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2026-06-03 09:59:18.496 INFO  [main] [no-request] o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 2909 ms
+2026-06-03 09:59:19.708 INFO  [main] [no-request] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-06-03 09:59:19.882 INFO  [main] [no-request] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@1eb52131
+2026-06-03 09:59:19.884 INFO  [main] [no-request] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-06-03 09:59:22.720 INFO  [main] [no-request] o.e.s.service.PaymentConfigService - 注册支付策略: alipay - 支付宝
+2026-06-03 09:59:23.222 INFO  [main] [no-request] o.e.s.service.TourOrderAlipayService - 注册支付策略: alipay - 支付宝
+2026-06-03 09:59:24.742 INFO  [main] [no-request] o.s.s.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@ce8b59e, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@5aa5b3af, org.springframework.security.web.context.SecurityContextHolderFilter@27422187, org.springframework.security.web.header.HeaderWriterFilter@1028a747, org.springframework.web.filter.CorsFilter@51869ad6, org.springframework.security.web.authentication.logout.LogoutFilter@48224381, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@1ee126de, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@22cce199, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@344cf00f, org.springframework.security.web.access.ExceptionTranslationFilter@9d7a853, org.springframework.security.web.access.intercept.AuthorizationFilter@3e3a07ab]
+2026-06-03 09:59:25.639 INFO  [main] [no-request] o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-3001"]
+2026-06-03 09:59:25.664 INFO  [main] [no-request] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 3001 (http) with context path ''
+2026-06-03 09:59:25.679 INFO  [main] [no-request] o.e.springboot.SpringbootApplication - Started SpringbootApplication in 10.833 seconds (process running for 11.963)
+2026-06-03 09:59:25.716 INFO  [main] [no-request] o.e.s.config.SuperAdminBootstrap - SUPER_ADMIN account already exists. Bootstrap skipped. userId=1
+2026-06-03 09:59:44.991 INFO  [http-nio-3001-exec-2] [no-request] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-06-03 09:59:44.991 INFO  [http-nio-3001-exec-2] [no-request] o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-06-03 09:59:44.992 INFO  [http-nio-3001-exec-2] [no-request] o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2026-06-03 09:59:45.013 WARN  [http-nio-3001-exec-2] [bb4ba4ad3fae48958ba33352328b92bf] o.s.w.s.h.HandlerMappingIntrospector - Cache miss for REQUEST dispatch to '/api/site/access/public' (previous null). Performing MatchableHandlerMapping lookup. This is logged once only at WARN level, and every time at TRACE.
+2026-06-03 09:59:45.263 INFO  [http-nio-3001-exec-2] [bb4ba4ad3fae48958ba33352328b92bf] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/access/public status=200 durationMs=187 ip=192.168.2.16 operation=SiteAccessConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 09:59:45.263 INFO  [http-nio-3001-exec-1] [9410ef89f91c4e45acba9c4836d4bddb] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=187 ip=192.168.2.16 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 09:59:45.577 INFO  [http-nio-3001-exec-4] [34b8c8222ed940fa9edde7aa7ac4e8c7] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=20 ip=192.168.2.16 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 09:59:45.614 INFO  [http-nio-3001-exec-9] [e87f8ea1a7344521aba4cc8ffe75e684] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/frontend-header status=200 durationMs=14 ip=192.168.2.16 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 09:59:45.615 INFO  [http-nio-3001-exec-6] [ed5fadffa6a34d08bb57727bcd06237d] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/home status=200 durationMs=15 ip=192.168.2.16 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 09:59:45.618 INFO  [http-nio-3001-exec-5] [a80d47e3541f4b6d8db2ea0fcb086b3f] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=61 ip=192.168.2.16 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 09:59:45.639 INFO  [http-nio-3001-exec-9] [8a78d934e8344adaabaa6efb88781ea5] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=14 ip=192.168.2.16 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 09:59:45.644 INFO  [http-nio-3001-exec-8] [1c6bf98fde1a4ce3ad79ade96e93fd1d] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=87 ip=192.168.2.16 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 09:59:45.752 INFO  [http-nio-3001-exec-10] [e287c2ca56bb413d98666947320e7b54] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/footer/public status=200 durationMs=57 ip=192.168.2.16 operation=SiteFooterConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 09:59:47.967 INFO  [http-nio-3001-exec-6] [a83a82ae269e4fd7b85b863d1de6e5e2] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=3 ip=192.168.2.16 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 09:59:57.597 INFO  [http-nio-3001-exec-9] [7a0a4a16921b430f9e09907bad349aea] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/auth/crypto/public-key status=200 durationMs=0 ip=192.168.2.16 operation=AuthController.publicKey userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:00:05.086 INFO  [http-nio-3001-exec-7] [dd087b697a574ba98fc3a5a350f07649] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/access/public status=200 durationMs=3 ip=127.0.0.1 operation=SiteAccessConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:00:05.086 INFO  [http-nio-3001-exec-10] [0103c3b890ae4e1286f607e304b72a5a] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=3 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:00:05.155 INFO  [http-nio-3001-exec-8] [46ce8d159ec24fc2a2b6ece77988e4af] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=2 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:00:17.548 INFO  [http-nio-3001-exec-3] [681f130f0bba47139da1986a4fc4b194] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/auth/crypto/public-key status=200 durationMs=0 ip=127.0.0.1 operation=AuthController.publicKey userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:00:17.962 ERROR [http-nio-3001-exec-1] [b46e299cc1b24698999e4cc8aa3ed66b] o.e.springboot.util.JwtTokenUtils - 获取当前登录的token失败，tokennull
+2026-06-03 10:00:18.166 INFO  [http-nio-3001-exec-1] [b46e299cc1b24698999e4cc8aa3ed66b] o.e.springboot.service.UserService - 用户登录信息已缓存，key: user:1, IP: 127.0.0.1, 登录次数: 27
+2026-06-03 10:00:18.174 INFO  [http-nio-3001-exec-1] [b46e299cc1b24698999e4cc8aa3ed66b] o.e.springboot.aspect.LogAspect - http_access method=POST path=/api/auth/login/password status=200 durationMs=212 ip=127.0.0.1 operation=AuthController.loginByPhonePassword userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:00:18.763 INFO  [http-nio-3001-exec-6] [7fb0e79b582c44d8968048be2e4deb46] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=2 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:00:18.996 INFO  [http-nio-3001-exec-5] [4e1b0795fa4348f89a8c14e1d8d0c1f7] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=9 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:00:29.502 INFO  [http-nio-3001-exec-9] [0bb74b6d4eaf4d0e93f881ec0826d5a8] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/payment-config/list status=200 durationMs=14 ip=127.0.0.1 operation=PaymentConfigController.getAllPayments userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:00:33.023 INFO  [http-nio-3001-exec-7] [ee5ce31086a742d89783e2ab22397bf6] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/auth/config/email status=200 durationMs=8 ip=127.0.0.1 operation=AuthConfigController.getEmailConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:00:33.023 INFO  [http-nio-3001-exec-10] [43a28cefa75041e9ab63d8e6416cdfd6] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/auth/config/sms status=200 durationMs=9 ip=127.0.0.1 operation=AuthConfigController.getSmsConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:00:33.329 INFO  [http-nio-3001-exec-8] [493818c4df4c45f9ba7af2972646019f] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/auth/config/geetest status=200 durationMs=6 ip=127.0.0.1 operation=AuthConfigController.getGeetestConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:00:33.920 INFO  [http-nio-3001-exec-4] [9ca8a196ab274dcb8331462ba643ba78] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:00:48.626 INFO  [http-nio-3001-exec-3] [932a145230a44c92a14ea7e0e5f28a62] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:00:53.194 WARN  [http-nio-3001-exec-1] [55f859ae35094f4e918568e225ee3ca6] o.e.springboot.aspect.LogAspect - http_access method=POST path=/api/auth/config/sms/test status=200 durationMs=1068 ip=127.0.0.1 operation=AuthConfigController.testSmsConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:01:03.624 INFO  [http-nio-3001-exec-2] [6e92c5bcf68b4c6b9b6508c906e7dc26] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:01:18.944 INFO  [http-nio-3001-exec-6] [245000b1ceaf426e98c0647156ca72c3] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:01:33.624 INFO  [http-nio-3001-exec-5] [228838484560463cb5570d189df62a85] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:01:36.222 INFO  [http-nio-3001-exec-9] [b0724f7378314a49802804bd27004bcc] o.e.springboot.aspect.LogAspect - http_access method=POST path=/api/auth/config/sms/test status=200 durationMs=406 ip=127.0.0.1 operation=AuthConfigController.testSmsConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:01:48.629 INFO  [http-nio-3001-exec-10] [e384a0bf78064c81a321042b19888592] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:02:03.951 INFO  [http-nio-3001-exec-7] [f842d2fc91f24f358a2fbd6e820607d5] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:02:18.640 INFO  [http-nio-3001-exec-8] [79ba2c2a632e4b23871e525500bd8d64] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=4 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:02:29.302 ERROR [http-nio-3001-exec-4] [4a2399caba7d441c90c8291d872a51a5] o.e.springboot.aspect.LogAspect - http_access method=POST path=/api/auth/config/email/test status=500 durationMs=627 ip=127.0.0.1 operation=AuthConfigController.testEmailConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 error=MailAuthenticationException: Authentication failed
+org.springframework.mail.MailAuthenticationException: Authentication failed
+	at org.springframework.mail.javamail.JavaMailSenderImpl.doSend(JavaMailSenderImpl.java:402)
+	at org.springframework.mail.javamail.JavaMailSenderImpl.send(JavaMailSenderImpl.java:317)
+	at org.springframework.mail.MailSender.send(MailSender.java:42)
+	at org.example.springboot.service.AuthConfigService.testEmailConfig(AuthConfigService.java:146)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:352)
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:713)
+	at org.example.springboot.service.AuthConfigService$$SpringCGLIB$$0.testEmailConfig(<generated>)
+	at org.example.springboot.controller.AuthConfigController.testEmailConfig(AuthConfigController.java:97)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:352)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.aspectj.MethodInvocationProceedingJoinPoint.proceed(MethodInvocationProceedingJoinPoint.java:89)
+	at org.example.springboot.aspect.OperationLogAspect.around(OperationLogAspect.java:57)
+	at jdk.internal.reflect.GeneratedMethodAccessor55.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethodWithGivenArgs(AbstractAspectJAdvice.java:637)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethod(AbstractAspectJAdvice.java:627)
+	at org.springframework.aop.aspectj.AspectJAroundAdvice.invoke(AspectJAroundAdvice.java:71)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.aspectj.MethodInvocationProceedingJoinPoint.proceed(MethodInvocationProceedingJoinPoint.java:89)
+	at org.example.springboot.aspect.LogAspect.around(LogAspect.java:39)
+	at jdk.internal.reflect.GeneratedMethodAccessor53.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethodWithGivenArgs(AbstractAspectJAdvice.java:637)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethod(AbstractAspectJAdvice.java:627)
+	at org.springframework.aop.aspectj.AspectJAroundAdvice.invoke(AspectJAroundAdvice.java:71)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.interceptor.ExposeInvocationInterceptor.invoke(ExposeInvocationInterceptor.java:97)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:717)
+	at org.example.springboot.controller.AuthConfigController$$SpringCGLIB$$0.testEmailConfig(<generated>)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:254)
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:182)
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:917)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:829)
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+	at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:914)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:590)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:205)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at com.github.xiaoymin.knife4j.extend.filter.basic.JakartaServletSecurityBasicAuthFilter.doFilter(JakartaServletSecurityBasicAuthFilter.java:55)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:110)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.security.web.FilterChainProxy.lambda$doFilterInternal$3(FilterChainProxy.java:231)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:365)
+	at org.springframework.security.web.access.intercept.AuthorizationFilter.doFilter(AuthorizationFilter.java:100)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:126)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:120)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.authentication.AnonymousAuthenticationFilter.doFilter(AnonymousAuthenticationFilter.java:100)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter.doFilter(SecurityContextHolderAwareRequestFilter.java:179)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.savedrequest.RequestCacheAwareFilter.doFilter(RequestCacheAwareFilter.java:63)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:107)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:93)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90)
+	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:82)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:69)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:62)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:233)
+	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:191)
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:352)
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:268)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.XssFilter.doFilterInternal(XssFilter.java:31)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.SqlInjectionFilter.doFilterInternal(SqlInjectionFilter.java:45)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.CsrfOriginFilter.doFilterInternal(CsrfOriginFilter.java:37)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.RateLimitFilter.doFilterInternal(RateLimitFilter.java:53)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.filter.RequestTraceFilter.doFilterInternal(RequestTraceFilter.java:35)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:115)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:340)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:391)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:896)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1744)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
+	at java.base/java.lang.Thread.run(Thread.java:842)
+Caused by: jakarta.mail.AuthenticationFailedException: 535 Error: authentication failed
+
+	at org.eclipse.angus.mail.smtp.SMTPTransport$Authenticator.authenticate(SMTPTransport.java:954)
+	at org.eclipse.angus.mail.smtp.SMTPTransport.authenticate(SMTPTransport.java:865)
+	at org.eclipse.angus.mail.smtp.SMTPTransport.protocolConnect(SMTPTransport.java:769)
+	at jakarta.mail.Service.connect(Service.java:345)
+	at org.springframework.mail.javamail.JavaMailSenderImpl.connectTransport(JavaMailSenderImpl.java:480)
+	at org.springframework.mail.javamail.JavaMailSenderImpl.doSend(JavaMailSenderImpl.java:399)
+	... 158 common frames omitted
+2026-06-03 10:02:29.312 ERROR [http-nio-3001-exec-4] [4a2399caba7d441c90c8291d872a51a5] o.e.s.e.GlobalExceptionHandler - 系统异常: 
+org.springframework.mail.MailAuthenticationException: Authentication failed
+	at org.springframework.mail.javamail.JavaMailSenderImpl.doSend(JavaMailSenderImpl.java:402)
+	at org.springframework.mail.javamail.JavaMailSenderImpl.send(JavaMailSenderImpl.java:317)
+	at org.springframework.mail.MailSender.send(MailSender.java:42)
+	at org.example.springboot.service.AuthConfigService.testEmailConfig(AuthConfigService.java:146)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:352)
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:713)
+	at org.example.springboot.service.AuthConfigService$$SpringCGLIB$$0.testEmailConfig(<generated>)
+	at org.example.springboot.controller.AuthConfigController.testEmailConfig(AuthConfigController.java:97)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:352)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.aspectj.MethodInvocationProceedingJoinPoint.proceed(MethodInvocationProceedingJoinPoint.java:89)
+	at org.example.springboot.aspect.OperationLogAspect.around(OperationLogAspect.java:57)
+	at jdk.internal.reflect.GeneratedMethodAccessor55.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethodWithGivenArgs(AbstractAspectJAdvice.java:637)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethod(AbstractAspectJAdvice.java:627)
+	at org.springframework.aop.aspectj.AspectJAroundAdvice.invoke(AspectJAroundAdvice.java:71)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.aspectj.MethodInvocationProceedingJoinPoint.proceed(MethodInvocationProceedingJoinPoint.java:89)
+	at org.example.springboot.aspect.LogAspect.around(LogAspect.java:39)
+	at jdk.internal.reflect.GeneratedMethodAccessor53.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethodWithGivenArgs(AbstractAspectJAdvice.java:637)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethod(AbstractAspectJAdvice.java:627)
+	at org.springframework.aop.aspectj.AspectJAroundAdvice.invoke(AspectJAroundAdvice.java:71)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.interceptor.ExposeInvocationInterceptor.invoke(ExposeInvocationInterceptor.java:97)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:717)
+	at org.example.springboot.controller.AuthConfigController$$SpringCGLIB$$0.testEmailConfig(<generated>)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:254)
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:182)
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:917)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:829)
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+	at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:914)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:590)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:205)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at com.github.xiaoymin.knife4j.extend.filter.basic.JakartaServletSecurityBasicAuthFilter.doFilter(JakartaServletSecurityBasicAuthFilter.java:55)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:110)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.security.web.FilterChainProxy.lambda$doFilterInternal$3(FilterChainProxy.java:231)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:365)
+	at org.springframework.security.web.access.intercept.AuthorizationFilter.doFilter(AuthorizationFilter.java:100)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:126)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:120)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.authentication.AnonymousAuthenticationFilter.doFilter(AnonymousAuthenticationFilter.java:100)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter.doFilter(SecurityContextHolderAwareRequestFilter.java:179)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.savedrequest.RequestCacheAwareFilter.doFilter(RequestCacheAwareFilter.java:63)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:107)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:93)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90)
+	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:82)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:69)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:62)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:233)
+	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:191)
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:352)
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:268)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.XssFilter.doFilterInternal(XssFilter.java:31)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.SqlInjectionFilter.doFilterInternal(SqlInjectionFilter.java:45)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.CsrfOriginFilter.doFilterInternal(CsrfOriginFilter.java:37)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.RateLimitFilter.doFilterInternal(RateLimitFilter.java:53)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.filter.RequestTraceFilter.doFilterInternal(RequestTraceFilter.java:35)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:115)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:340)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:391)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:896)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1744)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
+	at java.base/java.lang.Thread.run(Thread.java:842)
+Caused by: jakarta.mail.AuthenticationFailedException: 535 Error: authentication failed
+
+	at org.eclipse.angus.mail.smtp.SMTPTransport$Authenticator.authenticate(SMTPTransport.java:954)
+	at org.eclipse.angus.mail.smtp.SMTPTransport.authenticate(SMTPTransport.java:865)
+	at org.eclipse.angus.mail.smtp.SMTPTransport.protocolConnect(SMTPTransport.java:769)
+	at jakarta.mail.Service.connect(Service.java:345)
+	at org.springframework.mail.javamail.JavaMailSenderImpl.connectTransport(JavaMailSenderImpl.java:480)
+	at org.springframework.mail.javamail.JavaMailSenderImpl.doSend(JavaMailSenderImpl.java:399)
+	... 158 common frames omitted
+2026-06-03 10:02:33.633 INFO  [http-nio-3001-exec-3] [66948fd520294b609174a587be502f7f] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:02:48.956 INFO  [http-nio-3001-exec-1] [23b7acf3ab9a4ff89844c56a993c1e74] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:03:04.548 INFO  [http-nio-3001-exec-2] [00baf5e359604caeb07230b1ba444827] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=4 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:03:12.300 INFO  [http-nio-3001-exec-6] [893061a604864f198301fa92fbfaba66] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:03:19.540 INFO  [http-nio-3001-exec-5] [bd1dbf82a50d428b8cec262334e12ab7] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:03:27.269 INFO  [http-nio-3001-exec-9] [0537c177fbdf48339c305cef3bffa256] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=4 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:03:33.726 INFO  [http-nio-3001-exec-10] [641ed0b58560443ba17c07bcfd7b64fd] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=4 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1
+2026-06-03 10:03:48.958 INFO  [http-nio-3001-exec-7] [ef135192e4f04cc9a1c58b5c47cad64c] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36
+2026-06-03 10:04:03.649 INFO  [http-nio-3001-exec-8] [db78bd36c52342e795827d79e829fccc] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36
+2026-06-03 10:04:16.673 ERROR [http-nio-3001-exec-4] [914a968199cb44e1818319e44f4f7355] o.e.springboot.aspect.LogAspect - http_access method=POST path=/api/auth/config/email/test status=500 durationMs=9231 ip=127.0.0.1 operation=AuthConfigController.testEmailConfig userAgent=Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36 error=MailAuthenticationException: Authentication failed
+org.springframework.mail.MailAuthenticationException: Authentication failed
+	at org.springframework.mail.javamail.JavaMailSenderImpl.doSend(JavaMailSenderImpl.java:402)
+	at org.springframework.mail.javamail.JavaMailSenderImpl.send(JavaMailSenderImpl.java:317)
+	at org.springframework.mail.MailSender.send(MailSender.java:42)
+	at org.example.springboot.service.AuthConfigService.testEmailConfig(AuthConfigService.java:146)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:352)
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:713)
+	at org.example.springboot.service.AuthConfigService$$SpringCGLIB$$0.testEmailConfig(<generated>)
+	at org.example.springboot.controller.AuthConfigController.testEmailConfig(AuthConfigController.java:97)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:352)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.aspectj.MethodInvocationProceedingJoinPoint.proceed(MethodInvocationProceedingJoinPoint.java:89)
+	at org.example.springboot.aspect.OperationLogAspect.around(OperationLogAspect.java:57)
+	at jdk.internal.reflect.GeneratedMethodAccessor55.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethodWithGivenArgs(AbstractAspectJAdvice.java:637)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethod(AbstractAspectJAdvice.java:627)
+	at org.springframework.aop.aspectj.AspectJAroundAdvice.invoke(AspectJAroundAdvice.java:71)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.aspectj.MethodInvocationProceedingJoinPoint.proceed(MethodInvocationProceedingJoinPoint.java:89)
+	at org.example.springboot.aspect.LogAspect.around(LogAspect.java:39)
+	at jdk.internal.reflect.GeneratedMethodAccessor53.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethodWithGivenArgs(AbstractAspectJAdvice.java:637)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethod(AbstractAspectJAdvice.java:627)
+	at org.springframework.aop.aspectj.AspectJAroundAdvice.invoke(AspectJAroundAdvice.java:71)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.interceptor.ExposeInvocationInterceptor.invoke(ExposeInvocationInterceptor.java:97)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:717)
+	at org.example.springboot.controller.AuthConfigController$$SpringCGLIB$$0.testEmailConfig(<generated>)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:254)
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:182)
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:917)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:829)
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+	at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:914)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:590)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:205)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at com.github.xiaoymin.knife4j.extend.filter.basic.JakartaServletSecurityBasicAuthFilter.doFilter(JakartaServletSecurityBasicAuthFilter.java:55)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:110)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.security.web.FilterChainProxy.lambda$doFilterInternal$3(FilterChainProxy.java:231)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:365)
+	at org.springframework.security.web.access.intercept.AuthorizationFilter.doFilter(AuthorizationFilter.java:100)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:126)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:120)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.authentication.AnonymousAuthenticationFilter.doFilter(AnonymousAuthenticationFilter.java:100)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter.doFilter(SecurityContextHolderAwareRequestFilter.java:179)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.savedrequest.RequestCacheAwareFilter.doFilter(RequestCacheAwareFilter.java:63)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:107)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:93)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90)
+	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:82)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:69)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:62)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:233)
+	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:191)
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:352)
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:268)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.XssFilter.doFilterInternal(XssFilter.java:31)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.SqlInjectionFilter.doFilterInternal(SqlInjectionFilter.java:45)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.CsrfOriginFilter.doFilterInternal(CsrfOriginFilter.java:37)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.RateLimitFilter.doFilterInternal(RateLimitFilter.java:53)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.filter.RequestTraceFilter.doFilterInternal(RequestTraceFilter.java:35)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:115)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:340)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:391)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:896)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1744)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
+	at java.base/java.lang.Thread.run(Thread.java:842)
+Caused by: jakarta.mail.AuthenticationFailedException: 535 Error: authentication failed
+
+	at org.eclipse.angus.mail.smtp.SMTPTransport$Authenticator.authenticate(SMTPTransport.java:954)
+	at org.eclipse.angus.mail.smtp.SMTPTransport.authenticate(SMTPTransport.java:865)
+	at org.eclipse.angus.mail.smtp.SMTPTransport.protocolConnect(SMTPTransport.java:769)
+	at jakarta.mail.Service.connect(Service.java:345)
+	at org.springframework.mail.javamail.JavaMailSenderImpl.connectTransport(JavaMailSenderImpl.java:480)
+	at org.springframework.mail.javamail.JavaMailSenderImpl.doSend(JavaMailSenderImpl.java:399)
+	... 158 common frames omitted
+2026-06-03 10:04:16.676 ERROR [http-nio-3001-exec-4] [914a968199cb44e1818319e44f4f7355] o.e.s.e.GlobalExceptionHandler - 系统异常: 
+org.springframework.mail.MailAuthenticationException: Authentication failed
+	at org.springframework.mail.javamail.JavaMailSenderImpl.doSend(JavaMailSenderImpl.java:402)
+	at org.springframework.mail.javamail.JavaMailSenderImpl.send(JavaMailSenderImpl.java:317)
+	at org.springframework.mail.MailSender.send(MailSender.java:42)
+	at org.example.springboot.service.AuthConfigService.testEmailConfig(AuthConfigService.java:146)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:352)
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:713)
+	at org.example.springboot.service.AuthConfigService$$SpringCGLIB$$0.testEmailConfig(<generated>)
+	at org.example.springboot.controller.AuthConfigController.testEmailConfig(AuthConfigController.java:97)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:352)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.aspectj.MethodInvocationProceedingJoinPoint.proceed(MethodInvocationProceedingJoinPoint.java:89)
+	at org.example.springboot.aspect.OperationLogAspect.around(OperationLogAspect.java:57)
+	at jdk.internal.reflect.GeneratedMethodAccessor55.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethodWithGivenArgs(AbstractAspectJAdvice.java:637)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethod(AbstractAspectJAdvice.java:627)
+	at org.springframework.aop.aspectj.AspectJAroundAdvice.invoke(AspectJAroundAdvice.java:71)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.aspectj.MethodInvocationProceedingJoinPoint.proceed(MethodInvocationProceedingJoinPoint.java:89)
+	at org.example.springboot.aspect.LogAspect.around(LogAspect.java:39)
+	at jdk.internal.reflect.GeneratedMethodAccessor53.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethodWithGivenArgs(AbstractAspectJAdvice.java:637)
+	at org.springframework.aop.aspectj.AbstractAspectJAdvice.invokeAdviceMethod(AbstractAspectJAdvice.java:627)
+	at org.springframework.aop.aspectj.AspectJAroundAdvice.invoke(AspectJAroundAdvice.java:71)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.interceptor.ExposeInvocationInterceptor.invoke(ExposeInvocationInterceptor.java:97)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:717)
+	at org.example.springboot.controller.AuthConfigController$$SpringCGLIB$$0.testEmailConfig(<generated>)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:254)
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:182)
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:917)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:829)
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+	at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:914)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:590)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:205)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at com.github.xiaoymin.knife4j.extend.filter.basic.JakartaServletSecurityBasicAuthFilter.doFilter(JakartaServletSecurityBasicAuthFilter.java:55)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:110)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.security.web.FilterChainProxy.lambda$doFilterInternal$3(FilterChainProxy.java:231)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:365)
+	at org.springframework.security.web.access.intercept.AuthorizationFilter.doFilter(AuthorizationFilter.java:100)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:126)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:120)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.authentication.AnonymousAuthenticationFilter.doFilter(AnonymousAuthenticationFilter.java:100)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter.doFilter(SecurityContextHolderAwareRequestFilter.java:179)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.savedrequest.RequestCacheAwareFilter.doFilter(RequestCacheAwareFilter.java:63)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:107)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:93)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90)
+	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:82)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:69)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:62)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:374)
+	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:233)
+	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:191)
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:352)
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:268)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.XssFilter.doFilterInternal(XssFilter.java:31)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.SqlInjectionFilter.doFilterInternal(SqlInjectionFilter.java:45)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.CsrfOriginFilter.doFilterInternal(CsrfOriginFilter.java:37)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.security.RateLimitFilter.doFilterInternal(RateLimitFilter.java:53)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.example.springboot.filter.RequestTraceFilter.doFilterInternal(RequestTraceFilter.java:35)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:115)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:340)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:391)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:896)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1744)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
+	at java.base/java.lang.Thread.run(Thread.java:842)
+Caused by: jakarta.mail.AuthenticationFailedException: 535 Error: authentication failed
+
+	at org.eclipse.angus.mail.smtp.SMTPTransport$Authenticator.authenticate(SMTPTransport.java:954)
+	at org.eclipse.angus.mail.smtp.SMTPTransport.authenticate(SMTPTransport.java:865)
+	at org.eclipse.angus.mail.smtp.SMTPTransport.protocolConnect(SMTPTransport.java:769)
+	at jakarta.mail.Service.connect(Service.java:345)
+	at org.springframework.mail.javamail.JavaMailSenderImpl.connectTransport(JavaMailSenderImpl.java:480)
+	at org.springframework.mail.javamail.JavaMailSenderImpl.doSend(JavaMailSenderImpl.java:399)
+	... 158 common frames omitted
+2026-06-03 10:04:18.658 INFO  [http-nio-3001-exec-3] [cb462026d6674a4c848e123ba81c8308] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=4 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36
+2026-06-03 10:04:34.876 INFO  [http-nio-3001-exec-1] [e70f894804164e6a9448f234da2615d9] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36
+2026-06-03 10:04:49.867 INFO  [http-nio-3001-exec-2] [4158f49ff1194140a83692b9ab705c71] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36
+2026-06-03 10:05:04.551 INFO  [http-nio-3001-exec-6] [ec55dd18e4ec440c99936d6ee4719d22] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36
+2026-06-03 10:05:19.868 INFO  [http-nio-3001-exec-5] [3a599bdb256140aca3c09df47d985f99] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36
+2026-06-03 10:05:35.560 INFO  [http-nio-3001-exec-9] [8c909a33bf7c4e64b7f863325788878f] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36
+2026-06-03 10:06:35.885 INFO  [http-nio-3001-exec-10] [aa7c1282de2945bb848b8d25edc67a91] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36
+2026-06-03 10:06:43.049 INFO  [http-nio-3001-exec-7] [946f834c44194cb7b320ae9feaa1650a] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36
+2026-06-03 10:06:48.986 INFO  [http-nio-3001-exec-8] [d7c7f0c76e5d48fc95dcd6a3b069528d] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:06:56.048 INFO  [http-nio-3001-exec-4] [d20e2c1566864ab59f912490b1f35655] o.e.springboot.aspect.LogAspect - http_access method=POST path=/api/auth/config/email status=200 durationMs=25 ip=127.0.0.1 operation=AuthConfigController.saveEmailConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:06:56.367 INFO  [http-nio-3001-exec-2] [9b3945e4b20e4457bd6b74b680fb3d2b] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/auth/config/geetest status=200 durationMs=3 ip=127.0.0.1 operation=AuthConfigController.getGeetestConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:06:56.367 INFO  [http-nio-3001-exec-3] [d314e0055ba147a3a61fb24ac9344da3] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/auth/config/sms status=200 durationMs=2 ip=127.0.0.1 operation=AuthConfigController.getSmsConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:06:56.367 INFO  [http-nio-3001-exec-1] [84c46205bd55404ea4c33f2221b78fe8] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/auth/config/email status=200 durationMs=2 ip=127.0.0.1 operation=AuthConfigController.getEmailConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:06:58.427 INFO  [http-nio-3001-exec-6] [9b6f39df194245bf9641ded5bac4d193] o.e.springboot.aspect.LogAspect - http_access method=POST path=/api/auth/config/email/test status=200 durationMs=683 ip=127.0.0.1 operation=AuthConfigController.testEmailConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:07:00.670 INFO  [http-nio-3001-exec-5] [92d35b7231dd476abd241ec99d458211] o.e.springboot.aspect.LogAspect - http_access method=POST path=/api/auth/config/email/test status=200 durationMs=462 ip=127.0.0.1 operation=AuthConfigController.testEmailConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:07:03.672 INFO  [http-nio-3001-exec-9] [fb68d1305b4044f1a94ba4a3b9e821ec] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:07:18.988 INFO  [http-nio-3001-exec-10] [20ff087018b04e8e9fded0caeedc3f09] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:07:33.671 INFO  [http-nio-3001-exec-7] [17acd599816f48a3a8b59b7eca7e8171] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:07:49.894 INFO  [http-nio-3001-exec-8] [454baa34c53f465ba9d43a5fda1f4624] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:08:04.584 INFO  [http-nio-3001-exec-4] [bcbaa61fc0bb44028420665d889dff67] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:08:19.886 INFO  [http-nio-3001-exec-3] [1d552d11e4d84f76aa3188958101ff84] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:08:21.292 INFO  [http-nio-3001-exec-1] [dba16ddc91534456ab6f620f4b41d5f6] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:08:34.888 INFO  [http-nio-3001-exec-2] [f0f790fde4c84a0bbfaa60db94a35b90] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:08:49.578 INFO  [http-nio-3001-exec-6] [8f3546ddd68340ffad02c762068b7a62] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:09:04.889 INFO  [http-nio-3001-exec-5] [f0c44548ccad4af2b8c5812d0566bfb8] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:09:19.590 INFO  [http-nio-3001-exec-9] [852ac09c5a6a4c10820429b87462d360] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:09:35.893 INFO  [http-nio-3001-exec-10] [e282b09df2654aa8bf365f5ed278b3ec] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:10:35.602 INFO  [http-nio-3001-exec-7] [cfaf1c13de5a4eb0ae9be78b66abb930] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:11:35.913 INFO  [http-nio-3001-exec-8] [252689859e474bb681816d7060a2382f] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:12:35.607 INFO  [http-nio-3001-exec-4] [083865f617384ea093620275d0e2ea10] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:13:35.937 INFO  [http-nio-3001-exec-3] [0f05e1327a2049b6858e1a45388a525e] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:14:35.624 INFO  [http-nio-3001-exec-1] [58de743c6f5a4b9faf552803a85bcaaf] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=4 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:15:35.944 INFO  [http-nio-3001-exec-2] [b1d14c12892149df869e25d1f34b395d] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:16:35.941 INFO  [http-nio-3001-exec-6] [36507febc2a24eaa93a80d75e680e8c0] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:16:50.817 INFO  [http-nio-3001-exec-5] [20fc19056c394540acb1e4f87d18ae7b] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:16:51.127 INFO  [http-nio-3001-exec-9] [1a10a4bb27fa4232bf5ae34e50eff4e6] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:16:52.287 INFO  [http-nio-3001-exec-10] [ce518afcd1f54901adba7f1b9842aa20] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:03.247 INFO  [http-nio-3001-exec-7] [846d721da6504885b2686e90a8bdc83c] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=4 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:04.041 INFO  [http-nio-3001-exec-8] [634a467958134a239adb2c0ccfd629d3] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:16.597 INFO  [http-nio-3001-exec-4] [b9d8d97d33da445a960d76e701cff67a] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=22 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:19.038 INFO  [http-nio-3001-exec-3] [f53da554bda84923872ce8f4f0bf43e8] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=4 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:19.734 INFO  [http-nio-3001-exec-1] [a55cf71ea8384f40a24541174cb9e2dc] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=3 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:19.734 INFO  [http-nio-3001-exec-2] [0c77b1d23ff045fbac2d9511d69cf3e7] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/access/public status=200 durationMs=3 ip=127.0.0.1 operation=SiteAccessConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:20.062 INFO  [http-nio-3001-exec-5] [63de31db3c3c471cb427fd486a4968e4] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:20.327 INFO  [http-nio-3001-exec-9] [3c4ad1e6dbfd4fa180cb719bb6a5f1db] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=2 ip=127.0.0.1 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:20.328 INFO  [http-nio-3001-exec-10] [01c9d7d3571c46be8715ab929eaf03be] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/home status=200 durationMs=2 ip=127.0.0.1 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:20.332 INFO  [http-nio-3001-exec-7] [d8803196286d4b35863a2579daec6ad3] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=7 ip=127.0.0.1 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:20.346 INFO  [http-nio-3001-exec-8] [48fd31c441c74108bcd21bb20bafd520] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=21 ip=127.0.0.1 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:20.350 INFO  [http-nio-3001-exec-4] [1746bace97dc405583bcfdca608cd548] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/hot status=200 durationMs=16 ip=127.0.0.1 operation=TravelGuideController.getHotGuides userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:20.384 INFO  [http-nio-3001-exec-3] [f8804b47d9fe4391a99ae2b6d0175a91] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/frontend-header status=200 durationMs=2 ip=127.0.0.1 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:20.652 INFO  [http-nio-3001-exec-1] [6e66fe63f69841d6bbd3a121b7fd6dba] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=2 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:20.697 INFO  [http-nio-3001-exec-10] [98d4b6308be6486e923927c784e517fa] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/footer/public status=200 durationMs=2 ip=127.0.0.1 operation=SiteFooterConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:26.077 INFO  [http-nio-3001-exec-1] [484a1971713848ef8ae3afa12f20a735] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/access/public status=200 durationMs=3 ip=127.0.0.1 operation=SiteAccessConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:26.077 INFO  [http-nio-3001-exec-3] [d55a7fb959e24e768698ef15cd5384bd] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=4 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:34.954 INFO  [http-nio-3001-exec-6] [5ec94400ac15432486718efa531eea65] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:38.290 INFO  [http-nio-3001-exec-5] [200ab3fdcabe4ca98ce089356f08767f] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=2 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:38.509 INFO  [http-nio-3001-exec-2] [f0893b68dfba45dea20cd88d4b9c9a4c] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/access/public status=200 durationMs=2 ip=127.0.0.1 operation=SiteAccessConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:38.845 INFO  [http-nio-3001-exec-9] [090f6562e665465ab2361474363d6bf9] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=5 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:38.911 INFO  [http-nio-3001-exec-10] [1ad5a3f062454997a7a56f929a951f30] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=5 ip=127.0.0.1 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:38.913 INFO  [http-nio-3001-exec-4] [cb19f02517064ec18e9c6092c5229140] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/home status=200 durationMs=2 ip=127.0.0.1 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:38.916 INFO  [http-nio-3001-exec-7] [8998789211484c49b3a6df9997c7a3a0] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=10 ip=127.0.0.1 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:38.918 INFO  [http-nio-3001-exec-1] [ffbe05b8915946e588f02ee91ae3bafc] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/hot status=200 durationMs=5 ip=127.0.0.1 operation=TravelGuideController.getHotGuides userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:38.928 INFO  [http-nio-3001-exec-8] [8ccb755a83a14322a56afaca16de5e23] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=22 ip=127.0.0.1 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:39.166 INFO  [http-nio-3001-exec-3] [8a646ad60c0d45ad8eb7767cf2491cb9] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/frontend-header status=200 durationMs=2 ip=127.0.0.1 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:39.236 INFO  [http-nio-3001-exec-6] [518a948e67b049c08ada348e8d803af4] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=2 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:39.562 INFO  [http-nio-3001-exec-7] [8427ccd173f440b39c8da2dd902fa00a] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/footer/public status=200 durationMs=2 ip=127.0.0.1 operation=SiteFooterConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:40.285 INFO  [http-nio-3001-exec-6] [d724ec9d0b574159a600b9c42d12e28e] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=2 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:40.534 INFO  [http-nio-3001-exec-2] [707bc91bd24c4f3bb1050978494efb67] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/access/public status=200 durationMs=1 ip=127.0.0.1 operation=SiteAccessConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:40.534 INFO  [http-nio-3001-exec-9] [76cb9ff0c6e24735a5c94b522a8385aa] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/access/public status=200 durationMs=1 ip=127.0.0.1 operation=SiteAccessConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:49.637 INFO  [http-nio-3001-exec-5] [92d953fb2c544b2f8037c99cbeca0a93] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:52.964 INFO  [http-nio-3001-exec-4] [935bc855bc3b4a32b39e4d7a83da7327] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:53.082 INFO  [http-nio-3001-exec-1] [2fe925001d6448b2a33252e6fb6c08c0] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=1 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:53.240 INFO  [http-nio-3001-exec-7] [95257bbc76464560a72b823bb89c38fe] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/frontend-header status=200 durationMs=1 ip=127.0.0.1 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:53.251 INFO  [http-nio-3001-exec-3] [1070fda2365f4085bb676eb12340bf2d] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic-category/tree status=200 durationMs=9 ip=127.0.0.1 operation=ScenicCategoryController.getCategoryTree userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:53.283 INFO  [http-nio-3001-exec-8] [228249a61a45498db04297948b370a20] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic/page status=200 durationMs=44 ip=127.0.0.1 operation=ScenicSpotController.getScenicSpotsByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:17:53.395 INFO  [http-nio-3001-exec-6] [a36f56d3726f47b785e5d52fbc3d9729] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/footer/public status=200 durationMs=2 ip=127.0.0.1 operation=SiteFooterConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:02.340 INFO  [http-nio-3001-exec-10] [68e06504803b47099deea3b57bd6f726] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=1 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:02.388 INFO  [http-nio-3001-exec-1] [18c9bf2a6a8a4685af88407be0cf23e6] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=2 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:02.388 INFO  [http-nio-3001-exec-6] [7a8b048eed2f4f47b186c74e1115593d] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/frontend-header status=200 durationMs=1 ip=127.0.0.1 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:02.391 INFO  [http-nio-3001-exec-2] [69d93cb60f9946c69fb08a4a59cac3ff] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic-category/tree status=200 durationMs=2 ip=127.0.0.1 operation=ScenicCategoryController.getCategoryTree userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:02.409 INFO  [http-nio-3001-exec-8] [21f92affc12044fb8fcf364ca10fe263] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic/page status=200 durationMs=22 ip=127.0.0.1 operation=ScenicSpotController.getScenicSpotsByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:02.714 INFO  [http-nio-3001-exec-7] [af24ca507ce9415c89044a0ceffa1b02] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/footer/public status=200 durationMs=1 ip=127.0.0.1 operation=SiteFooterConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:04.954 INFO  [http-nio-3001-exec-10] [4df685da9b614542b22ced6ca8efb55c] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=1 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:06.846 INFO  [http-nio-3001-exec-8] [c4b6c615e263468798f3507b3f9828bc] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=4 ip=127.0.0.1 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:06.852 INFO  [http-nio-3001-exec-7] [a2cf5e7df1ea44c9b99a6fbbe535a8a8] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:06.856 INFO  [http-nio-3001-exec-1] [3c2c326f479149e29fb7d32e74798c61] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/home status=200 durationMs=7 ip=127.0.0.1 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:06.857 INFO  [http-nio-3001-exec-2] [71d3700735e245e5b1e77e809e81e2a6] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=15 ip=127.0.0.1 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:06.857 INFO  [http-nio-3001-exec-9] [9c1271c953fb4085b3e8b685de1a9620] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/hot status=200 durationMs=6 ip=127.0.0.1 operation=TravelGuideController.getHotGuides userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:06.868 INFO  [http-nio-3001-exec-4] [8c0c07ca9bfd4a63b8b84422e8720104] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=26 ip=127.0.0.1 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:07.168 INFO  [http-nio-3001-exec-3] [bfabd23e0b4a4162af476b01b9d0cd2c] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/frontend-header status=200 durationMs=2 ip=127.0.0.1 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:07.182 INFO  [http-nio-3001-exec-5] [f2b0bd4dcf494c95810788ed7f9e84ef] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=1 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:07.493 INFO  [http-nio-3001-exec-2] [d62bf51b87f94dc7aaaa51ee11c5ed11] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/footer/public status=200 durationMs=2 ip=127.0.0.1 operation=SiteFooterConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:18:35.954 INFO  [http-nio-3001-exec-3] [61473bf2f4c2456b8400feb39fc16066] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:19:36.534 INFO  [http-nio-3001-exec-5] [ce5a87fc4f1242a0b1a760f771313231] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:19:53.294 INFO  [http-nio-3001-exec-8] [d68bf044c79a46169f4f9390924a837b] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=3 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:19:53.294 INFO  [http-nio-3001-exec-10] [73dcd3b08842432980c09288e6922e03] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/access/public status=200 durationMs=3 ip=127.0.0.1 operation=SiteAccessConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:19:57.706 INFO  [http-nio-3001-exec-9] [2010533453bc4d27848f39e409077006] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=4 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:19:57.797 INFO  [http-nio-3001-exec-2] [d2e63bd42842410e9e5b81c98dfc20b2] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/hot-keywords status=200 durationMs=12 ip=127.0.0.1 operation=TourController.getHotKeywords userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:19:58.014 INFO  [http-nio-3001-exec-3] [9ba73ffd10c04203863a9257d7e6f8c2] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=2 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:19:58.015 INFO  [http-nio-3001-exec-1] [dad6fe0686a04f6a94fa273e092dd1cf] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/frontend-header status=200 durationMs=2 ip=127.0.0.1 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:19:58.030 INFO  [http-nio-3001-exec-6] [426ce8b51d024b20a2764a6def0aa2c5] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/ticket-featured status=200 durationMs=18 ip=127.0.0.1 operation=TourController.getTicketFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:19:58.146 INFO  [http-nio-3001-exec-4] [69c322038cde4eefb86bf25f950cec74] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/filters status=200 durationMs=133 ip=127.0.0.1 operation=TourController.getTourFilters userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:19:58.337 INFO  [http-nio-3001-exec-5] [ef600279d16548cda2a36b9e8350cf3c] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/footer/public status=200 durationMs=3 ip=127.0.0.1 operation=SiteFooterConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:01.046 INFO  [http-nio-3001-exec-5] [13bfd8d63ea64ac6a15775539216f6fa] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=5 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:01.167 INFO  [http-nio-3001-exec-10] [b63786c65b0d42a2858c91f5a1c8ac6e] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=2 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:01.168 INFO  [http-nio-3001-exec-9] [7522f1eea3a24b4394ff296cd23fea68] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/frontend-header status=200 durationMs=2 ip=127.0.0.1 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:01.173 INFO  [http-nio-3001-exec-8] [f338e636f3594a4eafa7e0ec5a0d83e7] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic-category/tree status=200 durationMs=5 ip=127.0.0.1 operation=ScenicCategoryController.getCategoryTree userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:01.182 INFO  [http-nio-3001-exec-2] [38e02955745a4457af214668319affe7] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/footer/public status=200 durationMs=1 ip=127.0.0.1 operation=SiteFooterConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:01.191 INFO  [http-nio-3001-exec-7] [ed38b5aa79734e64a03ddf3cdc90560d] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic/page status=200 durationMs=25 ip=127.0.0.1 operation=ScenicSpotController.getScenicSpotsByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:04.136 INFO  [http-nio-3001-exec-3] [149e0e980cfe4c688fae57cee61abb32] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=2 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:04.279 INFO  [http-nio-3001-exec-7] [0d324b80695647daa0eb7a5cbe51358c] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=1 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:04.281 INFO  [http-nio-3001-exec-8] [f0f31ad55b834f74a9aaa84b2468635c] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/frontend-header status=200 durationMs=2 ip=127.0.0.1 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:04.295 INFO  [http-nio-3001-exec-2] [8eda343058434b3c9c642ff63e10197d] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/footer/public status=200 durationMs=3 ip=127.0.0.1 operation=SiteFooterConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:04.295 INFO  [http-nio-3001-exec-9] [681724ad351644d193d3e632529fa9d5] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/page status=200 durationMs=13 ip=127.0.0.1 operation=TravelGuideController.getGuidesByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:08.003 INFO  [http-nio-3001-exec-9] [fcdb3df516f74723b1964aaa1ebda227] o.e.s.c.AccommodationController - 分页查询住宿列表，参数：name=null, scenicId=null, type=null, price=null~null, rating>=null, page=1, size=12
+2026-06-03 10:20:08.003 INFO  [http-nio-3001-exec-5] [7589e27dac2a4a1db388d4f1471cca75] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=2 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:08.009 INFO  [http-nio-3001-exec-4] [8afbe51a96894f75a0e650015497b5ff] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/frontend-header status=200 durationMs=6 ip=127.0.0.1 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:08.011 INFO  [http-nio-3001-exec-2] [61f93b6f7a16405f916927002c0eeae1] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:08.023 INFO  [http-nio-3001-exec-9] [fcdb3df516f74723b1964aaa1ebda227] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/accommodation/page status=200 durationMs=20 ip=127.0.0.1 operation=AccommodationController.getAccommodationsByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:08.068 INFO  [http-nio-3001-exec-7] [0d9c151c8a9446fa86e1e08410a98f8d] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/accommodation/types status=200 durationMs=66 ip=127.0.0.1 operation=AccommodationController.getAccommodationTypes userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:08.154 INFO  [http-nio-3001-exec-8] [6bd22d39fc614fd3a40567f303cd8974] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/scenic/page status=200 durationMs=152 ip=127.0.0.1 operation=ScenicSpotController.getScenicSpotsByPage userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:08.351 INFO  [http-nio-3001-exec-6] [a9be7917242647edb7a5e5a62582c04c] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/footer/public status=200 durationMs=1 ip=127.0.0.1 operation=SiteFooterConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:20.944 INFO  [http-nio-3001-exec-3] [7b2b6477b215432799b2f128f783ae16] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=7 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:21.145 INFO  [http-nio-3001-exec-10] [f76b280e1e2b41a88211c5f9065eafd7] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/carousel/active status=200 durationMs=1 ip=127.0.0.1 operation=CarouselController.getActiveCarousels userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:21.147 INFO  [http-nio-3001-exec-1] [071d64a97fea40a58260542b20253f44] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/home status=200 durationMs=2 ip=127.0.0.1 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:21.152 INFO  [http-nio-3001-exec-4] [74ff23a6f18b4e4296ec0893ed89bc19] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/guide/hot status=200 durationMs=4 ip=127.0.0.1 operation=TravelGuideController.getHotGuides userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:21.153 INFO  [http-nio-3001-exec-5] [75d319bfc1e64ccd9b9153098469d19d] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/featured status=200 durationMs=9 ip=127.0.0.1 operation=TourController.getFeaturedTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:21.162 INFO  [http-nio-3001-exec-2] [558786a8456b4aebafec06c429b8e412] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/tour/more status=200 durationMs=18 ip=127.0.0.1 operation=TourController.getMoreTours userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:21.286 INFO  [http-nio-3001-exec-7] [9e8666ee6c94446f99cdb01413c012bb] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/page-content/public/frontend-header status=200 durationMs=2 ip=127.0.0.1 operation=PageContentConfigController.getPublicContent userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:21.493 INFO  [http-nio-3001-exec-6] [168754f09d4940d19523a5cc9c320279] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/assets/public status=200 durationMs=4 ip=127.0.0.1 operation=SiteAssetConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:21.922 INFO  [http-nio-3001-exec-4] [42a1a6954dbf4a2ab99bc774d1470424] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/site/footer/public status=200 durationMs=3 ip=127.0.0.1 operation=SiteFooterConfigController.getPublicConfig userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:35.960 INFO  [http-nio-3001-exec-7] [295a5c5bdb6e4447b7127a965a590071] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=1 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:36.504 INFO  [http-nio-3001-exec-5] [1375d8dc41fb47d193aca29228851301] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=3 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:36.809 INFO  [http-nio-3001-exec-9] [305b12df497045f0bbb22e329b933381] o.e.springboot.aspect.LogAspect - http_access method=GET path=/api/notification/unread-count status=200 durationMs=4 ip=127.0.0.1 operation=SiteNotificationController.unreadCount userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+2026-06-03 10:20:56.376 INFO  [SpringApplicationShutdownHook] [no-request] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-06-03 10:20:56.384 INFO  [SpringApplicationShutdownHook] [no-request] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
