@@ -228,11 +228,13 @@
         <!-- 中间信息 -->
         <div class="card-content">
           <div class="card-title">
-            <div class="star-badge">
-              <span class="num">{{ item.starRating || 4.8 }}</span>
-              <span class="star">★</span>
-            </div>
-            <h3>{{ item.title }}</h3>
+            <h3>
+              <span class="star-badge">
+                <span class="num">{{ item.starRating || 4.8 }}</span>
+                <span class="star">★</span>
+              </span>
+              <span class="title-text">{{ item.title }}</span>
+            </h3>
           </div>
 
           <!-- 出发城市 - 左对齐显示 -->
@@ -310,11 +312,13 @@
 
               <div class="card-content">
                 <div class="card-title">
-                  <div class="star-badge">
-                    <span class="num">{{ item.starRating || 4.8 }}</span>
-                    <span class="star">★</span>
-                  </div>
-                  <h3>{{ item.title }}</h3>
+                  <h3>
+                    <span class="star-badge">
+                      <span class="num">{{ item.starRating || 4.8 }}</span>
+                      <span class="star">★</span>
+                    </span>
+                    <span class="title-text">{{ item.title }}</span>
+                  </h3>
                 </div>
 
                 <div class="card-row departure-row">
@@ -1440,35 +1444,43 @@ onMounted(() => {
 }
 
 .card-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  width: 100%;
   margin-bottom: 4px;
+  text-align: left;
 }
 
 .star-badge {
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  margin-right: 10px;
   background: linear-gradient(135deg, #ff9a3c, #FF9A00);
   color: #fff;
-  font-size: 12px;
-  padding: 2px 10px;
-  border-radius: 16px;
-  flex-shrink: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  padding: 0 0.625rem;
+  border-radius: 999px;
+  vertical-align: text-bottom;
 }
 
 .star-badge .star {
-  font-size: 11px;
+  font-size: 0.92em;
+  line-height: 1;
 }
 
 .card-title h3 {
+  display: block;
+  width: 100%;
   margin: 0;
   font-size: 16px;
   font-weight: 600;
   color: #222;
   line-height: 1.4;
+  text-align: left;
+}
+
+.title-text {
+  vertical-align: baseline;
 }
 
 .card-row {
