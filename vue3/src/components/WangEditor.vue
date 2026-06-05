@@ -9,6 +9,8 @@
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import '@wangeditor/editor/dist/css/style.css'
 import '@/styles/content-display.css'
+import { ElMessage } from 'element-plus'
+import { prepareImageUploadFormData } from '@/utils/imageCompression'
 
 const props = defineProps({
   modelValue: {
@@ -60,20 +62,29 @@ const createEditor = async () => {
         },
         MENU_CONF: {
           uploadImage: {
-            server: props.uploadImgServer,
-            fieldName: 'file',
-            customInsert(res, insertFn) {
-              const url = res.data
-              insertFn(url.startsWith('/') ? `/api${url}` : `/api/${url}`)
-            },
-            onSuccess(file, res) {
-              console.log('图片上传成功', res)
-            },
-            onFailed(file, res) {
-              console.error('图片上传失败', res)
-            },
-            onError(file, err, res) {
-              console.error('图片上传出错', err, res)
+            async customUpload(file, insertFn) {
+              try {
+                const formData = new FormData()
+                formData.append('file', file)
+                const uploadData = await prepareImageUploadFormData(props.uploadImgServer, formData)
+
+                const response = await fetch(props.uploadImgServer, {
+                  method: 'POST',
+                  body: uploadData,
+                  credentials: 'include'
+                })
+                const res = await response.json()
+                if (res.code !== '200') {
+                  throw new Error(res.msg || '图片上传失败')
+                }
+                const url = res.data
+                insertFn(url.startsWith('/') ? `/api${url}` : `/api/${url}`)
+                ElMessage.success('图片上传成功')
+              } catch (error) {
+                if (error.message !== '已取消上传') {
+                  ElMessage.error(error.message || '图片上传失败')
+                }
+              }
             }
           }
         },

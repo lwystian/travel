@@ -3,6 +3,7 @@ package org.example.springboot.security;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,6 +31,7 @@ public class SecurityProperties {
     private boolean sqlInjectionCheckEnabled = true;
     private boolean xssProtectionEnabled = true;
     private boolean passwordEncryptionEnabled = false;
+    private Duration tokenExpire = Duration.ofHours(2);
 
     public List<String> getAllowedOrigins() {
         return allowedOrigins;
@@ -85,5 +87,13 @@ public class SecurityProperties {
 
     public void setPasswordEncryptionEnabled(boolean passwordEncryptionEnabled) {
         this.passwordEncryptionEnabled = passwordEncryptionEnabled;
+    }
+
+    public Duration getTokenExpire() {
+        return tokenExpire;
+    }
+
+    public void setTokenExpire(Duration tokenExpire) {
+        this.tokenExpire = tokenExpire;
     }
 }

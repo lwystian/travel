@@ -127,6 +127,7 @@ import { useUserStore } from '@/store/user'
 import request from '@/utils/request'
 import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
 import noImage from '@/assets/images/no-image.png'
+import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
 
 const route = useRoute()
 const userStore = useUserStore()
@@ -387,14 +388,8 @@ const removeSectionItem = (section, index) => {
 }
 
 const beforeImageUpload = (file) => {
-  const validType = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
-  const validSize = file.size / 1024 / 1024 < 3
-  if (!validType) {
-    ElMessage.error('仅支持 JPG、PNG、WebP 图片')
-    return false
-  }
-  if (!validSize) {
-    ElMessage.error('图片大小不能超过 3MB')
+  if (!isSupportedImageFile(file)) {
+    ElMessage.error(getSupportedImageMessage())
     return false
   }
   return true

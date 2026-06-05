@@ -490,6 +490,7 @@ public class UserController {
             return;
         }
         JwtTokenUtils.writeTokenCookie(response, user.getToken(), isSecureRequest(request));
+        JwtTokenUtils.writeTokenExpireHeader(response);
         user.setToken(null);
     }
 

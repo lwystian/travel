@@ -265,6 +265,7 @@ import { useUserStore } from '@/store/user'
 import request from '@/utils/request'
 import GeetestBox from '@/components/auth/GeetestBox.vue'
 import { maskEmail, maskPhone } from '@/utils/mask'
+import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const userStore = useUserStore()
@@ -475,16 +476,8 @@ const fetchUserInfo = async () => {
 
 // 上传头像前的校验
 const beforeAvatarUpload = (file) => {
-  const isJPG = file.type === 'image/jpeg'
-  const isPNG = file.type === 'image/png'
-  const isLt2M = file.size / 1024 / 1024 < 2
-
-  if (!isJPG && !isPNG) {
-    ElMessage.error('头像只能是 JPG 或 PNG 格式!')
-    return false
-  }
-  if (!isLt2M) {
-    ElMessage.error('头像大小不能超过 2MB!')
+  if (!isSupportedImageFile(file)) {
+    ElMessage.error(getSupportedImageMessage())
     return false
   }
   return true

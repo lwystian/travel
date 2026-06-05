@@ -339,6 +339,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
 import ChinaRegionData from '@/assets/中国地区数据.json'
+import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 
@@ -605,15 +606,8 @@ const resetForm = () => {
 
 // 图片上传相关
 const beforeImageUpload = (file) => {
-  const isJPG = file.type === 'image/jpeg'
-  const isPNG = file.type === 'image/png'
-  const isLt2M = file.size / 1024 / 1024 < 2
-  if (!isJPG && !isPNG) {
-    ElMessage.error('图片只能是 JPG 或 PNG 格式!')
-    return false
-  }
-  if (!isLt2M) {
-    ElMessage.error('图片大小不能超过 2MB!')
+  if (!isSupportedImageFile(file)) {
+    ElMessage.error(getSupportedImageMessage())
     return false
   }
   return true

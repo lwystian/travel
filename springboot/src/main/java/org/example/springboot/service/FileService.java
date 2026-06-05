@@ -4,10 +4,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.example.springboot.common.Result;
 import org.example.springboot.enumClass.FileType;
 import org.example.springboot.util.FileUtil;
+import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,16 +26,25 @@ import java.util.Set;
 @Service
 public class FileService {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileService.class);
-    private static final long MAX_IMAGE_SIZE = 10 * 1024 * 1024;
     private static final long MAX_COMMON_SIZE = 100 * 1024 * 1024;
     private static final Set<String> IMAGE_CONTENT_TYPES = Set.of(
             "image/jpeg",
+            "image/jpg",
             "image/png",
             "image/webp",
             "image/gif",
             "image/x-icon",
-            "image/vnd.microsoft.icon"
+            "image/vnd.microsoft.icon",
+            "image/bmp",
+            "image/x-ms-bmp",
+            "image/avif",
+            "image/tiff",
+            "image/heic",
+            "image/heif"
     );
+
+    @Value("${app.upload.image-max-size:2MB}")
+    private DataSize maxImageSize;
     private static final Set<String> VIDEO_CONTENT_TYPES = Set.of(
             "video/mp4",
             "video/webm",
@@ -144,7 +155,7 @@ public class FileService {
         if (file == null || file.isEmpty()) {
             return false;
         }
-        long maxSize = FileType.IMG.equals(fileType) ? MAX_IMAGE_SIZE : MAX_COMMON_SIZE;
+        long maxSize = FileType.IMG.equals(fileType) ? getMaxImageSizeBytes() : MAX_COMMON_SIZE;
         if (file.getSize() > maxSize) {
             LOGGER.warn("Rejected upload by size: filename={}, size={}", file.getOriginalFilename(), file.getSize());
             return false;
@@ -164,5 +175,9 @@ public class FileService {
             }
         }
         return true;
+    }
+
+    public long getMaxImageSizeBytes() {
+        return maxImageSize == null ? DataSize.ofMegabytes(2).toBytes() : maxImageSize.toBytes();
     }
 }

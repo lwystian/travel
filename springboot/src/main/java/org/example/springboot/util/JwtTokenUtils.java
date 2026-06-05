@@ -1,7 +1,6 @@
 package org.example.springboot.util;
 
 
-import cn.hutool.core.date.DateUtil;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
@@ -12,6 +11,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.example.springboot.entity.User;
+import org.example.springboot.security.SecurityProperties;
 import org.example.springboot.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +20,8 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
@@ -29,6 +31,7 @@ public class JwtTokenUtils {
     private static UserService staticUserService;
     private static RedisUtil staticRedisUtil;
     private static ObjectMapper staticObjectMapper;
+    private static SecurityProperties staticSecurityProperties;
     
     @Resource
     private UserService userService;
@@ -38,32 +41,35 @@ public class JwtTokenUtils {
     
     @Resource
     private ObjectMapper objectMapper;
+
+    @Resource
+    private SecurityProperties securityProperties;
     
     public static final Logger LOGGER = LoggerFactory.getLogger(JwtTokenUtils.class);
     
     public static final String USER_TOKEN_KEY_PREFIX = "user:token:";
     public static final String USER_ID_KEY_PREFIX = "user:id:";
     public static final String ACCESS_TOKEN_COOKIE = "ACCESS_TOKEN";
-    public static final long TOKEN_EXPIRE = 2 * 60 * 60; // 2小时
-    public static final int TOKEN_EXPIRE_HOURS = 2;
     
     @PostConstruct
     public void setServices() {
         staticUserService = userService;
         staticRedisUtil = redisUtil;
         staticObjectMapper = objectMapper;
+        staticSecurityProperties = securityProperties;
     }
     
     public static String genToken(String userId, String sign) {
         String safeUserId = Objects.requireNonNull(userId, "userId must not be null");
         String safeSign = Objects.requireNonNull(sign, "jwt sign must not be null");
+        Date expiresAt = Date.from(Instant.now().plusSeconds(getTokenExpireSeconds()));
         String token = JWT.create()
                 .withAudience(safeUserId)
-                .withExpiresAt(DateUtil.offsetHour(new Date(), TOKEN_EXPIRE_HOURS))
+                .withExpiresAt(expiresAt)
                 .sign(Algorithm.HMAC256(safeSign));
         
         // 将token和用户ID的映射关系存入Redis，方便后续查询和管理
-        redisUtil().set(USER_TOKEN_KEY_PREFIX + token, safeUserId, TOKEN_EXPIRE);
+        redisUtil().set(USER_TOKEN_KEY_PREFIX + token, safeUserId, getTokenExpireSeconds());
         
         return token;
     }
@@ -97,12 +103,19 @@ public class JwtTokenUtils {
             return;
         }
         String cookie = ACCESS_TOKEN_COOKIE + "=" + token
-                + "; Max-Age=" + TOKEN_EXPIRE
+                + "; Max-Age=" + getTokenExpireSeconds()
                 + "; Path=/"
                 + "; HttpOnly"
                 + (secure ? "; Secure" : "")
                 + "; SameSite=Lax";
         response.addHeader("Set-Cookie", cookie);
+    }
+
+    public static void writeTokenExpireHeader(HttpServletResponse response) {
+        if (response == null) {
+            return;
+        }
+        response.setHeader("X-Token-Expire", String.valueOf(getTokenExpireAtMillis()));
     }
 
     public static void clearTokenCookie(HttpServletResponse response, boolean secure) {
@@ -150,7 +163,7 @@ public class JwtTokenUtils {
                     return null;
                 }
                 // 将解析到的用户ID存入Redis
-                redisUtil().set(USER_TOKEN_KEY_PREFIX + token, Objects.requireNonNull(userId, "userId must not be null"), TOKEN_EXPIRE);
+                redisUtil().set(USER_TOKEN_KEY_PREFIX + token, Objects.requireNonNull(userId, "userId must not be null"), secondsUntil(expiresAt));
             }
             
             // 尝试从Redis中获取用户信息
@@ -184,7 +197,7 @@ public class JwtTokenUtils {
                 user = staticUserService.getUserById(Long.valueOf(userId));
                 if (user != null) {
                     // 将用户信息存入Redis
-                    redisUtil().set(userKey, Objects.requireNonNull(user, "user must not be null"), TOKEN_EXPIRE);
+                    redisUtil().set(userKey, Objects.requireNonNull(user, "user must not be null"), getTokenExpireSeconds());
                 }
             }
             
@@ -203,33 +216,10 @@ public class JwtTokenUtils {
     public static void updateUserCache(User user) {
         if (user != null && user.getId() != null) {
             String userKey = USER_ID_KEY_PREFIX + user.getId();
-            redisUtil().set(userKey, Objects.requireNonNull(user, "user must not be null"), TOKEN_EXPIRE);
+            redisUtil().set(userKey, Objects.requireNonNull(user, "user must not be null"), getTokenExpireSeconds());
         }
     }
 
-    public static String refreshToken(String oldToken, User user) {
-        if (user == null || user.getId() == null || StringUtils.isBlank(user.getPassword())) {
-            return null;
-        }
-        String newToken = genToken(String.valueOf(user.getId()), user.getPassword());
-        if (StringUtils.isNotBlank(oldToken)) {
-            redisUtil().del(USER_TOKEN_KEY_PREFIX + oldToken);
-        }
-        updateUserCache(user);
-        return newToken;
-    }
-
-    public static void renewTokenTtl(String token, String userId) {
-        if (StringUtils.isBlank(token) || StringUtils.isBlank(userId)) {
-            return;
-        }
-        redisUtil().set(USER_TOKEN_KEY_PREFIX + token, Objects.requireNonNull(userId, "userId must not be null"), TOKEN_EXPIRE);
-        Object cachedUser = redisUtil().get(USER_ID_KEY_PREFIX + userId);
-        if (cachedUser != null) {
-            redisUtil().set(USER_ID_KEY_PREFIX + userId, cachedUser, TOKEN_EXPIRE);
-        }
-    }
-    
     /**
      * 清除用户的缓存信息
      * 
@@ -249,5 +239,23 @@ public class JwtTokenUtils {
 
     private static RedisUtil redisUtil() {
         return Objects.requireNonNull(staticRedisUtil, "RedisUtil has not been initialized");
+    }
+
+    public static long getTokenExpireSeconds() {
+        Duration duration = staticSecurityProperties == null ? Duration.ofHours(2) : staticSecurityProperties.getTokenExpire();
+        long seconds = duration == null ? Duration.ofHours(2).getSeconds() : duration.getSeconds();
+        return Math.max(60, seconds);
+    }
+
+    public static long getTokenExpireAtMillis() {
+        return System.currentTimeMillis() + getTokenExpireSeconds() * 1000;
+    }
+
+    private static long secondsUntil(Date expiresAt) {
+        if (expiresAt == null) {
+            return getTokenExpireSeconds();
+        }
+        long seconds = (expiresAt.getTime() - System.currentTimeMillis()) / 1000;
+        return Math.max(1, seconds);
     }
 }

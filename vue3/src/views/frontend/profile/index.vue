@@ -580,6 +580,7 @@ import {User,Lock,Key,Check,Camera,Phone,Message,EditPen,ChatDotRound,Location,B
 import { formatDate } from '@/utils/dateUtils'
 import { maskEmail, maskPhone } from '@/utils/mask'
 import { getFrequentTravelers, saveFrequentTraveler, updateFrequentTraveler, deleteFrequentTraveler } from '@/api/frequentTraveler'
+import { getSupportedImageMessage, isSupportedImageFile } from "@/utils/imageCompression";
 
 const baseAPI = process.env.VUE_APP_BASE_API || "/api";
 const userStore = useUserStore();
@@ -851,16 +852,8 @@ const getUserInfo = async () => {
 
 // 上传头像前的校验
 const beforeAvatarUpload = (file) => {
-  const isJPG = file.type === "image/jpeg";
-  const isPNG = file.type === "image/png";
-  const isLt2M = file.size / 1024 / 1024 < 2;
-
-  if (!isJPG && !isPNG) {
-    ElMessage.error("头像只能是 JPG 或 PNG 格式!");
-    return false;
-  }
-  if (!isLt2M) {
-    ElMessage.error("头像大小不能超过 2MB!");
+  if (!isSupportedImageFile(file)) {
+    ElMessage.error(getSupportedImageMessage());
     return false;
   }
   return true;

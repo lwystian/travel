@@ -51,7 +51,7 @@
               <div v-else class="upload-placeholder">
                 <el-icon class="upload-icon"><Plus /></el-icon>
                 <span>上传封面图片</span>
-                <div class="upload-tip">推荐尺寸: 900×600px, JPG/PNG格式</div>
+                <div class="upload-tip">推荐尺寸: 900×600px，支持多种常见图片格式</div>
               </div>
             </el-upload>
             <div class="form-tips" v-if="!form.coverImage">
@@ -90,6 +90,7 @@ import request from '@/utils/request'
 import noImage from '@/assets/images/no-image.png'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
+import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const form = reactive({
@@ -132,15 +133,8 @@ onMounted(async () => {
 })
 
 const beforeCoverUpload = (file) => {
-  const isJPG = file.type === 'image/jpeg'
-  const isPNG = file.type === 'image/png'
-  const isLt2M = file.size / 1024 / 1024 < 2
-  if (!isJPG && !isPNG) {
-    ElMessage.error('封面只能是 JPG 或 PNG 格式!')
-    return false
-  }
-  if (!isLt2M) {
-    ElMessage.error('封面大小不能超过 2MB!')
+  if (!isSupportedImageFile(file)) {
+    ElMessage.error(getSupportedImageMessage())
     return false
   }
   return true

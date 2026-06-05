@@ -43,11 +43,13 @@ public class TourController {
             @RequestParam(defaultValue = "") String intentDestination,
             @RequestParam(defaultValue = "") String matchMode,
             @RequestParam(defaultValue = "default") String sortType,
+            @RequestParam(defaultValue = "false") Boolean includeInactive,
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "10") Integer pageSize) {
         String effectiveKeyword = !keyword.isBlank() ? keyword : search;
+        boolean canIncludeInactive = Boolean.TRUE.equals(includeInactive) && RolePermission.isAdmin(JwtTokenUtils.getCurrentUser());
         Page<Tour> page = tourService.getToursByPage(
-            effectiveKeyword, tourType, city, destination, days, month, priceRange, searchMode, intentDestination, matchMode, sortType, currentPage, pageSize);
+            effectiveKeyword, tourType, city, destination, days, month, priceRange, searchMode, intentDestination, matchMode, sortType, canIncludeInactive, currentPage, pageSize);
         return Result.success(page);
     }
 

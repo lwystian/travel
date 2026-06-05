@@ -28,7 +28,6 @@ public class CorsConfig {
         });
         config.addAllowedHeader("*");
         securityProperties.getAllowedMethods().forEach(config::addAllowedMethod);
-        config.addExposedHeader("X-Refresh-Token");
         config.addExposedHeader("X-Token-Expire");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

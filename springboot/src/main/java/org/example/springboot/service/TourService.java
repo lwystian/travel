@@ -65,6 +65,7 @@ public class TourService {
             String intentDestination,
             String matchMode,
             String sortType,
+            boolean includeInactive,
             Integer currentPage,
             Integer size) {
         LambdaQueryWrapper<Tour> queryWrapper = new LambdaQueryWrapper<>();
@@ -77,8 +78,9 @@ public class TourService {
             }
         }
 
-        // 只查询上架的行程
-        queryWrapper.eq(Tour::getStatus, 1);
+        if (!includeInactive) {
+            queryWrapper.eq(Tour::getStatus, 1);
+        }
 
         applySort(queryWrapper, sortType);
 

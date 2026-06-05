@@ -28,7 +28,7 @@
               <el-button v-if="img" type="danger" size="small" @click="removeImage(index)">删除</el-button>
             </div>
           </div>
-          <div class="image-tip">建议尺寸：800x600，支持 JPG、PNG 格式</div>
+          <div class="image-tip">建议尺寸：800x600，支持多种常见图片格式</div>
           <div class="section-actions">
             <el-button type="primary" @click="saveImages">保存图片</el-button>
           </div>
@@ -564,6 +564,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Upload, InfoFilled } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import RichMarkdownEditor from '@/components/RichMarkdownEditor.vue'
+import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
 import {
   getTourPackages,
   addTourPackage,
@@ -836,11 +837,11 @@ const removeImage = (index) => {
 }
 
 const beforeImageUpload = (file) => {
-  const isImage = file.type.startsWith('image/')
-  const isLt5M = file.size / 1024 / 1024 < 5
-  if (!isImage) ElMessage.error('只能上传图片!')
-  if (!isLt5M) ElMessage.error('图片大小不能超过5MB!')
-  return isImage && isLt5M
+  if (!isSupportedImageFile(file)) {
+    ElMessage.error(getSupportedImageMessage())
+    return false
+  }
+  return true
 }
 
 // 视频上传

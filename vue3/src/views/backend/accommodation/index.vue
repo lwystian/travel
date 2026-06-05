@@ -222,7 +222,7 @@
             </el-icon>
           </el-upload>
           <div class="upload-tip">
-            图片格式: JPG/PNG, 大小不超过2MB
+            支持格式: {{ SUPPORTED_IMAGE_FORMAT_LABEL }}，最终大小不超过上传配置
           </div>
         </el-form-item>
         
@@ -252,6 +252,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { Delete, Edit, Plus } from '@element-plus/icons-vue'
 import noImage from '@/assets/images/no-image.png'
+import { getSupportedImageMessage, isSupportedImageFile, SUPPORTED_IMAGE_FORMAT_LABEL } from '@/utils/imageCompression'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 
@@ -461,20 +462,11 @@ const handleDelete = (row) => {
 
 // 上传图片前的校验
 const beforeImageUpload = (file) => {
-  const isJPG = file.type === 'image/jpeg'
-  const isPNG = file.type === 'image/png'
-  const isLt2M = file.size / 1024 / 1024 < 2
+  if (!isSupportedImageFile(file)) {
+    ElMessage.error(getSupportedImageMessage())
+    return false
+  }
 
-  if (!isJPG && !isPNG) {
-    ElMessage.error('上传图片只能是 JPG 或 PNG 格式!')
-    return false
-  }
-  
-  if (!isLt2M) {
-    ElMessage.error('上传图片大小不能超过 2MB!')
-    return false
-  }
-  
   return true
 }
 

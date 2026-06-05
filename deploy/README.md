@@ -34,6 +34,8 @@ REDIS_PASSWORD=change-this-redis-password
 APP_SUPER_ADMIN_INITIAL_PASSWORD=change-this-admin-password
 USER_DEFAULT_PASSWORD=change-this-default-password
 APP_SECURITY_ALLOWED_ORIGINS=https://your-domain.com,http://your-server-ip
+APP_SECURITY_TOKEN_EXPIRE=2h
+APP_UPLOAD_IMAGE_MAX_SIZE=2MB
 ```
 
 启动：

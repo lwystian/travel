@@ -129,6 +129,7 @@ import { Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import noImage from '@/assets/images/no-image.png'
+import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
 
 // 基础 API 路径
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
@@ -271,16 +272,8 @@ const handleDelete = (row) => {
 
 // 上传前的校验
 const beforeImageUpload = (file) => {
-  const isJPG = file.type === 'image/jpeg'
-  const isPNG = file.type === 'image/png'
-  const isLt2M = file.size / 1024 / 1024 < 2
-
-  if (!isJPG && !isPNG) {
-    ElMessage.error('轮播图片只能是 JPG 或 PNG 格式!')
-    return false
-  }
-  if (!isLt2M) {
-    ElMessage.error('轮播图片大小不能超过 2MB!')
+  if (!isSupportedImageFile(file)) {
+    ElMessage.error(getSupportedImageMessage())
     return false
   }
   return true

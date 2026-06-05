@@ -194,7 +194,7 @@
                 <div v-else class="upload-placeholder">
                   <el-icon><Picture /></el-icon>
                   <span>点击上传封面</span>
-                  <div class="upload-tips">支持JPG、PNG (800×450px)</div>
+                  <div class="upload-tips">支持多种常见图片格式 (800×450px)</div>
                 </div>
               </el-upload>
             </el-form-item>
@@ -238,6 +238,7 @@ import { Search, Refresh, Edit, Delete, View, Plus, Camera, Picture } from '@ele
 import WangEditor from '@/components/WangEditor.vue'
 import { useUserStore } from '@/store/user'
 import { renderContent } from '@/utils/contentRenderer'
+import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
 
 // 用户状态
 const userStore = useUserStore()
@@ -421,16 +422,8 @@ const resetGuideForm = () => {
 
 // 封面上传前校验
 const beforeCoverUpload = (file) => {
-  const isJPG = file.type === 'image/jpeg'
-  const isPNG = file.type === 'image/png'
-  const isLt2M = file.size / 1024 / 1024 < 2
-
-  if (!isJPG && !isPNG) {
-    ElMessage.error('封面图片只能是JPG或PNG格式!')
-    return false
-  }
-  if (!isLt2M) {
-    ElMessage.error('封面图片大小不能超过2MB!')
+  if (!isSupportedImageFile(file)) {
+    ElMessage.error(getSupportedImageMessage())
     return false
   }
   return true

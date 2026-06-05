@@ -27,7 +27,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 public class JwtInterceptor implements HandlerInterceptor {
     public static final Logger LOGGER = LoggerFactory.getLogger(HandlerInterceptor.class);
-    private static final long REFRESH_THRESHOLD_SECONDS = 30 * 60;
     private static final String[] PUBLIC_GET_PREFIXES = {
             "/api/accommodation",
             "/api/carousel/active",
@@ -122,7 +121,6 @@ public class JwtInterceptor implements HandlerInterceptor {
             response.getWriter().print("{\"code\":\"401\",\"msg\":\"登录验证失败，请重新登录\"}");
             return false;
         }
-        renewTokenIfNeeded(token, redisUserId, user, request, response);
         return HandlerInterceptor.super.preHandle(request, response, handler);
     }
 
@@ -147,31 +145,4 @@ public class JwtInterceptor implements HandlerInterceptor {
         return path.startsWith(boundaryPrefix);
     }
 
-    private void renewTokenIfNeeded(String token, String userId, User user, HttpServletRequest request, HttpServletResponse response) {
-        if (StringUtils.isBlank(token) || StringUtils.isBlank(userId)) {
-            return;
-        }
-        JwtTokenUtils.renewTokenTtl(token, userId);
-        try {
-            long expiresAt = JWT.decode(token).getExpiresAt().getTime();
-            long remainingSeconds = (expiresAt - System.currentTimeMillis()) / 1000;
-            response.setHeader("X-Token-Expire", String.valueOf(System.currentTimeMillis() + JwtTokenUtils.TOKEN_EXPIRE * 1000));
-            response.setHeader("Access-Control-Expose-Headers", "X-Refresh-Token,X-Token-Expire");
-            if (remainingSeconds > 0 && remainingSeconds <= REFRESH_THRESHOLD_SECONDS) {
-                String newToken = JwtTokenUtils.refreshToken(token, user);
-                if (StringUtils.isNotBlank(newToken)) {
-                    response.setHeader("X-Refresh-Token", newToken);
-                    response.setHeader("X-Token-Expire", String.valueOf(System.currentTimeMillis() + JwtTokenUtils.TOKEN_EXPIRE * 1000));
-                    JwtTokenUtils.writeTokenCookie(response, newToken, isSecureRequest(request));
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.warn("刷新token有效期失败", e);
-        }
-    }
-
-    private boolean isSecureRequest(HttpServletRequest request) {
-        String forwardedProto = request.getHeader("X-Forwarded-Proto");
-        return request.isSecure() || "https".equalsIgnoreCase(forwardedProto);
-    }
 }

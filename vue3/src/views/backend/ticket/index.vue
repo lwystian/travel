@@ -332,6 +332,7 @@ import { Plus, Search, Refresh, Edit, Delete, Switch, ArrowDown, List } from '@e
 import request from '@/utils/request'
 import TourDetailManager from './TourDetailManager.vue'
 import { tourTypeOptions, getTourTypeLabel } from '@/utils/tourTypes'
+import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
 
 // 出发城市映射
 const cityMap = {
@@ -653,14 +654,8 @@ const handleImageUpload = async (options) => {
 
 // 图片上传前校验
 const beforeImageUpload = (file) => {
-  const isImage = file.type.startsWith('image/')
-  const isLt5M = file.size / 1024 / 1024 < 5
-  if (!isImage) {
-    ElMessage.error('只能上传图片文件!')
-    return false
-  }
-  if (!isLt5M) {
-    ElMessage.error('图片大小不能超过 5MB!')
+  if (!isSupportedImageFile(file)) {
+    ElMessage.error(getSupportedImageMessage())
     return false
   }
   return true
@@ -710,6 +705,7 @@ const fetchTours = async () => {
       tourType: searchForm.tourType,
       city: searchForm.city,
       destination: searchForm.destination,
+      includeInactive: true,
       currentPage: currentPage.value,
       pageSize: pageSize.value
     }, {

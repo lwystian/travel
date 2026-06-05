@@ -2,9 +2,9 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
 import logger from '@/utils/logger'
+import { prepareImageUploadFormData } from '@/utils/imageCompression'
 
 let isHandlingTokenExpired = false
-const TOKEN_EXPIRE_TIME = 2 * 60 * 60 * 1000
 
 const clearAuthStorage = () => {
   localStorage.removeItem('userInfo')
@@ -51,10 +51,14 @@ const service = axios.create({
 })
 
 service.interceptors.request.use(
-  config => {
+  async config => {
     if (config.method === 'get') {
       config.headers['Cache-Control'] = 'no-cache'
       config.headers.Pragma = 'no-cache'
+    }
+
+    if (config.method?.toLowerCase() === 'post' && config.data instanceof FormData) {
+      config.data = await prepareImageUploadFormData(config.url, config.data)
     }
 
     return config
@@ -65,25 +69,11 @@ service.interceptors.request.use(
   }
 )
 
-const refreshTokenExpire = () => {
-  const tokenExpire = localStorage.getItem('tokenExpire')
-  if (!tokenExpire) return
-
-  const remaining = Number(tokenExpire) - Date.now()
-  if (remaining < 60 * 60 * 1000) {
-    const newExpire = Date.now() + TOKEN_EXPIRE_TIME
-    localStorage.setItem('tokenExpire', newExpire.toString())
-  }
-}
-
 const syncAuthFromHeaders = (response) => {
-  const refreshedToken = response.headers?.['x-refresh-token']
   const tokenExpire = response.headers?.['x-token-expire']
 
   if (tokenExpire) {
     localStorage.setItem('tokenExpire', tokenExpire)
-  } else if (refreshedToken) {
-    localStorage.setItem('tokenExpire', String(Date.now() + TOKEN_EXPIRE_TIME))
   }
 }
 
@@ -144,7 +134,6 @@ service.interceptors.response.use(
     syncAuthFromHeaders(response)
 
     if (response.config?.responseType === 'blob') {
-      refreshTokenExpire()
       return response
     }
 
@@ -153,8 +142,6 @@ service.interceptors.response.use(
     const showDefaultMsg = config.showDefaultMsg !== false
 
     if (res.code === '200') {
-      refreshTokenExpire()
-
       try {
         if (config.successMsg) {
           ElMessage.success(config.successMsg)

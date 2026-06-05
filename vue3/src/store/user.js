@@ -4,7 +4,7 @@ import { encryptPassword } from '@/utils/passwordCrypto'
 // import { setToken, removeToken } from '@/utils/auth'
 
 const TOKEN_EXPIRE_KEY = 'tokenExpire'
-const TOKEN_EXPIRE_TIME = 2 * 60 * 60 * 1000 // 2小时
+const FALLBACK_TOKEN_EXPIRE_TIME = 2 * 60 * 60 * 1000 // 后端未返回过期时间时的兜底值
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -55,8 +55,8 @@ export const useUserStore = defineStore('user', {
       localStorage.setItem('userInfo', JSON.stringify(this.userInfo))
       localStorage.setItem('role', this.role || '')
       
-      // 存储token过期时间
-      const expireTime = Date.now() + TOKEN_EXPIRE_TIME
+      const storedExpire = localStorage.getItem(TOKEN_EXPIRE_KEY)
+      const expireTime = storedExpire || String(Date.now() + FALLBACK_TOKEN_EXPIRE_TIME)
       this.tokenExpire = expireTime
       localStorage.setItem(TOKEN_EXPIRE_KEY, expireTime.toString())
     },
@@ -143,13 +143,8 @@ export const useUserStore = defineStore('user', {
       }
       return true
     },
-    // 刷新token过期时间（在用户活跃时调用）
-    refreshTokenExpire() {
-      if (this.userInfo) {
-        const expireTime = Date.now() + TOKEN_EXPIRE_TIME
-        this.tokenExpire = expireTime
-        localStorage.setItem(TOKEN_EXPIRE_KEY, expireTime.toString())
-      }
+    syncTokenExpireFromStorage() {
+      this.tokenExpire = localStorage.getItem(TOKEN_EXPIRE_KEY) || null
     }
   }
 })

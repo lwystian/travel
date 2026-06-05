@@ -155,6 +155,7 @@ public class AuthController {
             return;
         }
         JwtTokenUtils.writeTokenCookie(response, user.getToken(), isSecureRequest(request));
+        JwtTokenUtils.writeTokenExpireHeader(response);
         user.setToken(null);
     }
 

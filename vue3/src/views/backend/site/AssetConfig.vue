@@ -44,6 +44,7 @@ import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
 import { getSiteAssets, saveSiteAssets } from '@/api/siteAssets'
 import { getAssetUrl } from '@/utils/siteAssets'
+import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -85,14 +86,8 @@ const loadConfig = async () => {
 }
 
 const beforeImageUpload = (file) => {
-  const validType = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/x-icon', 'image/vnd.microsoft.icon'].includes(file.type)
-  const validSize = file.size / 1024 / 1024 < 10
-  if (!validType) {
-    ElMessage.error('仅支持 JPG、PNG、WebP、GIF、ICO 图片')
-    return false
-  }
-  if (!validSize) {
-    ElMessage.error('图片大小不能超过 10MB')
+  if (!isSupportedImageFile(file)) {
+    ElMessage.error(getSupportedImageMessage())
     return false
   }
   return true
