@@ -3,8 +3,6 @@
     <!-- 顶部 Hero 区：背景图 + 标题 + 搜索框 -->
     <div ref="heroSection" class="hero-section" :style="heroStyle">
       <div class="hero-overlay"></div>
-      <!-- 装饰性波浪分隔线 -->
-      <div class="hero-wave-divider"></div>
       <div class="hero-content">
         <div class="hero-text">
           <h1 class="hero-title">寻一处舒心住所，让旅途更安然</h1>
@@ -470,10 +468,11 @@ $border: #ececec;
 /* ============== Hero 区 ============== */
 .hero-section {
   position: relative;
+  width: 100%;
   height: var(--page-hero-height, calc(100vh - 180px));
-  min-height: 380px;
+  min-height: 320px;
   background: var(--accommodation-hero-url)
-    center / cover no-repeat;
+    center bottom / cover no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -490,27 +489,8 @@ $border: #ececec;
   );
 }
 
-// 新增：装饰性波浪分隔线
 .hero-wave-divider {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 35px;
-  z-index: 2;
-  overflow: hidden;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 200%;
-    height: 50px;
-    background: $bg;
-    border-radius: 50% 50% 0 0 / 25px 25px 0 0;
-  }
+  display: none;
 }
 
 .hero-content {
