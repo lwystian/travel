@@ -9,6 +9,7 @@ import org.example.springboot.common.Result;
 import org.example.springboot.entity.ScenicSpot;
 import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.ScenicSpotService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +21,12 @@ import java.util.Map;
 public class ScenicSpotController {
     @Resource
     private ScenicSpotService scenicSpotService;
+
+    @Value("${app.amap.web-js-key:}")
+    private String amapWebJsKey;
+
+    @Value("${app.amap.security-code:}")
+    private String amapSecurityCode;
 
     @Operation(summary = "分页查询景点")
     @GetMapping("/page")
@@ -102,6 +109,17 @@ public class ScenicSpotController {
             @RequestParam(defaultValue = "5") Integer limit) {
         List<Map<String, Object>> suggestions = scenicSpotService.getSearchSuggestions(keyword, limit);
         return Result.success(suggestions);
+    }
+
+    @Operation(summary = "获取高德地图前端配置")
+    @GetMapping("/amap/config")
+    public Result<?> getAmapConfig() {
+        boolean enabled = amapWebJsKey != null && !amapWebJsKey.isBlank();
+        return Result.success(Map.of(
+                "enabled", enabled,
+                "webJsKey", amapWebJsKey == null ? "" : amapWebJsKey,
+                "securityCode", amapSecurityCode == null ? "" : amapSecurityCode
+        ));
     }
 
     @Operation(summary = "通过地址获取经纬度")

@@ -880,9 +880,8 @@ const customUploadAvatar = async (options) => {
       onSuccess: async (data) => {
         // 更新用户头像
         userForm.avatar = data;
-
-        // 保存到后端
-        await updateUserAvatar(data);
+        const updatedUserInfo = { ...userStore.userInfo, avatar: data };
+        userStore.updateUserInfo(updatedUserInfo);
 
         // 通知上传成功
         options.onSuccess({ data });
@@ -902,28 +901,6 @@ const customUploadAvatar = async (options) => {
   }
 };
 
-// 更新用户头像信息
-const updateUserAvatar = async (avatarPath) => {
-  try {
-    await request.put(
-      "/user/profile",
-      { avatar: avatarPath },
-      {
-        showDefaultMsg: false,
-        onSuccess: () => {
-          // 更新本地用户信息
-          const updatedUserInfo = { ...userStore.userInfo, avatar: avatarPath };
-          userStore.updateUserInfo(updatedUserInfo);
-        },
-      }
-    );
-  } catch (error) {
-    console.error("头像信息保存失败", error);
-    ElMessage.error(error.message || "头像信息保存失败");
-    throw error;
-  }
-};
-
 // 提交用户信息更新
 const submitUserInfo = async () => {
   if (!userFormRef.value) return;
@@ -938,6 +915,7 @@ const submitUserInfo = async () => {
       {
         nickname: userForm.nickname,
         sex: userForm.sex,
+        avatar: userForm.avatar,
       },
       {
         showDefaultMsg: false,
@@ -949,6 +927,7 @@ const submitUserInfo = async () => {
             ...(data || {}),
             nickname: userForm.nickname,
             sex: userForm.sex,
+            avatar: userForm.avatar,
           };
           userStore.updateUserInfo(updatedUserInfo);
         },

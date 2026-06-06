@@ -504,9 +504,8 @@ const customUploadAvatar = async (options) => {
       onSuccess: async (data) => {
         // 更新用户头像
         form.avatar = data
-
-        // 保存到后端
-        await updateUserAvatar(data)
+        const updatedUserInfo = { ...userStore.userInfo, avatar: data }
+        userStore.updateUserInfo(updatedUserInfo)
 
         // 通知上传成功
         options.onSuccess({ data })
@@ -523,29 +522,6 @@ const customUploadAvatar = async (options) => {
   } catch (error) {
     options.onError(error)
     console.error('头像上传过程发生错误:', error)
-  }
-}
-
-// 更新用户头像信息
-const updateUserAvatar = async (avatarPath) => {
-  try {
-    await request.put(
-      `/user/${form.id}`,
-      { avatar: avatarPath },
-      {
-        showDefaultMsg: false,
-        successMsg: '头像更新成功',
-        onSuccess: () => {
-          // 更新本地用户信息
-          const updatedUserInfo = { ...userStore.userInfo, avatar: avatarPath }
-          userStore.updateUserInfo(updatedUserInfo)
-        },
-      }
-    )
-  } catch (error) {
-    console.error('头像信息保存失败', error)
-    ElMessage.error(error.message || '头像信息保存失败')
-    throw error
   }
 }
 
@@ -572,7 +548,8 @@ const handleSave = async () => {
       `/user/${form.id}`,
       {
         nickname: form.nickname,
-        sex: form.sex
+        sex: form.sex,
+        avatar: form.avatar
       },
       {
         showDefaultMsg: false,
@@ -583,7 +560,8 @@ const handleSave = async () => {
           userStore.updateUserInfo({
             ...userStore.userInfo,
             nickname: form.nickname,
-            sex: form.sex
+            sex: form.sex,
+            avatar: form.avatar
           })
         }
       }

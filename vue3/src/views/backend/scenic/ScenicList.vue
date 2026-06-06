@@ -355,10 +355,8 @@ import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCom
 import { resolveImageUrl } from '@/utils/imageUrl'
 import WangEditor from '@/components/WangEditor.vue'
 import { selectRegionOnExpand } from '@/utils/chinaRegion'
+import { loadAmap } from '@/utils/amap'
 
-// 高德地图API相关配置
-const AMAP_KEY = '16e2711c3a087b844eb977103e4b2d13'
-const AMAP_SECURITY_CODE = 'cc6ce30d593e182d159e8378417b2553'
 let amapLoadPromise = null
 
 // 加载高德地图API
@@ -366,55 +364,11 @@ const loadAmapScript = () => {
   if (amapLoadPromise) {
     return amapLoadPromise
   }
-  amapLoadPromise = loadAmapScriptOnce().catch(error => {
+  amapLoadPromise = loadAmap(['AMap.Geocoder', 'AMap.PlaceSearch', 'AMap.ToolBar', 'AMap.Scale']).catch(error => {
     amapLoadPromise = null
     throw error
   })
   return amapLoadPromise
-}
-
-const loadAmapScriptOnce = () => {
-  return new Promise((resolve, reject) => {
-    if (window.AMap) {
-      // 即使AMap已加载，也需要确保Geocoder插件加载
-      if (!window.AMap.Geocoder) {
-        window.AMap.plugin(['AMap.Geocoder', 'AMap.PlaceSearch'], () => {
-          resolve(window.AMap)
-        })
-      } else {
-        resolve(window.AMap)
-      }
-      return
-    }
-
-    const existingScript = document.querySelector('script[data-amap-loader="true"]')
-    if (existingScript) {
-      existingScript.addEventListener('load', () => {
-        window.AMap.plugin(['AMap.Geocoder', 'AMap.PlaceSearch'], () => resolve(window.AMap))
-      }, { once: true })
-      existingScript.addEventListener('error', reject, { once: true })
-      return
-    }
-    
-    // 设置高德安全密钥
-    window._AMapSecurityConfig = {
-      securityJsCode: AMAP_SECURITY_CODE
-    }
-    
-    const script = document.createElement('script')
-    script.type = 'text/javascript'
-    script.async = true
-    script.dataset.amapLoader = 'true'
-    script.src = `https://webapi.amap.com/maps?v=2.0&key=${AMAP_KEY}&plugin=AMap.Geocoder,AMap.PlaceSearch`
-    script.onerror = reject
-    script.onload = () => {
-      // 确保插件加载完成
-      window.AMap.plugin(['AMap.Geocoder', 'AMap.PlaceSearch'], () => {
-        resolve(window.AMap)
-      })
-    }
-    document.head.appendChild(script)
-  })
 }
 
 const tableData = ref([])

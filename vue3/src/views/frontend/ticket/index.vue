@@ -1180,9 +1180,6 @@ onMounted(() => {
 .filters-section {
   background: #fff;
   border-bottom: 1px solid #e8e8e8;
-  position: sticky;
-  top: 0;
-  z-index: 99;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 

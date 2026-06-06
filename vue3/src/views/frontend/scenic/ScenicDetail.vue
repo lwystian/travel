@@ -257,7 +257,6 @@
 </template>
 
 <script setup>
-/* global AMap */
 import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '@/utils/request'
@@ -270,6 +269,7 @@ import { updateSeo, seoDescription } from '@/utils/seo'
 import { getTourTypeLabel } from '@/utils/tourTypes'
 import { resolveImageUrl, resolveAbsoluteImageUrl } from '@/utils/imageUrl'
 import { renderContent } from '@/utils/contentRenderer'
+import { loadAmap } from '@/utils/amap'
 import {
   Location, CollectionTag, Timer, Sunny, Loading, Star, StarFilled,
   InfoFilled, CopyDocument, Share, ChatDotRound, Tickets
@@ -334,6 +334,7 @@ const getDisplayRating = (rating) => {
 
 const initMap = () => {
   if (!window.AMap || !document.getElementById('scenic-map-container')) return
+  const AMap = window.AMap
   if (map) {
     map.destroy()
     map = null
@@ -379,22 +380,7 @@ const initMap = () => {
 }
 
 const loadMapScript = () => {
-  return new Promise((resolve, reject) => {
-    if (window.AMap) {
-      resolve()
-      return
-    }
-    window._AMapSecurityConfig = {
-      securityJsCode: '87afaff2dd4a5da739be8debe8947aa9'
-    }
-    const script = document.createElement('script')
-    script.type = 'text/javascript'
-    script.async = true
-    script.src = 'https://webapi.amap.com/maps?v=2.0&key=34757b62e54af874a594831dfa463106'
-    script.onerror = reject
-    script.onload = resolve
-    document.head.appendChild(script)
-  })
+  return loadAmap(['AMap.ToolBar', 'AMap.Scale'])
 }
 
 const formatWeatherTime = (timestamp) => {
@@ -489,7 +475,9 @@ const fetchDetail = async () => {
       nextTick(() => {
         loadMapScript()
           .then(() => setTimeout(initMap, 300))
-          .catch(() => {})
+          .catch(() => {
+            ElMessage.warning('地图配置未完成，暂时无法展示位置地图')
+          })
       })
 
       if (isLoggedIn.value) {

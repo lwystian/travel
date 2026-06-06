@@ -422,17 +422,32 @@ public class UserService {
         if (user == null) {
             throw new ServiceException("用户不存在");
         }
+        boolean changed = false;
         if (StringUtils.isNotBlank(profile.getNickname())) {
-            user.setNickname(profile.getNickname().trim());
+            String nickname = profile.getNickname().trim();
+            if (!Objects.equals(user.getNickname(), nickname)) {
+                user.setNickname(nickname);
+                changed = true;
+            }
         }
         if (StringUtils.isNotBlank(profile.getSex())) {
             if (!"男".equals(profile.getSex()) && !"女".equals(profile.getSex())) {
                 throw new ServiceException("性别参数不正确");
             }
-            user.setSex(profile.getSex());
+            if (!Objects.equals(user.getSex(), profile.getSex())) {
+                user.setSex(profile.getSex());
+                changed = true;
+            }
         }
         if (StringUtils.isNotBlank(profile.getAvatar())) {
-            user.setAvatar(profile.getAvatar());
+            String avatar = profile.getAvatar().trim();
+            if (!Objects.equals(user.getAvatar(), avatar)) {
+                user.setAvatar(avatar);
+                changed = true;
+            }
+        }
+        if (!changed) {
+            return user;
         }
         user.setUpdateTime(LocalDateTime.now());
         if (userMapper.updateById(user) <= 0) {
