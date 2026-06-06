@@ -26,6 +26,8 @@ import java.util.List;
 public class TravelerService extends ServiceImpl<TravelerMapper, Traveler> {
     @Resource
     private TourOrderMapper tourOrderMapper;
+    @Resource
+    private AdminPermissionService adminPermissionService;
 
     /**
      * 根据订单ID获取出行人列表
@@ -35,7 +37,7 @@ public class TravelerService extends ServiceImpl<TravelerMapper, Traveler> {
         LambdaQueryWrapper<Traveler> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Traveler::getOrderId, orderId).orderByAsc(Traveler::getTravelerIndex);
         List<Traveler> travelers = list(wrapper);
-        return RolePermission.isAdmin(currentUser) ? travelers : maskTravelersForUser(travelers);
+        return canManageOrders(currentUser) ? travelers : maskTravelersForUser(travelers);
     }
 
     /**
@@ -49,7 +51,7 @@ public class TravelerService extends ServiceImpl<TravelerMapper, Traveler> {
             return travelers;
         }
         User currentUser = requireOrderAccess(travelers.get(0).getOrderId());
-        return RolePermission.isAdmin(currentUser) ? travelers : maskTravelersForUser(travelers);
+        return canManageOrders(currentUser) ? travelers : maskTravelersForUser(travelers);
     }
 
     /**
@@ -82,7 +84,7 @@ public class TravelerService extends ServiceImpl<TravelerMapper, Traveler> {
         if (currentUser == null) {
             throw new ServiceException("用户未登录");
         }
-        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
+        if (!order.getUserId().equals(currentUser.getId()) && !canManageOrders(currentUser)) {
             throw new ServiceException("无权修改此订单出行人信息");
         }
         if (order.getStatus() != 0) {
@@ -97,10 +99,16 @@ public class TravelerService extends ServiceImpl<TravelerMapper, Traveler> {
         if (currentUser == null) {
             throw new ServiceException("用户未登录");
         }
-        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
+        if (!order.getUserId().equals(currentUser.getId()) && !canManageOrders(currentUser)) {
             throw new ServiceException("无权查看此订单出行人信息");
         }
         return currentUser;
+    }
+
+    private boolean canManageOrders(User currentUser) {
+        return RolePermission.isAdmin(currentUser)
+                && (RolePermission.isSuperAdmin(currentUser)
+                || adminPermissionService.hasPermission(currentUser, "order:manage"));
     }
 
     private TourOrder requireOrder(Long orderId) {

@@ -27,7 +27,23 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/user/login", "/api/auth/**", "/auth/**").permitAll()
+                        .requestMatchers(
+                                "/user/login",
+                                "/api/auth/geetest/public",
+                                "/api/auth/crypto/public-key",
+                                "/api/auth/sms/send",
+                                "/api/auth/register/phone",
+                                "/api/auth/login/password",
+                                "/api/auth/login/code",
+                                "/api/auth/agreement",
+                                "/auth/geetest/public",
+                                "/auth/crypto/public-key",
+                                "/auth/sms/send",
+                                "/auth/register/phone",
+                                "/auth/login/password",
+                                "/auth/login/code",
+                                "/auth/agreement"
+                        ).permitAll()
                         .anyRequest().permitAll()
                 )
                 .headers(headers -> headers

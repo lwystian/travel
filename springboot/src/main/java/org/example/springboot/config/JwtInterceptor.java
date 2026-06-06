@@ -47,10 +47,6 @@ public class JwtInterceptor implements HandlerInterceptor {
             "/api/tour",
             "/api/tour-detail",
             "/api/tour-hotel",
-            "/api/travel-guide/page",
-            "/api/travel-guide/detail/",
-            "/api/travel-guide/recommend/",
-            "/api/travel-guide/search",
             "/api/tour-order-pay/methods"
     };
     
@@ -129,12 +125,22 @@ public class JwtInterceptor implements HandlerInterceptor {
             return false;
         }
         String path = request.getRequestURI();
+        if (isPublicGuideGet(path)) {
+            return true;
+        }
         for (String prefix : PUBLIC_GET_PREFIXES) {
             if (matchesPathPrefix(path, prefix)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private boolean isPublicGuideGet(String path) {
+        return path.equals("/api/guide/page")
+                || path.equals("/api/guide/hot")
+                || path.equals("/api/guide/suggestions")
+                || path.matches("^/api/guide/\\d+$");
     }
 
     private boolean matchesPathPrefix(String path, String prefix) {

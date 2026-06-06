@@ -155,12 +155,37 @@ public class TourService {
             queryWrapper.in(Tour::getTourType, tourTypeValues);
         }
         if (StringUtils.isNotBlank(city)) {
-            queryWrapper.eq(Tour::getCity, city);
+            applyLocationFilter(queryWrapper, Tour::getCity, city);
         }
         if (StringUtils.isNotBlank(destination)) {
-            queryWrapper.in(Tour::getDestination, expandDestinationValues(destination));
+            applyLocationFilter(queryWrapper, Tour::getDestination, destination);
         }
         applyDaysFilter(queryWrapper, days, tourType);
+    }
+
+    private void applyLocationFilter(LambdaQueryWrapper<Tour> queryWrapper,
+                                     com.baomidou.mybatisplus.core.toolkit.support.SFunction<Tour, String> column,
+                                     String value) {
+        List<String> values = expandLocationValues(value);
+        queryWrapper.and(wrapper -> {
+            boolean first = true;
+            for (String item : values) {
+                if (first) {
+                    wrapper.eq(column, item);
+                    first = false;
+                } else {
+                    wrapper.or().eq(column, item);
+                }
+            }
+            String keyword = extractLocationKeyword(value);
+            if (StringUtils.isNotBlank(keyword)) {
+                if (first) {
+                    wrapper.like(column, keyword);
+                } else {
+                    wrapper.or().like(column, keyword);
+                }
+            }
+        });
     }
 
     private void applyCruiseIntentBase(
@@ -532,6 +557,30 @@ public class TourService {
             values.addAll(getDestinationAliases(normalized));
         }
         return new ArrayList<>(values);
+    }
+
+    private List<String> expandLocationValues(String location) {
+        LinkedHashSet<String> values = new LinkedHashSet<>();
+        if (!StringUtils.isNotBlank(location)) {
+            return new ArrayList<>(values);
+        }
+        String raw = location.trim();
+        values.add(raw);
+        values.add(extractLocationKeyword(raw));
+        values.addAll(expandDestinationValues(raw));
+        values.removeIf(StringUtils::isBlank);
+        return new ArrayList<>(values);
+    }
+
+    private String extractLocationKeyword(String location) {
+        if (!StringUtils.isNotBlank(location)) {
+            return "";
+        }
+        String[] parts = location.trim().split("\\s*[-/·]\\s*");
+        String selected = parts.length > 0 ? parts[parts.length - 1] : location.trim();
+        return selected
+                .replaceAll("(特别行政区|壮族自治区|回族自治区|维吾尔自治区|自治区|省|市|地区|盟|区)$", "")
+                .trim();
     }
 
     private String normalizeDestinationValueForQuery(String destination) {

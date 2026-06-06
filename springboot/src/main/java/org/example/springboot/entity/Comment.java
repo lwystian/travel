@@ -49,6 +49,27 @@ public class Comment {
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
 
+    @Schema(description = "发布IP地址")
+    private String ipAddress;
+
+    @Schema(description = "网络源端口")
+    private Integer port;
+
+    @Schema(description = "浏览器信息")
+    private String userAgent;
+
+    @Schema(description = "设备ID")
+    private String deviceId;
+
+    @Schema(description = "设备指纹")
+    private String deviceFingerprint;
+
+    @Schema(description = "客户端硬件特征")
+    private String clientHardware;
+
+    @Schema(description = "MAC地址")
+    private String macAddress;
+
     @Schema(description = "用户昵称")
     @TableField(exist = false)
     private String userNickname;
@@ -56,6 +77,14 @@ public class Comment {
     @Schema(description = "用户头像")
     @TableField(exist = false)
     private String userAvatar;
+
+    @Schema(description = "用户角色编码")
+    @TableField(exist = false)
+    private String userRoleCode;
+
+    @Schema(description = "用户角色名称")
+    @TableField(exist = false)
+    private String userRoleName;
     
     @Schema(description = "当前用户是否点赞")
     @TableField(exist = false)

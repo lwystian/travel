@@ -5,13 +5,18 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.example.springboot.entity.Comment;
+import org.example.springboot.entity.CommentLike;
 import org.example.springboot.entity.ScenicSpot;
 import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
+import org.example.springboot.mapper.CommentLikeMapper;
 import org.example.springboot.mapper.CommentMapper;
 import org.example.springboot.mapper.ScenicSpotMapper;
 import org.example.springboot.mapper.UserMapper;
+import org.example.springboot.security.RolePermission;
+import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
@@ -27,7 +32,11 @@ public class CommentService {
     @Resource
     private UserMapper userMapper;
     @Resource
+    private CommentLikeMapper commentLikeMapper;
+    @Resource
     private SensitiveWordService sensitiveWordService;
+    @Resource
+    private ContentModerationConfigService contentModerationConfigService;
 
     public Page<Comment> getCommentsByPage(Long scenicId, String scenicName, String userName, String content, Integer currentPage, Integer size) {
         LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
@@ -98,19 +107,43 @@ public class CommentService {
     }
 
     public void addComment(Comment comment) {
-        comment.setContent(sensitiveWordService.filterContent(comment.getContent(), "COMMENT", null));
-        // 设置默认审核状态为待审核
-        if (comment.getReviewStatus() == null) {
-            comment.setReviewStatus(0); // 0-待审核
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (currentUser == null || currentUser.getId() == null) {
+            throw new ServiceException("请先登录");
         }
+        comment.setUserId(currentUser.getId());
+        applyCommentModeration(comment, currentUser);
         if (commentMapper.insert(comment) <= 0) throw new ServiceException("评论失败");
     }
 
+    private void applyCommentModeration(Comment comment, User currentUser) {
+        String roleCode = RolePermission.normalizeRole(currentUser.getRoleCode());
+        if (RolePermission.SUPER_ADMIN.equals(roleCode)) {
+            comment.setReviewStatus(ContentReviewService.STATUS_APPROVED);
+            return;
+        }
+        if (RolePermission.ADMIN.equals(roleCode)) {
+            comment.setReviewStatus(contentModerationConfigService.adminCommentReviewRequired()
+                    ? ContentReviewService.STATUS_PENDING
+                    : ContentReviewService.STATUS_APPROVED);
+            return;
+        }
+        comment.setContent(sensitiveWordService.filterContent(comment.getContent(), "COMMENT", null));
+        comment.setReviewStatus(ContentReviewService.STATUS_PENDING);
+    }
+
+    @Transactional
     public void deleteComment(Long id, Long userId, boolean isAdmin) {
         Comment comment = commentMapper.selectById(id);
         if (comment == null) throw new ServiceException("评论不存在");
         if (!isAdmin && !comment.getUserId().equals(userId)) throw new ServiceException("无权删除");
+        deleteCommentLikes(id);
         if (commentMapper.deleteById(id) <= 0) throw new ServiceException("删除失败");
+    }
+
+    public void deleteCommentLikes(Long commentId) {
+        commentLikeMapper.delete(new LambdaQueryWrapper<CommentLike>()
+                .eq(CommentLike::getCommentId, commentId));
     }
 
     public void likeComment(Long id) {

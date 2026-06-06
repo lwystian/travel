@@ -3,7 +3,7 @@
     <Sidebar />
 
     <section class="backend-main">
-      <Navbar @logout="handleLogout" />
+      <Navbar />
 
       <main class="content-container">
         <router-view v-slot="{ Component }">
@@ -17,18 +17,8 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
-import { useUserStore } from '@/store/user'
 import Sidebar from '@/components/backend/Sidebar.vue'
 import Navbar from '@/components/backend/Navbar.vue'
-
-const userStore = useUserStore()
-const router = useRouter()
-
-const handleLogout = () => {
-  userStore.clearUserInfo()
-  router.push('/login')
-}
 </script>
 
 <style lang="scss" scoped>

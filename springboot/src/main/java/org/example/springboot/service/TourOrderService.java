@@ -50,6 +50,9 @@ public class TourOrderService {
     @Resource
     private TourOrderNotificationService tourOrderNotificationService;
 
+    @Resource
+    private AdminPermissionService adminPermissionService;
+
     /**
      * 创建行程订单
      */
@@ -350,7 +353,7 @@ public class TourOrderService {
         if (currentUser == null) {
             throw new ServiceException("用户未登录");
         }
-        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
+        if (!canAccessOrder(order, currentUser)) {
             throw new ServiceException("无权操作此订单");
         }
 
@@ -397,7 +400,7 @@ public class TourOrderService {
         if (currentUser == null) {
             throw new ServiceException("用户未登录");
         }
-        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
+        if (!canAccessOrder(order, currentUser)) {
             throw new ServiceException("无权操作此订单");
         }
 
@@ -435,8 +438,8 @@ public class TourOrderService {
         }
 
         User currentUser = JwtTokenUtils.getCurrentUser();
-        if (!RolePermission.isAdmin(currentUser)) {
-            throw new ServiceException("只有管理员可以执行退款操作");
+        if (!canManageOrders(currentUser)) {
+            throw new ServiceException("权限不足，请联系管理员");
         }
 
         if (order.getStatus() != 1) {
@@ -503,11 +506,11 @@ public class TourOrderService {
         if (currentUser == null) {
             throw new ServiceException("用户未登录");
         }
-        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
+        if (!canAccessOrder(order, currentUser)) {
             throw new ServiceException("无权查看此订单");
         }
 
-        return RolePermission.isAdmin(currentUser) ? order : copyMaskedOrderForUser(order);
+        return canManageOrders(currentUser) ? order : copyMaskedOrderForUser(order);
     }
 
     /**
@@ -523,7 +526,7 @@ public class TourOrderService {
         if (currentUser == null) {
             throw new ServiceException("用户未登录");
         }
-        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
+        if (!canAccessOrder(order, currentUser)) {
             throw new ServiceException("无权查看此订单");
         }
         if (order.getStatus() != 0) {
@@ -544,8 +547,8 @@ public class TourOrderService {
     public Page<TourOrder> getAllOrders(String orderNo, String contactName, String contactPhone,
                                         Integer status, Integer currentPage, Integer size) {
         User currentUser = JwtTokenUtils.getCurrentUser();
-        if (!RolePermission.isAdmin(currentUser)) {
-            throw new ServiceException("只有管理员可以查看全部订单");
+        if (!canManageOrders(currentUser)) {
+            throw new ServiceException("权限不足，请联系管理员");
         }
         LambdaQueryWrapper<TourOrder> wrapper = new LambdaQueryWrapper<>();
 
@@ -613,8 +616,8 @@ public class TourOrderService {
     @Transactional
     public void deleteOrder(Long orderId) {
         User currentUser = JwtTokenUtils.getCurrentUser();
-        if (!RolePermission.isAdmin(currentUser)) {
-            throw new ServiceException("只有管理员可以删除订单");
+        if (!canManageOrders(currentUser)) {
+            throw new ServiceException("权限不足，请联系管理员");
         }
         TourOrder order = tourOrderMapper.selectById(orderId);
         if (order == null) {
@@ -644,7 +647,7 @@ public class TourOrderService {
         if (currentUser == null) {
             throw new ServiceException("用户未登录");
         }
-        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
+        if (!canAccessOrder(order, currentUser)) {
             throw new ServiceException("无权操作此订单");
         }
 
@@ -722,6 +725,19 @@ public class TourOrderService {
         copy.setCreateTime(source.getCreateTime());
         copy.setUpdateTime(source.getUpdateTime());
         return copy;
+    }
+
+    private boolean canAccessOrder(TourOrder order, User currentUser) {
+        if (order == null || currentUser == null) {
+            return false;
+        }
+        return order.getUserId().equals(currentUser.getId()) || canManageOrders(currentUser);
+    }
+
+    private boolean canManageOrders(User currentUser) {
+        return RolePermission.isAdmin(currentUser)
+                && (RolePermission.isSuperAdmin(currentUser)
+                || adminPermissionService.hasPermission(currentUser, "order:manage"));
     }
 
     private String maskPhoneForUser(String phone) {

@@ -7,7 +7,47 @@ const ALLOWED_TAGS = new Set([
 const ALLOWED_ATTRS = {
   A: new Set(['href', 'target', 'rel', 'title']),
   IMG: new Set(['src', 'alt', 'title']),
-  '*': new Set(['class'])
+  '*': new Set(['class', 'id', 'style'])
+}
+
+const isSafeId = (value) => /^[A-Za-z][\w:-]{0,80}$/.test(String(value || ''))
+
+const ALLOWED_STYLE_PROPS = new Set([
+  'background-color',
+  'color',
+  'font-size',
+  'font-style',
+  'font-weight',
+  'line-height',
+  'text-align',
+  'text-decoration',
+  'text-indent'
+])
+
+const isSafeStyleValue = (value) => {
+  const text = String(value || '').trim()
+  return text &&
+    text.length <= 80 &&
+    !/[<>{}]/.test(text) &&
+    !/url\s*\(|expression\s*\(|javascript:/i.test(text)
+}
+
+const sanitizeStyle = (value) => {
+  const declarations = String(value || '').split(';')
+  const safeDeclarations = []
+
+  declarations.forEach(declaration => {
+    const separatorIndex = declaration.indexOf(':')
+    if (separatorIndex <= 0) return
+
+    const property = declaration.slice(0, separatorIndex).trim().toLowerCase()
+    const styleValue = declaration.slice(separatorIndex + 1).trim()
+    if (!ALLOWED_STYLE_PROPS.has(property) || !isSafeStyleValue(styleValue)) return
+
+    safeDeclarations.push(`${property}: ${styleValue}`)
+  })
+
+  return safeDeclarations.join('; ')
 }
 
 const isSafeUrl = (value) => {
@@ -38,8 +78,13 @@ export const sanitizeHtml = (html) => {
         Array.from(child.attributes).forEach(attr => {
           const allowed = ALLOWED_ATTRS[child.tagName]?.has(attr.name) || ALLOWED_ATTRS['*'].has(attr.name)
           const isUrlAttr = attr.name === 'href' || attr.name === 'src'
-          if (!allowed || attr.name.startsWith('on') || (isUrlAttr && !isSafeUrl(attr.value))) {
+          const invalidId = attr.name === 'id' && !isSafeId(attr.value)
+          if (!allowed || attr.name.startsWith('on') || invalidId || (isUrlAttr && !isSafeUrl(attr.value))) {
             child.removeAttribute(attr.name)
+          } else if (attr.name === 'style') {
+            const safeStyle = sanitizeStyle(attr.value)
+            if (safeStyle) child.setAttribute('style', safeStyle)
+            else child.removeAttribute('style')
           }
         })
 

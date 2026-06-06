@@ -581,8 +581,8 @@ import { formatDate } from '@/utils/dateUtils'
 import { maskEmail, maskPhone } from '@/utils/mask'
 import { getFrequentTravelers, saveFrequentTraveler, updateFrequentTraveler, deleteFrequentTraveler } from '@/api/frequentTraveler'
 import { getSupportedImageMessage, isSupportedImageFile } from "@/utils/imageCompression";
+import { resolveImageUrl } from '@/utils/imageUrl'
 
-const baseAPI = process.env.VUE_APP_BASE_API || "/api";
 const userStore = useUserStore();
 const route = useRoute();
 const router = useRouter();
@@ -701,7 +701,7 @@ const maskedEmail = computed(() => {
 // 头像地址
 const avatarUrl = computed(() => {
   if (!userForm.avatar) return "";
-  return userForm.avatar.startsWith("http") ? userForm.avatar : baseAPI + userForm.avatar;
+  return resolveImageUrl(userForm.avatar, "");
 });
 
 // 密码表单数据

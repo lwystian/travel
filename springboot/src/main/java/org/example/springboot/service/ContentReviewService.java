@@ -16,6 +16,7 @@ import org.example.springboot.mapper.CommentMapper;
 import org.example.springboot.mapper.ScenicSpotMapper;
 import org.example.springboot.mapper.TravelGuideMapper;
 import org.example.springboot.mapper.UserMapper;
+import org.example.springboot.security.RolePermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -46,6 +47,8 @@ public class ContentReviewService {
     
     @Resource
     private CommentMapper commentMapper;
+    @Resource
+    private CommentService commentService;
     @Resource
     private AccommodationReviewMapper accommodationReviewMapper;
     @Resource
@@ -243,6 +246,7 @@ public class ContentReviewService {
     @Transactional
     public void deleteUnifiedReview(String type, Long id) {
         if ("scenic".equalsIgnoreCase(type)) {
+            commentService.deleteCommentLikes(id);
             if (commentMapper.deleteById(id) <= 0) {
                 throw new ServiceException("景点评论不存在或已被删除");
             }
@@ -413,7 +417,9 @@ public class ContentReviewService {
                     return buildReviewRow(item.getId(), "scenic", "景点评论", item.getUserId(),
                             item.getScenicId(), scenic == null ? "已删除景点" : scenic.getName(),
                             item.getContent(), item.getRating(), item.getLikes(), item.getReviewStatus(),
-                            item.getReviewerName(), item.getReviewTime(), item.getReviewComment(), item.getCreateTime(), user);
+                            item.getReviewerName(), item.getReviewTime(), item.getReviewComment(), item.getCreateTime(),
+                            item.getIpAddress(), item.getPort(), item.getUserAgent(), item.getDeviceId(),
+                            item.getDeviceFingerprint(), item.getClientHardware(), item.getMacAddress(), user);
                 })
                 .filter(row -> matchTargetName(row, targetName))
                 .toList();
@@ -450,7 +456,8 @@ public class ContentReviewService {
                             accommodation == null ? "已删除住宿" : accommodation.getName(),
                             item.getContent(), item.getRating(), null, item.getReviewStatus(),
                             item.getReviewerName(), item.getReviewTime(), item.getReviewComment(), item.getCreateTime(),
-                            userMap.get(item.getUserId()));
+                            item.getIpAddress(), item.getPort(), item.getUserAgent(), item.getDeviceId(),
+                            item.getDeviceFingerprint(), item.getClientHardware(), item.getMacAddress(), userMap.get(item.getUserId()));
                 })
                 .filter(row -> matchTargetName(row, targetName))
                 .toList();
@@ -459,7 +466,9 @@ public class ContentReviewService {
     private Map<String, Object> buildReviewRow(Long id, String type, String typeLabel, Long userId, Long targetId,
                                                String targetName, String content, Object rating, Integer likes,
                                                Integer reviewStatus, String reviewerName, LocalDateTime reviewTime,
-                                               String reviewComment, LocalDateTime createTime, User user) {
+                                               String reviewComment, LocalDateTime createTime, String ipAddress, Integer port,
+                                               String userAgent, String deviceId, String deviceFingerprint,
+                                               String clientHardware, String macAddress, User user) {
         Map<String, Object> row = new HashMap<>();
         row.put("id", id);
         row.put("type", type);
@@ -475,10 +484,20 @@ public class ContentReviewService {
         row.put("reviewTime", reviewTime);
         row.put("reviewComment", reviewComment);
         row.put("createTime", createTime);
+        row.put("ipAddress", ipAddress);
+        row.put("port", port);
+        row.put("userAgent", userAgent);
+        row.put("deviceId", deviceId);
+        row.put("deviceFingerprint", deviceFingerprint);
+        row.put("clientHardware", clientHardware);
+        row.put("macAddress", macAddress);
         if (user != null) {
             row.put("username", user.getUsername());
             row.put("userNickname", user.getNickname());
             row.put("userAvatar", user.getAvatar());
+            String roleCode = RolePermission.normalizeRole(user.getRoleCode());
+            row.put("userRoleCode", roleCode);
+            row.put("userRoleName", RolePermission.roleNameOf(roleCode));
         }
         return row;
     }
@@ -561,6 +580,9 @@ public class ContentReviewService {
                 User user = userMap.get(comment.getUserId());
                 comment.setUserNickname(user.getNickname() != null ? user.getNickname() : user.getUsername());
                 comment.setUserAvatar(user.getAvatar());
+                String roleCode = RolePermission.normalizeRole(user.getRoleCode());
+                comment.setUserRoleCode(roleCode);
+                comment.setUserRoleName(RolePermission.roleNameOf(roleCode));
             }
         }
     }
@@ -591,6 +613,9 @@ public class ContentReviewService {
                 User user = userMap.get(guide.getUserId());
                 guide.setUserNickname(user.getNickname() != null ? user.getNickname() : user.getUsername());
                 guide.setUserAvatar(user.getAvatar());
+                String roleCode = RolePermission.normalizeRole(user.getRoleCode());
+                guide.setUserRoleCode(roleCode);
+                guide.setUserRoleName(RolePermission.roleNameOf(roleCode));
             }
         }
     }
@@ -615,6 +640,9 @@ public class ContentReviewService {
                 User user = userMap.get(review.getUserId());
                 review.setNickname(user.getNickname() != null ? user.getNickname() : user.getUsername());
                 review.setAvatar(user.getAvatar());
+                String roleCode = RolePermission.normalizeRole(user.getRoleCode());
+                review.setUserRoleCode(roleCode);
+                review.setUserRoleName(RolePermission.roleNameOf(roleCode));
             }
         }
     }

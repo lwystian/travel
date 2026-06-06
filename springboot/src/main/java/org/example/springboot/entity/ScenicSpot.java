@@ -41,7 +41,7 @@ public class ScenicSpot {
     @Schema(description = "纬度")
     private BigDecimal latitude;
 
-    @Schema(description = "标签，多个标签用英文逗号分隔")
+    @Schema(description = "标签，多个标签用空格分隔")
     private String tags;
 
     @Schema(description = "创建时间")

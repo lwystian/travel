@@ -11,6 +11,7 @@ import org.example.springboot.mapper.AccommodationReviewMapper;
 import org.example.springboot.mapper.UserMapper;
 import org.example.springboot.security.RolePermission;
 import org.example.springboot.util.JwtTokenUtils;
+import org.example.springboot.util.RequestMetadataUtil;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -33,6 +34,10 @@ public class AccommodationReviewService {
     private AccommodationMapper accommodationMapper;
     @Resource
     private SensitiveWordService sensitiveWordService;
+    @Resource
+    private ContentModerationConfigService contentModerationConfigService;
+    @Resource
+    private AdminPermissionService adminPermissionService;
     
     /**
      * 分页查询住宿评价
@@ -69,8 +74,7 @@ public class AccommodationReviewService {
             page.getRecords().forEach(review -> {
                 User user = userMap.get(review.getUserId());
                 if (user != null) {
-                    review.setNickname(user.getNickname());
-                    review.setAvatar(user.getAvatar());
+                    fillReviewUserInfo(review, user);
                 }
             });
         }
@@ -100,19 +104,56 @@ public class AccommodationReviewService {
             return false;
         }
         
-        review.setUserId((long) currentUser.getId().intValue());
-        review.setContent(sensitiveWordService.filterContent(review.getContent(), "ACCOMMODATION_REVIEW",
-                review.getAccommodationId() == null ? null : String.valueOf(review.getAccommodationId())));
-        review.setReviewStatus(ContentReviewService.STATUS_PENDING);
+        review.setUserId(currentUser.getId());
+        applyReviewModeration(review, currentUser);
         review.setCreateTime(LocalDateTime.now());
+        fillRequestMetadata(review);
         
         boolean result = reviewMapper.insert(review) > 0;
         
         if (result) {
-            // 通过敏感词过滤后进入人工审核，审核通过后再展示并计入评分
+            if (Integer.valueOf(ContentReviewService.STATUS_APPROVED).equals(review.getReviewStatus())) {
+                updateAccommodationRating(review.getAccommodationId());
+            }
         }
         
         return result;
+    }
+
+    private void fillRequestMetadata(AccommodationReview review) {
+        var request = RequestMetadataUtil.currentRequest();
+        review.setIpAddress(RequestMetadataUtil.clientIp(request));
+        review.setPort(RequestMetadataUtil.clientPort(request));
+        review.setUserAgent(RequestMetadataUtil.userAgent(request));
+        review.setDeviceId(RequestMetadataUtil.deviceId(request));
+        review.setDeviceFingerprint(RequestMetadataUtil.deviceFingerprint(request));
+        review.setClientHardware(RequestMetadataUtil.clientHardware(request));
+        review.setMacAddress(RequestMetadataUtil.macAddress(request));
+    }
+
+    private void applyReviewModeration(AccommodationReview review, User currentUser) {
+        String roleCode = RolePermission.normalizeRole(currentUser.getRoleCode());
+        if (RolePermission.SUPER_ADMIN.equals(roleCode)) {
+            review.setReviewStatus(ContentReviewService.STATUS_APPROVED);
+            return;
+        }
+        if (RolePermission.ADMIN.equals(roleCode)) {
+            review.setReviewStatus(contentModerationConfigService.adminCommentReviewRequired()
+                    ? ContentReviewService.STATUS_PENDING
+                    : ContentReviewService.STATUS_APPROVED);
+            return;
+        }
+        review.setContent(sensitiveWordService.filterContent(review.getContent(), "ACCOMMODATION_REVIEW",
+                review.getAccommodationId() == null ? null : String.valueOf(review.getAccommodationId())));
+        review.setReviewStatus(ContentReviewService.STATUS_PENDING);
+    }
+
+    private void fillReviewUserInfo(AccommodationReview review, User user) {
+        review.setNickname(user.getNickname() != null ? user.getNickname() : user.getUsername());
+        review.setAvatar(user.getAvatar());
+        String roleCode = RolePermission.normalizeRole(user.getRoleCode());
+        review.setUserRoleCode(roleCode);
+        review.setUserRoleName(RolePermission.roleNameOf(roleCode));
     }
     
     /**
@@ -186,8 +227,11 @@ public class AccommodationReviewService {
         
         // 检查权限（只有管理员或评价的发布者可以删除）
         User currentUser = JwtTokenUtils.getCurrentUser();
-        if (currentUser == null || 
-            (!RolePermission.isAdmin(currentUser) && !currentUser.getId().equals(review.getUserId().longValue()))) {
+        boolean isOwner = currentUser != null && currentUser.getId().equals(review.getUserId());
+        boolean canAdminDelete = currentUser != null
+                && RolePermission.isAdmin(currentUser)
+                && adminPermissionService.hasPermission(currentUser, "review:manage");
+        if (!isOwner && !canAdminDelete) {
             return false;
         }
         

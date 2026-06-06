@@ -21,8 +21,11 @@
       <el-list v-else>
         <el-list-item v-for="item in comments" :key="item.id" class="comment-item">
           <div class="comment-header">
-            <el-avatar :src="baseAPI + (item.userAvatar || '')" size="small" />
+            <el-avatar :src="resolveImageUrl(item.userAvatar, '')" size="small" />
             <span class="user">{{ item.userNickname || ('用户' + item.userId) }}</span>
+            <span v-if="officialBadge(item)" class="identity-badge" :class="officialBadge(item).className">
+              {{ officialBadge(item).label }}
+            </span>
             <el-rate v-model="item.rating" :max="5" disabled size="small" />
             <span class="date">{{ formatDate(item.createTime) }}</span>
           </div>
@@ -58,6 +61,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
+import { resolveImageUrl } from '@/utils/imageUrl'
 import { formatDate } from '@/utils/dateUtils'
 import { useUserStore } from '@/store/user'
 import { useRoute } from 'vue-router'
@@ -91,8 +95,6 @@ const rules = {
     { required: true, message: '请评分', trigger: 'change' }
   ]
 }
-
-const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 
 const fetchComments = async () => {
   await request.get('/comment/page', {
@@ -166,6 +168,16 @@ const likeComment = async (item) => {
 
 const canDelete = (item) => {
   return isAdmin.value || item.userId === userId.value
+}
+
+const officialBadge = (item) => {
+  if (item.userRoleCode === 'SUPER_ADMIN') {
+    return { label: '官方 · 超级管理员', className: 'super-admin' }
+  }
+  if (item.userRoleCode === 'ADMIN') {
+    return { label: '官方 · 管理员', className: 'admin' }
+  }
+  return null
 }
 
 const deleteComment = (item) => {
@@ -242,6 +254,30 @@ const deleteComment = (item) => {
           color: #3498db; 
           font-size: 14px;
           font-weight: 500;
+        }
+
+        .identity-badge {
+          display: inline-flex;
+          align-items: center;
+          height: 22px;
+          padding: 0 9px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 800;
+          line-height: 1;
+          border: 1px solid transparent;
+
+          &.super-admin {
+            color: #6f4a08;
+            border-color: rgba(180, 130, 22, 0.28);
+            background: linear-gradient(135deg, #fff8df 0%, #f7e5a8 100%);
+          }
+
+          &.admin {
+            color: #075985;
+            border-color: rgba(14, 116, 144, 0.22);
+            background: linear-gradient(135deg, #e7faff 0%, #d8eef7 100%);
+          }
         }
         
         .date { 

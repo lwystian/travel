@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import org.example.springboot.entity.TravelGuide;
 import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
@@ -12,7 +13,9 @@ import org.example.springboot.mapper.UserMapper;
 import org.example.springboot.security.RolePermission;
 import org.example.springboot.security.SecurityValidationUtil;
 import org.example.springboot.util.JwtTokenUtils;
+import org.example.springboot.util.RequestMetadataUtil;
 import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,8 +30,14 @@ public class TravelGuideService {
     private UserMapper userMapper;
     @Resource
     private SensitiveWordService sensitiveWordService;
+    @Resource
+    private ContentModerationConfigService contentModerationConfigService;
+    @Resource
+    private AdminPermissionService adminPermissionService;
 
-    public Page<TravelGuide> getGuidesByPage(String title, Long userId, Integer currentPage, Integer size) {
+    public Page<TravelGuide> getGuidesByPage(String title, Long userId, String sortMode, String orderBy, String order,
+                                             String destination, String authorRole, Integer minViews, String timeRange,
+                                             Integer currentPage, Integer size) {
         currentPage = SecurityValidationUtil.clampPage(currentPage);
         size = SecurityValidationUtil.clampLimit(size, 10, 100);
         LambdaQueryWrapper<TravelGuide> queryWrapper = new LambdaQueryWrapper<>();
@@ -49,8 +58,19 @@ public class TravelGuideService {
             queryWrapper.eq(TravelGuide::getUserId, userId);
         }
 
-        // 按创建时间降序排序
-        queryWrapper.orderByDesc(TravelGuide::getCreateTime);
+        if (StringUtils.isNotBlank(destination)) {
+            queryWrapper.like(TravelGuide::getDestination, destination.trim());
+        }
+        if (minViews != null && minViews > 0) {
+            queryWrapper.ge(TravelGuide::getViews, minViews);
+        }
+        LocalDateTime startTime = resolveStartTime(timeRange);
+        if (startTime != null) {
+            queryWrapper.ge(TravelGuide::getCreateTime, startTime);
+        }
+        applyAuthorRoleFilter(queryWrapper, authorRole);
+        applyGuideSorting(queryWrapper, sortMode, orderBy, order);
+
         Page<TravelGuide> page = travelGuideMapper.selectPage(new Page<>(currentPage, size), queryWrapper);
         // 批量查用户昵称和头像
         List<Long> userIds = page.getRecords().stream().map(TravelGuide::getUserId).distinct().collect(Collectors.toList());
@@ -59,12 +79,68 @@ public class TravelGuideService {
             for (TravelGuide guide : page.getRecords()) {
                 User user = userMap.get(guide.getUserId());
                 if (user != null) {
-                    guide.setUserNickname(user.getNickname());
-                    guide.setUserAvatar(user.getAvatar());
+                    fillGuideUserInfo(guide, user);
                 }
             }
         }
         return page;
+    }
+
+    private LocalDateTime resolveStartTime(String timeRange) {
+        if (StringUtils.isBlank(timeRange)) {
+            return null;
+        }
+        return switch (timeRange.trim()) {
+            case "week" -> LocalDateTime.now().minusWeeks(1);
+            case "month" -> LocalDateTime.now().minusMonths(1);
+            case "quarter" -> LocalDateTime.now().minusMonths(3);
+            case "year" -> LocalDateTime.now().minusYears(1);
+            default -> null;
+        };
+    }
+
+    private void applyAuthorRoleFilter(LambdaQueryWrapper<TravelGuide> queryWrapper, String authorRole) {
+        if (StringUtils.isBlank(authorRole) || "all".equalsIgnoreCase(authorRole)) {
+            return;
+        }
+        if ("official".equalsIgnoreCase(authorRole)) {
+            queryWrapper.inSql(TravelGuide::getUserId,
+                    "SELECT id FROM user WHERE UPPER(role_code) IN ('SUPER_ADMIN','ADMIN')");
+            return;
+        }
+        String role = RolePermission.normalizeRole(authorRole);
+        if (!List.of(RolePermission.USER).contains(role)) {
+            return;
+        }
+        queryWrapper.inSql(TravelGuide::getUserId,
+                "SELECT id FROM user WHERE UPPER(role_code) = '" + role + "'");
+    }
+
+    private void applyGuideSorting(LambdaQueryWrapper<TravelGuide> queryWrapper, String sortMode, String orderBy, String order) {
+        String mode = StringUtils.isNotBlank(sortMode) ? sortMode.trim().toLowerCase() : "";
+        if ("recommended".equals(mode) || "recommend".equals(mode)) {
+            queryWrapper.last("ORDER BY CASE WHEN user_id IN (SELECT id FROM user WHERE UPPER(role_code) IN ('SUPER_ADMIN','ADMIN')) THEN 0 ELSE 1 END, views DESC, update_time DESC, create_time DESC");
+            return;
+        }
+        if ("latest".equals(mode)) {
+            queryWrapper.orderByDesc(TravelGuide::getCreateTime);
+            return;
+        }
+        if ("hot".equals(mode)) {
+            queryWrapper.orderByDesc(TravelGuide::getViews).orderByDesc(TravelGuide::getCreateTime);
+            return;
+        }
+
+        boolean asc = "asc".equalsIgnoreCase(order);
+        String field = StringUtils.isNotBlank(orderBy) ? orderBy.trim() : "createTime";
+        switch (field) {
+            case "views" -> queryWrapper.orderBy(true, asc, TravelGuide::getViews)
+                    .orderByDesc(TravelGuide::getCreateTime);
+            case "updateTime" -> queryWrapper.orderBy(true, asc, TravelGuide::getUpdateTime)
+                    .orderByDesc(TravelGuide::getCreateTime);
+            case "createTime" -> queryWrapper.orderBy(true, asc, TravelGuide::getCreateTime);
+            default -> queryWrapper.orderByDesc(TravelGuide::getCreateTime);
+        }
     }
 
     public TravelGuide getById(Long id) {
@@ -72,8 +148,7 @@ public class TravelGuideService {
         if (guide != null) {
             User user = userMapper.selectById(guide.getUserId());
             if (user != null) {
-                guide.setUserNickname(user.getNickname());
-                guide.setUserAvatar(user.getAvatar());
+                fillGuideUserInfo(guide, user);
             }
         }
 
@@ -88,8 +163,8 @@ public class TravelGuideService {
         guide.setReviewerName(null);
         guide.setReviewTime(null);
         guide.setReviewComment(null);
-        filterGuideContent(guide);
-        guide.setReviewStatus(0);
+        applyGuideModeration(guide, currentUser);
+        fillRequestMetadata(guide);
         travelGuideMapper.insert(guide);
     }
 
@@ -108,9 +183,20 @@ public class TravelGuideService {
         guide.setReviewerName(null);
         guide.setReviewTime(null);
         guide.setReviewComment(null);
-        filterGuideContent(guide);
-        guide.setReviewStatus(0);
+        applyGuideModeration(guide, currentUser);
+        fillRequestMetadata(guide);
         travelGuideMapper.updateById(guide);
+    }
+
+    private void fillRequestMetadata(TravelGuide guide) {
+        HttpServletRequest request = RequestMetadataUtil.currentRequest();
+        guide.setIpAddress(RequestMetadataUtil.clientIp(request));
+        guide.setPort(RequestMetadataUtil.clientPort(request));
+        guide.setUserAgent(RequestMetadataUtil.userAgent(request));
+        guide.setDeviceId(RequestMetadataUtil.deviceId(request));
+        guide.setDeviceFingerprint(RequestMetadataUtil.deviceFingerprint(request));
+        guide.setClientHardware(RequestMetadataUtil.clientHardware(request));
+        guide.setMacAddress(RequestMetadataUtil.macAddress(request));
     }
 
     private void filterGuideContent(TravelGuide guide) {
@@ -118,6 +204,30 @@ public class TravelGuideService {
         guide.setTitle(sensitiveWordService.filterContent(guide.getTitle(), "GUIDE_TITLE", objectId));
         guide.setDestination(sensitiveWordService.filterContent(guide.getDestination(), "GUIDE_DESTINATION", objectId));
         guide.setContent(sensitiveWordService.filterContent(guide.getContent(), "GUIDE", objectId));
+    }
+
+    private void applyGuideModeration(TravelGuide guide, User currentUser) {
+        String roleCode = RolePermission.normalizeRole(currentUser.getRoleCode());
+        if (RolePermission.SUPER_ADMIN.equals(roleCode)) {
+            guide.setReviewStatus(ContentReviewService.STATUS_APPROVED);
+            return;
+        }
+        if (RolePermission.ADMIN.equals(roleCode)) {
+            guide.setReviewStatus(contentModerationConfigService.adminGuideReviewRequired()
+                    ? ContentReviewService.STATUS_PENDING
+                    : ContentReviewService.STATUS_APPROVED);
+            return;
+        }
+        filterGuideContent(guide);
+        guide.setReviewStatus(ContentReviewService.STATUS_PENDING);
+    }
+
+    private void fillGuideUserInfo(TravelGuide guide, User user) {
+        guide.setUserNickname(user.getNickname() != null ? user.getNickname() : user.getUsername());
+        guide.setUserAvatar(user.getAvatar());
+        String roleCode = RolePermission.normalizeRole(user.getRoleCode());
+        guide.setUserRoleCode(roleCode);
+        guide.setUserRoleName(RolePermission.roleNameOf(roleCode));
     }
 
     public void deleteGuide(Long id) {
@@ -140,8 +250,11 @@ public class TravelGuideService {
 
     private void requireOwnerOrAdmin(TravelGuide guide, User currentUser) {
         boolean isOwner = guide.getUserId() != null && guide.getUserId().equals(currentUser.getId());
-        if (!isOwner && !RolePermission.isAdmin(currentUser)) {
-            throw new ServiceException("无权限");
+        if (isOwner) {
+            return;
+        }
+        if (!RolePermission.isAdmin(currentUser) || !adminPermissionService.hasPermission(currentUser, "guide:manage")) {
+            throw new ServiceException("权限不足，请联系管理员");
         }
     }
 
@@ -168,6 +281,7 @@ public class TravelGuideService {
         limit = SecurityValidationUtil.clampLimit(limit, 3, 50);
         // 根据浏览量倒序排序获取热门攻略
         LambdaQueryWrapper<TravelGuide> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TravelGuide::getReviewStatus, ContentReviewService.STATUS_APPROVED);
         queryWrapper.orderByDesc(TravelGuide::getViews);
         queryWrapper.last("LIMIT " + limit);
         List<TravelGuide> guides = travelGuideMapper.selectList(queryWrapper);
@@ -189,6 +303,9 @@ public class TravelGuideService {
                 if (user != null) {
                     map.put("userNickname", user.getNickname());
                     map.put("userAvatar", user.getAvatar());
+                    String roleCode = RolePermission.normalizeRole(user.getRoleCode());
+                    map.put("userRoleCode", roleCode);
+                    map.put("userRoleName", RolePermission.roleNameOf(roleCode));
                 }
             }
             
@@ -214,6 +331,7 @@ public class TravelGuideService {
 
         // 搜索攻略建议
         LambdaQueryWrapper<TravelGuide> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TravelGuide::getReviewStatus, ContentReviewService.STATUS_APPROVED);
         queryWrapper.and(wrapper -> wrapper
             .like(TravelGuide::getTitle, keyword)
             .or()
@@ -246,6 +364,9 @@ public class TravelGuideService {
             if (user != null) {
                 suggestion.put("userNickname", user.getNickname());
                 suggestion.put("userAvatar", user.getAvatar());
+                String roleCode = RolePermission.normalizeRole(user.getRoleCode());
+                suggestion.put("userRoleCode", roleCode);
+                suggestion.put("userRoleName", RolePermission.roleNameOf(roleCode));
             }
 
             result.add(suggestion);

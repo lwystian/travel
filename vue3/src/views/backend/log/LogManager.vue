@@ -22,6 +22,11 @@
         <el-form-item label="操作人">
           <el-input v-model="queryForm.username" placeholder="输入用户名" clearable @keyup.enter="handleQuery" />
         </el-form-item>
+        <el-form-item label="身份">
+          <el-select v-model="queryForm.roleCode" placeholder="全部身份" clearable>
+            <el-option v-for="item in roleOptions" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="操作类型">
           <el-select v-model="queryForm.operationType" placeholder="全部类型" clearable>
             <el-option v-for="item in operationOptions" :key="item.value" :label="item.label" :value="item.value" />
@@ -69,6 +74,13 @@
         <el-table-column label="操作人" width="130">
           <template #default="{ row }">{{ row.username || '系统' }}</template>
         </el-table-column>
+        <el-table-column label="身份" width="110">
+          <template #default="{ row }">
+            <el-tag size="small" :type="getRoleTagType(row.roleCode)" effect="light">
+              {{ formatRole(row) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" min-width="220">
           <template #default="{ row }">
             <div class="operation-cell">
@@ -95,6 +107,15 @@
           </template>
         </el-table-column>
         <el-table-column prop="ipAddress" label="IP" width="140" />
+        <el-table-column label="端口" width="90">
+          <template #default="{ row }">{{ row.port || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="User-Agent" min-width="240" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.userAgent || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="设备" min-width="190" show-overflow-tooltip>
+          <template #default="{ row }">{{ formatDevice(row) }}</template>
+        </el-table-column>
         <el-table-column label="请求" min-width="220" show-overflow-tooltip>
           <template #default="{ row }">
             <span class="method-text">{{ row.requestMethod || '-' }}</span>
@@ -128,6 +149,7 @@
         <el-descriptions-item label="时间">{{ detailData.createTime || '-' }}</el-descriptions-item>
         <el-descriptions-item label="日志等级">{{ formatLogLevel(detailData) }}</el-descriptions-item>
         <el-descriptions-item label="操作人">{{ detailData.username || '系统' }}</el-descriptions-item>
+        <el-descriptions-item label="身份">{{ formatRole(detailData) }}</el-descriptions-item>
         <el-descriptions-item label="操作类型">{{ formatOperationType(detailData.operationType) }}</el-descriptions-item>
         <el-descriptions-item label="操作说明" :span="2">{{ formatOperationDesc(detailData) }}</el-descriptions-item>
         <el-descriptions-item label="操作对象">{{ formatTarget(detailData) }}</el-descriptions-item>
@@ -141,6 +163,10 @@
         <el-descriptions-item label="请求地址" :span="2">{{ detailData.requestUrl || '-' }}</el-descriptions-item>
         <el-descriptions-item label="IP地址">{{ detailData.ipAddress || '-' }}</el-descriptions-item>
         <el-descriptions-item label="端口">{{ detailData.port || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="设备ID">{{ detailData.deviceId || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="MAC地址">{{ detailData.macAddress || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="设备指纹" :span="2">{{ detailData.deviceFingerprint || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="客户端硬件特征" :span="2">{{ detailData.clientHardware || '-' }}</el-descriptions-item>
         <el-descriptions-item label="User-Agent" :span="2">{{ detailData.userAgent || '-' }}</el-descriptions-item>
         <el-descriptions-item label="请求参数" :span="2">
           <pre>{{ formatJson(detailData.requestParams) }}</pre>
@@ -196,6 +222,7 @@ const dateRange = ref([])
 
 const queryForm = reactive({
   username: '',
+  roleCode: '',
   operationType: '',
   logLevel: ''
 })
@@ -241,6 +268,12 @@ const logLevelOptions = [
   { label: 'ERROR', value: 'ERROR' }
 ]
 
+const roleOptions = [
+  { label: '超级管理员', value: 'SUPER_ADMIN' },
+  { label: '管理员', value: 'ADMIN' },
+  { label: '普通用户', value: 'USER' }
+]
+
 const exportTip = computed(() => {
   if (exportForm.scope === 'selected') {
     return `将导出选中的 ${selectedRows.value.length} 条日志。`
@@ -248,7 +281,7 @@ const exportTip = computed(() => {
   if (exportForm.scope === 'all') {
     return '将忽略当前筛选条件，导出全部系统日志。'
   }
-  return '将按当前操作人、操作类型、日志等级和时间范围导出。'
+  return '将按当前操作人、身份、操作类型、日志等级和时间范围导出。'
 })
 
 const operationTextMap = {
@@ -315,6 +348,7 @@ const loadData = async () => {
       currentPage: pagination.currentPage,
       size: pagination.size,
       username: queryForm.username,
+      roleCode: queryForm.roleCode,
       operationType: queryForm.operationType,
       logLevel: queryForm.logLevel
     }
@@ -342,6 +376,7 @@ const handleQuery = () => {
 
 const handleReset = () => {
   queryForm.username = ''
+  queryForm.roleCode = ''
   queryForm.operationType = ''
   queryForm.logLevel = ''
   dateRange.value = []
@@ -459,7 +494,7 @@ const normalizeDownloadBlob = async (response) => {
 }
 
 const buildCsvBlob = (logs) => {
-  const headers = ['日志ID', '时间', '等级', '操作人', '操作类型', '操作说明', '操作对象', '请求方法', '请求地址', 'IP', '端口', '结果', '耗时(ms)', '错误信息']
+  const headers = ['日志ID', '时间', '等级', '操作人', '身份', '操作类型', '操作说明', '操作对象', '请求方法', '请求地址', 'IP', '端口', '结果', '耗时(ms)', '错误信息', '设备ID', '设备指纹', '客户端硬件特征', 'MAC地址']
   if (exportForm.includeUserAgent) headers.push('User-Agent')
   if (exportForm.includeParams) headers.push('请求参数')
   const rows = logs.map(log => [
@@ -467,6 +502,7 @@ const buildCsvBlob = (logs) => {
     log.createTime,
     formatLogLevel(log),
     log.username,
+    formatRole(log),
     formatOperationType(log.operationType),
     formatOperationDesc(log),
     formatTarget(log),
@@ -476,7 +512,11 @@ const buildCsvBlob = (logs) => {
     log.port,
     log.status === 1 ? '成功' : '失败',
     log.executionTime,
-    log.errorMessage
+    log.errorMessage,
+    log.deviceId,
+    log.deviceFingerprint,
+    log.clientHardware,
+    log.macAddress
   ].concat(exportForm.includeUserAgent ? [log.userAgent] : [])
     .concat(exportForm.includeParams ? [log.requestParams] : []))
 
@@ -516,6 +556,7 @@ const buildQueryParams = () => {
   }
 
   params.username = queryForm.username
+  params.roleCode = queryForm.roleCode
   params.operationType = queryForm.operationType
   params.logLevel = queryForm.logLevel
 
@@ -541,6 +582,25 @@ const formatLogLevel = (row = {}) => {
   if (row.errorMessage) return 'ERROR'
   if (row.status === 0) return 'WARN'
   return 'INFO'
+}
+
+const formatRole = (row = {}) => {
+  if (row.roleName) return row.roleName
+  const map = {
+    SUPER_ADMIN: '超级管理员',
+    ADMIN: '管理员',
+    USER: '普通用户'
+  }
+  return map[row.roleCode] || '-'
+}
+
+const getRoleTagType = (roleCode) => {
+  const map = {
+    SUPER_ADMIN: 'danger',
+    ADMIN: 'warning',
+    USER: 'success'
+  }
+  return map[roleCode] || 'info'
 }
 
 const getLogLevelTagType = (row = {}) => {
@@ -598,6 +658,10 @@ const getOperationTagType = (type) => {
 const formatTarget = (row = {}) => {
   const type = targetTextMap[row.targetType] || row.targetType || '-'
   return type
+}
+
+const formatDevice = (row = {}) => {
+  return row.deviceId || row.deviceFingerprint || row.clientHardware || '-'
 }
 
 const translateLogText = (text = '') => {

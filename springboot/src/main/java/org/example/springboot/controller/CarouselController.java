@@ -31,14 +31,14 @@ public class CarouselController {
     public Result<?> getCarouselsByPage(
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "10") Integer size) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("carousel:manage");
         return Result.success(carouselService.getCarouselsByPage(currentPage, size));
     }
     
     @Operation(summary = "根据ID获取轮播图")
     @GetMapping("/{id}")
     public Result<?> getCarouselById(@PathVariable Integer id) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("carousel:manage");
         Carousel carousel = carouselService.getCarouselById(id);
         if (carousel == null) {
             return Result.error("轮播图不存在");
@@ -49,7 +49,7 @@ public class CarouselController {
     @Operation(summary = "添加轮播图")
     @PostMapping
     public Result<?> addCarousel(@RequestBody Carousel carousel) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("carousel:manage");
         // 设置默认状态为启用
         if (carousel.getStatus() == null) {
             carousel.setStatus(1);
@@ -61,7 +61,7 @@ public class CarouselController {
     @Operation(summary = "更新轮播图")
     @PutMapping
     public Result<?> updateCarousel(@RequestBody Carousel carousel) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("carousel:manage");
         if (carousel.getId() == null) {
             return Result.error("轮播图ID不能为空");
         }
@@ -72,7 +72,7 @@ public class CarouselController {
     @Operation(summary = "删除轮播图")
     @DeleteMapping("/{id}")
     public Result<?> deleteCarousel(@PathVariable Integer id) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("carousel:manage");
         boolean success = carouselService.deleteCarousel(id);
         return success ? Result.success() : Result.error("删除轮播图失败");
     }
@@ -82,7 +82,7 @@ public class CarouselController {
     public Result<?> updateStatus(
             @PathVariable Integer id,
             @RequestParam Integer status) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("carousel:manage");
         if (status != 0 && status != 1) {
             return Result.error("状态值只能为0或1");
         }

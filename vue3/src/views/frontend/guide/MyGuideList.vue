@@ -80,7 +80,13 @@
                   <span class="guide-id">攻略 ID {{ guide.id }}</span>
                   <h2>{{ guide.title || '未命名攻略' }}</h2>
                 </div>
-                <span class="fresh-chip" v-if="isNew(guide.createTime)">新发布</span>
+                <div class="title-actions">
+                  <span class="fresh-chip" v-if="isNew(guide.createTime)">新发布</span>
+                  <el-button text type="primary" @click.stop="goEdit(guide)">
+                    <el-icon><Edit /></el-icon>
+                    编辑
+                  </el-button>
+                </div>
               </div>
 
               <div class="meta-grid">
@@ -105,7 +111,6 @@
                 查看
               </el-button>
               <el-button
-                v-if="guide.reviewStatus !== 1"
                 plain
                 @click.stop="goEdit(guide)"
               >
@@ -537,6 +542,19 @@ onMounted(fetchGuides)
   font-size: 12px;
   font-weight: 900;
   line-height: 26px;
+}
+
+.title-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.title-actions :deep(.el-button) {
+  height: 28px;
+  padding: 0 8px;
+  font-weight: 900;
 }
 
 .meta-grid {

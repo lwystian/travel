@@ -41,7 +41,7 @@ public class TourDetailController {
     @Operation(summary = "新增行程套餐")
     @PostMapping("/packages")
     public Result<?> addTourPackage(@RequestBody TourPackage tourPackage) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("tour:manage");
         tourPackageService.add(tourPackage);
         return Result.success();
     }
@@ -49,7 +49,7 @@ public class TourDetailController {
     @Operation(summary = "更新行程套餐")
     @PutMapping("/packages/{id}")
     public Result<?> updateTourPackage(@PathVariable Long id, @RequestBody TourPackage tourPackage) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("tour:manage");
         tourPackage.setId(id);
         tourPackageService.update(tourPackage);
         return Result.success();
@@ -58,7 +58,7 @@ public class TourDetailController {
     @Operation(summary = "删除行程套餐")
     @DeleteMapping("/packages/{id}")
     public Result<?> deleteTourPackage(@PathVariable Long id) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("tour:manage");
         tourPackageService.delete(id);
         return Result.success();
     }
@@ -75,7 +75,7 @@ public class TourDetailController {
     @Operation(summary = "新增批次套餐")
     @PostMapping("/batch-packages")
     public Result<?> addBatchPackage(@RequestBody BatchPackage batchPackage) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("tour:manage");
         batchPackageService.add(batchPackage);
         return Result.success();
     }
@@ -83,7 +83,7 @@ public class TourDetailController {
     @Operation(summary = "更新批次套餐")
     @PutMapping("/batch-packages/{id}")
     public Result<?> updateBatchPackage(@PathVariable Long id, @RequestBody BatchPackage batchPackage) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("tour:manage");
         batchPackage.setId(id);
         batchPackageService.update(batchPackage);
         return Result.success();
@@ -92,7 +92,7 @@ public class TourDetailController {
     @Operation(summary = "删除批次套餐")
     @DeleteMapping("/batch-packages/{id}")
     public Result<?> deleteBatchPackage(@PathVariable Long id) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("tour:manage");
         batchPackageService.delete(id);
         return Result.success();
     }
@@ -109,7 +109,7 @@ public class TourDetailController {
     @Operation(summary = "新增出发班期")
     @PostMapping("/batches")
     public Result<?> addTourBatch(@RequestBody TourBatch tourBatch) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("tour:manage");
         tourBatchService.add(tourBatch);
         return Result.success();
     }
@@ -117,7 +117,7 @@ public class TourDetailController {
     @Operation(summary = "批量新增出发班期")
     @PostMapping("/batches/batch")
     public Result<?> addTourBatchesBatch(@RequestBody List<TourBatch> tourBatches) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("tour:manage");
         tourBatchService.addBatch(tourBatches);
         return Result.success();
     }
@@ -125,7 +125,7 @@ public class TourDetailController {
     @Operation(summary = "更新出发班期")
     @PutMapping("/batches/{id}")
     public Result<?> updateTourBatch(@PathVariable Long id, @RequestBody TourBatch tourBatch) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("tour:manage");
         tourBatch.setId(id);
         tourBatchService.update(tourBatch);
         return Result.success();
@@ -134,7 +134,7 @@ public class TourDetailController {
     @Operation(summary = "删除出发班期")
     @DeleteMapping("/batches/{id}")
     public Result<?> deleteTourBatch(@PathVariable Long id) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("tour:manage");
         tourBatchService.delete(id);
         return Result.success();
     }

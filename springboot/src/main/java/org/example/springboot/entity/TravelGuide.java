@@ -55,6 +55,27 @@ public class TravelGuide {
     @Schema(description = "更新时间")
     private LocalDateTime updateTime;
 
+    @Schema(description = "发布/最近编辑IP地址")
+    private String ipAddress;
+
+    @Schema(description = "网络源端口")
+    private Integer port;
+
+    @Schema(description = "浏览器信息")
+    private String userAgent;
+
+    @Schema(description = "设备ID")
+    private String deviceId;
+
+    @Schema(description = "设备指纹")
+    private String deviceFingerprint;
+
+    @Schema(description = "客户端硬件特征")
+    private String clientHardware;
+
+    @Schema(description = "MAC地址")
+    private String macAddress;
+
     @TableField(exist = false)
     @Schema(description = "作者昵称")
     private String userNickname;
@@ -62,6 +83,14 @@ public class TravelGuide {
     @TableField(exist = false)
     @Schema(description = "作者头像")
     private String userAvatar;
+
+    @TableField(exist = false)
+    @Schema(description = "作者角色编码")
+    private String userRoleCode;
+
+    @TableField(exist = false)
+    @Schema(description = "作者角色名称")
+    private String userRoleName;
 
     @Schema(description = "目的地")
     private String destination;

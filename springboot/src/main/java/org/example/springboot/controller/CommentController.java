@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+import org.example.springboot.annotation.OperationLog;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.Comment;
 import org.example.springboot.entity.ScenicSpot;
@@ -14,7 +16,9 @@ import org.example.springboot.service.CommentLikeService;
 import org.example.springboot.service.CommentService;
 import org.example.springboot.service.ScenicSpotService;
 import org.example.springboot.service.UserService;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.util.JwtTokenUtils;
+import org.example.springboot.util.RequestMetadataUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -54,8 +58,7 @@ public class CommentController {
                 .filter(u -> u.getId().equals(c.getUserId()))
                 .findFirst()
                 .ifPresent(u -> {
-                    c.setUserNickname(u.getNickname());
-                    c.setUserAvatar(u.getAvatar());
+                    fillCommentUserInfo(c, u);
                 });
         }
         
@@ -86,11 +89,23 @@ public class CommentController {
 
     @Operation(summary = "添加评论")
     @PostMapping("/add")
-    public Result<?> addComment(@RequestBody Comment comment) {
-        // 获取当前用户ID
-        comment.setUserId(JwtTokenUtils.getCurrentUser().getId());
+    @OperationLog(operationType = "CREATE", description = "发布景点评论", targetType = "评论")
+    public Result<?> addComment(@RequestBody Comment comment, HttpServletRequest request) {
+        fillRequestMetadata(comment, request);
         commentService.addComment(comment);
-        return Result.success("评论成功，需审核通过后才能正常显示");
+        return Result.success(comment.getReviewStatus() != null && comment.getReviewStatus() == 1
+                ? "评论发布成功"
+                : "评论成功，需审核通过后才能正常显示");
+    }
+
+    private void fillRequestMetadata(Comment comment, HttpServletRequest request) {
+        comment.setIpAddress(RequestMetadataUtil.clientIp(request));
+        comment.setPort(RequestMetadataUtil.clientPort(request));
+        comment.setUserAgent(RequestMetadataUtil.userAgent(request));
+        comment.setDeviceId(RequestMetadataUtil.deviceId(request));
+        comment.setDeviceFingerprint(RequestMetadataUtil.deviceFingerprint(request));
+        comment.setClientHardware(RequestMetadataUtil.clientHardware(request));
+        comment.setMacAddress(RequestMetadataUtil.macAddress(request));
     }
 
     @Operation(summary = "获取我的评论列表")
@@ -116,18 +131,25 @@ public class CommentController {
 
     @Operation(summary = "删除评论")
     @DeleteMapping("/delete/{id}")
+    @OperationLog(operationType = "DELETE", description = "删除景点评论", targetType = "评论")
     public Result<?> deleteComment(@PathVariable Long id) {
         var user = JwtTokenUtils.getCurrentUser();
         if (user == null) {
             throw new ServiceException("请先登录");
         }
-        boolean isAdmin = RolePermission.isAdmin(user);
+        Comment comment = commentService.getById(id);
+        boolean isOwner = comment.getUserId() != null && comment.getUserId().equals(user.getId());
+        boolean isAdmin = !isOwner && RolePermission.isAdmin(user);
+        if (isAdmin) {
+            SecurityGuards.requirePermission("review:manage");
+        }
         commentService.deleteComment(id, user.getId(), isAdmin);
         return Result.success("删除成功");
     }
 
     @Operation(summary = "点赞/取消点赞评论")
     @PutMapping("/like/{id}")
+    @OperationLog(operationType = "LIKE", description = "点赞或取消点赞评论", targetType = "评论")
     public Result<?> toggleLike(@PathVariable Long id) {
         boolean isLiked = commentLikeService.toggleLike(id);
         return Result.success(isLiked ? "点赞成功" : "取消点赞成功", isLiked);
@@ -170,8 +192,7 @@ public class CommentController {
                  .filter(u -> u.getId().equals(c.getUserId()))
                  .findFirst()
                  .ifPresent(u -> {
-                     c.setUserNickname(u.getNickname());
-                     c.setUserAvatar(u.getAvatar());
+                     fillCommentUserInfo(c, u);
                  });
         }
         
@@ -203,5 +224,13 @@ public class CommentController {
     public Result<?> isLiked(@PathVariable Long id) {
         boolean liked = commentLikeService.isLiked(id);
         return Result.success(liked);
+    }
+
+    private void fillCommentUserInfo(Comment comment, User user) {
+        comment.setUserNickname(user.getNickname() != null ? user.getNickname() : user.getUsername());
+        comment.setUserAvatar(user.getAvatar());
+        String roleCode = RolePermission.normalizeRole(user.getRoleCode());
+        comment.setUserRoleCode(roleCode);
+        comment.setUserRoleName(RolePermission.roleNameOf(roleCode));
     }
 } 

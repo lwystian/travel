@@ -6,6 +6,39 @@ import { prepareImageUploadFormData } from '@/utils/imageCompression'
 
 let isHandlingTokenExpired = false
 
+const getOrCreateDeviceId = () => {
+  const storageKey = 'clientDeviceId'
+  let deviceId = localStorage.getItem(storageKey)
+  if (!deviceId) {
+    const random = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`
+    deviceId = `web-${random}`
+    localStorage.setItem(storageKey, deviceId)
+  }
+  return deviceId
+}
+
+const getClientHardware = () => {
+  const navigatorInfo = window.navigator || {}
+  return [
+    `platform=${navigatorInfo.platform || ''}`,
+    `language=${navigatorInfo.language || ''}`,
+    `cores=${navigatorInfo.hardwareConcurrency || ''}`,
+    `memory=${navigatorInfo.deviceMemory || ''}`,
+    `screen=${window.screen?.width || ''}x${window.screen?.height || ''}`,
+    `pixelRatio=${window.devicePixelRatio || ''}`
+  ].join(';')
+}
+
+const getDeviceFingerprint = () => {
+  const raw = `${getOrCreateDeviceId()}|${getClientHardware()}|${navigator.userAgent || ''}`
+  let hash = 0
+  for (let i = 0; i < raw.length; i += 1) {
+    hash = ((hash << 5) - hash) + raw.charCodeAt(i)
+    hash |= 0
+  }
+  return `fp-${Math.abs(hash)}`
+}
+
 const clearAuthStorage = () => {
   localStorage.removeItem('userInfo')
   localStorage.removeItem('role')
@@ -52,6 +85,11 @@ const service = axios.create({
 
 service.interceptors.request.use(
   async config => {
+    config.headers['X-Device-Id'] = getOrCreateDeviceId()
+    config.headers['X-Device-Fingerprint'] = getDeviceFingerprint()
+    config.headers['X-Client-Hardware'] = getClientHardware()
+    config.headers['X-Client-User-Agent'] = navigator.userAgent || ''
+
     if (config.method === 'get') {
       config.headers['Cache-Control'] = 'no-cache'
       config.headers.Pragma = 'no-cache'
@@ -80,7 +118,7 @@ const syncAuthFromHeaders = (response) => {
 const getBusinessErrorMessage = (code, fallback) => {
   switch (String(code)) {
     case '403':
-      return fallback || '没有权限进行此操作'
+      return '权限不足，请联系管理员'
     case '404':
       return fallback || '请求的资源不存在'
     case '500':
@@ -98,7 +136,7 @@ const getHttpErrorMessage = (error, config) => {
       case 400:
         return '请求参数错误'
       case 403:
-        return '拒绝访问'
+        return error.response.data?.msg || '权限不足，请联系管理员'
       case 404:
         return '请求的资源不存在'
       case 408:

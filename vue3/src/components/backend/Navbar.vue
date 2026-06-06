@@ -54,7 +54,7 @@
               <el-icon><House /></el-icon>
               返回前台
             </el-dropdown-item>
-            <el-dropdown-item v-if="userStore.isAdmin" command="site-settings">
+            <el-dropdown-item v-if="userStore.hasPermission('site-settings:manage')" command="site-settings">
               <el-icon><Setting /></el-icon>
               网站设置
             </el-dropdown-item>
@@ -73,6 +73,7 @@
 import { computed, ref, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { resolveImageUrl } from '@/utils/imageUrl'
 import { useAppStore } from '@/store/app'
 import { ElMessageBox } from 'element-plus'
 import { Expand, Fold, ArrowDown, SwitchButton, FullScreen, Aim, DataBoard, User, House, Setting } from '@element-plus/icons-vue'
@@ -82,13 +83,12 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const appStore = useAppStore()
-const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const userInfo = computed(() => userStore.userInfo)
 const isFullscreen = ref(false)
 
 const displayName = computed(() => userInfo.value?.name || userInfo.value?.nickname || userInfo.value?.username || '用户')
 const userInitial = computed(() => displayName.value?.charAt(0)?.toUpperCase() || 'U')
-const avatarUrl = computed(() => userInfo.value?.avatar ? baseAPI + userInfo.value.avatar : '')
+const avatarUrl = computed(() => userInfo.value?.avatar ? resolveImageUrl(userInfo.value.avatar, '') : '')
 const roleText = computed(() => userStore.isSuperAdmin ? '超级管理员' : userStore.isAdmin ? '管理员' : '用户')
 
 const toggleSidebar = () => {

@@ -7,6 +7,7 @@ import { useSiteAssets } from '@/utils/siteAssets'
 import { installGlobalImageDropUpload } from '@/utils/dragImageUpload'
 // 导入 Element Plus
 import ElementPlus from 'element-plus'
+import '@wangeditor/editor/dist/css/style.css'
 // 导入自定义主题色配置
 import './styles/element-variables.scss'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'

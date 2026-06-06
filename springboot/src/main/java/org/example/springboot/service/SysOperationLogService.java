@@ -67,22 +67,22 @@ public class SysOperationLogService {
     /**
      * 分页查询日志
      */
-    public Page<SysOperationLog> getLogsByPage(String username, String operationType, String logLevel,
+    public Page<SysOperationLog> getLogsByPage(String username, String roleCode, String operationType, String logLevel,
             String startTime, String endTime, Integer currentPage, Integer size) {
-        LambdaQueryWrapper<SysOperationLog> queryWrapper = buildQueryWrapper(username, operationType, logLevel, startTime, endTime, null);
+        LambdaQueryWrapper<SysOperationLog> queryWrapper = buildQueryWrapper(username, roleCode, operationType, logLevel, startTime, endTime, null);
         return sysOperationLogMapper.selectPage(new Page<>(currentPage, size), queryWrapper);
     }
     
     /**
      * 获取所有日志（用于导出）
      */
-    public List<SysOperationLog> getAllLogs(String username, String operationType, String logLevel,
+    public List<SysOperationLog> getAllLogs(String username, String roleCode, String operationType, String logLevel,
             String startTime, String endTime, List<Long> ids) {
-        LambdaQueryWrapper<SysOperationLog> queryWrapper = buildQueryWrapper(username, operationType, logLevel, startTime, endTime, ids);
+        LambdaQueryWrapper<SysOperationLog> queryWrapper = buildQueryWrapper(username, roleCode, operationType, logLevel, startTime, endTime, ids);
         return sysOperationLogMapper.selectList(queryWrapper);
     }
 
-    private LambdaQueryWrapper<SysOperationLog> buildQueryWrapper(String username, String operationType, String logLevel,
+    private LambdaQueryWrapper<SysOperationLog> buildQueryWrapper(String username, String roleCode, String operationType, String logLevel,
             String startTime, String endTime, List<Long> ids) {
         LambdaQueryWrapper<SysOperationLog> queryWrapper = new LambdaQueryWrapper<>();
         
@@ -91,6 +91,9 @@ public class SysOperationLogService {
         }
         if (StringUtils.isNotBlank(username)) {
             queryWrapper.like(SysOperationLog::getUsername, username);
+        }
+        if (StringUtils.isNotBlank(roleCode)) {
+            queryWrapper.eq(SysOperationLog::getRoleCode, roleCode.toUpperCase());
         }
         if (StringUtils.isNotBlank(operationType)) {
             queryWrapper.eq(SysOperationLog::getOperationType, operationType);
@@ -179,7 +182,7 @@ public class SysOperationLogService {
                 if (ip != null && ip.contains(",")) {
                     ip = ip.split(",")[0];
                 }
-                return ip;
+                return ip == null ? "unknown" : ip.trim();
             }
         } catch (Exception e) {
             logger.error("获取客户端IP异常", e);

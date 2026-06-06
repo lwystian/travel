@@ -24,102 +24,107 @@
           <template #title>个人信息</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/order" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/order" v-if="can('order:manage')">
           <el-icon><List /></el-icon>
           <template #title>订单管理</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/user" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/user" v-if="can('user:view')">
           <el-icon><User /></el-icon>
           <template #title>用户管理</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/review" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/review" v-if="can('review:manage')">
           <el-icon><Checked /></el-icon>
           <template #title>内容审核</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/notification" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/notification" v-if="can('notification:manage')">
           <el-icon><Bell /></el-icon>
           <template #title>站内消息</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/ticket" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/ticket" v-if="can('tour:manage')">
           <el-icon><Ticket /></el-icon>
           <template #title>行程管理</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/recommend" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/recommend" v-if="can('recommend:manage')">
           <el-icon><Star /></el-icon>
           <template #title>首页推荐</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/scenic" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/scenic" v-if="can('scenic:manage')">
           <el-icon><Location /></el-icon>
           <template #title>景点管理</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/accommodation">
+        <el-menu-item index="/back/accommodation" v-if="can('accommodation:manage')">
           <el-icon><House /></el-icon>
           <template #title>住宿管理</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/guide" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/guide" v-if="can('guide:manage')">
           <el-icon><Document /></el-icon>
           <template #title>攻略管理</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/comment" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/comment" v-if="can('comment:manage')">
           <el-icon><ChatDotRound /></el-icon>
           <template #title>评论管理</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/collection" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/collection" v-if="can('collection:manage')">
           <el-icon><CollectionTag /></el-icon>
           <template #title>收藏管理</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/category">
+        <el-menu-item index="/back/category" v-if="can('category:manage')">
           <el-icon><Menu /></el-icon>
           <template #title>分类管理</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/carousel" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/carousel" v-if="can('carousel:manage')">
           <el-icon><Picture /></el-icon>
           <template #title>轮播图管理</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/site-footer" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/site-footer" v-if="can('site-footer:manage')">
           <el-icon><OfficeBuilding /></el-icon>
           <template #title>网站页脚</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/site-assets" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/site-assets" v-if="can('site-assets:manage')">
           <el-icon><Picture /></el-icon>
           <template #title>站点素材</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/site-settings/site-access" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/site-settings/site-access" v-if="can('site-settings:manage')">
           <el-icon><Setting /></el-icon>
           <template #title>网站设置</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/payment" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/payment" v-if="can('payment:manage')">
           <el-icon><Wallet /></el-icon>
           <template #title>支付配置</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/auth-config" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/auth-config" v-if="can('auth-config:manage')">
           <el-icon><Lock /></el-icon>
           <template #title>认证配置</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/sensitive-word" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/sensitive-word" v-if="can('review:manage')">
           <el-icon><Warning /></el-icon>
           <template #title>敏感词过滤</template>
         </el-menu-item>
 
-        <el-menu-item index="/back/log" v-if="userStore.isAdmin">
+        <el-menu-item index="/back/permission" v-if="userStore.isSuperAdmin">
+          <el-icon><Setting /></el-icon>
+          <template #title>权限控制</template>
+        </el-menu-item>
+
+        <el-menu-item index="/back/log" v-if="can('log:view')">
           <el-icon><Files /></el-icon>
           <template #title>系统日志</template>
         </el-menu-item>
@@ -171,6 +176,8 @@ const activeMenu = computed(() => {
   const { meta, path } = route
   return meta.activeMenu || path
 })
+
+const can = (permission) => userStore.hasPermission(permission)
 
 onMounted(loadSiteAssets)
 </script>

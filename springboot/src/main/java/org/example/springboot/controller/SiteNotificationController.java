@@ -9,8 +9,8 @@ import org.example.springboot.entity.SiteNotification;
 import org.example.springboot.entity.User;
 import org.example.springboot.mapper.UserMapper;
 import org.example.springboot.security.RolePermission;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.SiteNotificationService;
-import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -64,10 +64,7 @@ public class SiteNotificationController {
     @PostMapping("/admin/send")
     @OperationLog(operationType = "CREATE", description = "发送站内消息", targetType = "站内消息")
     public Result<?> adminSend(@RequestBody Map<String, Object> body) {
-        User currentUser = JwtTokenUtils.getCurrentUser();
-        if (!RolePermission.isAdmin(currentUser)) {
-            return Result.error("无权限发送站内消息");
-        }
+        requireNotificationPermission();
         String title = String.valueOf(body.getOrDefault("title", "系统通知"));
         String content = String.valueOf(body.getOrDefault("content", ""));
         String target = String.valueOf(body.getOrDefault("target", "ALL"));
@@ -91,9 +88,7 @@ public class SiteNotificationController {
                                @RequestParam(defaultValue = "") String readStatus,
                                @RequestParam(defaultValue = "1") Integer currentPage,
                                @RequestParam(defaultValue = "10") Integer size) {
-        if (!isAdmin()) {
-            return Result.error("无权限查看站内消息记录");
-        }
+        requireNotificationPermission();
         Integer parsedReadStatus = parseInteger(readStatus);
         LambdaQueryWrapper<SiteNotification> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SiteNotification::getStatus, 1)
@@ -111,9 +106,7 @@ public class SiteNotificationController {
     @DeleteMapping("/admin/{id}")
     @OperationLog(operationType = "DELETE", description = "删除站内消息记录", targetType = "站内消息")
     public Result<?> adminDelete(@PathVariable Long id) {
-        if (!isAdmin()) {
-            return Result.error("无权限删除站内消息记录");
-        }
+        requireNotificationPermission();
         SiteNotification update = new SiteNotification();
         update.setId(id);
         update.setStatus(0);
@@ -124,9 +117,7 @@ public class SiteNotificationController {
     @DeleteMapping("/admin/batch")
     @OperationLog(operationType = "DELETE", description = "批量删除站内消息记录", targetType = "站内消息")
     public Result<?> adminBatchDelete(@RequestBody List<Long> ids) {
-        if (!isAdmin()) {
-            return Result.error("无权限删除站内消息记录");
-        }
+        requireNotificationPermission();
         if (ids == null || ids.isEmpty()) {
             return Result.error("请选择需要删除的站内消息");
         }
@@ -139,9 +130,8 @@ public class SiteNotificationController {
         return Result.success("站内消息记录已批量删除");
     }
 
-    private boolean isAdmin() {
-        User currentUser = JwtTokenUtils.getCurrentUser();
-        return RolePermission.isAdmin(currentUser);
+    private void requireNotificationPermission() {
+        SecurityGuards.requirePermission("notification:manage");
     }
 
     private Integer parseInteger(String value) {

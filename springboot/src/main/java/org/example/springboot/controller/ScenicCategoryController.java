@@ -41,7 +41,7 @@ public class ScenicCategoryController {
     @Operation(summary = "添加分类")
     @PostMapping
     public Result<?> addCategory(@RequestBody ScenicCategory category) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("category:manage");
         if (scenicCategoryService.addCategory(category)) {
             return Result.success();
         } else {
@@ -52,7 +52,7 @@ public class ScenicCategoryController {
     @Operation(summary = "更新分类")
     @PutMapping("/{id}")
     public Result<?> updateCategory(@PathVariable Long id, @RequestBody ScenicCategory category) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("category:manage");
         category.setId(id);
         if (scenicCategoryService.updateCategory(category)) {
             return Result.success();
@@ -64,7 +64,7 @@ public class ScenicCategoryController {
     @Operation(summary = "删除分类")
     @DeleteMapping("/{id}")
     public Result<?> deleteCategory(@PathVariable Long id) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("category:manage");
         if (scenicCategoryService.deleteCategory(id)) {
             return Result.success();
         } else {

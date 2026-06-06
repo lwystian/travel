@@ -266,8 +266,8 @@ import request from '@/utils/request'
 import GeetestBox from '@/components/auth/GeetestBox.vue'
 import { maskEmail, maskPhone } from '@/utils/mask'
 import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
+import { resolveImageUrl } from '@/utils/imageUrl'
 
-const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const userStore = useUserStore()
 const formRef = ref(null)
 const passwordFormRef = ref(null)
@@ -329,7 +329,7 @@ const form = reactive({
 
 // 头像地址
 const avatarUrl = computed(() => {
-  return form.avatar ? baseAPI + form.avatar : '';
+  return form.avatar ? resolveImageUrl(form.avatar, '') : '';
 })
 
 // 密码表单
@@ -783,9 +783,9 @@ const handleChangePassword = async () => {
             confirmButtonText: '重新登录',
             cancelButtonText: '取消',
             type: 'warning',
-          }).then(() => {
-            // 清除用户信息并跳转到登录页
-            userStore.clearUserInfo()
+          }).then(async () => {
+            // 清除服务端会话和本地登录状态后跳转登录页
+            await userStore.logout()
             window.location.href = '/login'
           })
         }

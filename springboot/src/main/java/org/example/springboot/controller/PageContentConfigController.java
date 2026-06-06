@@ -5,10 +5,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.example.springboot.annotation.OperationLog;
 import org.example.springboot.common.Result;
-import org.example.springboot.exception.ServiceException;
-import org.example.springboot.security.RolePermission;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.PageContentConfigService;
-import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -48,9 +46,6 @@ public class PageContentConfigController {
     }
 
     private void requireAdmin() {
-        var user = JwtTokenUtils.getCurrentUser();
-        if (!RolePermission.isAdmin(user)) {
-            throw new ServiceException("无权限");
-        }
+        SecurityGuards.requirePermission("site-settings:manage");
     }
 }

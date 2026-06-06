@@ -9,9 +9,8 @@ import org.example.springboot.common.Result;
 import org.example.springboot.dto.PaymentConfigDTO;
 import org.example.springboot.entity.TourOrder;
 import org.example.springboot.exception.ServiceException;
-import org.example.springboot.security.RolePermission;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.*;
-import org.example.springboot.util.JwtTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -119,9 +118,7 @@ public class TourOrderPayController {
             if (isProdProfile()) {
                 throw new ServiceException("生产环境禁止模拟支付");
             }
-            if (!RolePermission.isAdmin(JwtTokenUtils.getCurrentUser())) {
-                throw new ServiceException("无权限");
-            }
+            SecurityGuards.requirePermission("order:manage");
             tourOrderAlipayService.mockPay(orderId);
             return Result.success();
         } catch (Exception e) {

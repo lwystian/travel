@@ -37,20 +37,25 @@
         <el-table-column label="作者" width="180">
           <template #default="scope">
             <div class="author-info">
-              <el-avatar :src="baseAPI + (scope.row.userAvatar || '')" size="small" />
+              <el-avatar :src="resolveImageUrl(scope.row.userAvatar, '')" size="small">
+                {{ (scope.row.userNickname || scope.row.username || '用').charAt(0) }}
+              </el-avatar>
               <span class="author-name">{{ scope.row.userNickname || ('用户' + scope.row.userId) }}</span>
             </div>
           </template>
         </el-table-column>
         <el-table-column prop="title" label="标题" show-overflow-tooltip />
+        <el-table-column prop="destination" label="目的地" width="130" show-overflow-tooltip>
+          <template #default="scope">{{ scope.row.destination || '-' }}</template>
+        </el-table-column>
         <el-table-column label="封面" width="120">
           <template #default="scope">
             <el-image 
               v-if="scope.row.coverImage" 
-              :src="baseAPI + scope.row.coverImage" 
+              :src="resolveImageUrl(scope.row.coverImage)" 
               fit="cover"
               style="width:80px;height:50px;border-radius:4px;"
-              :preview-src-list="[baseAPI + scope.row.coverImage]"
+              :preview-src-list="[resolveImageUrl(scope.row.coverImage)]"
               preview-teleported
             />
             <div v-else class="no-image">无封面</div>
@@ -64,6 +69,16 @@
         <el-table-column prop="createTime" label="创建时间" width="160" sortable>
           <template #default="scope">
             <span class="date-text">{{ formatDate(scope.row.createTime) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="来源信息" min-width="280">
+          <template #default="scope">
+            <div class="source-cell">
+              <span>IP：{{ scope.row.ipAddress || '-' }}</span>
+              <span>端口：{{ scope.row.port || '-' }}</span>
+              <small class="source-ua">UA：{{ scope.row.userAgent || '-' }}</small>
+              <small>设备：{{ scope.row.deviceId || '-' }}</small>
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="内容预览" min-width="200">
@@ -135,11 +150,13 @@
         <h1 class="preview-title">{{ previewGuideData.title }}</h1>
         <div class="preview-info">
           <span>作者: {{ previewGuideData.userNickname || ('用户' + previewGuideData.userId) }}</span>
+          <span>目的地: {{ previewGuideData.destination || '-' }}</span>
+          <span>来源IP: {{ previewGuideData.ipAddress || '-' }}</span>
           <span>发布时间: {{ formatDate(previewGuideData.createTime) }}</span>
           <span>浏览量: {{ previewGuideData.views || 0 }}</span>
         </div>
         <el-divider />
-        <div class="preview-content" v-html="renderContent(previewGuideData.content)"></div>
+        <div class="preview-content content-display" v-html="renderContent(previewGuideData.content)"></div>
       </div>
     </el-dialog>
 
@@ -168,6 +185,21 @@
             placeholder="请输入攻略标题" 
             maxlength="100" 
             show-word-limit
+          />
+        </el-form-item>
+
+        <el-form-item label="目的地" prop="destination" required>
+          <el-cascader
+            v-model="guideForm.destinationPath"
+            :options="chinaRegionOptions"
+            :props="regionCascaderProps"
+            placeholder="请选择或搜索省 / 市 / 区县"
+            clearable
+            filterable
+            popper-class="region-cascader-popper"
+            style="width: 100%;"
+            @change="handleGuideDestinationChange"
+            @expand-change="handleGuideDestinationExpandChange"
           />
         </el-form-item>
         
@@ -239,12 +271,12 @@ import WangEditor from '@/components/WangEditor.vue'
 import { useUserStore } from '@/store/user'
 import { renderContent } from '@/utils/contentRenderer'
 import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
+import { resolveImageUrl } from '@/utils/imageUrl'
+import { chinaRegionOptions, regionCascaderProps, getRegionLabel, findRegionPath, selectRegionOnExpand } from '@/utils/chinaRegion'
 
 // 用户状态
 const userStore = useUserStore()
 
-// 常量定义
-const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const tableData = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
@@ -266,6 +298,8 @@ const guideFormRef = ref(null)
 const guideForm = reactive({
   id: null,
   title: '',
+  destination: '',
+  destinationPath: [],
   content: '',
   coverImage: ''
 })
@@ -276,6 +310,10 @@ const guideFormRules = {
     { required: true, message: '请输入攻略标题', trigger: 'blur' },
     { min: 2, max: 100, message: '标题长度在2到100个字符之间', trigger: 'blur' }
   ],
+  destination: [
+    { required: true, message: '请选择目的地', trigger: 'change' },
+    { min: 1, max: 50, message: '目的地长度不能超过50个字符', trigger: 'blur' }
+  ],
   content: [
     { required: true, message: '请输入攻略内容', trigger: 'blur' }
   ]
@@ -284,7 +322,7 @@ const guideFormRules = {
 // 封面图片URL
 const coverImageUrl = computed(() => {
   if (!guideForm.coverImage) return ''
-  return baseAPI + guideForm.coverImage
+  return resolveImageUrl(guideForm.coverImage, '')
 })
 
 // 获取攻略列表
@@ -401,6 +439,8 @@ const handleEdit = (row) => {
   Object.assign(guideForm, {
     id: row.id,
     title: row.title,
+    destination: row.destination || '',
+    destinationPath: findRegionPath(row.destination || ''),
     content: row.content,
     coverImage: row.coverImage
   })
@@ -411,6 +451,8 @@ const handleEdit = (row) => {
 const resetGuideForm = () => {
   guideForm.id = null
   guideForm.title = ''
+  guideForm.destination = ''
+  guideForm.destinationPath = []
   guideForm.content = ''
   guideForm.coverImage = ''
   
@@ -454,9 +496,21 @@ const customUploadCover = async (options) => {
   }
 }
 
+const handleGuideDestinationChange = (value) => {
+  guideForm.destination = getRegionLabel(value, ' / ')
+}
+
+const handleGuideDestinationExpandChange = (value) => {
+  selectRegionOnExpand(value, nextValue => {
+    guideForm.destinationPath = nextValue
+    handleGuideDestinationChange(nextValue)
+  })
+}
+
 // 提交表单
 const submitGuideForm = () => {
   if (!guideFormRef.value) return
+  guideForm.destination = getRegionLabel(guideForm.destinationPath, ' / ') || guideForm.destination
 
   guideFormRef.value.validate(async (valid) => {
     if (!valid) {
@@ -469,6 +523,7 @@ const submitGuideForm = () => {
       const formData = {
         id: guideForm.id,
         title: guideForm.title,
+        destination: guideForm.destination,
         content: guideForm.content,
         coverImage: guideForm.coverImage
       }
@@ -658,6 +713,25 @@ const handleDialogClose = () => {
   .date-text {
     color: #7f8c8d;
     font-size: 12px;
+  }
+
+  .source-cell {
+    display: grid;
+    gap: 4px;
+    color: #34495e;
+    font-size: 13px;
+  }
+
+  .source-cell small {
+    color: #7f8c8d;
+  }
+
+  .source-ua {
+    display: block;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   .action-btn {

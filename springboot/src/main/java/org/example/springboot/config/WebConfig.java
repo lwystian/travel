@@ -27,7 +27,13 @@ public class WebConfig implements WebMvcConfigurer {
     private static final String[] PUBLIC_PATHS = {
         "/api/user/login",      // 登录接口
         "/api/user/login/email", // 邮箱登录接口
-        "/api/auth/**",         // 手机号登录注册、短信验证码、极验公开配置
+        "/api/auth/geetest/public",
+        "/api/auth/crypto/public-key",
+        "/api/auth/sms/send",
+        "/api/auth/register/phone",
+        "/api/auth/login/password",
+        "/api/auth/login/code",
+        "/api/auth/agreement",
         "/api/user/forget",     // 忘记密码接口
         "/api/email/code/**",   // 注册邮箱验证码接口
         "/api/email/findByEmail/**", // 忘记密码邮箱验证码接口
@@ -54,6 +60,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Resource
     private JwtInterceptor jwtInterceptor;
+
+    @Resource
+    private AdminPermissionInterceptor adminPermissionInterceptor;
 
 
 
@@ -83,6 +92,9 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(Objects.requireNonNull(jwtInterceptor, "jwtInterceptor must not be null"))
                 .addPathPatterns("/api/**")           // 拦截所有API请求
                 .excludePathPatterns(Objects.requireNonNull(PUBLIC_PATHS, "public paths must not be null"));   // 排除公开接口
+        registry.addInterceptor(Objects.requireNonNull(adminPermissionInterceptor, "adminPermissionInterceptor must not be null"))
+                .addPathPatterns("/api/**")
+                .excludePathPatterns(Objects.requireNonNull(PUBLIC_PATHS, "public paths must not be null"));
     }
 
     /**

@@ -6,10 +6,8 @@ import jakarta.annotation.Resource;
 import org.example.springboot.annotation.OperationLog;
 import org.example.springboot.common.Result;
 import org.example.springboot.dto.SiteAssetConfigDTO;
-import org.example.springboot.exception.ServiceException;
-import org.example.springboot.security.RolePermission;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.SiteAssetConfigService;
-import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -46,9 +44,6 @@ public class SiteAssetConfigController {
     }
 
     private void requireAdmin() {
-        var user = JwtTokenUtils.getCurrentUser();
-        if (!RolePermission.isAdmin(user)) {
-            throw new ServiceException("no permission");
-        }
+        SecurityGuards.requirePermission("site-assets:manage");
     }
 }

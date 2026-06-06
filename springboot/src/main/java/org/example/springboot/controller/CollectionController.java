@@ -8,7 +8,6 @@ import org.example.springboot.common.Result;
 import org.example.springboot.entity.Collection;
 import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
-import org.example.springboot.security.RolePermission;
 import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.CollectionService;
 import org.example.springboot.util.JwtTokenUtils;
@@ -50,8 +49,11 @@ public class CollectionController {
         Page<Collection> page;
         if (userId != null) {
             User currentUser = JwtTokenUtils.getCurrentUser();
-            if (currentUser == null || (!RolePermission.isAdmin(currentUser) && !currentUser.getId().equals(userId))) {
-                throw new ServiceException("无权限查看该用户收藏");
+            if (currentUser == null) {
+                throw new ServiceException("请先登录");
+            }
+            if (!currentUser.getId().equals(userId)) {
+                SecurityGuards.requirePermission("collection:manage");
             }
             page = collectionService.getCollectionsByPage(userId, currentPage, size);
         } else {
@@ -75,7 +77,7 @@ public class CollectionController {
             @RequestParam(defaultValue = "") String guideTitle,
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "10") Integer size) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("collection:manage");
         Page<Collection> page = collectionService.getCollectionsByAdmin(username, guideTitle, currentPage, size);
         return Result.success(page);
     }
@@ -88,14 +90,14 @@ public class CollectionController {
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "10") Integer size) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("collection:manage");
         return Result.success(collectionService.getUnifiedCollectionsByAdmin(type, username, keyword, currentPage, size));
     }
 
     @Operation(summary = "管理员统一删除收藏")
     @DeleteMapping("/admin/unified/{type}/{id}")
     public Result<?> deleteUnifiedCollection(@PathVariable String type, @PathVariable Long id) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("collection:manage");
         collectionService.deleteUnifiedCollection(type, id);
         return Result.success();
     }
@@ -103,7 +105,7 @@ public class CollectionController {
     @Operation(summary = "管理员删除收藏")
     @DeleteMapping("/admin/{id}")
     public Result<?> deleteCollection(@PathVariable Long id) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("collection:manage");
         collectionService.deleteCollection(id);
         return Result.success();
     }

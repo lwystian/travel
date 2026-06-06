@@ -111,8 +111,8 @@ import { ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
 import noImage from '@/assets/images/no-image.png'
+import { resolveImageUrl } from '@/utils/imageUrl'
 
-const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const tableData = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
@@ -187,9 +187,7 @@ const handleDelete = (row) => {
 }
 
 const resolveAsset = (url) => {
-  if (!url) return noImage
-  if (/^(https?:)?\/\//.test(url) || url.startsWith('data:')) return url
-  return `${baseAPI}${url.startsWith('/') ? url : `/${url}`}`
+  return resolveImageUrl(url, noImage)
 }
 
 const avatarText = (row) => (row.userNickname || row.username || '用').slice(0, 1)

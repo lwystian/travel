@@ -22,13 +22,20 @@
         </el-form-item>
 
         <el-form-item label="目的地" prop="destination" required>
-          <el-input
-            v-model="form.destination"
-            placeholder="请输入目的地（如：北京、上海、成都）"
+          <el-cascader
+            v-model="destinationPath"
+            :options="chinaRegionOptions"
+            :props="regionCascaderProps"
+            placeholder="请选择或搜索省 / 市 / 区县"
+            clearable
+            filterable
+            popper-class="region-cascader-popper"
             style="width: 100%;"
+            @change="handleDestinationChange"
+            @expand-change="handleDestinationExpandChange"
           />
           <div class="form-tips">
-            输入攻略的目的地，帮助其他用户更好地查找
+            支持中国省、市、区县搜索选择，帮助其他用户更好地查找
           </div>
         </el-form-item>
         
@@ -91,6 +98,7 @@ import noImage from '@/assets/images/no-image.png'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
+import { chinaRegionOptions, regionCascaderProps, getRegionLabel, findRegionPath, selectRegionOnExpand } from '@/utils/chinaRegion'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const form = reactive({
@@ -101,6 +109,7 @@ const form = reactive({
   id: ''
 })
 const formRef = ref(null)
+const destinationPath = ref([])
 const route = useRoute()
 const router = useRouter()
 const submitting = ref(false)
@@ -122,6 +131,7 @@ onMounted(async () => {
           form.coverImage = res.coverImage
           form.content = res.content
           form.destination = res.destination || ''
+          destinationPath.value = findRegionPath(form.destination)
           form.id = res.id
         }
       })
@@ -162,7 +172,20 @@ const customUploadCover = async (options) => {
   }
 }
 
+const handleDestinationChange = (value) => {
+  form.destination = getRegionLabel(value, ' / ')
+}
+
+const handleDestinationExpandChange = (value) => {
+  selectRegionOnExpand(value, nextValue => {
+    destinationPath.value = nextValue
+    handleDestinationChange(nextValue)
+  })
+}
+
 const submit = async () => {
+  form.destination = getRegionLabel(destinationPath.value, ' / ') || form.destination
+
   if (!form.title.trim()) {
     return ElMessage.warning('请输入攻略标题')
   }
@@ -198,6 +221,7 @@ const submit = async () => {
           form.coverImage = ''
           form.content = ''
           form.destination = ''
+          destinationPath.value = []
           router.push({ name: 'MyGuideList' })
         }
       })

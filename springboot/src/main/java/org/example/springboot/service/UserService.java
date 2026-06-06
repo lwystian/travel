@@ -55,6 +55,9 @@ public class UserService {
     @Resource
     private SmsCodeService smsCodeService;
 
+    @Resource
+    private AdminPermissionService adminPermissionService;
+
     public User attachRoleInfo(User user) {
         if (user == null) {
             return null;
@@ -62,7 +65,7 @@ public class UserService {
         String roleCode = RolePermission.normalizeRole(user.getRoleCode());
         user.setRoleCode(roleCode);
         user.setRoleName(RolePermission.roleNameOf(roleCode));
-        user.setPermissions(RolePermission.permissionsOf(roleCode));
+        user.setPermissions(adminPermissionService.resolvePermissions(user));
         user.setSuperAdmin(RolePermission.SUPER_ADMIN.equals(roleCode));
         user.setProtectedAccount(Boolean.TRUE.equals(user.getSuperAdmin()));
         user.setPassword(null);
@@ -211,7 +214,7 @@ public class UserService {
         userLoginInfo.put("username", dbUser.getUsername());
         userLoginInfo.put("nickname", dbUser.getNickname());
         userLoginInfo.put("roleCode", dbUser.getRoleCode());
-        userLoginInfo.put("permissions", RolePermission.permissionsOf(dbUser.getRoleCode()));
+        userLoginInfo.put("permissions", adminPermissionService.resolvePermissions(dbUser));
         userLoginInfo.put("loginTime", System.currentTimeMillis());
         userLoginInfo.put("ip", loginIp);
         userLoginInfo.put("port", loginPort);
@@ -729,7 +732,7 @@ public class UserService {
             return;
         }
         if (!RolePermission.isAdmin(actor)) {
-            throw new ServiceException("无权限");
+            throw new ServiceException("权限不足，请联系管理员");
         }
     }
 

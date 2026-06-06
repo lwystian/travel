@@ -25,6 +25,7 @@ import org.example.springboot.service.SmsCodeService;
 import org.example.springboot.service.UserService;
 import org.example.springboot.util.JwtTokenUtils;
 import org.example.springboot.security.RolePermission;
+import org.example.springboot.security.SecurityGuards;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,8 +58,11 @@ public class UserController {
     @GetMapping("/{id}")
     public Result<?> getById(@PathVariable Long id) {
         User currentUser = JwtTokenUtils.getCurrentUser();
-        if (currentUser == null || (!RolePermission.isAdmin(currentUser) && !currentUser.getId().equals(id))) {
-            throw new ServiceException("无权限");
+        if (currentUser == null) {
+            throw new ServiceException("请先登录");
+        }
+        if (!currentUser.getId().equals(id)) {
+            SecurityGuards.requirePermission("user:view");
         }
         User user = userService.getUserById(id);
         return Result.success(userService.attachRoleInfo(user));
@@ -67,7 +71,7 @@ public class UserController {
     @Operation(summary = "根据username获取用户信息")
     @GetMapping("/username/{username}")
     public Result<?> getUserByUsername(@PathVariable String username) {
-        requireAdmin();
+        SecurityGuards.requirePermission("user:view");
         User user = userService.getByUsername(username);
         return Result.success(userService.attachRoleInfo(user));
     }
@@ -122,7 +126,7 @@ public class UserController {
             @RequestParam(defaultValue = "") String roleCode,
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "10") Integer size) {
-        requireAdmin();
+        SecurityGuards.requirePermission("user:view");
         Page<User> page = userService.getUsersByPage(username, phone, sex, nickname, roleCode, currentPage, size);
         return Result.success(page);
     }
@@ -130,7 +134,7 @@ public class UserController {
     @Operation(summary = "根据角色获取用户列表")
     @GetMapping("/role/{roleCode}")
     public Result<?> getUserByRole(@PathVariable String roleCode) {
-        requireAdmin();
+        SecurityGuards.requirePermission("user:view");
         List<User> users = userService.getUserByRole(roleCode);
         users.forEach(userService::attachRoleInfo);
         return Result.success(users);
@@ -139,7 +143,7 @@ public class UserController {
     @Operation(summary = "批量删除用户")
     @DeleteMapping("/deleteBatch")
     public Result<?> deleteBatch(@RequestParam List<Integer> ids) {
-        User currentUser = requireAdmin();
+        User currentUser = SecurityGuards.requirePermission("user:delete");
         for (Integer id : ids) {
             userService.deleteUserById(Long.valueOf(id), currentUser);
         }
@@ -149,7 +153,7 @@ public class UserController {
     @Operation(summary = "获取所有用户")
     @GetMapping("/all")
     public Result<?> getUserList() {
-        requireAdmin();
+        SecurityGuards.requirePermission("user:view");
         List<User> list = userService.getUserList();
         list.forEach(userService::attachRoleInfo);
         return Result.success(list);
@@ -158,7 +162,7 @@ public class UserController {
     @Operation(summary = "创建新用户")
     @PostMapping("/add")
     public Result<?> createUser(@RequestBody  User user) {
-        User currentUser = requireAdmin();
+        User currentUser = SecurityGuards.requirePermission("user:create");
         userService.createUser(user, currentUser);
         return Result.success("创建成功");
     }
@@ -174,9 +178,7 @@ public class UserController {
             User updated = userService.updateOwnProfile(id, user);
             return Result.success("个人信息更新成功", userService.attachRoleInfo(updated));
         }
-        if (!RolePermission.isAdmin(currentUser)) {
-            throw new ServiceException("只能修改自己的个人资料");
-        }
+        SecurityGuards.requirePermission("user:update");
         userService.updateUser(id, user, currentUser);
         return Result.success("更新成功");
     }
@@ -286,7 +288,7 @@ public class UserController {
     @Operation(summary = "根据id删除用户")
     @DeleteMapping("/delete/{id}")
     public Result<?> deleteUserById(@PathVariable Long id) {
-        User currentUser = requireAdmin();
+        User currentUser = SecurityGuards.requirePermission("user:delete");
         userService.deleteUserById(id, currentUser);
         return Result.success("删除成功");
     }
@@ -303,7 +305,7 @@ public class UserController {
     @Operation(summary = "修改用户状态")
     @PutMapping("/status/{userId}")
     public Result<?> updateStatus(@PathVariable Long userId, @RequestParam Integer status) {
-        User currentUser = requireAdmin();
+        User currentUser = SecurityGuards.requirePermission("user:update");
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new ServiceException("用户不存在");
@@ -317,7 +319,7 @@ public class UserController {
     @Operation(summary = "设置管理员订单通知")
     @PutMapping({"/{id}/order-notify", "/{id}/order-sms-notify"})
     public Result<?> updateOrderNotify(@PathVariable Long id, @RequestParam Boolean enabled) {
-        User currentUser = JwtTokenUtils.getCurrentUser();
+        User currentUser = SecurityGuards.requireSuperAdmin();
         userService.updateOrderNotifyEnabled(id, enabled, currentUser);
         return Result.success(Boolean.TRUE.equals(enabled) ? "已开启订单通知" : "已关闭订单通知");
     }
@@ -325,10 +327,7 @@ public class UserController {
     @Operation(summary = "管理员重置用户密码")
     @PutMapping("/resetPassword/{id}")
     public Result<?> resetPassword(@PathVariable Long id, @RequestBody UserPasswordUpdateDTO dto) {
-        var currentUser = org.example.springboot.util.JwtTokenUtils.getCurrentUser();
-        if (!RolePermission.isAdmin(currentUser)) {
-            return Result.error("无权限");
-        }
+        User currentUser = SecurityGuards.requirePermission("user:reset-password");
         userService.resetPassword(id, dto.getNewPassword(), currentUser);
         return Result.success("重置密码成功");
     }
@@ -353,11 +352,7 @@ public class UserController {
     @Operation(summary = "获取在线用户列表")
     @GetMapping("/online/list")
     public Result<?> getOnlineUserList() {
-        var currentUser = JwtTokenUtils.getCurrentUser();
-        if (!RolePermission.isAdmin(currentUser)) {
-            return Result.error("无权限");
-        }
-        
+        SecurityGuards.requirePermission("log:view");
         List<Map<String, Object>> onlineUsers = userService.getOnlineUserList();
         return Result.success(onlineUsers);
     }
@@ -475,14 +470,6 @@ public class UserController {
         // 实现数据库查询逻辑，返回是否存在该用户名
 
         return userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getUsername,username))>0;
-    }
-
-    private User requireAdmin() {
-        User currentUser = JwtTokenUtils.getCurrentUser();
-        if (!RolePermission.isAdmin(currentUser)) {
-            throw new ServiceException("无权限");
-        }
-        return currentUser;
     }
 
     private void writeLoginCookie(User user, HttpServletRequest request, HttpServletResponse response) {

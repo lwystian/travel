@@ -45,6 +45,9 @@ public class TourOrderAlipayService {
     @Autowired
     private TourBatchMapper tourBatchMapper;
 
+    @Autowired
+    private AdminPermissionService adminPermissionService;
+
     /**
      * 支付策略注册表
      */
@@ -324,9 +327,15 @@ public class TourOrderAlipayService {
         if (currentUser == null) {
             throw new ServiceException("用户未登录");
         }
-        if (!order.getUserId().equals(currentUser.getId()) && !RolePermission.isAdmin(currentUser)) {
+        if (!order.getUserId().equals(currentUser.getId()) && !canManageOrders(currentUser)) {
             throw new ServiceException("无权访问此订单");
         }
+    }
+
+    private boolean canManageOrders(User currentUser) {
+        return RolePermission.isAdmin(currentUser)
+                && (RolePermission.isSuperAdmin(currentUser)
+                || adminPermissionService.hasPermission(currentUser, "order:manage"));
     }
 
 }

@@ -8,7 +8,7 @@ import org.example.springboot.common.Result;
 import org.example.springboot.entity.TourCollection;
 import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
-import org.example.springboot.security.RolePermission;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.TourCollectionService;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.*;
@@ -69,9 +69,7 @@ public class TourCollectionController {
         if (requestedUserId == null || requestedUserId.equals(currentUser.getId())) {
             return currentUser.getId();
         }
-        if (!RolePermission.isAdmin(currentUser)) {
-            throw new ServiceException("无权限查看该用户收藏");
-        }
+        SecurityGuards.requirePermission("collection:manage");
         return requestedUserId;
     }
 }

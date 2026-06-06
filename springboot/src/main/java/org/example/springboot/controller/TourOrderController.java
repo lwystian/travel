@@ -5,9 +5,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
+import org.example.springboot.annotation.OperationLog;
 import org.example.springboot.dto.TourOrderCreateDTO;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.TourOrder;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.TourOrderService;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +23,7 @@ public class TourOrderController {
 
     @Operation(summary = "创建行程订单")
     @PostMapping
+    @OperationLog(operationType = "CREATE", description = "创建行程订单", targetType = "订单")
     public Result<?> createOrder(@Valid @RequestBody TourOrderCreateDTO dto) {
         TourOrder order = tourOrderService.createOrder(dto);
         return Result.success(order);
@@ -28,6 +31,7 @@ public class TourOrderController {
 
     @Operation(summary = "支付订单")
     @PutMapping("/{id}/pay")
+    @OperationLog(operationType = "PAY", description = "支付行程订单", targetType = "订单")
     public Result<?> payOrder(@PathVariable Long id, @RequestParam String paymentMethod) {
         tourOrderService.payOrder(id, paymentMethod);
         return Result.success();
@@ -35,6 +39,7 @@ public class TourOrderController {
 
     @Operation(summary = "取消订单")
     @PutMapping("/{id}/cancel")
+    @OperationLog(operationType = "CANCEL", description = "取消行程订单", targetType = "订单")
     public Result<?> cancelOrder(@PathVariable Long id) {
         tourOrderService.cancelOrder(id);
         return Result.success();
@@ -42,7 +47,9 @@ public class TourOrderController {
 
     @Operation(summary = "退款订单（管理员）")
     @PutMapping("/{id}/refund")
+    @OperationLog(operationType = "REFUND", description = "退款行程订单", targetType = "订单")
     public Result<?> refundOrder(@PathVariable Long id) {
+        SecurityGuards.requirePermission("order:manage");
         tourOrderService.refundOrder(id);
         return Result.success();
     }
@@ -79,19 +86,23 @@ public class TourOrderController {
             @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "10") Integer size) {
+        SecurityGuards.requirePermission("order:manage");
         Page<TourOrder> page = tourOrderService.getAllOrders(orderNo, contactName, contactPhone, status, currentPage, size);
         return Result.success(page);
     }
 
     @Operation(summary = "删除订单（管理员）")
     @DeleteMapping("/{id}")
+    @OperationLog(operationType = "DELETE", description = "删除行程订单", targetType = "订单")
     public Result<?> deleteOrder(@PathVariable Long id) {
+        SecurityGuards.requirePermission("order:manage");
         tourOrderService.deleteOrder(id);
         return Result.success();
     }
 
     @Operation(summary = "更新订单联系人信息")
     @PutMapping("/{id}/contact")
+    @OperationLog(operationType = "UPDATE", description = "更新订单联系人信息", targetType = "订单")
     public Result<?> updateContactInfo(
             @PathVariable Long id,
             @RequestParam String contactName,

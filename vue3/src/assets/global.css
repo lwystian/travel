@@ -135,4 +135,45 @@ img {
   display: none !important;
 }
 
+/* 地区级联选择：隐藏严格模式圆点，让整行呈现为可点击选择项 */
+.region-cascader-popper .el-cascader-node {
+  padding-left: 14px;
+  position: relative;
+  cursor: pointer;
+}
+
+.region-cascader-popper .el-cascader-node .el-radio {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.region-cascader-popper .el-cascader-node .el-radio__input,
+.region-cascader-popper .el-cascader-node .el-radio__label {
+  cursor: pointer;
+}
+
+.region-cascader-popper .el-cascader-node__label,
+.region-cascader-popper .el-cascader-node__postfix {
+  pointer-events: none;
+}
+
+.region-cascader-popper .el-cascader-node.in-active-path,
+.region-cascader-popper .el-cascader-node.in-checked-path,
+.region-cascader-popper .el-cascader-node.is-active {
+  color: #f59e0b;
+  background: #fff7e6;
+  font-weight: 600;
+}
+
+.region-cascader-popper .el-cascader-node:not(.is-disabled):hover {
+  color: #f59e0b;
+  background: #fff7e6;
+}
+
 

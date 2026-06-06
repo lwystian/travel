@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import org.example.springboot.annotation.OperationLog;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.ScenicSpot;
 import org.example.springboot.security.SecurityGuards;
@@ -51,8 +52,9 @@ public class ScenicSpotController {
 
     @Operation(summary = "新增景点")
     @PostMapping("/add")
+    @OperationLog(operationType = "CREATE", description = "新增景点", targetType = "景点")
     public Result<?> createScenicSpot(@RequestBody ScenicSpot spot) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("scenic:manage");
         scenicSpotService.createScenicSpot(spot);
         // 返回新增的景点ID
         return Result.success(Map.of("id", spot.getId(), "message", "新增成功"));
@@ -60,16 +62,18 @@ public class ScenicSpotController {
 
     @Operation(summary = "更新景点")
     @PutMapping("/{id}")
+    @OperationLog(operationType = "UPDATE", description = "更新景点", targetType = "景点")
     public Result<?> updateScenicSpot(@PathVariable Long id, @RequestBody ScenicSpot spot) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("scenic:manage");
         scenicSpotService.updateScenicSpot(id, spot);
         return Result.success("更新成功");
     }
 
     @Operation(summary = "删除景点")
     @DeleteMapping("/delete/{id}")
+    @OperationLog(operationType = "DELETE", description = "删除景点", targetType = "景点")
     public Result<?> deleteScenicSpot(@PathVariable Long id) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("scenic:manage");
         scenicSpotService.deleteScenicSpot(id);
         return Result.success("删除成功");
     }
@@ -77,7 +81,7 @@ public class ScenicSpotController {
     @Operation(summary = "获取所有景点")
     @GetMapping("/all")
     public Result<?> getAll() {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requireAnyPermission("scenic:manage", "accommodation:manage");
         List<ScenicSpot> list = scenicSpotService.getAll();
         return Result.success(list);
     }

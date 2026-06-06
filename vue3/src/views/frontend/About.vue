@@ -1,6 +1,6 @@
 <template>
   <div class="about-page">
-    <div v-if="userStore.isAdmin" class="about-admin-bar">
+    <div v-if="canEditPageContent" class="about-admin-bar">
       <div>
         <strong>页面编辑模式</strong>
         <span>可直接维护当前页面的展示文案</span>
@@ -190,6 +190,7 @@ const aboutHeroUrl = computed(() => getAssetUrl(siteAssets.value.aboutHeroUrl, n
 const editMode = ref(false)
 const savingContent = ref(false)
 const editingSnapshot = ref(null)
+const canEditPageContent = computed(() => userStore.hasPermission('site-settings:manage'))
 
 const defaultPageContent = {
   hero: {
@@ -358,6 +359,7 @@ const loadAboutContent = async () => {
 }
 
 const startEdit = () => {
+  if (!canEditPageContent.value) return
   editingSnapshot.value = cloneData(serializeAboutContent())
   editMode.value = true
 }
@@ -370,6 +372,7 @@ const cancelEdit = () => {
 }
 
 const saveAboutContent = async () => {
+  if (!canEditPageContent.value) return
   savingContent.value = true
   try {
     await savePageContent('about', serializeAboutContent(), { successMsg: '关于页内容已保存' })

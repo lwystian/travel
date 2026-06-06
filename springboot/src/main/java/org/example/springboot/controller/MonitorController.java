@@ -3,10 +3,7 @@ package org.example.springboot.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.example.springboot.common.Result;
-import org.example.springboot.entity.User;
-import org.example.springboot.exception.ServiceException;
-import org.example.springboot.security.RolePermission;
-import org.example.springboot.util.JwtTokenUtils;
+import org.example.springboot.security.SecurityGuards;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -60,9 +57,6 @@ public class MonitorController {
     }
 
     private void requireAdmin() {
-        User currentUser = JwtTokenUtils.getCurrentUser();
-        if (!RolePermission.isAdmin(currentUser)) {
-            throw new ServiceException("无权限");
-        }
+        SecurityGuards.requireSuperAdmin();
     }
 }

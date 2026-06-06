@@ -65,6 +65,13 @@ CREATE TABLE `accommodation_review` (
   `reviewer_name` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL ,
   `review_time` datetime DEFAULT NULL ,
   `review_comment` varchar(500) COLLATE utf8mb4_general_ci DEFAULT NULL ,
+  `ip_address` varchar(100) DEFAULT NULL COMMENT 'IP地址',
+  `port` int DEFAULT NULL COMMENT '网络源端口',
+  `user_agent` varchar(500) DEFAULT NULL COMMENT '浏览器信息',
+  `device_id` varchar(128) DEFAULT NULL COMMENT '设备ID',
+  `device_fingerprint` varchar(255) DEFAULT NULL COMMENT '设备指纹',
+  `client_hardware` varchar(500) DEFAULT NULL COMMENT '客户端硬件特征',
+  `mac_address` varchar(64) DEFAULT NULL COMMENT 'MAC地址',
   PRIMARY KEY (`id`) USING BTREE,
   KEY `user_id` (`user_id`) USING BTREE,
   KEY `accommodation_id` (`accommodation_id`) USING BTREE
@@ -184,6 +191,13 @@ CREATE TABLE `comment` (
   `reviewer_name` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `review_time` datetime DEFAULT NULL,
   `review_comment` varchar(500) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `ip_address` varchar(100) DEFAULT NULL COMMENT 'IP地址',
+  `port` int DEFAULT NULL COMMENT '网络源端口',
+  `user_agent` varchar(500) DEFAULT NULL COMMENT '浏览器信息',
+  `device_id` varchar(128) DEFAULT NULL COMMENT '设备ID',
+  `device_fingerprint` varchar(255) DEFAULT NULL COMMENT '设备指纹',
+  `client_hardware` varchar(500) DEFAULT NULL COMMENT '客户端硬件特征',
+  `mac_address` varchar(64) DEFAULT NULL COMMENT 'MAC地址',
   PRIMARY KEY (`id`) USING BTREE,
   KEY `user_id` (`user_id`) USING BTREE,
   KEY `scenic_id` (`scenic_id`) USING BTREE
@@ -443,6 +457,8 @@ CREATE TABLE `sys_operation_log` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `user_id` bigint DEFAULT NULL,
   `username` varchar(50) DEFAULT NULL,
+  `role_code` varchar(30) DEFAULT 'USER',
+  `role_name` varchar(30) DEFAULT '普通用户',
   `operation_type` varchar(20) DEFAULT NULL,
   `log_level` varchar(20) DEFAULT 'INFO' ,
   `operation_desc` varchar(200) DEFAULT NULL,
@@ -454,6 +470,10 @@ CREATE TABLE `sys_operation_log` (
   `ip_address` varchar(50) DEFAULT NULL,
   `port` int DEFAULT NULL,
   `user_agent` varchar(500) DEFAULT NULL,
+  `device_id` varchar(128) DEFAULT NULL,
+  `device_fingerprint` varchar(255) DEFAULT NULL,
+  `client_hardware` varchar(500) DEFAULT NULL,
+  `mac_address` varchar(64) DEFAULT NULL,
   `status` int DEFAULT '1',
   `error_message` text,
   `execution_time` bigint DEFAULT NULL,
@@ -461,6 +481,7 @@ CREATE TABLE `sys_operation_log` (
   PRIMARY KEY (`id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_operation_type` (`operation_type`),
+  KEY `idx_role_code` (`role_code`),
   KEY `idx_create_time` (`create_time`),
   KEY `idx_ip_address` (`ip_address`),
   KEY `idx_log_level` (`log_level`)
@@ -636,6 +657,13 @@ CREATE TABLE `travel_guide` (
   `reviewer_name` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `review_time` datetime DEFAULT NULL,
   `review_comment` varchar(500) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `ip_address` varchar(100) DEFAULT NULL COMMENT 'IP地址',
+  `port` int DEFAULT NULL COMMENT '网络源端口',
+  `user_agent` varchar(500) DEFAULT NULL COMMENT '浏览器信息',
+  `device_id` varchar(128) DEFAULT NULL COMMENT '设备ID',
+  `device_fingerprint` varchar(255) DEFAULT NULL COMMENT '设备指纹',
+  `client_hardware` varchar(500) DEFAULT NULL COMMENT '客户端硬件特征',
+  `mac_address` varchar(64) DEFAULT NULL COMMENT 'MAC地址',
   PRIMARY KEY (`id`) USING BTREE,
   KEY `user_id` (`user_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
@@ -665,6 +693,30 @@ CREATE TABLE `user` (
   UNIQUE KEY `uk_user_phone` (`phone`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
 
+CREATE TABLE `admin_permission` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` bigint NOT NULL COMMENT '管理员用户ID',
+  `permission_code` varchar(100) NOT NULL COMMENT '权限编码',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_admin_permission_user_code` (`user_id`, `permission_code`),
+  KEY `idx_admin_permission_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员后台权限配置';
+
+CREATE TABLE `content_moderation_config` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `config_key` varchar(100) NOT NULL COMMENT '配置键',
+  `config_value` varchar(50) NOT NULL DEFAULT '0' COMMENT '配置值',
+  `description` varchar(255) DEFAULT NULL COMMENT '配置说明',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_content_moderation_config_key` (`config_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='内容审核策略配置';
+
+INSERT INTO `content_moderation_config` (`config_key`, `config_value`, `description`) VALUES
+('admin_guide_review_required', '0', '管理员发布或编辑攻略是否需要人工审核'),
+('admin_comment_review_required', '0', '管理员发布评论或住宿评价是否需要人工审核');
+
 -- ----------------------------
 -- Foreign keys
 -- ----------------------------
@@ -677,7 +729,7 @@ ALTER TABLE `collection` ADD CONSTRAINT `collection_ibfk_2` FOREIGN KEY (`guide_
 ALTER TABLE `comment` ADD CONSTRAINT `comment_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `comment` ADD CONSTRAINT `comment_ibfk_2` FOREIGN KEY (`scenic_id`) REFERENCES `scenic_spot` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `comment_like` ADD CONSTRAINT `comment_like_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
-ALTER TABLE `comment_like` ADD CONSTRAINT `comment_like_ibfk_2` FOREIGN KEY (`comment_id`) REFERENCES `comment` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+ALTER TABLE `comment_like` ADD CONSTRAINT `comment_like_ibfk_2` FOREIGN KEY (`comment_id`) REFERENCES `comment` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
 ALTER TABLE `scenic_collection` ADD CONSTRAINT `scenic_collection_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `scenic_collection` ADD CONSTRAINT `scenic_collection_ibfk_2` FOREIGN KEY (`scenic_id`) REFERENCES `scenic_spot` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `travel_guide` ADD CONSTRAINT `travel_guide_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;

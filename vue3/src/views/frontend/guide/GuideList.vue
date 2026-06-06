@@ -1,7 +1,7 @@
 <template>
   <div class="travel-page">
     <!-- 顶部 Banner -->
-    <div ref="bannerRef" class="banner" :style="{ '--page-hero-height': `${bannerHeight}px` }">
+    <div class="banner">
       <img
         class="banner-img"
         :src="guideHeroUrl"
@@ -39,9 +39,58 @@
             {{ tab }}
           </div>
         </div>
-        <div class="filter-btn" @click="openFilter">
+        <div class="filter-btn" :class="{ active: filterVisible || activeFilterCount > 0 }" @click="openFilter">
           <span class="filter-icon">≡</span>
-          <span>筛选</span>
+          <span>筛选{{ activeFilterCount ? `(${activeFilterCount})` : '' }}</span>
+        </div>
+      </div>
+
+      <div v-if="filterVisible" class="filter-panel">
+        <label class="filter-field">
+          <span>目的地</span>
+          <el-cascader
+            v-model="filterForm.destinationPath"
+            :options="regionOptions"
+            :props="leafRegionCascaderProps"
+            placeholder="留空不限，可搜索省 / 市 / 区县"
+            clearable
+            filterable
+            class="region-cascader"
+            popper-class="guide-region-popper"
+            @change="applyFilters"
+          />
+        </label>
+        <label class="filter-field">
+          <span>作者身份</span>
+          <select v-model="filterForm.authorRole">
+            <option value="all">全部作者</option>
+            <option value="official">官方发布</option>
+            <option value="USER">用户发布</option>
+          </select>
+        </label>
+        <label class="filter-field">
+          <span>发布时间</span>
+          <select v-model="filterForm.timeRange">
+            <option value="">不限时间</option>
+            <option value="week">最近一周</option>
+            <option value="month">最近一月</option>
+            <option value="quarter">最近三月</option>
+            <option value="year">最近一年</option>
+          </select>
+        </label>
+        <label class="filter-field">
+          <span>阅读量</span>
+          <select v-model="filterForm.minViews">
+            <option value="">不限阅读</option>
+            <option value="100">100+ 阅读</option>
+            <option value="500">500+ 阅读</option>
+            <option value="1000">1000+ 阅读</option>
+            <option value="5000">5000+ 阅读</option>
+          </select>
+        </label>
+        <div class="filter-actions">
+          <button type="button" class="filter-reset" @click="resetFilters">重置</button>
+          <button type="button" class="filter-apply" @click="applyFilters">应用筛选</button>
         </div>
       </div>
 
@@ -78,6 +127,9 @@
               <div class="meta-item">
                 <img :src="getImageUrl(item.userAvatar)" class="avatar" :alt="item.userNickname" loading="lazy" decoding="async" />
                 <span class="meta-text author">{{ item.userNickname || '旅行者' + item.userId }}</span>
+                <span v-if="officialBadge(item)" class="identity-badge" :class="officialBadge(item).className">
+                  {{ officialBadge(item).label }}
+                </span>
               </div>
               <div class="meta-item">
                 <span class="icon-view">◉</span>
@@ -111,312 +163,27 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import request from '@/utils/request'
 import { Edit } from '@element-plus/icons-vue'
 import noImage from '@/assets/images/no-image.png'
-import { ElMessage } from 'element-plus'
 import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
+import { resolveImageUrl } from '@/utils/imageUrl'
+import { chinaRegionOptions, leafRegionCascaderProps, getRegionKeyword } from '@/utils/chinaRegion'
 
-// 全国省市数据
-const destinationOptions = [
-  {
-    code: 'beijing', name: '北京', cities: [
-      { code: 'beijing', name: '北京市' }
-    ]
-  },
-  {
-    code: 'tianjin', name: '天津', cities: [
-      { code: 'tianjin', name: '天津市' }
-    ]
-  },
-  {
-    code: 'hebei', name: '河北', cities: [
-      { code: 'shijiazhuang', name: '石家庄' },
-      { code: 'tangshan', name: '唐山' },
-      { code: 'qinhuangdao', name: '秦皇岛' },
-      { code: 'baoding', name: '保定' },
-      { code: 'zhangjiakou', name: '张家口' },
-      { code: 'chengde', name: '承德' }
-    ]
-  },
-  {
-    code: 'shanxi', name: '山西', cities: [
-      { code: 'taiyuan', name: '太原' },
-      { code: 'datong', name: '大同' },
-      { code: 'pingyao', name: '平遥' },
-      { code: 'lvliang', name: '吕梁' }
-    ]
-  },
-  {
-    code: 'neimenggu', name: '内蒙古', cities: [
-      { code: 'huhehaote', name: '呼和浩特' },
-      { code: 'baotou', name: '包头' },
-      { code: 'orodos', name: '鄂尔多斯' },
-      { code: 'xilingol', name: '锡林郭勒' }
-    ]
-  },
-  {
-    code: 'liaoning', name: '辽宁', cities: [
-      { code: 'shenyang', name: '沈阳' },
-      { code: 'dalian', name: '大连' },
-      { code: 'anshan', name: '鞍山' },
-      { code: 'yingkou', name: '营口' }
-    ]
-  },
-  {
-    code: 'jilin', name: '吉林', cities: [
-      { code: 'changchun', name: '长春' },
-      { code: 'jilin', name: '吉林' },
-      { code: 'siping', name: '四平' }
-    ]
-  },
-  {
-    code: 'heilongjiang', name: '黑龙江', cities: [
-      { code: 'harbin', name: '哈尔滨' },
-      { code: 'daqing', name: '大庆' },
-      { code: 'mudanjiang', name: '牡丹江' },
-      { code: 'jixi', name: '鸡西' }
-    ]
-  },
-  {
-    code: 'shanghai', name: '上海', cities: [
-      { code: 'shanghai', name: '上海市' }
-    ]
-  },
-  {
-    code: 'jiangsu', name: '江苏', cities: [
-      { code: 'nanjing', name: '南京' },
-      { code: 'suzhou', name: '苏州' },
-      { code: 'wuxi', name: '无锡' },
-      { code: 'yangzhou', name: '扬州' },
-      { code: 'xuzhou', name: '徐州' },
-      { code: 'lianyungang', name: '连云港' }
-    ]
-  },
-  {
-    code: 'zhejiang', name: '浙江', cities: [
-      { code: 'hangzhou', name: '杭州' },
-      { code: 'ningbo', name: '宁波' },
-      { code: 'wenzhou', name: '温州' },
-      { code: 'shaoxing', name: '绍兴' },
-      { code: 'jinhua', name: '金华' },
-      { code: 'lishui', name: '丽水' }
-    ]
-  },
-  {
-    code: 'anhui', name: '安徽', cities: [
-      { code: 'hefei', name: '合肥' },
-      { code: 'huangshan', name: '黄山' },
-      { code: 'bengbu', name: '蚌埠' },
-      { code: 'fuyang', name: '阜阳' }
-    ]
-  },
-  {
-    code: 'fujian', name: '福建', cities: [
-      { code: 'fuzhou', name: '福州' },
-      { code: 'xiamen', name: '厦门' },
-      { code: 'quanzhou', name: '泉州' },
-      { code: 'nanping', name: '南平' }
-    ]
-  },
-  {
-    code: 'jiangxi', name: '江西', cities: [
-      { code: 'nanchang', name: '南昌' },
-      { code: 'jiujiang', name: '九江' },
-      { code: 'jingdezhen', name: '景德镇' },
-      { code: 'shangrao', name: '上饶' }
-    ]
-  },
-  {
-    code: 'shandong', name: '山东', cities: [
-      { code: 'jinan', name: '济南' },
-      { code: 'qingdao', name: '青岛' },
-      { code: 'yantai', name: '烟台' },
-      { code: 'weihai', name: '威海' },
-      { code: 'taian', name: '泰安' }
-    ]
-  },
-  {
-    code: 'henan', name: '河南', cities: [
-      { code: 'zhengzhou', name: '郑州' },
-      { code: 'luoyang', name: '洛阳' },
-      { code: 'kaifeng', name: '开封' },
-      { code: 'anyang', name: '安阳' }
-    ]
-  },
-  {
-    code: 'hubei', name: '湖北', cities: [
-      { code: 'wuhan', name: '武汉' },
-      { code: 'yichang', name: '宜昌' },
-      { code: 'shennongjia', name: '神农架' },
-      { code: 'xiangyang', name: '襄阳' }
-    ]
-  },
-  {
-    code: 'hunan', name: '湖南', cities: [
-      { code: 'changsha', name: '长沙' },
-      { code: 'zhangjiajie', name: '张家界' },
-      { code: 'xiangxi', name: '湘西' },
-      { code: 'hengyang', name: '衡阳' }
-    ]
-  },
-  {
-    code: 'guangdong', name: '广东', cities: [
-      { code: 'guangzhou', name: '广州' },
-      { code: 'shenzhen', name: '深圳' },
-      { code: 'zhuhai', name: '珠海' },
-      { code: 'foshan', name: '佛山' },
-      { code: 'chaozhou', name: '潮州' }
-    ]
-  },
-  {
-    code: 'guangxi', name: '广西', cities: [
-      { code: 'nanning', name: '南宁' },
-      { code: 'guilin', name: '桂林' },
-      { code: 'liuzhou', name: '柳州' },
-      { code: 'beihai', name: '北海' },
-      { code: 'baise', name: '百色' }
-    ]
-  },
-  {
-    code: 'hainan', name: '海南', cities: [
-      { code: 'haikou', name: '海口' },
-      { code: 'sanya', name: '三亚' },
-      { code: 'wuzhishan', name: '五指山' },
-      { code: 'qionghai', name: '琼海' }
-    ]
-  },
-  {
-    code: 'chongqing', name: '重庆', cities: [
-      { code: 'chongqing', name: '重庆市' }
-    ]
-  },
-  {
-    code: 'sichuan', name: '四川', cities: [
-      { code: 'chengdu', name: '成都' },
-      { code: 'jiuzhaigou', name: '九寨沟' },
-      { code: 'leshan', name: '乐山' },
-      { code: 'garze', name: '甘孜' },
-      { code: 'aba', name: '阿坝' }
-    ]
-  },
-  {
-    code: 'guizhou', name: '贵州', cities: [
-      { code: 'guiyang', name: '贵阳' },
-      { code: 'zunyi', name: '遵义' },
-      { code: 'liupanshui', name: '六盘水' },
-      { code: 'qianxinan', name: '黔西南' }
-    ]
-  },
-  {
-    code: 'yunnan', name: '云南', cities: [
-      { code: 'kunming', name: '昆明' },
-      { code: 'dali', name: '大理' },
-      { code: 'lijiang', name: '丽江' },
-      { code: 'shangri-la', name: '香格里拉' },
-      { code: 'xishuangbanna', name: '西双版纳' }
-    ]
-  },
-  {
-    code: 'xizang', name: '西藏', cities: [
-      { code: 'lhasa', name: '拉萨' },
-      { code: 'shigatse', name: '日喀则' },
-      { code: 'nyingchi', name: '林芝' },
-      { code: 'shannan', name: '山南' }
-    ]
-  },
-  {
-    code: 'shaanxi', name: '陕西', cities: [
-      { code: 'xian', name: '西安' },
-      { code: 'yanan', name: '延安' },
-      { code: 'xianyang', name: '咸阳' },
-      { code: 'hanzhong', name: '汉中' }
-    ]
-  },
-  {
-    code: 'gansu', name: '甘肃', cities: [
-      { code: 'lanzhou', name: '兰州' },
-      { code: 'tianshui', name: '天水' },
-      { code: 'jiayuguan', name: '嘉峪关' },
-      { code: 'zhangye', name: '张掖' },
-      { code: 'dunhuang', name: '敦煌' }
-    ]
-  },
-  {
-    code: 'qinghai', name: '青海', cities: [
-      { code: 'xining', name: '西宁' },
-      { code: 'hainan', name: '海南州' },
-      { code: 'haixi', name: '海西' }
-    ]
-  },
-  {
-    code: 'ningxia', name: '宁夏', cities: [
-      { code: 'yinchuan', name: '银川' },
-      { code: 'shizuishan', name: '石嘴山' },
-      { code: 'guyuan', name: '固原' }
-    ]
-  },
-  {
-    code: 'xinjiang', name: '新疆', cities: [
-      { code: 'wulumuqi', name: '乌鲁木齐' },
-      { code: 'turpan', name: '吐鲁番' },
-      { code: 'kashgar', name: '喀什' },
-      { code: 'yili', name: '伊犁' }
-    ]
-  },
-  {
-    code: 'taiwan', name: '台湾', cities: [
-      { code: 'taipei', name: '台北' },
-      { code: 'kaohsiung', name: '高雄' },
-      { code: 'taichung', name: '台中' }
-    ]
-  },
-  {
-    code: 'xianggang', name: '香港', cities: [
-      { code: 'xianggang', name: '香港' }
-    ]
-  },
-  {
-    code: 'aomen', name: '澳门', cities: [
-      { code: 'aomen', name: '澳门' }
-    ]
-  }
-]
+const regionOptions = chinaRegionOptions
 
 // 获取目的地标签
 const getDestinationLabel = (dest) => {
   if (!dest) return '未知目的地'
-  // 处理新的省市格式（如 "hubei/wuhan" 或 "sichuan/chengdu"）
-  if (dest.includes('/')) {
-    const [provinceCode, cityCode] = dest.split('/')
-    const province = destinationOptions.find(p => p.code === provinceCode)
-    const city = province?.cities.find(c => c.code === cityCode)
-    return city ? `${province.name} · ${city.name}` : dest
-  }
-  // 兼容旧格式
-  const province = destinationOptions.find(p => p.code === dest)
-  if (province) {
-    return province.cities.length === 1 ? province.name : province.name + ' · 选择城市'
-  }
   return dest || '未知目的地'
 }
 
-const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const router = useRouter()
 const route = useRoute()
 const { siteAssets, loadSiteAssets } = useSiteAssets()
-const bannerRef = ref(null)
-const bannerHeight = ref(480)
 const guideHeroUrl = computed(() => getAssetUrl(siteAssets.value.guideHeroUrl, noImage))
-
-const updateBannerHeight = () => {
-  if (!bannerRef.value) return
-  const rect = bannerRef.value.getBoundingClientRect()
-  const pageTop = rect.top + window.scrollY
-  bannerHeight.value = Math.max(320, Math.round(window.innerHeight - pageTop))
-}
 
 // 数据
 const tableData = ref([])
@@ -424,20 +191,42 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+const filterVisible = ref(false)
 
 // 搜索表单
 const searchForm = reactive({
   title: ''
 })
 
+const filterForm = reactive({
+  destinationPath: [],
+  authorRole: 'all',
+  timeRange: '',
+  minViews: ''
+})
+
 // Tab 切换
 const tabs = ['热门游记', '推荐游记', '最新游记']
 const currentTab = ref('热门游记')
 
+const sortModeMap = {
+  热门游记: 'hot',
+  推荐游记: 'recommended',
+  最新游记: 'latest'
+}
+
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (filterForm.destinationPath?.length) count++
+  if (filterForm.authorRole && filterForm.authorRole !== 'all') count++
+  if (filterForm.timeRange) count++
+  if (filterForm.minViews) count++
+  return count
+})
+
 // 获取图片完整URL
 const getImageUrl = (url) => {
-  if (!url) return noImage
-  return url.startsWith('http') ? url : baseAPI + url
+  return resolveImageUrl(url, noImage)
 }
 
 // 格式化数字
@@ -447,6 +236,16 @@ const formatNumber = (num) => {
     return (num / 10000).toFixed(1) + 'w'
   }
   return num.toString()
+}
+
+const officialBadge = (item) => {
+  if (item?.userRoleCode === 'SUPER_ADMIN') {
+    return { label: '官方', className: 'super-admin' }
+  }
+  if (item?.userRoleCode === 'ADMIN') {
+    return { label: '管理员', className: 'admin' }
+  }
+  return null
 }
 
 // 截取描述内容
@@ -462,27 +261,15 @@ const truncateDesc = (content) => {
 const fetchGuides = async () => {
   loading.value = true
   try {
-    let orderBy = 'createTime'
-    let order = 'desc'
-    
-    // 根据Tab确定排序规则
-    if (currentTab.value === '热门游记') {
-      orderBy = 'views'
-      order = 'desc'
-    } else if (currentTab.value === '最新游记') {
-      orderBy = 'createTime'
-      order = 'desc'
-    } else if (currentTab.value === '推荐游记') {
-      orderBy = 'likes'
-      order = 'desc'
-    }
-    
     await request.get('/guide/page', {
       title: searchForm.title || undefined,
+      sortMode: sortModeMap[currentTab.value] || 'hot',
+      destination: getRegionKeyword(filterForm.destinationPath) || undefined,
+      authorRole: filterForm.authorRole !== 'all' ? filterForm.authorRole : undefined,
+      timeRange: filterForm.timeRange || undefined,
+      minViews: filterForm.minViews ? Number(filterForm.minViews) : undefined,
       currentPage: currentPage.value,
-      size: pageSize.value,
-      orderBy: orderBy,
-      order: order
+      size: pageSize.value
     }, {
       showDefaultMsg: false,
       onSuccess: (res) => {
@@ -513,9 +300,23 @@ const handleTabChange = (tab) => {
   fetchGuides()
 }
 
-// 打开筛选（预留功能）
+// 打开筛选
 const openFilter = () => {
-  ElMessage.info('筛选功能开发中...')
+  filterVisible.value = !filterVisible.value
+}
+
+const applyFilters = () => {
+  currentPage.value = 1
+  fetchGuides()
+}
+
+const resetFilters = () => {
+  filterForm.destinationPath = []
+  filterForm.authorRole = 'all'
+  filterForm.timeRange = ''
+  filterForm.minViews = ''
+  currentPage.value = 1
+  fetchGuides()
 }
 
 // 分页变化
@@ -557,16 +358,6 @@ watch(() => route.query.search, (newSearch, oldSearch) => {
 onMounted(() => {
   loadSiteAssets()
   handleUrlParams()
-  nextTick(updateBannerHeight)
-  setTimeout(updateBannerHeight, 100)
-  setTimeout(updateBannerHeight, 400)
-  window.addEventListener('resize', updateBannerHeight)
-  window.addEventListener('orientationchange', updateBannerHeight)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', updateBannerHeight)
-  window.removeEventListener('orientationchange', updateBannerHeight)
 })
 </script>
 
@@ -583,8 +374,10 @@ onBeforeUnmount(() => {
 /* Banner */
 .banner {
   position: relative;
-  width: 100%;
-  height: var(--page-hero-height, 480px);
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-wide));
+  height: 420px;
+  margin: 20px auto 0;
+  border-radius: 12px;
   overflow: hidden;
 }
 
@@ -729,14 +522,129 @@ onBeforeUnmount(() => {
   transition: all 0.2s;
 }
 
-.filter-btn:hover {
+.filter-btn:hover,
+.filter-btn.active {
   color: #f90;
   border-color: #f90;
+  background: #fff8ec;
 }
 
 .filter-icon {
   font-size: 16px;
   font-weight: bold;
+}
+
+.filter-panel {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: 14px;
+  align-items: end;
+  padding: 14px 30px 18px;
+  border-bottom: 1px solid #eef1f5;
+  background: #fff;
+}
+
+.filter-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+
+  span {
+    color: #667085;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  select,
+  input {
+    width: 100%;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid #d8dee8;
+    border-radius: 4px;
+    outline: none;
+    color: #344054;
+    font-size: 14px;
+    background: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+
+    &:focus {
+      border-color: #f90;
+      box-shadow: 0 0 0 3px rgba(255, 153, 0, 0.14);
+    }
+  }
+
+  small {
+    color: #98a2b3;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+}
+
+.region-cascader {
+  width: 100%;
+  height: 32px;
+
+  :deep(.el-input__wrapper) {
+    height: 32px;
+    min-height: 32px;
+    padding: 0 11px;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #d8dee8 inset;
+    transition: box-shadow 0.2s;
+  }
+
+  :deep(.el-input__wrapper.is-focus),
+  :deep(.el-input__wrapper.is-focused),
+  :deep(.el-input__wrapper:hover) {
+    box-shadow: 0 0 0 1px #f90 inset, 0 0 0 3px rgba(255, 153, 0, 0.14);
+  }
+
+  :deep(.el-input__inner) {
+    height: 32px;
+    line-height: 32px;
+    color: #344054;
+    font-size: 14px;
+  }
+}
+
+.filter-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-reset,
+.filter-apply {
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.filter-reset {
+  border: 1px solid #d8dee8;
+  color: #667085;
+  background: #fff;
+
+  &:hover {
+    border-color: #f90;
+    color: #f90;
+  }
+}
+
+.filter-apply {
+  border: 1px solid #f90;
+  color: #fff;
+  background: #f90;
+
+  &:hover {
+    border-color: #f80;
+    background: #f80;
+  }
 }
 
 /* 攻略列表 */
@@ -847,8 +755,9 @@ onBeforeUnmount(() => {
 
 .article-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 28px;
+  gap: 12px 24px;
   margin-top: auto;
   font-size: 13px;
   color: #999;
@@ -875,6 +784,30 @@ onBeforeUnmount(() => {
 
 .author {
   color: #f90;
+}
+
+.identity-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+
+  &.super-admin {
+    color: #6f4a08;
+    border-color: rgba(180, 130, 22, 0.28);
+    background: linear-gradient(135deg, #fff8df 0%, #f7e5a8 100%);
+  }
+
+  &.admin {
+    color: #075985;
+    border-color: rgba(14, 116, 144, 0.22);
+    background: linear-gradient(135deg, #e7faff 0%, #d8eef7 100%);
+  }
 }
 
 .meta-text {
@@ -990,7 +923,7 @@ onBeforeUnmount(() => {
 /* 响应式 */
 @media (max-width: 768px) {
   .banner {
-    height: var(--page-hero-height, 320px);
+    height: 320px;
   }
   
   .banner-title {
@@ -1051,6 +984,15 @@ onBeforeUnmount(() => {
   .article-meta {
     flex-wrap: wrap;
     gap: 16px;
+  }
+
+  .filter-panel {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .filter-actions {
+    justify-content: flex-end;
   }
   
   .float-publish-btn {

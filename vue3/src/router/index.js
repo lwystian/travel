@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { ElMessage } from 'element-plus'
 import BackendLayout from '@/layouts/BackendLayout.vue'
 import logger from '@/utils/logger'
 import { updateSeo, routeDescription, isRouteIndexable } from '@/utils/seo'
@@ -15,13 +16,13 @@ export const backendRoutes = [
         path: 'dashboard',
         name: 'Dashboard',
         component: () => import('@/views/backend/Dashboard.vue'),
-        meta: { title: '首页', icon: 'HomeFilled' }
+        meta: { title: '首页', icon: 'HomeFilled', permission: 'dashboard:view' }
       },
       {
         path: 'user',
         name: 'UserManagement',
         component: () => import('@/views/backend/user/index.vue'),
-        meta: { title: '用户管理', icon: 'User' }
+        meta: { title: '用户管理', icon: 'User', permission: 'user:view' }
       },
       {
         path: 'profile',
@@ -33,55 +34,55 @@ export const backendRoutes = [
         path: 'scenic',
         name: 'ScenicManagement',
         component: () => import('@/views/backend/scenic/index.vue'),
-        meta: { title: '景点管理', icon: 'Location' }
+        meta: { title: '景点管理', icon: 'Location', permission: 'scenic:manage' }
       },
       {
         path: 'category',
         name: 'CategoryManagement',
         component: () => import('@/views/backend/category/CategoryList.vue'),
-        meta: { title: '分类管理', icon: 'Menu' }
+        meta: { title: '分类管理', icon: 'Menu', permission: 'category:manage' }
       },
       {
         path: 'comment',
         name: 'CommentManagement',
         component: () => import('@/views/backend/comment/index.vue'),
-        meta: { title: '评论管理', icon: 'ChatDotRound' }
+        meta: { title: '评论管理', icon: 'ChatDotRound', permission: 'comment:manage' }
       },
       {
         path: 'guide',
         name: 'GuideManagement',
         component: () => import('@/views/backend/guide/GuideList.vue'),
-        meta: { title: '攻略管理', icon: 'Document' }
+        meta: { title: '攻略管理', icon: 'Document', permission: 'guide:manage' }
       },
       {
         path: 'collection',
         name: 'CollectionManagement',
         component: () => import('@/views/backend/collection/CollectionList.vue'),
-        meta: { title: '收藏管理', icon: 'Star' }
+        meta: { title: '收藏管理', icon: 'Star', permission: 'collection:manage' }
       },
       {
         path: 'ticket',
         name: 'TicketManagement',
         component: () => import('@/views/backend/ticket/index.vue'),
-        meta: { title: '行程管理', icon: 'Ticket' }
+        meta: { title: '行程管理', icon: 'Ticket', permission: 'tour:manage' }
       },
       {
         path: 'recommend',
         name: 'RecommendManagement',
         component: () => import('@/views/backend/recommend/RecommendManager.vue'),
-        meta: { title: '首页推荐', icon: 'Star' }
+        meta: { title: '首页推荐', icon: 'Star', permission: 'recommend:manage' }
       },
       {
         path: 'site-footer',
         name: 'SiteFooterConfig',
         component: () => import('@/views/backend/site/FooterConfig.vue'),
-        meta: { title: '网站页脚', icon: 'OfficeBuilding' }
+        meta: { title: '网站页脚', icon: 'OfficeBuilding', permission: 'site-footer:manage' }
       },
       {
         path: 'site-assets',
         name: 'SiteAssetConfig',
         component: () => import('@/views/backend/site/AssetConfig.vue'),
-        meta: { title: '站点素材', icon: 'Picture' }
+        meta: { title: '站点素材', icon: 'Picture', permission: 'site-assets:manage' }
       },
       {
         path: 'site-settings',
@@ -91,67 +92,73 @@ export const backendRoutes = [
         path: 'site-settings/site-access',
         name: 'SiteAccessSetting',
         component: () => import('@/views/backend/site/WebsiteSettings.vue'),
-        meta: { title: '网站开关', icon: 'SwitchButton', activeMenu: '/back/site-settings/site-access' }
+        meta: { title: '网站开关', icon: 'SwitchButton', activeMenu: '/back/site-settings/site-access', permission: 'site-settings:manage' }
       },
       {
         path: 'site-settings/device-access',
         name: 'DeviceAccessSetting',
         component: () => import('@/views/backend/site/WebsiteSettings.vue'),
-        meta: { title: '访问终端', icon: 'Monitor', activeMenu: '/back/site-settings/site-access' }
+        meta: { title: '访问终端', icon: 'Monitor', activeMenu: '/back/site-settings/site-access', permission: 'site-settings:manage' }
       },
       {
         path: 'log',
         name: 'LogManagement',
         component: () => import('@/views/backend/log/LogManager.vue'),
-        meta: { title: '系统日志', icon: 'Document' }
+        meta: { title: '系统日志', icon: 'Document', permission: 'log:view' }
       },
       {
         path: 'order',
         name: 'OrderManagement',
         component: () => import('@/views/backend/order/index.vue'),
-        meta: { title: '订单管理', icon: 'List' }
+        meta: { title: '订单管理', icon: 'List', permission: 'order:manage' }
       },
       {
         path: 'accommodation',
         name: 'AccommodationManagement',
         component: () => import('@/views/backend/accommodation/index.vue'),
-        meta: { title: '住宿管理', icon: 'House' }
+        meta: { title: '住宿管理', icon: 'House', permission: 'accommodation:manage' }
       },
       {
         path: 'carousel',
         name: 'CarouselManagement',
         component: () => import('@/views/backend/carousel/index.vue'),
-        meta: { title: '轮播图管理', icon: 'Picture' }
+        meta: { title: '轮播图管理', icon: 'Picture', permission: 'carousel:manage' }
       },
       {
         path: 'payment',
         name: 'PaymentManagement',
         component: () => import('@/views/backend/payment/PaymentConfig.vue'),
-        meta: { title: '支付配置', icon: 'Wallet' }
+        meta: { title: '支付配置', icon: 'Wallet', permission: 'payment:manage' }
       },
       {
         path: 'auth-config',
         name: 'AuthConfigManagement',
         component: () => import('@/views/backend/auth/AuthConfig.vue'),
-        meta: { title: '认证配置', icon: 'Lock' }
+        meta: { title: '认证配置', icon: 'Lock', permission: 'auth-config:manage' }
       },
       {
         path: 'review',
         name: 'ReviewManagement',
         component: () => import('@/views/backend/review/ReviewManager.vue'),
-        meta: { title: '内容审核', icon: 'Checked' }
+        meta: { title: '内容审核', icon: 'Checked', permission: 'review:manage' }
       },
       {
         path: 'sensitive-word',
         name: 'SensitiveWordManagement',
         component: () => import('@/views/backend/sensitive/SensitiveWordManager.vue'),
-        meta: { title: '敏感词过滤', icon: 'Warning' }
+        meta: { title: '敏感词过滤', icon: 'Warning', permission: 'review:manage' }
       },
       {
         path: 'notification',
         name: 'NotificationManagement',
         component: () => import('@/views/backend/notification/NotificationManager.vue'),
-        meta: { title: '站内消息', icon: 'Bell' }
+        meta: { title: '站内消息', icon: 'Bell', permission: 'notification:manage' }
+      },
+      {
+        path: 'permission',
+        name: 'PermissionManagement',
+        component: () => import('@/views/backend/permission/PermissionControl.vue'),
+        meta: { title: '权限控制', icon: 'Setting', superAdminOnly: true }
       }
     ]
   }
@@ -348,7 +355,38 @@ const router = createRouter({
   }
 })
 
-router.beforeEach((to, from, next) => {
+let lastPermissionWarningAt = 0
+let lastBackendUserRefreshAt = 0
+let backendUserRefreshPromise = null
+
+const warnPermissionDenied = () => {
+  const now = Date.now()
+  if (now - lastPermissionWarningAt < 1200) return
+  lastPermissionWarningAt = now
+  ElMessage.warning('权限不足，请联系管理员')
+}
+
+const refreshBackendUserIfNeeded = async (userStore) => {
+  if (!userStore.isAdmin) return
+  const now = Date.now()
+  if (backendUserRefreshPromise || now - lastBackendUserRefreshAt < 30000) {
+    if (backendUserRefreshPromise) {
+      await backendUserRefreshPromise
+    }
+    return
+  }
+  lastBackendUserRefreshAt = now
+  backendUserRefreshPromise = userStore.refreshCurrentUser()
+    .catch(error => {
+      logger.warn('Refresh backend user failed:', error)
+    })
+    .finally(() => {
+      backendUserRefreshPromise = null
+    })
+  await backendUserRefreshPromise
+}
+
+router.beforeEach(async (to, from, next) => {
   updateSeo({
     title: to.meta.title,
     description: routeDescription(to),
@@ -394,6 +432,22 @@ router.beforeEach((to, from, next) => {
     if (userStore.isUser && to.path.startsWith('/back')) {
       next('/')
       return
+    }
+
+    if (to.path.startsWith('/back')) {
+      await refreshBackendUserIfNeeded(userStore)
+      const superAdminOnly = to.matched.some(record => record.meta.superAdminOnly)
+      if (superAdminOnly && !userStore.isSuperAdmin) {
+        warnPermissionDenied()
+        next('/back/dashboard')
+        return
+      }
+      const requiredPermission = to.matched.find(record => record.meta.permission)?.meta.permission
+      if (requiredPermission && !userStore.hasPermission(requiredPermission)) {
+        warnPermissionDenied()
+        next('/back/dashboard')
+        return
+      }
     }
 
     next()

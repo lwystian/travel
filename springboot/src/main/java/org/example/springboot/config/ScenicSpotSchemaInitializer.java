@@ -19,7 +19,7 @@ public class ScenicSpotSchemaInitializer {
 
     @PostConstruct
     public void init() {
-        addColumn("tags", "ALTER TABLE `scenic_spot` ADD COLUMN `tags` VARCHAR(500) DEFAULT NULL COMMENT '标签，多个标签用英文逗号分隔' AFTER `latitude`");
+        addColumn("tags", "ALTER TABLE `scenic_spot` ADD COLUMN `tags` VARCHAR(500) DEFAULT NULL COMMENT '标签，多个标签用空格分隔' AFTER `latitude`");
     }
 
     private void addColumn(@NonNull String columnName, @NonNull String sql) {

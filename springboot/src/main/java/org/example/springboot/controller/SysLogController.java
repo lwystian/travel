@@ -8,10 +8,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.example.springboot.annotation.OperationLog;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.SysOperationLog;
-import org.example.springboot.entity.User;
 import org.example.springboot.security.RolePermission;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.SysOperationLogService;
-import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,6 +38,7 @@ public class SysLogController {
     @GetMapping("/page")
     public Result<?> getLogsByPage(
             @RequestParam(defaultValue = "") String username,
+            @RequestParam(defaultValue = "") String roleCode,
             @RequestParam(defaultValue = "") String operationType,
             @RequestParam(defaultValue = "") String logLevel,
             @RequestParam(defaultValue = "") String startTime,
@@ -46,12 +46,10 @@ public class SysLogController {
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "20") Integer size) {
 
-        if (!isAdmin()) {
-            return Result.error("无权限查看系统日志");
-        }
+        SecurityGuards.requirePermission("log:view");
 
         Page<SysOperationLog> page = sysOperationLogService.getLogsByPage(
-                username, operationType, logLevel, startTime, endTime, currentPage, size);
+                username, roleCode, operationType, logLevel, startTime, endTime, currentPage, size);
         return Result.success(page);
     }
 
@@ -60,6 +58,7 @@ public class SysLogController {
     @OperationLog(operationType = "EXPORT", description = "备份系统日志", targetType = "系统日志", logParams = false)
     public void exportLogs(
             @RequestParam(defaultValue = "") String username,
+            @RequestParam(defaultValue = "") String roleCode,
             @RequestParam(defaultValue = "") String operationType,
             @RequestParam(defaultValue = "") String logLevel,
             @RequestParam(defaultValue = "") String startTime,
@@ -69,15 +68,15 @@ public class SysLogController {
             @RequestParam(defaultValue = "true") boolean includeParams,
             HttpServletResponse response) throws IOException {
 
-        if (!isAdmin()) {
+        if (!hasLogPermission()) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"code\":\"403\",\"msg\":\"无权限导出系统日志\"}");
+            response.getWriter().write("{\"code\":\"403\",\"msg\":\"权限不足，请联系管理员\"}");
             return;
         }
 
         List<SysOperationLog> logs = sysOperationLogService.getAllLogs(
-                username, operationType, logLevel, startTime, endTime, ids);
+                username, roleCode, operationType, logLevel, startTime, endTime, ids);
         String filename = "系统日志备份_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".csv";
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType("text/csv;charset=UTF-8");
@@ -99,9 +98,7 @@ public class SysLogController {
     @DeleteMapping("/{id}")
     @OperationLog(operationType = "DELETE", description = "删除系统日志", targetType = "系统日志")
     public Result<?> deleteById(@PathVariable Long id) {
-        if (!isAdmin()) {
-            return Result.error("无权限删除系统日志");
-        }
+        SecurityGuards.requirePermission("log:view");
 
         sysOperationLogService.deleteById(id);
         return Result.success("删除成功");
@@ -111,9 +108,7 @@ public class SysLogController {
     @DeleteMapping("/batch")
     @OperationLog(operationType = "DELETE", description = "批量删除系统日志", targetType = "系统日志")
     public Result<?> deleteBatch(@RequestParam List<Long> ids) {
-        if (!isAdmin()) {
-            return Result.error("无权限删除系统日志");
-        }
+        SecurityGuards.requirePermission("log:view");
 
         sysOperationLogService.deleteBatch(ids);
         return Result.success("批量删除成功");
@@ -123,9 +118,7 @@ public class SysLogController {
     @DeleteMapping("/clean/{days}")
     @OperationLog(operationType = "DELETE", description = "清理过期系统日志", targetType = "系统日志")
     public Result<?> cleanOldLogs(@PathVariable Integer days) {
-        if (!isAdmin()) {
-            return Result.error("无权限清理系统日志");
-        }
+        SecurityGuards.requirePermission("log:view");
 
         int safeDays = Math.max(days == null ? 180 : days, 1);
         int count = sysOperationLogService.deleteBefore(LocalDateTime.now().minusDays(safeDays));
@@ -133,7 +126,7 @@ public class SysLogController {
     }
 
     private String buildCsvHeader(boolean includeUserAgent, boolean includeParams) {
-        StringBuilder header = new StringBuilder("日志ID,时间,等级,操作人,操作类型,操作说明,操作对象,请求方法,请求地址,IP,端口,结果,耗时(ms),错误信息");
+        StringBuilder header = new StringBuilder("日志ID,时间,等级,操作人,身份,操作类型,操作说明,操作对象,请求方法,请求地址,IP,端口,结果,耗时(ms),错误信息,设备ID,设备指纹,客户端硬件特征,MAC地址");
         if (includeUserAgent) {
             header.append(",User-Agent");
         }
@@ -149,6 +142,7 @@ public class SysLogController {
                 .append(",").append(csv(log.getCreateTime()))
                 .append(",").append(csv(normalizeLogLevel(log)))
                 .append(",").append(csv(log.getUsername()))
+                .append(",").append(csv(formatRole(log)))
                 .append(",").append(csv(log.getOperationType()))
                 .append(",").append(csv(log.getOperationDesc()))
                 .append(",").append(csv(log.getTargetType()))
@@ -158,7 +152,11 @@ public class SysLogController {
                 .append(",").append(csv(log.getPort()))
                 .append(",").append(csv(log.getStatus() != null && log.getStatus() == 1 ? "成功" : "失败"))
                 .append(",").append(csv(log.getExecutionTime()))
-                .append(",").append(csv(log.getErrorMessage()));
+                .append(",").append(csv(log.getErrorMessage()))
+                .append(",").append(csv(log.getDeviceId()))
+                .append(",").append(csv(log.getDeviceFingerprint()))
+                .append(",").append(csv(log.getClientHardware()))
+                .append(",").append(csv(log.getMacAddress()));
         if (includeUserAgent) {
             line.append(",").append(csv(log.getUserAgent()));
         }
@@ -181,6 +179,16 @@ public class SysLogController {
         return "INFO";
     }
 
+    private String formatRole(SysOperationLog log) {
+        if (log.getRoleName() != null && !log.getRoleName().isBlank()) {
+            return log.getRoleName();
+        }
+        if (log.getRoleCode() != null && !log.getRoleCode().isBlank()) {
+            return RolePermission.roleNameOf(log.getRoleCode());
+        }
+        return "";
+    }
+
     private String csv(Object value) {
         if (value == null) {
             return "";
@@ -189,8 +197,12 @@ public class SysLogController {
         return "\"" + text + "\"";
     }
 
-    private boolean isAdmin() {
-        User currentUser = JwtTokenUtils.getCurrentUser();
-        return RolePermission.isAdmin(currentUser);
+    private boolean hasLogPermission() {
+        try {
+            SecurityGuards.requirePermission("log:view");
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

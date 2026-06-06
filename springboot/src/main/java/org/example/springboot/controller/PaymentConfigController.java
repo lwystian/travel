@@ -7,11 +7,8 @@ import org.example.springboot.common.Result;
 import org.example.springboot.dto.AlipayConfigDTO;
 import org.example.springboot.dto.PaymentConfigDTO;
 import org.example.springboot.entity.PaymentConfig;
-import org.example.springboot.entity.User;
-import org.example.springboot.exception.ServiceException;
-import org.example.springboot.security.RolePermission;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.PaymentConfigService;
-import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -127,9 +124,6 @@ public class PaymentConfigController {
     }
 
     private void requireAdmin() {
-        User currentUser = JwtTokenUtils.getCurrentUser();
-        if (!RolePermission.isAdmin(currentUser)) {
-            throw new ServiceException("无权限");
-        }
+        SecurityGuards.requirePermission("payment:manage");
     }
 }

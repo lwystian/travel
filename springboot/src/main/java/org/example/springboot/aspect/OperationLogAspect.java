@@ -12,9 +12,12 @@ import org.example.springboot.annotation.OperationLog;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.SysOperationLog;
 import org.example.springboot.entity.User;
+import org.example.springboot.security.RolePermission;
+import org.example.springboot.mapper.UserMapper;
 import org.example.springboot.service.SysOperationLogService;
 import org.example.springboot.util.JwtTokenUtils;
 import org.example.springboot.util.LogSanitizer;
+import org.example.springboot.util.RequestMetadataUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -34,6 +37,9 @@ public class OperationLogAspect {
 
     @Resource
     private ObjectMapper objectMapper;
+
+    @Resource
+    private UserMapper userMapper;
 
     @Pointcut("execution(* org.example.springboot.controller..*.*(..))")
     public void controllerPointcut() {
@@ -83,9 +89,13 @@ public class OperationLogAspect {
         auditLog.setOperationDesc(resolveOperationDesc(annotation, request, operationType, targetName));
         auditLog.setRequestMethod(request != null ? request.getMethod() : "");
         auditLog.setRequestUrl(request != null ? request.getRequestURI() : "");
-        auditLog.setIpAddress(getClientIp(request));
-        auditLog.setPort(request != null ? request.getRemotePort() : 0);
-        auditLog.setUserAgent(getUserAgent(request));
+        auditLog.setIpAddress(RequestMetadataUtil.clientIp(request));
+        auditLog.setPort(RequestMetadataUtil.clientPort(request));
+        auditLog.setUserAgent(RequestMetadataUtil.userAgent(request));
+        auditLog.setDeviceId(RequestMetadataUtil.deviceId(request));
+        auditLog.setDeviceFingerprint(RequestMetadataUtil.deviceFingerprint(request));
+        auditLog.setClientHardware(RequestMetadataUtil.clientHardware(request));
+        auditLog.setMacAddress(RequestMetadataUtil.macAddress(request));
         auditLog.setTargetType(targetName);
         auditLog.setTargetId(extractTargetId(operationType, joinPoint.getArgs(), signature.getParameterNames()));
 
@@ -93,6 +103,10 @@ public class OperationLogAspect {
         if (currentUser != null) {
             auditLog.setUserId(currentUser.getId());
             auditLog.setUsername(currentUser.getUsername());
+            User latestUser = currentUser.getId() == null ? currentUser : userMapper.selectById(currentUser.getId());
+            String roleCode = latestUser != null ? RolePermission.normalizeRole(latestUser.getRoleCode()) : RolePermission.normalizeRole(currentUser.getRoleCode());
+            auditLog.setRoleCode(roleCode);
+            auditLog.setRoleName(RolePermission.roleNameOf(roleCode));
         }
 
         if (annotation == null || annotation.logParams()) {
@@ -371,39 +385,6 @@ public class OperationLogAspect {
     private HttpServletRequest getRequest() {
         ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         return requestAttributes != null ? requestAttributes.getRequest() : null;
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        if (request == null) {
-            return "unknown";
-        }
-        String ip = firstNonBlank(
-                request.getHeader("X-Forwarded-For"),
-                request.getHeader("X-Real-IP"),
-                request.getHeader("Proxy-Client-IP"),
-                request.getHeader("WL-Proxy-Client-IP"),
-                request.getRemoteAddr()
-        );
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-        return ip;
-    }
-
-    private String firstNonBlank(String... values) {
-        for (String value : values) {
-            if (value != null && !value.isBlank() && !"unknown".equalsIgnoreCase(value)) {
-                return value;
-            }
-        }
-        return "unknown";
-    }
-
-    private String getUserAgent(HttpServletRequest request) {
-        if (request == null) {
-            return "";
-        }
-        return LogSanitizer.truncate(request.getHeader("User-Agent"), 500);
     }
 
     private User getCurrentUser() {

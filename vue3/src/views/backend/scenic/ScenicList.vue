@@ -29,9 +29,11 @@
             v-model="searchForm.regionValue"
             :options="regionOptions"
             @change="handleRegionChange"
+            @expand-change="handleRegionExpandChange"
             placeholder="请选择地区"
             clearable
             filterable
+            popper-class="region-cascader-popper"
           />
         </el-form-item>
         <el-form-item label="分类">
@@ -71,7 +73,11 @@
             <div class="scenic-name">{{ scope.row.name }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="description" label="描述" width="200" show-overflow-tooltip></el-table-column>
+        <el-table-column prop="description" label="描述" width="200" show-overflow-tooltip>
+          <template #default="scope">
+            {{ getPlainText(scope.row.description) || '暂无描述' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="location" label="地区" width="230" align="center">
           <template #default="scope">
             <el-tag size="small" effect="plain" class="location-tag">
@@ -107,12 +113,12 @@
         <el-table-column prop="imageUrl" label="图片" width="120" align="center">
           <template #default="scope">
             <el-image 
-              :src="baseAPI + scope.row.imageUrl" 
+              :src="resolveImageUrl(scope.row.imageUrl)" 
               style="width: 80px; height: 60px; border-radius: 4px" 
               fit="cover" 
               :preview-teleported="true"
               v-if="scope.row.imageUrl"
-              :preview-src-list="[baseAPI + scope.row.imageUrl]"
+              :preview-src-list="[resolveImageUrl(scope.row.imageUrl)]"
             >
               <template #error>
                 <div class="image-error">
@@ -161,7 +167,7 @@
     <el-dialog
       :title="dialogTitle"
       v-model="dialogVisible"
-      width="600px"
+      width="min(860px, calc(100vw - 32px))"
       @close="resetForm"
       class="scenic-dialog"
     >
@@ -176,16 +182,22 @@
           <el-input v-model="scenicForm.name" placeholder="请输入景点名称"></el-input>
         </el-form-item>
         <el-form-item label="描述" prop="description">
-          <el-input v-model="scenicForm.description" type="textarea" rows="4" placeholder="请输入描述"></el-input>
+          <wang-editor
+            v-model="scenicForm.description"
+            height="360px"
+            placeholder="请输入景点介绍"
+          />
         </el-form-item>
         <el-form-item label="地区" prop="location">
           <el-cascader
             v-model="scenicForm.regionValue"
             :options="regionOptions"
             @change="handleFormRegionChange"
+            @expand-change="handleFormRegionExpandChange"
             placeholder="请选择地区"
             clearable
             filterable
+            popper-class="region-cascader-popper"
             style="width: 100%"
           />
         </el-form-item>
@@ -243,7 +255,7 @@
               </div>
               <el-image 
                 v-else 
-                :src="baseAPI + scenicForm.imageUrl" 
+                :src="resolveImageUrl(scenicForm.imageUrl)" 
                 class="preview-image" 
                 fit="cover" 
               />
@@ -255,8 +267,8 @@
           </div>
         </el-form-item>
         <el-form-item label="标签">
-          <el-input v-model="tagsInput" placeholder="请输入标签，多个标签用英文逗号分隔，如：亲子,摄影,避暑" />
-          <div class="form-tip">多个标签用英文逗号分隔，输入即生效</div>
+          <el-input v-model="tagsInput" placeholder="请输入标签，多个标签用空格分隔，如：亲子 摄影 避暑" />
+          <div class="form-tip">多个标签用空格分隔，兼容逗号、顿号粘贴输入</div>
           <div v-if="parsedTags.length > 0" class="tags-preview">
             <el-tag v-for="tag in parsedTags" :key="tag" size="small">{{ tag }}</el-tag>
           </div>
@@ -340,15 +352,28 @@ import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
 import ChinaRegionData from '@/assets/中国地区数据.json'
 import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
-
-const baseAPI = process.env.VUE_APP_BASE_API || '/api'
+import { resolveImageUrl } from '@/utils/imageUrl'
+import WangEditor from '@/components/WangEditor.vue'
+import { selectRegionOnExpand } from '@/utils/chinaRegion'
 
 // 高德地图API相关配置
 const AMAP_KEY = '16e2711c3a087b844eb977103e4b2d13'
 const AMAP_SECURITY_CODE = 'cc6ce30d593e182d159e8378417b2553'
+let amapLoadPromise = null
 
 // 加载高德地图API
 const loadAmapScript = () => {
+  if (amapLoadPromise) {
+    return amapLoadPromise
+  }
+  amapLoadPromise = loadAmapScriptOnce().catch(error => {
+    amapLoadPromise = null
+    throw error
+  })
+  return amapLoadPromise
+}
+
+const loadAmapScriptOnce = () => {
   return new Promise((resolve, reject) => {
     if (window.AMap) {
       // 即使AMap已加载，也需要确保Geocoder插件加载
@@ -361,6 +386,15 @@ const loadAmapScript = () => {
       }
       return
     }
+
+    const existingScript = document.querySelector('script[data-amap-loader="true"]')
+    if (existingScript) {
+      existingScript.addEventListener('load', () => {
+        window.AMap.plugin(['AMap.Geocoder', 'AMap.PlaceSearch'], () => resolve(window.AMap))
+      }, { once: true })
+      existingScript.addEventListener('error', reject, { once: true })
+      return
+    }
     
     // 设置高德安全密钥
     window._AMapSecurityConfig = {
@@ -370,6 +404,7 @@ const loadAmapScript = () => {
     const script = document.createElement('script')
     script.type = 'text/javascript'
     script.async = true
+    script.dataset.amapLoader = 'true'
     script.src = `https://webapi.amap.com/maps?v=2.0&key=${AMAP_KEY}&plugin=AMap.Geocoder,AMap.PlaceSearch`
     script.onerror = reject
     script.onload = () => {
@@ -390,6 +425,19 @@ const total = ref(0)
 const categoryOptions = ref([])
 const tagsInput = ref('')
 const parsedTags = computed(() => parseTags(tagsInput.value))
+
+const getPlainText = (value = '') => String(value || '')
+  .replace(/<style[\s\S]*?<\/style>/gi, '')
+  .replace(/<script[\s\S]*?<\/script>/gi, '')
+  .replace(/<[^>]+>/g, ' ')
+  .replace(/&nbsp;/gi, ' ')
+  .replace(/&amp;/gi, '&')
+  .replace(/&lt;/gi, '<')
+  .replace(/&gt;/gi, '>')
+  .replace(/&quot;/gi, '"')
+  .replace(/&#39;/gi, "'")
+  .replace(/\s+/g, ' ')
+  .trim()
 
 // 格式化地区数据为级联选择器格式
 const formatRegionData = () => {
@@ -523,7 +571,7 @@ const parseTags = (tags) => {
       .filter(Boolean)
   }
   if (typeof tags === 'string') {
-    return tags.split(',').map(tag => tag.trim()).filter(Boolean)
+    return tags.split(/[,，、\s]+/).map(tag => tag.trim()).filter(Boolean)
   }
   return []
 }
@@ -537,7 +585,7 @@ const handleEdit = (row) => {
     }
   })
   scenicForm.regionValue = parseLocationToRegionValue(row.location)
-  tagsInput.value = parseTags(row.tags).join(', ')
+  tagsInput.value = parseTags(row.tags).join(' ')
   dialogVisible.value = true
 }
 
@@ -566,7 +614,7 @@ const submitForm = () => {
         // 创建一个新对象，不包含前端辅助字段
         const formData = { ...scenicForm }
         delete formData.regionValue
-        formData.tags = parsedTags.value.join(',')
+        formData.tags = parsedTags.value.join(' ')
 
         if (dialogType.value === 'add') {
           await request.post('/scenic/add', formData, {
@@ -674,6 +722,13 @@ const handleRegionChange = (value) => {
   }
 }
 
+const handleRegionExpandChange = (value) => {
+  selectRegionOnExpand(value, nextValue => {
+    searchForm.regionValue = nextValue
+    handleRegionChange(nextValue)
+  })
+}
+
 // 处理编辑表单中的地区选择变化
 const handleFormRegionChange = (value) => {
   if (value && value.length > 0) {
@@ -682,6 +737,13 @@ const handleFormRegionChange = (value) => {
   } else {
     scenicForm.location = ''
   }
+}
+
+const handleFormRegionExpandChange = (value) => {
+  selectRegionOnExpand(value, nextValue => {
+    scenicForm.regionValue = nextValue
+    handleFormRegionChange(nextValue)
+  })
 }
 
 // 当编辑已有景点时，尝试从location字符串解析级联值
@@ -733,9 +795,12 @@ const resetSearch = () => {
   fetchScenicSpots()
 }
 
-const searchCoordinates = () => {
-  if (!window.AMap) {
-    ElMessage.warning('高德地图API尚未加载完成，请稍后再试')
+const searchCoordinates = async () => {
+  try {
+    await loadAmapScript()
+  } catch (error) {
+    console.error('加载高德地图API失败:', error)
+    ElMessage.error('高德地图API加载失败，请检查网络或API配置')
     return
   }
   
@@ -1250,6 +1315,8 @@ const updateMapFromInput = () => {
     
     :deep(.el-dialog__body) {
       padding: 30px 20px;
+      max-height: calc(100vh - 190px);
+      overflow-y: auto;
     }
     
     :deep(.el-dialog__footer) {
@@ -1258,6 +1325,14 @@ const updateMapFromInput = () => {
     }
     
     .scenic-form {
+      :deep(.wang-editor) {
+        width: 100%;
+      }
+
+      :deep(.editor-container) {
+        min-height: 360px;
+      }
+
       .upload-container {
         display: flex;
         flex-direction: column;

@@ -10,9 +10,8 @@ import org.example.springboot.dto.AuthConfigTestRequestDTO;
 import org.example.springboot.dto.AuthConfigTestResultDTO;
 import org.example.springboot.dto.EmailSmtpConfigDTO;
 import org.example.springboot.dto.GeetestConfigDTO;
-import org.example.springboot.security.RolePermission;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.AuthConfigService;
-import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "认证配置接口")
@@ -98,9 +97,6 @@ public class AuthConfigController {
     }
 
     private void requireAdmin() {
-        var user = JwtTokenUtils.getCurrentUser();
-        if (!RolePermission.isAdmin(user)) {
-            throw new org.example.springboot.exception.ServiceException("无权限");
-        }
+        SecurityGuards.requirePermission("auth-config:manage");
     }
 }

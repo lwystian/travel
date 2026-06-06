@@ -99,6 +99,17 @@
           </template>
         </el-table-column>
 
+        <el-table-column label="来源信息" min-width="280">
+          <template #default="{ row }">
+            <div class="source-cell">
+              <span>IP：{{ row.ipAddress || '-' }}</span>
+              <span>端口：{{ row.port || '-' }}</span>
+              <small class="source-ua">UA：{{ row.userAgent || '-' }}</small>
+              <small>设备：{{ row.deviceId || '-' }}</small>
+            </div>
+          </template>
+        </el-table-column>
+
         <el-table-column label="发布时间" width="170">
           <template #default="{ row }">
             <span class="time-text">{{ formatDate(row.createTime) }}</span>
@@ -156,8 +167,7 @@ import { ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
 import noImage from '@/assets/images/no-image.png'
-
-const baseAPI = process.env.VUE_APP_BASE_API || '/api'
+import { resolveImageUrl } from '@/utils/imageUrl'
 const tableData = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
@@ -264,9 +274,7 @@ const statusMeta = (status) => {
 }
 
 const resolveAsset = (url) => {
-  if (!url) return noImage
-  if (/^(https?:)?\/\//.test(url) || url.startsWith('data:')) return url
-  return `${baseAPI}${url.startsWith('/') ? url : `/${url}`}`
+  return resolveImageUrl(url, noImage)
 }
 
 const avatarText = (row) => (row.userNickname || row.username || '用').slice(0, 1)
@@ -438,6 +446,25 @@ onMounted(fetchComments)
 .review-cell {
   display: grid;
   gap: 4px;
+}
+
+.source-cell {
+  display: grid;
+  gap: 4px;
+  color: #334155;
+  font-size: 13px;
+}
+
+.source-cell small {
+  color: #64748b;
+}
+
+.source-ua {
+  display: block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .review-cell span {

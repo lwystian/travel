@@ -5,6 +5,43 @@ import { encryptPassword } from '@/utils/passwordCrypto'
 
 const TOKEN_EXPIRE_KEY = 'tokenExpire'
 const FALLBACK_TOKEN_EXPIRE_TIME = 2 * 60 * 60 * 1000 // 后端未返回过期时间时的兜底值
+const LEGACY_PERMISSION_EXPANSION = {
+  'content:manage': [
+    'tour:manage',
+    'recommend:manage',
+    'scenic:manage',
+    'accommodation:manage',
+    'guide:manage',
+    'comment:manage',
+    'collection:manage',
+    'category:manage',
+    'carousel:manage'
+  ],
+  'system:manage': [
+    'site-footer:manage',
+    'site-assets:manage',
+    'site-settings:manage'
+  ],
+  'review:manage': [
+    'review:manage',
+    'comment:manage'
+  ]
+}
+
+const expandPermissions = (permissions = []) => {
+  const expanded = new Set()
+  permissions.forEach(permission => {
+    const mapped = LEGACY_PERMISSION_EXPANSION[permission]
+    if (mapped) {
+      mapped.forEach(item => expanded.add(item))
+      return
+    }
+    expanded.add(permission)
+  })
+  return Array.from(expanded)
+}
+
+const normalizeRole = (roleCode) => String(roleCode || 'USER').trim().toUpperCase()
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -19,14 +56,15 @@ export const useUserStore = defineStore('user', {
     // 判断是否登录
     isLoggedIn: (state) => !!state.userInfo,
     // 判断是否是后台管理员（超级管理员也属于后台管理员）
-    isAdmin: (state) => ['SUPER_ADMIN', 'ADMIN'].includes(state.userInfo?.roleCode),
+    isAdmin: (state) => ['SUPER_ADMIN', 'ADMIN'].includes(normalizeRole(state.userInfo?.roleCode)),
     // 判断是否是超级管理员
-    isSuperAdmin: (state) => state.userInfo?.roleCode === 'SUPER_ADMIN',
+    isSuperAdmin: (state) => normalizeRole(state.userInfo?.roleCode) === 'SUPER_ADMIN',
     // 判断是否是普通用户
-    isUser: (state) => state.userInfo?.roleCode === 'USER',
-    permissions: (state) => state.userInfo?.permissions || [],
+    isUser: (state) => normalizeRole(state.userInfo?.roleCode) === 'USER',
+    permissions: (state) => expandPermissions(state.userInfo?.permissions || []),
     hasPermission: (state) => (permission) => {
-      const permissions = state.userInfo?.permissions || []
+      if (normalizeRole(state.userInfo?.roleCode) === 'SUPER_ADMIN') return true
+      const permissions = expandPermissions(state.userInfo?.permissions || [])
       return permissions.includes(permission)
     },
     // 判断token是否过期
@@ -49,7 +87,10 @@ export const useUserStore = defineStore('user', {
       
       this.userInfo = data.userInfo || data
       this.token = 'cookie'
-      this.role = this.userInfo?.roleCode || data.roleCode
+      if (this.userInfo?.roleCode) {
+        this.userInfo.roleCode = normalizeRole(this.userInfo.roleCode)
+      }
+      this.role = this.userInfo?.roleCode || normalizeRole(data.roleCode)
       
       // 存储到 LocalStorage
       localStorage.setItem('userInfo', JSON.stringify(this.userInfo))
@@ -131,7 +172,18 @@ export const useUserStore = defineStore('user', {
 
     // 退出登录
     async logout() {
-      this.clearUserInfo()
+      try {
+        await request.post('/user/logout', {}, { showDefaultMsg: false })
+      } catch {
+        // 本地退出优先，后端会话过期或权限异常时也要完成退出。
+      } finally {
+        this.clearUserInfo()
+      }
+    },
+    async refreshCurrentUser() {
+      const user = await request.get('/user/current', null, { showDefaultMsg: false })
+      this.setUserInfo(user)
+      return user
     },
     // 检查登录状态
     checkLoginStatus() {

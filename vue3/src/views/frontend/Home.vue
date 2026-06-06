@@ -1,10 +1,10 @@
 <template>
-  <div class="home-container">
+  <div class="home-container" :class="{ 'is-editing-home': editMode }">
     <section class="hero-section">
       <home-carousel />
     </section>
 
-    <div v-if="userStore.isAdmin" class="home-admin-bar">
+    <div v-if="canEditPageContent" class="home-admin-bar">
       <div>
         <strong>首页编辑模式</strong>
         <span>可直接修改首页个性化文案，保存后写入数据库</span>
@@ -19,9 +19,9 @@
     </div>
 
     <main class="home-main">
-      <section class="trust-strip">
+      <section class="trust-strip reveal-on-scroll" data-reveal="metrics">
         <div class="section-container trust-grid">
-          <div v-for="item in trustMetrics" :key="item.label" class="trust-item">
+          <div v-for="(item, index) in trustMetrics" :key="item.label" class="trust-item reveal-item" :style="{ '--reveal-delay': `${index * 80}ms` }">
             <inline-editable-text v-model="item.value" :edit-mode="editMode" tag="div" class="trust-value" maxlength="20" />
             <div class="trust-copy">
               <inline-editable-text v-model="item.label" :edit-mode="editMode" tag="span" maxlength="40" />
@@ -31,7 +31,7 @@
         </div>
       </section>
 
-      <section class="enterprise-section featured-programs">
+      <section class="enterprise-section featured-programs reveal-on-scroll" data-reveal="feature-split">
         <div class="section-container">
           <div class="section-heading">
             <div>
@@ -63,7 +63,7 @@
             </template>
             <template #default>
               <div v-if="featuredTour" class="program-layout">
-                <article class="program-hero" @click="goToTourDetail(featuredTour.id)">
+                <article class="program-hero reveal-item" style="--reveal-delay: 120ms" @click="goToTourDetail(featuredTour.id)">
                   <div class="program-image">
                     <img :src="getImageUrl(featuredTour.mainImage)" :alt="featuredTour.title" />
                     <div class="program-badge">
@@ -102,9 +102,10 @@
 
                 <div class="program-list">
                   <article
-                    v-for="item in secondaryTours"
+                    v-for="(item, index) in secondaryTours"
                     :key="item.id"
-                    class="program-card"
+                    class="program-card reveal-item"
+                    :style="{ '--reveal-delay': `${220 + index * 110}ms` }"
                     @click="goToTourDetail(item.id)"
                   >
                     <img :src="getImageUrl(item.mainImage)" :alt="item.title" loading="lazy" decoding="async" />
@@ -128,7 +129,7 @@
         </div>
       </section>
 
-      <section class="enterprise-section capability-section">
+      <section class="enterprise-section capability-section reveal-on-scroll" data-reveal="grid-pop">
         <div class="section-container">
           <div class="section-heading compact-heading">
             <div>
@@ -143,7 +144,7 @@
           </div>
 
           <div class="capability-grid">
-            <article v-for="item in capabilityList" :key="item.title" class="capability-card">
+            <article v-for="(item, index) in capabilityList" :key="item.title" class="capability-card reveal-item" :style="{ '--reveal-delay': `${index * 95}ms` }">
               <div class="capability-icon">
                 <el-icon><component :is="item.icon" /></el-icon>
               </div>
@@ -154,7 +155,7 @@
         </div>
       </section>
 
-      <section class="enterprise-section scenario-section">
+      <section class="enterprise-section scenario-section reveal-on-scroll" data-reveal="copy-grid">
         <div class="section-container scenario-layout">
           <div class="scenario-copy">
             <inline-editable-text v-model="sectionContent.scenario.eyebrow" :edit-mode="editMode" tag="span" class="eyebrow" maxlength="40" />
@@ -164,16 +165,9 @@
             <h2>面向不同客户场景，提供更稳妥的出行方案</h2>
             <p>不是简单陈列线路，而是围绕预算、人数、出行节奏、目的地资源和履约风险进行方案组合，帮助客户更快做出可靠选择。</p>
             </template>
-            <div class="editable-action-wrap">
-              <a :href="sectionContent.scenario.linkUrl" class="section-link scenario-link" @click="handleConfiguredLinkClick(sectionContent.scenario.linkUrl, $event)">
-                <inline-editable-text v-model="sectionContent.scenario.linkText" :edit-mode="editMode" tag="span" maxlength="40" />
-                <el-icon><ArrowRight /></el-icon>
-              </a>
-              <el-input v-if="editMode" v-model="sectionContent.scenario.linkUrl" class="link-url-input" size="small" placeholder="跳转链接，如 /tickets" />
-            </div>
           </div>
           <div class="scenario-grid">
-            <article v-for="item in scenarioList" :key="item.title" class="scenario-card">
+            <article v-for="(item, index) in scenarioList" :key="item.title" class="scenario-card reveal-item" :style="{ '--reveal-delay': `${160 + index * 90}ms` }">
               <inline-editable-text v-model="item.index" :edit-mode="editMode" tag="span" maxlength="8" />
               <inline-editable-text v-model="item.title" :edit-mode="editMode" tag="h3" maxlength="50" />
               <inline-editable-text v-model="item.desc" :edit-mode="editMode" tag="p" multiline :rows="3" maxlength="220" />
@@ -182,7 +176,7 @@
         </div>
       </section>
 
-      <section class="enterprise-section insight-section">
+      <section class="enterprise-section insight-section reveal-on-scroll" data-reveal="editorial">
         <div class="section-container">
           <div class="section-heading">
             <div>
@@ -212,9 +206,10 @@
             <template #default>
               <div v-if="guideList.length > 0" class="insight-grid">
                 <article
-                  v-for="item in guideList"
+                  v-for="(item, index) in guideList"
                   :key="item.id"
-                  class="insight-card"
+                  class="insight-card reveal-item"
+                  :style="{ '--reveal-delay': `${index * 115}ms` }"
                   @click="goToGuideDetail(item.id)"
                 >
                   <div class="insight-image">
@@ -236,7 +231,7 @@
         </div>
       </section>
 
-      <section class="assurance-section">
+      <section class="assurance-section reveal-on-scroll" data-reveal="assurance">
         <div class="section-container assurance-layout">
           <div class="assurance-title">
             <inline-editable-text v-model="sectionContent.assurance.eyebrow" :edit-mode="editMode" tag="span" class="eyebrow" maxlength="40" />
@@ -248,7 +243,7 @@
             </template>
           </div>
           <div class="assurance-list">
-            <div v-for="item in assuranceList" :key="item.title" class="assurance-item">
+            <div v-for="(item, index) in assuranceList" :key="item.title" class="assurance-item reveal-item" :style="{ '--reveal-delay': `${120 + index * 90}ms` }">
               <inline-editable-text v-model="item.title" :edit-mode="editMode" tag="strong" maxlength="50" />
               <inline-editable-text v-model="item.desc" :edit-mode="editMode" tag="span" multiline :rows="2" maxlength="220" />
             </div>
@@ -256,7 +251,7 @@
         </div>
       </section>
 
-      <section class="process-section">
+      <section class="process-section reveal-on-scroll" data-reveal="timeline">
         <div class="section-container process-layout">
           <div class="process-copy">
             <inline-editable-text v-model="sectionContent.process.eyebrow" :edit-mode="editMode" tag="span" class="eyebrow" maxlength="40" />
@@ -268,7 +263,7 @@
             </template>
           </div>
           <div class="process-steps">
-            <div v-for="(step, index) in serviceProcess" :key="step.title" class="process-step">
+            <div v-for="(step, index) in serviceProcess" :key="step.title" class="process-step reveal-item" :style="{ '--reveal-delay': `${index * 100}ms` }">
               <span>{{ String(index + 1).padStart(2, '0') }}</span>
               <div>
                 <inline-editable-text v-model="step.title" :edit-mode="editMode" tag="h3" maxlength="50" />
@@ -283,7 +278,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
@@ -317,6 +312,8 @@ const guideLoading = ref(true)
 const editMode = ref(false)
 const savingContent = ref(false)
 const editingSnapshot = ref(null)
+const canEditPageContent = computed(() => userStore.hasPermission('site-settings:manage'))
+let revealObserver = null
 
 const trustMetrics = [
   { value: '24h', label: '服务响应', desc: '订单咨询与出行问题快速跟进' },
@@ -447,6 +444,7 @@ const loadHomeContent = async () => {
 }
 
 const startEdit = () => {
+  if (!canEditPageContent.value) return
   editingSnapshot.value = cloneData(serializeHomeContent())
   editMode.value = true
 }
@@ -459,6 +457,7 @@ const cancelEdit = () => {
 }
 
 const saveHomeContent = async () => {
+  if (!canEditPageContent.value) return
   savingContent.value = true
   try {
     await savePageContent('home', serializeHomeContent(), { successMsg: '首页内容已保存' })
@@ -484,7 +483,7 @@ const fetchTours = async () => {
     tourList.value = mergeHomeTours(featuredRes || [], moreRes || [])
   } catch {
     try {
-      await request.get('/tour/all', {}, {
+      await request.get('/tour/list', {}, {
         showDefaultMsg: false,
         onSuccess: (data) => {
           tourList.value = data || []
@@ -582,10 +581,40 @@ const goToGuideDetail = (guideId) => {
   router.push(`/guide/detail/${guideId}`)
 }
 
-onMounted(() => {
-  loadHomeContent()
-  fetchTours()
-  fetchHotGuides()
+const setupScrollReveal = () => {
+  if (typeof window === 'undefined') return
+  const elements = document.querySelectorAll('.home-container .reveal-on-scroll')
+  if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    elements.forEach(element => element.classList.add('is-visible'))
+    return
+  }
+  revealObserver?.disconnect()
+  revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return
+      entry.target.classList.add('is-visible')
+      revealObserver.unobserve(entry.target)
+    })
+  }, {
+    threshold: 0.16,
+    rootMargin: '0px 0px -8% 0px'
+  })
+  elements.forEach(element => revealObserver.observe(element))
+}
+
+onMounted(async () => {
+  await Promise.all([
+    loadHomeContent(),
+    fetchTours(),
+    fetchHotGuides()
+  ])
+  await nextTick()
+  setupScrollReveal()
+})
+
+onBeforeUnmount(() => {
+  revealObserver?.disconnect()
+  revealObserver = null
 })
 </script>
 
@@ -593,6 +622,7 @@ onMounted(() => {
 .home-container {
   width: 100%;
   min-height: 100vh;
+  overflow-x: clip;
   color: #172033;
   background: #f6f8fb;
   font-family: "Source Han Sans", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
@@ -679,6 +709,161 @@ onMounted(() => {
 .section-container {
   width: min(var(--frontend-container-safe-width), var(--frontend-container-fluid));
   margin: 0 auto;
+}
+
+.reveal-on-scroll {
+  --section-reveal-y: 28px;
+  --section-reveal-duration: 680ms;
+  opacity: 0.001;
+  transform: translate3d(0, var(--section-reveal-y), 0);
+  transition:
+    opacity var(--section-reveal-duration) cubic-bezier(0.22, 1, 0.36, 1),
+    transform var(--section-reveal-duration) cubic-bezier(0.22, 1, 0.36, 1);
+  contain: paint;
+}
+
+.reveal-on-scroll.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.reveal-on-scroll .reveal-item {
+  --item-reveal-x: 0;
+  --item-reveal-y: 24px;
+  --item-reveal-scale: 1;
+  --item-reveal-rotate: 0deg;
+  opacity: 0.001;
+  transform:
+    translate3d(var(--item-reveal-x), var(--item-reveal-y), 0)
+    scale(var(--item-reveal-scale))
+    rotate(var(--item-reveal-rotate));
+  transition:
+    opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 620ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal-on-scroll[data-reveal='metrics'] .reveal-item {
+  --item-reveal-y: 18px;
+  --item-reveal-scale: 0.96;
+}
+
+.reveal-on-scroll[data-reveal='feature-split'] .program-hero {
+  --item-reveal-x: -24px;
+  --item-reveal-y: 16px;
+  --item-reveal-scale: 0.985;
+}
+
+.reveal-on-scroll[data-reveal='feature-split'] .program-card {
+  --item-reveal-x: 24px;
+  --item-reveal-y: 12px;
+}
+
+.reveal-on-scroll[data-reveal='grid-pop'] .reveal-item {
+  --item-reveal-y: 20px;
+  --item-reveal-scale: 0.94;
+}
+
+.reveal-on-scroll[data-reveal='copy-grid'] .scenario-card:nth-child(odd) {
+  --item-reveal-x: -18px;
+  --item-reveal-y: 18px;
+}
+
+.reveal-on-scroll[data-reveal='copy-grid'] .scenario-card:nth-child(even) {
+  --item-reveal-x: 18px;
+  --item-reveal-y: 18px;
+}
+
+.reveal-on-scroll[data-reveal='editorial'] .insight-card {
+  --item-reveal-y: 30px;
+  --item-reveal-scale: 0.975;
+}
+
+.reveal-on-scroll[data-reveal='assurance'] .assurance-item {
+  --item-reveal-y: 0;
+  --item-reveal-scale: 0.94;
+}
+
+.reveal-on-scroll[data-reveal='timeline'] .process-step {
+  --item-reveal-x: 18px;
+  --item-reveal-y: 0;
+}
+
+.reveal-on-scroll.is-visible .reveal-item {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.reveal-on-scroll .section-heading,
+.reveal-on-scroll .scenario-copy,
+.reveal-on-scroll .assurance-title,
+.reveal-on-scroll .process-copy {
+  opacity: 0.001;
+  transform: translate3d(0, 18px, 0);
+  transition:
+    opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal-on-scroll.is-visible .section-heading,
+.reveal-on-scroll.is-visible .scenario-copy,
+.reveal-on-scroll.is-visible .assurance-title,
+.reveal-on-scroll.is-visible .process-copy {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.reveal-on-scroll .program-image img,
+.reveal-on-scroll .insight-image img {
+  opacity: 0.72;
+  transform: scale(1.035);
+}
+
+.reveal-on-scroll.is-visible .program-image img,
+.reveal-on-scroll.is-visible .insight-image img {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.reveal-on-scroll .program-hero,
+.reveal-on-scroll .program-card,
+.reveal-on-scroll .capability-card,
+.reveal-on-scroll .scenario-card,
+.reveal-on-scroll .insight-card,
+.reveal-on-scroll .process-step {
+  position: relative;
+  overflow: hidden;
+}
+
+.reveal-on-scroll .program-hero::after,
+.reveal-on-scroll .program-card::after,
+.reveal-on-scroll .capability-card::after,
+.reveal-on-scroll .scenario-card::after,
+.reveal-on-scroll .insight-card::after,
+.reveal-on-scroll .process-step::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #0f766e, rgba(15, 118, 110, 0));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 720ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--reveal-delay, 0ms) + 120ms);
+  pointer-events: none;
+}
+
+.reveal-on-scroll.is-visible .program-hero::after,
+.reveal-on-scroll.is-visible .program-card::after,
+.reveal-on-scroll.is-visible .capability-card::after,
+.reveal-on-scroll.is-visible .scenario-card::after,
+.reveal-on-scroll.is-visible .insight-card::after,
+.reveal-on-scroll.is-visible .process-step::after {
+  transform: scaleX(1);
 }
 
 .trust-strip {
@@ -914,6 +1099,24 @@ onMounted(() => {
   }
 }
 
+.reveal-on-scroll:not(.is-visible) {
+  .program-hero,
+  .program-card,
+  .insight-card,
+  .capability-card,
+  .scenario-card {
+    &:hover {
+      transform: inherit;
+    }
+  }
+}
+
+.home-container.is-editing-home .reveal-on-scroll,
+.home-container.is-editing-home .reveal-item {
+  opacity: 1;
+  transform: none;
+}
+
 .program-hero {
   display: grid;
   grid-template-columns: minmax(320px, 0.96fr) minmax(0, 1.04fr);
@@ -951,11 +1154,10 @@ onMounted(() => {
   gap: 7px;
   padding: 9px 13px;
   color: #0f2d2b;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.72);
   font-size: 13px;
   font-weight: 800;
-  backdrop-filter: blur(10px);
 }
 
 .program-content {
@@ -1152,7 +1354,6 @@ onMounted(() => {
   background: rgba(255, 255, 255, 0.82);
   border-color: rgba(203, 213, 225, 0.88);
   cursor: default;
-  backdrop-filter: blur(12px);
 
   &:hover {
     border-color: rgba(15, 118, 110, 0.3);
@@ -1211,9 +1412,6 @@ onMounted(() => {
 }
 
 .scenario-copy {
-  position: sticky;
-  top: 92px;
-
   h2 {
     margin: 10px 0 16px;
     color: #111827;
@@ -1229,10 +1427,6 @@ onMounted(() => {
     font-size: 15px;
     line-height: 1.85;
   }
-}
-
-.scenario-link {
-  margin-top: 24px;
 }
 
 .scenario-grid {
@@ -1299,10 +1493,9 @@ onMounted(() => {
     gap: 6px;
     padding: 8px 11px;
     color: #fff;
-    background: rgba(15, 23, 42, 0.68);
+    background: rgba(15, 23, 42, 0.78);
     font-size: 12px;
     font-weight: 700;
-    backdrop-filter: blur(10px);
   }
 }
 
@@ -1520,6 +1713,15 @@ onMounted(() => {
   }
   100% {
     background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-on-scroll,
+  .reveal-on-scroll .reveal-item {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }
 

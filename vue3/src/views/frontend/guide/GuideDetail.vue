@@ -1,110 +1,151 @@
 <template>
-  <div class="guide-detail-container" v-loading="loading">
-    <div class="guide-detail" v-if="guide">
-      <!-- 英雄区域 - 参考景点详情页面设计 -->
-      <div class="detail-hero-section">
-        <div class="hero-image-container">
-          <div class="image-wrapper">
-            <img :src="getImageUrl(guide.coverImage)" :alt="guide.title" class="hero-image" v-if="guide.coverImage" />
-            <div class="default-hero-image" v-else>
-              <div class="default-icon">📖</div>
-              <div class="default-text">旅游攻略</div>
+  <div class="guide-detail-page" v-loading="loading">
+    <article class="guide-detail" v-if="guide">
+      <section class="guide-hero">
+        <img v-if="guide.coverImage" :src="getImageUrl(guide.coverImage)" :alt="guide.title" class="hero-media" />
+        <div v-else class="default-hero"></div>
+        <div class="hero-overlay"></div>
+
+        <div class="hero-inner">
+          <div class="breadcrumb">
+            <el-breadcrumb separator="/">
+              <el-breadcrumb-item @click="$router.push('/')">首页</el-breadcrumb-item>
+              <el-breadcrumb-item @click="$router.push('/guide')">旅游攻略</el-breadcrumb-item>
+              <el-breadcrumb-item>攻略详情</el-breadcrumb-item>
+            </el-breadcrumb>
+          </div>
+
+          <div class="hero-content">
+            <h1>{{ guide.title }}</h1>
+            <p>{{ articleSummary }}</p>
+
+            <div class="article-meta">
+              <span class="author-meta">
+                <el-avatar class="author-avatar" :src="getAvatarUrl(guide.userAvatar)" :size="36" fit="cover">
+                  <el-icon><User /></el-icon>
+                </el-avatar>
+                {{ guide.userNickname || `旅行者${guide.userId || ''}` }}
+                <span v-if="officialBadge(guide)" class="identity-badge" :class="officialBadge(guide).className">
+                  {{ officialBadge(guide).label }}
+                </span>
+              </span>
+              <span>
+                <el-icon><Calendar /></el-icon>
+                {{ formatDate(guide.createTime) }}
+              </span>
+              <span>
+                <el-icon><View /></el-icon>
+                {{ formatNumber(guide.views) }} 阅读
+              </span>
+              <span v-if="guide.destination">
+                <el-icon><Location /></el-icon>
+                {{ guide.destination }}
+              </span>
             </div>
-            <div class="image-overlay">
-              <div class="overlay-gradient"></div>
-              <div class="hero-content">
-                <div class="breadcrumb">
-                  <el-breadcrumb separator="/">
-                    <el-breadcrumb-item @click="$router.push('/')">首页</el-breadcrumb-item>
-                    <el-breadcrumb-item @click="$router.push('/guide')">旅游攻略</el-breadcrumb-item>
-                    <el-breadcrumb-item>{{ guide.title }}</el-breadcrumb-item>
-                  </el-breadcrumb>
-                </div>
-                <h1 class="guide-title">{{ guide.title }}</h1>
-                <div class="guide-meta">
-                  <div class="meta-item author">
-                    <el-avatar
-                      :src="getImageUrl(guide.userAvatar)"
-                      :size="40"
-                      class="author-avatar"
-                    >
-                      <el-icon><User /></el-icon>
-                    </el-avatar>
-                    <span class="author-name">{{ guide.userNickname || '旅行者' + guide.userId }}</span>
-                  </div>
-                  <div class="meta-item">
-                    <el-icon><Calendar /></el-icon>
-                    <span>{{ formatDate(guide.createTime) }}</span>
-                  </div>
-                  <div class="meta-item">
-                    <el-icon><View /></el-icon>
-                    <span>{{ formatNumber(guide.views) }} 阅读</span>
-                  </div>
-                </div>
-                <div class="action-buttons">
-                  <el-button
-                    :type="isCollected ? 'danger' : 'primary'"
-                    size="large"
-                    @click="handleCollectionToggle"
-                    :disabled="!userStore.isLoggedIn"
-                    class="collection-btn"
-                  >
-                    <el-icon>
-                      <StarFilled v-if="isCollected" />
-                      <Star v-else />
-                    </el-icon>
-                    {{ isCollected ? '已收藏' : '收藏攻略' }}
-                  </el-button>
-                  <el-button size="large" class="share-btn" @click="handleShare">
-                    <el-icon><Share /></el-icon>
-                    分享
-                  </el-button>
-                </div>
-              </div>
+
+            <div class="hero-actions">
+              <el-button
+                :type="isCollected ? 'danger' : 'primary'"
+                size="large"
+                @click="handleCollectionToggle"
+              >
+                <el-icon>
+                  <StarFilled v-if="isCollected" />
+                  <Star v-else />
+                </el-icon>
+                {{ isCollected ? '已收藏' : '收藏攻略' }}
+              </el-button>
+              <el-button size="large" class="ghost-button" @click="handleShare">
+                <el-icon><Share /></el-icon>
+                分享
+              </el-button>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- 攻略内容区域 - 简洁无卡片设计 -->
-      <div class="guide-content-section">
-        <div class="content-container">
-          <div class="content-layout">
-            <!-- 主要内容 -->
-            <div class="main-content">
-              <div v-html="safeGuideContent" class="rich-content"></div>
+      <section class="reading-section">
+        <div class="reading-container">
+          <main class="article-shell">
+            <div class="article-toolbar">
+              <span>攻略正文</span>
+              <span>{{ readingMeta }}</span>
             </div>
+            <div class="article-content content-display w-e-text-container">
+              <div class="w-e-scroll">
+                <div v-html="safeGuideContent" class="article-editor-view" data-slate-editor="true"></div>
+              </div>
+            </div>
+          </main>
 
-            <!-- 侧边栏 -->
-            <div class="sidebar" v-if="relatedGuides.length > 0">
-              <div class="sidebar-sticky">
-                <h3 class="sidebar-title">
-                  <el-icon><ArrowRight /></el-icon>
-                  相关攻略
-                </h3>
-                <div class="related-guides">
-                  <div
-                    v-for="item in relatedGuides"
+          <aside class="article-sidebar">
+            <div class="sticky-sidebar-stack">
+              <div class="sidebar-panel">
+                <div class="sidebar-title">
+                  <strong>攻略信息</strong>
+                </div>
+                <div class="sidebar-list">
+                  <div>
+                    <span>目的地</span>
+                    <strong>{{ guide.destination || '未设置' }}</strong>
+                  </div>
+                  <div>
+                    <span>发布时间</span>
+                    <strong>{{ formatDate(guide.createTime) }}</strong>
+                  </div>
+                  <div>
+                    <span>阅读量</span>
+                    <strong>{{ formatNumber(guide.views) }}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sidebar-panel toc-panel">
+                <div class="sidebar-title">
+                  <strong>文章目录</strong>
+                </div>
+                <div v-if="tableOfContents.length > 0" class="toc-list">
+                  <button
+                    v-for="item in tableOfContents"
                     :key="item.id"
-                    class="related-item"
-                    @click="goToGuide(item.id)"
+                    type="button"
+                    class="toc-item"
+                    :class="`level-${item.level}`"
+                    @click="scrollToHeading(item.id)"
                   >
-                    <h4 class="related-title">{{ item.title }}</h4>
-                    <div class="related-meta">
-                      <span class="views">
-                        <el-icon><View /></el-icon>
-                        {{ formatNumber(item.views) }} 阅读
-                      </span>
-                    </div>
-                  </div>
+                    <span>{{ item.order }}</span>
+                    <strong>{{ item.text }}</strong>
+                  </button>
                 </div>
+                <div v-else class="toc-empty">正文暂无目录标题</div>
               </div>
             </div>
-          </div>
+
+            <div class="sidebar-panel" v-if="relatedGuides.length > 0">
+              <div class="sidebar-title">
+                <strong>相关攻略</strong>
+              </div>
+              <div class="related-list">
+                <button
+                  v-for="item in relatedGuides"
+                  :key="item.id"
+                  type="button"
+                  class="related-item"
+                  @click="goToGuide(item.id)"
+                >
+                  <strong>{{ item.title }}</strong>
+                  <span>
+                    <el-icon><View /></el-icon>
+                    {{ formatNumber(item.views) }} 阅读
+                  </span>
+                </button>
+              </div>
+            </div>
+          </aside>
         </div>
-      </div>
-    </div>
-    
+      </section>
+    </article>
+
     <div class="guide-not-found" v-else-if="!loading">
       <el-empty description="未找到该攻略" />
       <el-button type="primary" @click="goBack">返回</el-button>
@@ -113,19 +154,19 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
 import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
-import { View, Calendar, Star, StarFilled, Share, User, ArrowRight } from '@element-plus/icons-vue'
+import { View, Calendar, Star, StarFilled, Share, User, Location } from '@element-plus/icons-vue'
 import { shareCurrentPage } from '@/utils/share'
 import { updateSeo, seoDescription } from '@/utils/seo'
 import { renderContent } from '@/utils/contentRenderer'
+import { resolveImageUrl, resolveAbsoluteImageUrl } from '@/utils/imageUrl'
 import noImage from '@/assets/images/no-image.png'
 
-const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
@@ -133,33 +174,84 @@ const guide = ref(null)
 const isCollected = ref(false)
 const loading = ref(true)
 const relatedGuides = ref([])
-const safeGuideContent = computed(() => renderContent(guide.value?.content))
+const renderedGuideContent = computed(() => renderContent(guide.value?.content))
+const articleRenderResult = computed(() => buildArticleRender(renderedGuideContent.value))
+const safeGuideContent = computed(() => articleRenderResult.value.html)
+const tableOfContents = computed(() => articleRenderResult.value.toc)
 
-// 获取图片完整URL
-const getImageUrl = (url) => {
-  if (!url) return noImage
-  return url.startsWith('http') ? url : baseAPI + url
+const articleSummary = computed(() => {
+  const raw = guide.value?.summary || guide.value?.destination || stripHtml(guide.value?.content || '')
+  return raw ? raw.slice(0, 110) : '精选目的地玩法、路线建议和出行经验，为企业客户与高品质旅行用户提供清晰可靠的参考。'
+})
+
+const readingMeta = computed(() => {
+  const text = stripHtml(guide.value?.content || '')
+  const minutes = Math.max(1, Math.ceil(text.length / 500))
+  return `约 ${minutes} 分钟阅读`
+})
+
+const getImageUrl = (url) => resolveImageUrl(url, noImage)
+const getAvatarUrl = (url) => resolveImageUrl(url, '')
+const getAbsoluteImageUrl = (url) => resolveAbsoluteImageUrl(url, noImage)
+
+const stripHtml = (value = '') => String(value).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+
+const buildArticleRender = (html = '') => {
+  if (!html) return { html: '', toc: [] }
+  if (typeof window === 'undefined' || !window.DOMParser) {
+    return { html, toc: [] }
+  }
+
+  const parser = new window.DOMParser()
+  const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html')
+  const wrapper = doc.body.firstElementChild
+  if (!wrapper) return { html, toc: [] }
+
+  const headings = Array.from(wrapper.querySelectorAll('h1, h2, h3, h4'))
+    .filter(heading => heading.textContent?.trim())
+
+  const toc = headings.map((heading, index) => {
+    const id = `guide-section-${index + 1}`
+    const tagLevel = Number(heading.tagName.replace('H', '')) || 2
+    const level = tagLevel <= 2 ? 2 : 3
+    heading.setAttribute('id', id)
+    heading.classList.add('article-anchor-heading')
+
+    return {
+      id,
+      level,
+      order: String(index + 1).padStart(2, '0'),
+      text: heading.textContent.trim()
+    }
+  })
+
+  return { html: wrapper.innerHTML, toc }
 }
 
-const getAbsoluteImageUrl = (url) => {
-  const imageUrl = getImageUrl(url)
-  return imageUrl.startsWith('http') ? imageUrl : `${window.location.origin}${imageUrl}`
-}
-
-// 格式化数字
 const formatNumber = (num) => {
   if (!num) return '0'
-  if (num >= 10000) {
-    return (num / 10000).toFixed(1) + 'w'
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'k'
-  }
+  if (num >= 10000) return `${(num / 10000).toFixed(1)}w`
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}k`
   return num.toString()
+}
+
+const officialBadge = (item) => {
+  if (item?.userRoleCode === 'SUPER_ADMIN') {
+    return { label: '官方 · 超级管理员', className: 'super-admin' }
+  }
+  if (item?.userRoleCode === 'ADMIN') {
+    return { label: '官方 · 管理员', className: 'admin' }
+  }
+  return null
 }
 
 const fetchGuide = async () => {
   loading.value = true
+  guide.value = null
+  relatedGuides.value = []
+  isCollected.value = false
   const id = route.params.id
+
   try {
     await request.get(`/guide/${id}`, {}, {
       showDefaultMsg: false,
@@ -186,13 +278,10 @@ const fetchGuide = async () => {
             }
           }
         })
-        
-        // 如果用户已登录，查询是否已收藏
+
         if (userStore.isLoggedIn) {
           checkIsCollected(id)
         }
-        
-        // 获取相关攻略
         fetchRelatedGuides()
       }
     })
@@ -203,14 +292,13 @@ const fetchGuide = async () => {
   }
 }
 
-// 获取相关攻略
 const fetchRelatedGuides = async () => {
   if (!guide.value) return
-  
+
   try {
-    await request.get('/guide/related', { 
+    await request.get('/guide/related', {
       guideId: guide.value.id,
-      limit: 3
+      limit: 4
     }, {
       showDefaultMsg: false,
       onSuccess: (data) => {
@@ -222,10 +310,9 @@ const fetchRelatedGuides = async () => {
   }
 }
 
-// 查询是否已收藏
 const checkIsCollected = async (guideId) => {
   if (!userStore.isLoggedIn) return
-  
+
   try {
     await request.get('/collection/isCollected', { guideId }, {
       showDefaultMsg: false,
@@ -238,25 +325,22 @@ const checkIsCollected = async (guideId) => {
   }
 }
 
-// 处理收藏/取消收藏
 const handleCollectionToggle = async () => {
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录')
     router.push('/login?redirect=' + route.fullPath)
     return
   }
-  
+
   try {
     if (isCollected.value) {
-      // 取消收藏
-      await request.delete('/collection/cancel?guideId=' + guide.value.id, {
+      await request.delete(`/collection/cancel?guideId=${guide.value.id}`, {
         successMsg: '取消收藏成功',
         onSuccess: () => {
           isCollected.value = false
         }
       })
     } else {
-      // 添加收藏
       await request.post('/collection/add', { guideId: guide.value.id }, {
         successMsg: '收藏成功',
         onSuccess: () => {
@@ -269,7 +353,6 @@ const handleCollectionToggle = async () => {
   }
 }
 
-// 分享功能
 const handleShare = () => {
   shareCurrentPage({
     title: guide.value?.title || '旅游攻略',
@@ -277,960 +360,594 @@ const handleShare = () => {
   })
 }
 
-// 前往其他攻略
+const scrollToHeading = (id) => {
+  const target = document.getElementById(id)
+  if (!target) return
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 const goToGuide = (id) => {
   router.push(`/guide/detail/${id}`)
 }
 
-// 返回上一页
 const goBack = () => {
   router.back()
 }
 
-onMounted(fetchGuide)
+watch(() => route.params.id, () => {
+  fetchGuide()
+})
+
+onMounted(() => {
+  fetchGuide()
+})
 </script>
 
 <style lang="scss" scoped>
-.guide-detail-container {
+.guide-detail-page {
   min-height: 100vh;
-  background: #FFFFFF;
-  font-family: "思源黑体", "Source Han Sans", "Noto Sans CJK SC", sans-serif;
+  background:
+    linear-gradient(180deg, #efe6d4 0%, #f5efe3 42%, #eef3ef 100%);
+  color: #17211d;
 }
 
-.guide-detail {
-  // 英雄区域样式 - 参考景点详情页面
-  .detail-hero-section {
-    position: relative;
-    height: 60vh;
-    min-height: 500px;
-    overflow: hidden;
-  }
-
-  .hero-image-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-  }
-
-  .image-wrapper {
-    position: relative;
-    width: 100%;
-    height: 100%;
-  }
-
-  .hero-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.8s ease;
-  }
-
-  .default-hero-image {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-
-    .default-icon {
-      font-size: 80px;
-      margin-bottom: 20px;
-      opacity: 0.8;
-    }
-
-    .default-text {
-      font-size: 24px;
-      font-weight: 600;
-      opacity: 0.9;
-    }
-  }
-
-  .image-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .overlay-gradient {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.3) 0%,
-      rgba(0, 0, 0, 0.1) 50%,
-      rgba(0, 0, 0, 0.6) 100%
-    );
-  }
-
-  .hero-content {
-    position: relative;
-    z-index: 10;
-    color: white;
-    text-align: center;
-    width: min(var(--frontend-container-safe-width), var(--frontend-container-wide));
-    padding: 0;
-  }
-
-  .breadcrumb {
-    margin-bottom: 30px;
-    text-align: left;
-
-    :deep(.el-breadcrumb) {
-      .el-breadcrumb__item {
-        .el-breadcrumb__inner {
-          color: rgba(255, 255, 255, 0.8);
-          font-weight: 500;
-          cursor: pointer;
-
-          &:hover {
-            color: white;
-          }
-        }
-
-        &:last-child .el-breadcrumb__inner {
-          color: white;
-        }
-      }
-
-      .el-breadcrumb__separator {
-        color: rgba(255, 255, 255, 0.6);
-      }
-    }
-  }
-
-  .guide-title {
-    font-size: 48px;
-    font-weight: 700;
-    margin: 0 0 30px;
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    line-height: 1.2;
-  }
-
-  .guide-meta {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 30px;
-    margin-bottom: 30px;
-    flex-wrap: wrap;
-  }
-
-  .meta-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 16px;
-    font-weight: 500;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-
-    &.author {
-      .author-avatar {
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        transition: all 0.3s ease;
-
-        &:hover {
-          border-color: rgba(255, 255, 255, 0.6);
-          transform: scale(1.1);
-        }
-      }
-
-      .author-name {
-        font-weight: 600;
-      }
-    }
-
-    .el-icon {
-      font-size: 18px;
-    }
-  }
-
-  .action-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-
-  .collection-btn,
-  .share-btn {
-    border-radius: 50px;
-    padding: 12px 24px;
-    font-weight: 600;
-    font-size: 16px;
-    transition: all 0.3s ease;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(10px);
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-    }
-  }
-
-  .collection-btn {
-    background: rgba(255, 255, 255, 0.9);
-    color: #667eea;
-
-    &:hover {
-      background: white;
-      color: #5a67d8;
-      border-color: rgba(255, 255, 255, 0.6);
-    }
-  }
-
-  .share-btn {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.2);
-      border-color: rgba(255, 255, 255, 0.5);
-    }
-  }
-// 攻略内容区域 - 简洁无卡片设计
-.guide-content-section {
-  background: white;
-  padding: 60px 0 80px;
-}
-
-.content-container {
-  width: min(var(--frontend-container-safe-width), var(--frontend-container-page));
-  margin: 0 auto;
-  padding: 0;
-}
-
-.content-layout {
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 60px;
-  align-items: start;
-}
-
-.main-content {
-  min-width: 0; // 防止内容溢出
-}
-
-.sidebar {
-  .sidebar-sticky {
-    position: sticky;
-    top: 100px;
-    background: #FFFFFF;
-    border-radius: 12px;
-    padding: 24px;
-    border: 1px solid #e2e8f0;
-  }
-
-  .sidebar-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: #2d3748;
-    margin: 0 0 20px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #667eea;
-
-    .el-icon {
-      color: #667eea;
-      font-size: 18px;
-    }
-  }
-
-  .related-guides {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .related-item {
-    padding: 16px;
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    cursor: pointer;
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      border-color: #667eea;
-
-      .related-title {
-        color: #667eea;
-      }
-    }
-  }
-
-  .related-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #2d3748;
-    margin-bottom: 8px;
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    transition: color 0.3s ease;
-  }
-
-  .related-meta {
-    .views {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 12px;
-      color: #64748b;
-
-      .el-icon {
-        font-size: 12px;
-      }
-    }
-  }
-}
-
-// 富文本内容样式 - 优化阅读体验
-.rich-content {
-  font-size: 16px;
-  line-height: 1.8;
-  color: #2d3748;
-  max-width: none;
-
-  // 标题样式
-  h1, h2, h3, h4, h5, h6 {
-    color: #1a202c;
-    font-weight: 700;
-    margin: 32px 0 16px;
-    line-height: 1.3;
-  }
-
-  h1 {
-    font-size: 32px;
-    border-bottom: 3px solid #667eea;
-    padding-bottom: 12px;
-    margin-bottom: 24px;
-  }
-
-  h2 {
-    font-size: 28px;
-    border-bottom: 2px solid #e2e8f0;
-    padding-bottom: 10px;
-    margin-bottom: 20px;
-  }
-
-  h3 {
-    font-size: 24px;
-    margin-bottom: 16px;
-  }
-
-  h4 {
-    font-size: 20px;
-    margin-bottom: 14px;
-  }
-
-  // 段落样式
-  p {
-    margin: 16px 0;
-    text-align: justify;
-    text-justify: inter-ideograph;
-  }
-
-  // 图片样式
-  img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 12px;
-    margin: 24px 0;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
-
-    &:hover {
-      transform: scale(1.02);
-    }
-  }
-
-  // 引用样式
-  blockquote {
-    border-left: 4px solid #667eea;
-    padding: 16px 20px;
-    margin: 24px 0;
-    background: #FFFFFF;
-    border-radius: 0 8px 8px 0;
-    font-style: italic;
-    color: #4a5568;
-
-    p {
-      margin: 0;
-    }
-  }
-
-  // 列表样式
-  ul, ol {
-    margin: 16px 0;
-    padding-left: 24px;
-
-    li {
-      margin: 8px 0;
-      line-height: 1.6;
-    }
-  }
-
-  ul li {
-    list-style-type: disc;
-  }
-
-  ol li {
-    list-style-type: decimal;
-  }
-
-  // 代码样式
-  code {
-    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-    padding: 4px 8px;
-    border-radius: 6px;
-    color: #667eea;
-    font-weight: 600;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 14px;
-  }
-
-  pre {
-    background: #1a202c;
-    padding: 20px;
-    border-radius: 12px;
-    margin: 24px 0;
-    overflow-x: auto;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-
-    code {
-      background: transparent;
-      color: #e2e8f0;
-      font-weight: normal;
-      padding: 0;
-    }
-  }
-
-  // 表格样式
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 24px 0;
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-
-    th, td {
-      padding: 12px 16px;
-      text-align: left;
-      border-bottom: 1px solid #e2e8f0;
-    }
-
-    th {
-      background: #FFFFFF;
-      font-weight: 600;
-      color: #2d3748;
-    }
-
-    tr:hover {
-      background: #FFFFFF;
-    }
-
-    tr:last-child td {
-      border-bottom: none;
-    }
-  }
-
-  // 链接样式
-  a {
-    color: #667eea;
-    text-decoration: none;
-    border-bottom: 1px solid transparent;
-    transition: all 0.3s ease;
-
-    &:hover {
-      color: #5a67d8;
-      border-bottom-color: #5a67d8;
-    }
-  }
-
-  // 分割线样式
-  hr {
-    border: none;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
-    margin: 32px 0;
-  }
-
-  // 强调样式
-  strong, b {
-    font-weight: 700;
-    color: #1a202c;
-  }
-
-  em, i {
-    font-style: italic;
-    color: #4a5568;
-  }
-
-  // 删除线
-  del, s {
-    text-decoration: line-through;
-    color: #a0aec0;
-  }
-
-  // 下划线
-  u {
-    text-decoration: underline;
-    text-decoration-color: #667eea;
-  }
-  line-height: 1.8;
-  color: #2d3748;
-  text-align: left;
-
-  // Markdown样式优化
-  h1, h2, h3, h4, h5, h6 {
-    font-weight: 700;
-    margin-top: 2em;
-    margin-bottom: 0.8em;
-    color: #1a202c;
-    text-align: left;
-    line-height: 1.3;
-  }
-
-  h1 {
-    font-size: 32px;
-    border-bottom: 3px solid #667eea;
-    padding-bottom: 12px;
-    margin-top: 1.5em;
-  }
-
-  h2 {
-    font-size: 28px;
-    border-bottom: 2px solid #e2e8f0;
-    padding-bottom: 10px;
-    color: #2d3748;
-  }
-
-  h3 {
-    font-size: 24px;
-    color: #4a5568;
-  }
-
-  h4 {
-    font-size: 20px;
-    color: #4a5568;
-  }
-
-  p {
-    margin: 1.2em 0;
-    text-align: left;
-    line-height: 1.8;
-  }
-
-  img {
-    max-width: 100%;
-    border-radius: 12px;
-    margin: 20px 0;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
-
-    &:hover {
-      transform: scale(1.02);
-    }
-  }
-
-  ul, ol {
-    padding-left: 24px;
-    margin: 1.2em 0;
-
-    li {
-      margin: 0.5em 0;
-      line-height: 1.6;
-    }
-  }
-
-  blockquote {
-    border-left: 4px solid #667eea;
-    padding: 16px 20px;
-    color: #4a5568;
-    margin: 1.5em 0;
-    background: #FFFFFF;
-    border-radius: 0 8px 8px 0;
-    font-style: italic;
-  }
-
-  code {
-    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
-    font-size: 14px;
-    color: #667eea;
-    font-weight: 600;
-  }
-
-  pre {
-    background: #1a202c;
-    padding: 20px;
-    border-radius: 12px;
-    overflow-x: auto;
-    margin: 1.5em 0;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-
-    code {
-      background: transparent;
-      padding: 0;
-      color: #e2e8f0;
-      font-weight: normal;
-    }
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 1.5em 0;
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-
-    th, td {
-      padding: 12px 16px;
-      text-align: left;
-      border-bottom: 1px solid #e2e8f0;
-    }
-
-    th {
-      background: #FFFFFF;
-      font-weight: 600;
-      color: #2d3748;
-    }
-
-    tr:hover {
-      background: #FFFFFF;
-    }
-  }
-}
-
-// 侧边栏样式
-.sidebar {
-  width: 320px;
-  flex-shrink: 0;
-}
-
-.sidebar-card {
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
+.guide-hero {
+  position: relative;
+  height: 480px;
+  min-height: 360px;
   overflow: hidden;
 }
 
-.sidebar-header {
-  padding: 24px 24px 0;
-  border-bottom: 1px solid #f1f5f9;
+.hero-media,
+.default-hero {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.default-hero {
+  background:
+    linear-gradient(135deg, rgba(23, 59, 52, 0.92), rgba(41, 87, 74, 0.86)),
+    linear-gradient(90deg, rgba(182, 138, 67, 0.28), transparent);
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(54, 40, 24, 0.5) 0%, rgba(54, 40, 24, 0.22) 48%, rgba(10, 20, 18, 0.42) 100%),
+    linear-gradient(180deg, rgba(255, 215, 142, 0.08) 0%, rgba(8, 18, 17, 0.38) 100%);
+}
+
+.hero-inner,
+.reading-container {
+  width: min(calc(100% - 64px), 1320px);
+  margin: 0 auto;
+}
+
+.reading-container {
+  width: min(calc(100% - 64px), 1520px);
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  justify-content: center;
+  padding: 42px 0;
+  text-align: center;
+}
+
+.breadcrumb {
+  margin-bottom: 26px;
+
+  :deep(.el-breadcrumb__inner) {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 700;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.24);
+    cursor: pointer;
+  }
+
+  :deep(.el-breadcrumb__item:last-child .el-breadcrumb__inner),
+  :deep(.el-breadcrumb__inner:hover),
+  :deep(.el-breadcrumb__separator) {
+    color: #fff;
+  }
+}
+
+.hero-content {
+  max-width: 1120px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.hero-content h1 {
+  margin: 0 auto 20px;
+  color: #fff;
+  font-size: clamp(32px, 4.4vw, 56px);
+  font-weight: 800;
+  line-height: 1.16;
+  letter-spacing: 0;
+  text-align: center;
+  text-shadow: 0 5px 18px rgba(0, 0, 0, 0.36);
+}
+
+.hero-content p {
+  max-width: 760px;
+  margin: 0 auto;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.8;
+  text-align: center;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.32);
+}
+
+.article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.article-meta > span {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  background: rgba(24, 24, 24, 0.24);
+  color: #fff;
+  backdrop-filter: blur(10px);
+  font-weight: 700;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+}
+
+.author-meta {
+  padding-left: 4px !important;
+}
+
+.author-avatar {
+  flex: 0 0 36px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.18);
+
+  :deep(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.identity-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 850;
+
+  &.super-admin {
+    color: #5c3d04;
+    border-color: rgba(255, 219, 112, 0.42);
+    background: linear-gradient(135deg, #fff3c4 0%, #e9c65d 100%);
+  }
+
+  &.admin {
+    color: #074f68;
+    border-color: rgba(125, 211, 252, 0.42);
+    background: linear-gradient(135deg, #e0f7ff 0%, #a7d8ea 100%);
+  }
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 30px;
+
+  :deep(.el-button) {
+    height: 48px;
+    min-width: 128px;
+    border-radius: 999px;
+    font-weight: 700;
+  }
+}
+
+.ghost-button {
+  border-color: rgba(255, 255, 255, 0.38);
+  background: rgba(24, 24, 24, 0.2);
+  color: #fff;
+}
+
+.reading-section {
+  position: relative;
+  padding: 46px 0 78px;
+  background:
+    linear-gradient(180deg, #efe6d4 0%, #f7f1e7 42%, #eef3ef 100%);
+}
+
+.reading-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(22, 69, 58, 0.055) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(22, 69, 58, 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+.reading-section > * {
+  position: relative;
+}
+
+.reading-container {
+  display: grid;
+  grid-template-columns: minmax(0, 1040px) 400px;
+  gap: 40px;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.article-shell,
+.sidebar-panel {
+  border: 1px solid #dce5e1;
+  border-radius: 10px;
+  box-shadow: 0 18px 42px rgba(23, 33, 29, 0.08);
+}
+
+.article-shell {
+  min-width: 0;
+  padding: 48px 70px 64px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 246, 0.96), rgba(250, 252, 250, 0.98));
+}
+
+.sidebar-panel {
+  background:
+    linear-gradient(180deg, rgba(255, 252, 246, 0.86), rgba(250, 252, 250, 0.9));
+}
+
+.article-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 30px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e6eeea;
+  color: #66736e;
+  font-size: 13px;
+
+  span:first-child {
+    color: #8a5a16;
+    font-weight: 800;
+  }
+}
+
+.article-content {
+  max-width: 900px;
+  margin: 0 auto;
+  color: #2d3d38;
+  font-size: 16px;
+  background: transparent;
+  --w-e-textarea-bg-color: transparent;
+
+  .w-e-scroll {
+    height: auto;
+    overflow: visible;
+    background: transparent;
+  }
+
+  .article-editor-view {
+    min-height: auto;
+    padding: 0;
+    background: transparent;
+    white-space: normal;
+  }
+
+  :deep(.w-e-text-container),
+  :deep(.w-e-scroll),
+  :deep([data-slate-editor]),
+  :deep(p),
+  :deep(div),
+  :deep(section),
+  :deep(article) {
+    background: transparent !important;
+  }
+
+  :deep(img) {
+    box-shadow: 0 16px 34px rgba(23, 33, 29, 0.12);
+  }
+
+  :deep(.article-anchor-heading) {
+    scroll-margin-top: 96px;
+  }
+}
+
+.article-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-self: stretch;
+  min-height: 100%;
+  overflow: visible;
+}
+
+.sticky-sidebar-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-self: start;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  max-height: none;
+  height: max-content;
+  overflow: visible;
+}
+
+.sidebar-panel {
+  padding: 22px;
 }
 
 .sidebar-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #2d3748;
-  margin: 0 0 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e6eeea;
 
-  .title-icon {
+  strong {
+    display: block;
+    color: #17211d;
     font-size: 18px;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  }
+
+  span {
+    display: block;
+    margin-top: 6px;
+    color: #7a8782;
+    font-size: 12px;
   }
 }
 
-.sidebar-content {
-  padding: 24px;
-}
+.sidebar-list {
+  display: grid;
+  gap: 0;
 
-.related-guides {
-  .related-guide-item {
+  div {
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    gap: 16px;
     padding: 16px 0;
-    border-bottom: 1px solid #f1f5f9;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    border-bottom: 1px solid #e6eeea;
 
     &:last-child {
-      border-bottom: none;
-    }
-
-    &:hover {
-      transform: translateX(8px);
-
-      .related-guide-title {
-        color: #667eea;
-      }
-
-      .related-guide-arrow {
-        color: #667eea;
-        transform: translateX(4px);
-      }
+      border-bottom: 0;
     }
   }
 
-  .related-guide-content {
-    flex: 1;
-    min-width: 0;
+  span {
+    color: #66736e;
+    font-size: 13px;
   }
 
-  .related-guide-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #2d3748;
-    margin-bottom: 6px;
-    line-height: 1.4;
+  strong {
+    color: #17211d;
+    font-size: 13px;
+    text-align: right;
+  }
+}
+
+.related-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.toc-panel {
+  overflow: visible;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 246, 0.99), rgba(248, 252, 249, 0.99));
+}
+
+.toc-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  max-height: min(420px, calc(100vh - 330px));
+  overflow-y: auto;
+  padding-right: 4px;
+  overscroll-behavior: contain;
+}
+
+.toc-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  align-items: start;
+  padding: 10px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+
+  &:hover {
+    border-color: #d4e7df;
+    background: #f6faf7;
+    transform: translateX(2px);
+  }
+
+  span {
+    display: grid;
+    height: 26px;
+    place-items: center;
+    border-radius: 999px;
+    background: #173b34;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  strong {
     display: -webkit-box;
+    overflow: hidden;
+    color: #273832;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.55;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+  }
+}
+
+.toc-item.level-3 {
+  padding-left: 22px;
+
+  span {
+    background: #b68a43;
+  }
+
+  strong {
+    color: #50615b;
+    font-size: 13px;
+  }
+}
+
+.toc-empty {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px dashed #dce5e1;
+  border-radius: 8px;
+  background: #f8faf8;
+  color: #7a8782;
+  font-size: 13px;
+  text-align: center;
+}
+
+.related-item {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #dce5e1;
+  border-radius: 8px;
+  background: #f8faf8;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+
+  &:hover {
+    border-color: #9ccfc6;
+    background: #fff;
+    transform: translateY(-2px);
+  }
+
+  strong {
+    display: -webkit-box;
     overflow: hidden;
-    transition: color 0.3s ease;
+    color: #17211d;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
-  .related-guide-meta {
-    display: flex;
+  span {
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
-
-    .views {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 13px;
-      color: #64748b;
-
-      .el-icon {
-        font-size: 12px;
-      }
-    }
-  }
-
-  .related-guide-arrow {
-    color: #cbd5e0;
-    transition: all 0.3s ease;
-    margin-left: 12px;
-
-    .el-icon {
-      font-size: 16px;
-    }
+    gap: 5px;
+    color: #66736e;
+    font-size: 12px;
   }
 }
 
 .guide-not-found {
+  width: min(var(--frontend-container-safe-width), 760px);
+  margin: 48px auto;
+  padding: 48px 24px;
+  border: 1px solid #dce5e1;
+  border-radius: 8px;
+  background: #fff;
   text-align: center;
-  padding: 80px 20px;
-  background: white;
-  border-radius: 20px;
-  margin: 40px 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 
   .el-button {
-    margin-top: 24px;
-    border-radius: 50px;
-    padding: 12px 32px;
-    font-weight: 600;
+    margin-top: 18px;
   }
 }
 
-// 动画效果
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.8s ease-out forwards;
-  opacity: 0;
-}
-
-.delay-200 {
-  animation-delay: 0.2s;
-}
-
-.delay-300 {
-  animation-delay: 0.3s;
-}
-
-// 响应式设计
-@media (max-width: 1024px) {
-  .content-layout {
-    grid-template-columns: 1fr;
-    gap: 40px;
+@media (max-width: 1100px) {
+  .reading-container {
+    width: min(calc(100% - 48px), 900px);
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .sidebar {
-    .sidebar-sticky {
-      position: static;
-      top: auto;
-    }
+  .article-sidebar {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    max-height: none;
+    overflow: visible;
+  }
+
+  .sticky-sidebar-stack {
+    position: static;
+    display: contents;
+    max-height: none;
+    overflow: visible;
   }
 }
 
 @media (max-width: 768px) {
-  .detail-hero-section {
-    height: 50vh;
-    min-height: 400px;
+  .guide-hero,
+  .hero-inner {
+    min-height: 320px;
   }
 
-  .hero-content {
-    padding: 0 20px;
+  .hero-inner {
+    padding: 24px 0 36px;
+    justify-content: center;
   }
 
-  .guide-title {
-    font-size: 32px;
-    margin-bottom: 20px;
+  .hero-content h1 {
+    font-size: 34px;
   }
 
-  .guide-meta {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
-
-  .action-buttons {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .collection-btn,
-  .share-btn {
-    width: 100%;
-    max-width: 280px;
-  }
-
-  .guide-content-section {
-    padding: 40px 0 60px;
-  }
-
-  .content-container {
-    padding: 0 16px;
-  }
-
-  .content-layout {
-    gap: 30px;
-  }
-
-  .sidebar {
-    .sidebar-sticky {
-      padding: 20px;
-    }
-
-    .sidebar-title {
-      font-size: 16px;
-    }
-
-    .related-item {
-      padding: 12px;
-    }
-
-    .related-title {
-      font-size: 13px;
-    }
-  }
-
-  .rich-content {
+  .hero-content p,
+  .article-content {
     font-size: 15px;
-
-    h1 {
-      font-size: 26px;
-    }
-
-    h2 {
-      font-size: 22px;
-    }
-
-    h3 {
-      font-size: 20px;
-    }
-
-    h4 {
-      font-size: 18px;
-    }
-
-    img {
-      margin: 16px 0;
-    }
-
-    blockquote {
-      padding: 12px 16px;
-      margin: 16px 0;
-    }
-
-    pre {
-      padding: 16px;
-      margin: 16px 0;
-    }
-
-    table {
-      font-size: 14px;
-
-      th, td {
-        padding: 8px 12px;
-      }
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .guide-title {
-    font-size: 24px;
   }
 
-  .meta-item {
-    font-size: 14px;
-
-    .el-icon {
-      font-size: 16px;
-    }
+  .reading-section {
+    padding: 30px 0 54px;
   }
 
-  .rich-content {
-    font-size: 14px;
-
-    h1 {
-      font-size: 22px;
-    }
-
-    h2 {
-      font-size: 20px;
-    }
-
-    h3 {
-      font-size: 18px;
-    }
-
-    h4 {
-      font-size: 16px;
-    }
+  .article-shell {
+    padding: 28px 20px 36px;
   }
-}
+
+  .article-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .article-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .sticky-sidebar-stack {
+    display: contents;
+  }
 }
 </style>

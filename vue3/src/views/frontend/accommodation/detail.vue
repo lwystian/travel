@@ -35,7 +35,7 @@
                 <el-button
                   type="primary"
                   size="large"
-                  @click="showReviewDialog = true"
+                  @click="openReviewDialog"
                   class="review-btn"
                 >
                   <el-icon><EditPen /></el-icon>
@@ -96,7 +96,7 @@
               </div>
 
               <div v-else-if="reviewList.length === 0" class="empty-reviews">
-                <div class="empty-icon">💬</div>
+                <el-icon class="empty-icon"><ChatDotRound /></el-icon>
                 <h4 class="empty-title">暂无评价</h4>
                 <p class="empty-desc">成为第一个评价这家住宿的客人</p>
               </div>
@@ -105,9 +105,12 @@
                 <div v-for="(review, index) in reviewList" :key="index" class="review-item">
                   <div class="review-header">
                     <div class="review-user">
-                      <el-avatar :size="40" :src="getImageUrl(review.avatar)">{{ review.nickname?.charAt(0) }}</el-avatar>
+                      <el-avatar :size="40" :src="getImageUrl(review.userAvatar || review.avatar)">{{ (review.userNickname || review.nickname || '用户').charAt(0) }}</el-avatar>
                       <div class="user-info">
-                        <span class="username">{{ review.nickname || '匿名用户' }}</span>
+                        <span class="username">{{ review.userNickname || review.nickname || '匿名用户' }}</span>
+                        <span v-if="officialBadge(review)" class="identity-badge" :class="officialBadge(review).className">
+                          {{ officialBadge(review).label }}
+                        </span>
                         <span class="review-date">{{ formatDate(review.createTime) }}</span>
                       </div>
                     </div>
@@ -243,7 +246,7 @@
     <div v-else class="empty-state">
       <div class="section-container">
         <div class="empty-content">
-          <div class="empty-icon">🏨</div>
+          <el-icon class="empty-icon"><House /></el-icon>
           <h3 class="empty-title">住宿信息不存在</h3>
           <p class="empty-desc">该住宿可能已下线或不存在</p>
           <el-button type="primary" @click="$router.push('/accommodation')">
@@ -292,6 +295,7 @@ import { useUserStore } from '@/store/user'
 import { shareCurrentPage } from '@/utils/share'
 import { updateSeo, seoDescription } from '@/utils/seo'
 import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
+import { resolveImageUrl, resolveAbsoluteImageUrl } from '@/utils/imageUrl'
 import defaultPlaceholder from '@/assets/images/no-image.png'
 import {
   Location, Star, Phone, Delete, House, MapLocation,
@@ -301,7 +305,6 @@ import {
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
-const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const { siteAssets, loadSiteAssets } = useSiteAssets()
 
 // 数据状态
@@ -316,7 +319,6 @@ const nearbyScenics = ref([])
 const loadingScenics = ref(false)
 const similarAccommodations = ref([])
 const loadingSimilar = ref(false)
-
 // 评分颜色
 const colors = ['#99A9BF', '#F7BA2A', '#FF9900']
 
@@ -343,6 +345,33 @@ const reviewRules = {
 const canDelete = (review) => {
   if (!userStore.userInfo) return false
   return userStore.userInfo.id === review.userId || userStore.isAdmin
+}
+
+const officialBadge = (item) => {
+  if (item?.userRoleCode === 'SUPER_ADMIN') {
+    return { label: '官方 · 超级管理员', className: 'super-admin' }
+  }
+  if (item?.userRoleCode === 'ADMIN') {
+    return { label: '官方 · 管理员', className: 'admin' }
+  }
+  return null
+}
+
+const openReviewDialog = () => {
+  if (!userStore.isLoggedIn) {
+    ElMessageBox.confirm('发表评价需要登录，是否前往登录页面？', '提示', {
+      confirmButtonText: '去登录',
+      cancelButtonText: '取消',
+      type: 'info'
+    }).then(() => {
+      router.push({
+        path: '/login',
+        query: { redirect: route.fullPath }
+      })
+    }).catch(() => {})
+    return
+  }
+  showReviewDialog.value = true
 }
 
 // 格式化评价数量
@@ -459,13 +488,11 @@ const fetchSimilarAccommodations = async () => {
 // 处理图片URL
 const getImageUrl = (url) => {
   if (!url) return getAssetUrl(siteAssets.value.placeholderImageUrl, defaultPlaceholder)
-  if (url.startsWith('http')) return url
-  return baseAPI + url
+  return resolveImageUrl(url, getAssetUrl(siteAssets.value.placeholderImageUrl, defaultPlaceholder))
 }
 
 const getAbsoluteImageUrl = (url) => {
-  const imageUrl = getImageUrl(url)
-  return imageUrl.startsWith('http') ? imageUrl : `${window.location.origin}${imageUrl}`
+  return resolveAbsoluteImageUrl(url, getAssetUrl(siteAssets.value.placeholderImageUrl, defaultPlaceholder))
 }
 
 // 处理评价分页
@@ -595,8 +622,8 @@ watch(() => accommodation.value, (newVal) => {
   // 英雄区域样式 - 参考景点详情页面
   .detail-hero-section {
     position: relative;
-    height: 60vh;
-    min-height: 500px;
+    height: 480px;
+    min-height: 360px;
     overflow: hidden;
   }
 
@@ -874,11 +901,38 @@ watch(() => accommodation.value, (newVal) => {
       }
 
       .user-info {
+        display: grid;
+        gap: 4px;
+
         .username {
           font-size: 14px;
           font-weight: 600;
           color: #2d3748;
-          margin: 0 0 4px;
+          margin: 0;
+        }
+
+        .identity-badge {
+          display: inline-flex;
+          width: fit-content;
+          align-items: center;
+          height: 22px;
+          padding: 0 9px;
+          border: 1px solid transparent;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 800;
+
+          &.super-admin {
+            color: #6f4a08;
+            border-color: rgba(180, 130, 22, 0.28);
+            background: linear-gradient(135deg, #fff8df 0%, #f7e5a8 100%);
+          }
+
+          &.admin {
+            color: #075985;
+            border-color: rgba(14, 116, 144, 0.22);
+            background: linear-gradient(135deg, #e7faff 0%, #d8eef7 100%);
+          }
         }
 
         .review-date {
@@ -1154,8 +1208,7 @@ watch(() => accommodation.value, (newVal) => {
 
   @media (max-width: 768px) {
     .detail-hero-section {
-      height: 50vh;
-      min-height: 400px;
+      min-height: 320px;
     }
 
     .hero-content {
@@ -1227,6 +1280,509 @@ watch(() => accommodation.value, (newVal) => {
     .sidebar-content .card-title {
       font-size: 16px;
     }
+  }
+}
+
+/* 企业级住宿详情新版覆盖 */
+.accommodation-detail-container {
+  background:
+    linear-gradient(180deg, #efe6d4 0%, #f5efe3 42%, #eef3ef 100%);
+  color: #17211d;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.accommodation-detail-container .section-container {
+  width: min(calc(100% - 64px), 1520px);
+}
+
+.accommodation-detail-container .detail-hero-section {
+  height: 480px;
+  min-height: 360px;
+}
+
+.accommodation-detail-container .overlay-gradient {
+  background:
+    linear-gradient(90deg, rgba(54, 40, 24, 0.5) 0%, rgba(54, 40, 24, 0.22) 48%, rgba(10, 20, 18, 0.42) 100%),
+    linear-gradient(180deg, rgba(255, 215, 142, 0.08) 0%, rgba(8, 18, 17, 0.38) 100%);
+}
+
+.accommodation-detail-container .hero-content {
+  width: min(calc(100% - 64px), 1320px);
+  text-align: center;
+}
+
+.accommodation-detail-container .breadcrumb {
+  margin-bottom: 26px;
+  text-align: center;
+}
+
+.accommodation-detail-container .breadcrumb :deep(.el-breadcrumb__inner) {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 700;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.24);
+}
+
+.accommodation-detail-container .breadcrumb :deep(.el-breadcrumb__item:last-child .el-breadcrumb__inner),
+.accommodation-detail-container .breadcrumb :deep(.el-breadcrumb__inner:hover),
+.accommodation-detail-container .breadcrumb :deep(.el-breadcrumb__separator) {
+  color: #fff;
+}
+
+.accommodation-detail-container .accommodation-title {
+  max-width: 1120px;
+  margin: 0 auto 22px;
+  color: #fff;
+  font-size: clamp(32px, 4.4vw, 56px);
+  font-weight: 800;
+  line-height: 1.16;
+  letter-spacing: 0;
+  text-align: center;
+  text-shadow: 0 5px 18px rgba(0, 0, 0, 0.36);
+}
+
+.accommodation-detail-container .accommodation-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin: 28px 0 0;
+}
+
+.accommodation-detail-container .meta-item {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  background: rgba(24, 24, 24, 0.24);
+  color: #fff;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+  font-size: 14px;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+.accommodation-detail-container .action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.accommodation-detail-container .review-btn,
+.accommodation-detail-container .share-btn {
+  height: 48px;
+  min-width: 128px;
+  padding: 0 24px;
+  border-radius: 999px;
+  border-width: 1px;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.accommodation-detail-container .review-btn {
+  border-color: transparent;
+  background: #0f766e;
+  color: #fff;
+}
+
+.accommodation-detail-container .share-btn {
+  border-color: rgba(255, 255, 255, 0.38);
+  background: rgba(24, 24, 24, 0.2);
+  color: #fff;
+}
+
+.accommodation-detail-container .detail-content,
+.accommodation-detail-container .loading-section,
+.accommodation-detail-container .empty-state {
+  position: relative;
+  padding: 34px 0 78px;
+  background:
+    linear-gradient(180deg, #efe6d4 0%, #f7f1e7 38%, #edf3ef 100%);
+}
+
+.accommodation-detail-container .detail-content::before,
+.accommodation-detail-container .loading-section::before,
+.accommodation-detail-container .empty-state::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(22, 69, 58, 0.055) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(22, 69, 58, 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+.accommodation-detail-container .detail-content > *,
+.accommodation-detail-container .loading-section > *,
+.accommodation-detail-container .empty-state > * {
+  position: relative;
+}
+
+.accommodation-detail-container .content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1040px) 400px;
+  gap: 40px;
+  align-items: start;
+  justify-content: center;
+}
+
+.accommodation-detail-container .main-content,
+.accommodation-detail-container .sidebar-content {
+  min-width: 0;
+}
+
+.accommodation-detail-container .info-card {
+  border: 1px solid #dce5e1;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 246, 0.94), rgba(250, 252, 250, 0.96));
+  box-shadow: 0 18px 42px rgba(23, 33, 29, 0.08);
+  overflow: hidden;
+}
+
+.accommodation-detail-container .main-content .info-card {
+  margin-bottom: 24px;
+  padding: 44px 64px 48px;
+}
+
+.accommodation-detail-container .sidebar-content {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.accommodation-detail-container .sidebar-content .info-card {
+  margin-bottom: 0;
+  padding: 22px;
+}
+
+.accommodation-detail-container .card-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 20px;
+  padding: 0 0 16px;
+  border-bottom: 1px solid #e6eeea;
+  color: #17211d;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.accommodation-detail-container .card-title .el-icon {
+  color: #0f766e;
+  font-size: 22px;
+}
+
+.accommodation-detail-container .description-content,
+.accommodation-detail-container .features-content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0;
+  color: #33423d;
+  font-size: 16px;
+  line-height: 2;
+  white-space: pre-line;
+}
+
+.accommodation-detail-container .sidebar-content .card-title {
+  margin-bottom: 0;
+  font-size: 18px;
+}
+
+.accommodation-detail-container .sidebar-content .card-title .el-icon {
+  font-size: 18px;
+}
+
+.accommodation-detail-container .info-list {
+  padding: 0;
+}
+
+.accommodation-detail-container .info-item {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 0;
+  border-top: 1px solid #e6eeea;
+}
+
+.accommodation-detail-container .info-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #66736e;
+  font-size: 14px;
+}
+
+.accommodation-detail-container .info-label .el-icon {
+  color: #0f766e;
+}
+
+.accommodation-detail-container .info-value {
+  color: #17211d;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.accommodation-detail-container .info-value.price-value {
+  color: #b45309;
+  font-size: 18px;
+}
+
+.accommodation-detail-container .info-value.scenic-link {
+  color: #0f766e;
+  cursor: pointer;
+}
+
+.accommodation-detail-container .reviews-card .reviews-header,
+.accommodation-detail-container .reviews-card .review-loading,
+.accommodation-detail-container .reviews-card .review-list,
+.accommodation-detail-container .reviews-card .review-pagination {
+  padding: 0;
+}
+
+.accommodation-detail-container .reviews-card .reviews-header {
+  margin-bottom: 8px;
+}
+
+.accommodation-detail-container .review-item {
+  padding: 22px 0;
+  border-bottom: 1px solid #e6eeea;
+}
+
+.accommodation-detail-container .review-item:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.accommodation-detail-container .review-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.accommodation-detail-container .review-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.accommodation-detail-container .review-user :deep(.el-avatar) {
+  background: #e6eeea;
+}
+
+.accommodation-detail-container .user-info .username {
+  display: block;
+  color: #17211d;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.accommodation-detail-container .user-info .review-date,
+.accommodation-detail-container .rating-score {
+  color: #66736e;
+  font-size: 13px;
+}
+
+.accommodation-detail-container .review-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.accommodation-detail-container .review-text {
+  color: #33423d;
+  font-size: 15px;
+  line-height: 1.9;
+}
+
+.accommodation-detail-container .review-actions {
+  margin-top: 10px;
+  text-align: right;
+}
+
+.accommodation-detail-container .empty-reviews {
+  display: grid;
+  place-items: center;
+  padding: 42px 20px 18px;
+  text-align: center;
+}
+
+.accommodation-detail-container .empty-reviews .empty-icon,
+.accommodation-detail-container .empty-content .empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 16px;
+  border-radius: 14px;
+  background: rgba(15, 118, 110, 0.1);
+  color: #0f766e;
+  font-size: 30px;
+}
+
+.accommodation-detail-container .empty-title {
+  margin: 0 0 8px;
+  color: #17211d;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.accommodation-detail-container .empty-desc {
+  margin: 0;
+  color: #66736e;
+}
+
+.accommodation-detail-container .scenic-list,
+.accommodation-detail-container .accommodation-list {
+  display: grid;
+  gap: 12px;
+  padding: 16px 0 0;
+}
+
+.accommodation-detail-container .scenic-item,
+.accommodation-detail-container .accommodation-item {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e6eeea;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.52);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.accommodation-detail-container .scenic-item:hover,
+.accommodation-detail-container .accommodation-item:hover {
+  border-color: #9ccfc6;
+  box-shadow: 0 14px 28px rgba(23, 33, 29, 0.08);
+  transform: translateY(-2px);
+}
+
+.accommodation-detail-container .scenic-image,
+.accommodation-detail-container .accommodation-image {
+  width: 76px;
+  height: 64px;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.accommodation-detail-container .scenic-image img,
+.accommodation-detail-container .accommodation-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.accommodation-detail-container .scenic-name,
+.accommodation-detail-container .item-name {
+  overflow: hidden;
+  color: #17211d;
+  font-size: 14px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accommodation-detail-container .scenic-price,
+.accommodation-detail-container .item-price {
+  margin-top: 6px;
+  color: #b45309;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.accommodation-detail-container .item-rating {
+  margin-top: 5px;
+}
+
+.accommodation-detail-container .empty-state {
+  min-height: 420px;
+}
+
+.accommodation-detail-container .empty-content {
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 56px 28px;
+  border: 1px solid #dce5e1;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 246, 0.94), rgba(250, 252, 250, 0.96));
+  text-align: center;
+  box-shadow: 0 18px 42px rgba(23, 33, 29, 0.08);
+}
+
+@media (max-width: 1180px) {
+  .accommodation-detail-container .section-container {
+    width: min(calc(100% - 48px), 900px);
+  }
+
+  .accommodation-detail-container .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .accommodation-detail-container .sidebar-content {
+    position: static;
+    order: -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .accommodation-detail-container .detail-hero-section {
+    height: 360px;
+    min-height: 320px;
+  }
+
+  .accommodation-detail-container .hero-content {
+    width: min(calc(100% - 40px), 900px);
+  }
+
+  .accommodation-detail-container .accommodation-title {
+    font-size: 32px;
+  }
+
+  .accommodation-detail-container .accommodation-meta {
+    gap: 10px;
+  }
+
+  .accommodation-detail-container .detail-content {
+    padding: 28px 0 54px;
+  }
+
+  .accommodation-detail-container .main-content .info-card,
+  .accommodation-detail-container .sidebar-content .info-card {
+    padding: 22px;
+  }
+
+  .accommodation-detail-container .review-header,
+  .accommodation-detail-container .info-item {
+    grid-template-columns: 1fr;
+  }
+
+  .accommodation-detail-container .review-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .accommodation-detail-container .info-value {
+    text-align: left;
   }
 }
 </style>

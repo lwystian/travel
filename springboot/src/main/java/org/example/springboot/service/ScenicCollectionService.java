@@ -9,7 +9,6 @@ import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.ScenicCollectionMapper;
 import org.example.springboot.mapper.ScenicSpotMapper;
-import org.example.springboot.security.RolePermission;
 import org.example.springboot.security.SecurityValidationUtil;
 import org.example.springboot.util.JwtTokenUtils;
 import org.slf4j.Logger;
@@ -34,6 +33,8 @@ public class ScenicCollectionService {
     
     @Resource
     private ScenicSpotService scenicSpotService;
+    @Resource
+    private AdminPermissionService adminPermissionService;
 
     /**
      * 添加景点收藏
@@ -209,8 +210,8 @@ public class ScenicCollectionService {
         if (requestedUserId == null || requestedUserId.equals(currentUser.getId())) {
             return currentUser.getId();
         }
-        if (!RolePermission.isAdmin(currentUser)) {
-            throw new ServiceException("无权限查看该用户收藏");
+        if (!adminPermissionService.hasPermission(currentUser, "collection:manage")) {
+            throw new ServiceException("权限不足，请联系管理员");
         }
         return requestedUserId;
     }

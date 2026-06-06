@@ -72,7 +72,7 @@ public class AccommodationController {
     @Operation(summary = "添加住宿信息")
     @PostMapping
     public Result<?> addAccommodation(@RequestBody Accommodation accommodation) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("accommodation:manage");
         try {
             LOGGER.info("添加住宿信息：{}", accommodation);
             
@@ -92,7 +92,7 @@ public class AccommodationController {
     @Operation(summary = "更新住宿信息")
     @PutMapping("/{id}")
     public Result<?> updateAccommodation(@PathVariable Long id, @RequestBody Accommodation accommodation) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("accommodation:manage");
         try {
             LOGGER.info("更新住宿信息，id={}，数据：{}", id, accommodation);
             
@@ -113,7 +113,7 @@ public class AccommodationController {
     @Operation(summary = "删除住宿信息")
     @DeleteMapping("/{id}")
     public Result<?> deleteAccommodation(@PathVariable Integer id) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("accommodation:manage");
         try {
             LOGGER.info("删除住宿信息，id={}", id);
             

@@ -273,6 +273,14 @@ onUnmounted(() => {
     radial-gradient(circle at 88% 12%, rgba(37, 99, 235, 0.1), transparent 30%);
 }
 
+.hero-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
 .eyebrow {
   margin: 0 0 10px;
   color: #2563eb;
@@ -297,7 +305,7 @@ onUnmounted(() => {
 
 .hero-desc {
   max-width: 620px;
-  margin: 14px 0 0;
+  margin: 14px auto 0;
   color: #64748b;
   font-size: 15px;
   line-height: 1.8;
@@ -309,7 +317,7 @@ onUnmounted(() => {
   justify-content: center;
   max-width: 620px;
   gap: 10px;
-  margin: 18px 0 0;
+  margin: 18px auto 0;
 
   span {
     padding: 8px 12px;

@@ -25,22 +25,32 @@
           </el-select>
         </el-form-item>
         <el-form-item label="出发城市" class="search-item">
-          <el-select v-model="searchForm.city" placeholder="请选择" clearable filterable style="width: 110px;">
-            <el-option v-for="(name, code) in cityMap" :key="code" :label="name" :value="code"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="目的地" class="search-item">
-          <el-select
-            v-model="searchForm.destination"
-            placeholder="请选择或输入"
+          <el-cascader
+            v-model="searchForm.cityPath"
+            :options="chinaRegionOptions"
+            :props="regionCascaderProps"
+            placeholder="请选择"
             clearable
             filterable
-            allow-create
-            default-first-option
+            popper-class="region-cascader-popper"
+            style="width: 180px;"
+            @change="handleSearchCityChange"
+            @expand-change="handleSearchCityExpandChange"
+          />
+        </el-form-item>
+        <el-form-item label="目的地" class="search-item">
+          <el-cascader
+            v-model="searchForm.destinationPath"
+            :options="chinaRegionOptions"
+            :props="regionCascaderProps"
+            placeholder="请选择或搜索"
+            clearable
+            filterable
+            popper-class="region-cascader-popper"
             style="width: 160px;"
-          >
-            <el-option v-for="city in allCityOptions" :key="city.code" :label="city.name" :value="city.code"></el-option>
-          </el-select>
+            @change="handleSearchDestinationChange"
+            @expand-change="handleSearchDestinationExpandChange"
+          />
         </el-form-item>
         <el-form-item class="search-buttons">
           <el-button type="primary" @click="handleSearch">
@@ -210,24 +220,34 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="出发城市" prop="city">
-              <el-select v-model="tourForm.city" placeholder="请选择出发城市" filterable style="width: 100%;">
-                <el-option v-for="(name, code) in cityMap" :key="code" :label="name" :value="code"></el-option>
-              </el-select>
+              <el-cascader
+                v-model="tourForm.cityPath"
+                :options="chinaRegionOptions"
+                :props="regionCascaderProps"
+                placeholder="请选择或搜索出发城市"
+                clearable
+                filterable
+                popper-class="region-cascader-popper"
+                style="width: 100%;"
+                @change="handleTourCityChange"
+                @expand-change="handleTourCityExpandChange"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="目的地" prop="destination">
-              <el-select
-                v-model="tourForm.destination"
-                placeholder="请选择或输入目的地"
-                filterable
-                allow-create
-                default-first-option
+              <el-cascader
+                v-model="tourForm.destinationPath"
+                :options="chinaRegionOptions"
+                :props="regionCascaderProps"
+                placeholder="请选择或搜索目的地"
                 clearable
+                filterable
+                popper-class="region-cascader-popper"
                 style="width: 100%;"
-              >
-                <el-option v-for="city in allCityOptions" :key="city.code" :label="city.name" :value="city.code"></el-option>
-              </el-select>
+                @change="handleTourDestinationChange"
+                @expand-change="handleTourDestinationExpandChange"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -333,6 +353,7 @@ import request from '@/utils/request'
 import TourDetailManager from './TourDetailManager.vue'
 import { tourTypeOptions, getTourTypeLabel } from '@/utils/tourTypes'
 import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
+import { chinaRegionOptions, regionCascaderProps, getRegionKeyword, getRegionLabel, findRegionPath, selectRegionOnExpand } from '@/utils/chinaRegion'
 
 // 出发城市映射
 const cityMap = {
@@ -534,7 +555,9 @@ const searchForm = reactive({
   title: '',
   tourType: '',
   city: '',
-  destination: ''
+  cityPath: [],
+  destination: '',
+  destinationPath: []
 })
 
 // 对话框
@@ -671,7 +694,9 @@ const tourForm = reactive({
   tag: '',
   tourType: '',
   city: '',
+  cityPath: [],
   destination: '',
+  destinationPath: [],
   days: 1,
   month: String(new Date().getMonth() + 1),
   starRating: 5,
@@ -733,6 +758,50 @@ const getCityLabel = (city) => {
   return cityMap[normalizedCity] || legacyLocationMap[normalizedCity] || normalizedCity
 }
 
+const handleSearchCityChange = (value) => {
+  searchForm.city = getRegionKeyword(value)
+}
+
+const handleSearchCityExpandChange = (value) => {
+  selectRegionOnExpand(value, nextValue => {
+    searchForm.cityPath = nextValue
+    handleSearchCityChange(nextValue)
+  })
+}
+
+const handleSearchDestinationChange = (value) => {
+  searchForm.destination = getRegionKeyword(value)
+}
+
+const handleSearchDestinationExpandChange = (value) => {
+  selectRegionOnExpand(value, nextValue => {
+    searchForm.destinationPath = nextValue
+    handleSearchDestinationChange(nextValue)
+  })
+}
+
+const handleTourCityChange = (value) => {
+  tourForm.city = getRegionLabel(value, ' / ')
+}
+
+const handleTourCityExpandChange = (value) => {
+  selectRegionOnExpand(value, nextValue => {
+    tourForm.cityPath = nextValue
+    handleTourCityChange(nextValue)
+  })
+}
+
+const handleTourDestinationChange = (value) => {
+  tourForm.destination = getRegionLabel(value, ' / ')
+}
+
+const handleTourDestinationExpandChange = (value) => {
+  selectRegionOnExpand(value, nextValue => {
+    tourForm.destinationPath = nextValue
+    handleTourDestinationChange(nextValue)
+  })
+}
+
 // 搜索
 const handleSearch = () => {
   currentPage.value = 1
@@ -744,7 +813,9 @@ const resetSearch = () => {
   searchForm.title = ''
   searchForm.tourType = ''
   searchForm.city = ''
+  searchForm.cityPath = []
   searchForm.destination = ''
+  searchForm.destinationPath = []
   currentPage.value = 1
   fetchTours()
 }
@@ -776,6 +847,8 @@ const handleEdit = (row) => {
       tourForm[key] = row[key]
     }
   })
+  tourForm.cityPath = findRegionPath(row.city || '')
+  tourForm.destinationPath = findRegionPath(row.destination || '')
   // 解析并设置标签输入
   tagsInput.value = parseTags(row.tags).join(' ')
   tourForm.month = normalizeMonthValue(row.month)
@@ -861,7 +934,7 @@ const resetForm = () => {
   tagsInput.value = ''
   Object.assign(tourForm, {
     id: null, code: '', title: '', subtitle: '', mainImage: '', tag: '',
-    tourType: '', city: '', destination: '', days: 1,
+    tourType: '', city: '', cityPath: [], destination: '', destinationPath: [], days: 1,
     month: String(new Date().getMonth() + 1), starRating: 5,
     recommendDate: '', moreDates: '', feature: '', tags: '',
     enrolledCount: 0, status: 1
@@ -886,6 +959,9 @@ void previewImage
 
 // 提交表单
 const submitForm = async () => {
+  tourForm.city = getRegionLabel(tourForm.cityPath, ' / ') || tourForm.city
+  tourForm.destination = getRegionLabel(tourForm.destinationPath, ' / ') || tourForm.destination
+
   tourFormRef.value.validate(async (valid) => {
     if (!valid) {
       ElMessage.warning('请先补充必填项，再保存行程')
@@ -906,6 +982,8 @@ const submitForm = async () => {
         tags: parsedTags.value.join(' ')
       }
       delete submitData.code
+      delete submitData.cityPath
+      delete submitData.destinationPath
 
       if (isEdit.value) {
         await request.put(`/tour/${tourForm.id}`, submitData, {

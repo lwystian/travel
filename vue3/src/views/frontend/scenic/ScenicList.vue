@@ -2,7 +2,7 @@
 <template>
   <div class="scenic-frontend-container">
     <!-- Hero 区域 - 背景图片适中 -->
-    <div class="hero-section" ref="heroSection" :style="heroStyle">
+    <div class="hero-section" :style="heroStyle">
       <div class="hero-overlay"></div>
       <div class="hero-content">
         <div class="hero-text">
@@ -115,7 +115,7 @@
                 <span>{{ item.location || '未知地区' }}</span>
               </div>
               
-              <p class="description">{{ truncateText(item.description, 100) }}</p>
+              <p class="description">{{ truncateText(stripHtml(item.description), 100) }}</p>
               
               <div class="feature-tags">
                 <span
@@ -167,7 +167,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import request from '@/utils/request'
 import { Search, Location, Refresh, Star, ChatDotRound } from '@element-plus/icons-vue'
@@ -180,20 +180,10 @@ const route = useRoute()
 const { siteAssets, loadSiteAssets } = useSiteAssets()
 
 // DOM 引用
-const heroSection = ref(null)
 const mainSection = ref(null)
-const heroHeight = ref(420)
 const heroStyle = computed(() => ({
-  '--page-hero-height': `${heroHeight.value}px`,
   '--scenic-hero-url': `url("${getAssetUrl(siteAssets.value.scenicHeroUrl, noImage)}")`
 }))
-
-const updateHeroHeight = () => {
-  if (!heroSection.value) return
-  const rect = heroSection.value.getBoundingClientRect()
-  const pageTop = rect.top + window.scrollY
-  heroHeight.value = Math.max(320, Math.round(window.innerHeight - pageTop))
-}
 
 // 数据状态
 const tableData = ref([])
@@ -343,6 +333,19 @@ const getImageUrl = (url) => {
   return url.startsWith('http') ? url : baseAPI + url
 }
 
+const stripHtml = (value = '') => String(value || '')
+  .replace(/<style[\s\S]*?<\/style>/gi, '')
+  .replace(/<script[\s\S]*?<\/script>/gi, '')
+  .replace(/<[^>]+>/g, ' ')
+  .replace(/&nbsp;/gi, ' ')
+  .replace(/&amp;/gi, '&')
+  .replace(/&lt;/gi, '<')
+  .replace(/&gt;/gi, '>')
+  .replace(/&quot;/gi, '"')
+  .replace(/&#39;/gi, "'")
+  .replace(/\s+/g, ' ')
+  .trim()
+
 const truncateText = (text, length) => {
   if (!text) return ''
   return text.length > length ? text.substring(0, length) + '...' : text
@@ -378,16 +381,6 @@ onMounted(() => {
   loadSiteAssets()
   fetchCategories()
   handleUrlParams()
-  nextTick(updateHeroHeight)
-  setTimeout(updateHeroHeight, 100)
-  setTimeout(updateHeroHeight, 400)
-  window.addEventListener('resize', updateHeroHeight)
-  window.addEventListener('orientationchange', updateHeroHeight)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', updateHeroHeight)
-  window.removeEventListener('orientationchange', updateHeroHeight)
 })
 </script>
 
@@ -409,8 +402,10 @@ $border: #e9ecef;
 /* ============== Hero 区域 - 背景图片占满当前页 ============== */
 .hero-section {
   position: relative;
-  width: 100%;
-  height: var(--page-hero-height, calc(100vh - 215px));
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-wide));
+  height: 420px;
+  margin: 20px auto 0;
+  border-radius: 12px;
   background: var(--scenic-hero-url) center bottom / cover no-repeat;
   display: flex;
   align-items: center;
@@ -1028,7 +1023,7 @@ $border: #e9ecef;
 
 @media (max-width: 768px) {
   .hero-section {
-    height: var(--page-hero-height, calc(100vh - 140px));
+    height: 360px;
   }
 
   .hero-title {

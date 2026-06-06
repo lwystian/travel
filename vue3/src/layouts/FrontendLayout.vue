@@ -81,7 +81,7 @@
                 <inline-editable-text v-model="headerContent.wechatQrText" :edit-mode="headerEditMode" tag="p" maxlength="40" />
               </div>
             </span>
-            <template v-if="userStore.isAdmin">
+            <template v-if="canEditHeaderContent">
               <el-divider direction="vertical" />
               <button v-if="!headerEditMode" class="header-edit-btn" type="button" @click="startHeaderEdit">编辑顶部</button>
               <template v-else>
@@ -683,6 +683,7 @@ let searchDebounceTimer = null
 
 const isLoggedIn = computed(() => !!userStore.token)
 const userName = computed(() => userStore.userInfo?.nickname || userStore.userInfo?.name || userStore.userInfo?.username || '')
+const canEditHeaderContent = computed(() => userStore.hasPermission('site-settings:manage'))
 
 // 计算当前激活的菜单索引
 const activeMenuIndex = computed(() => {
@@ -860,6 +861,7 @@ const loadHeaderContent = async () => {
 }
 
 const startHeaderEdit = () => {
+  if (!canEditHeaderContent.value) return
   headerSnapshot.value = cloneData(headerContent.value)
   headerEditMode.value = true
 }
@@ -928,6 +930,7 @@ const handleMenuSelect = (url) => {
 }
 
 const saveHeaderContent = async () => {
+  if (!canEditHeaderContent.value) return
   headerSaving.value = true
   try {
     await savePageContent('frontend-header', serializeHeaderContent(), { successMsg: '顶部内容已保存' })
@@ -966,6 +969,10 @@ const cityNameToCode = {
   '贵阳': 'guiyang', '昆明': 'kunming', '长沙': 'changsha', '北京': 'beijing',
   '上海': 'shanghai', '广州': 'guangzhou', '深圳': 'shenzhen', '杭州': 'hangzhou',
   '南京': 'nanjing', '西安': 'xian'
+}
+
+const getCurrentCityFilterValue = () => {
+  return cityNameToCode[currentCity.value] || currentCity.value
 }
 
 const navigateConfiguredUrl = (url) => {
@@ -1011,10 +1018,9 @@ const getConfiguredAroundUrl = (days) => {
     5: 'aroundFiveDayUrl'
   }
   const configuredUrl = headerContent.value[fieldMap[days]]
-  const cityCode = cityNameToCode[currentCity.value] || 'chongqing'
   const params = {
     tourType: 'around',
-    city: cityCode,
+    city: getCurrentCityFilterValue(),
     days,
     searchMode: 'around'
   }
@@ -1348,7 +1354,7 @@ const applyDefaultCity = () => {
 // 通过公网 IP 自动定位，失败时回到默认城市。
 const fetchLocationByIP = async () => {
   const savedCityCode = localStorage.getItem(LOCATION_STORAGE_KEY)
-  const savedCity = cityList.value.find(city => city.code === savedCityCode)
+  const savedCity = cityList.value.find(city => city.code === savedCityCode || city.name === savedCityCode)
   if (savedCity) {
     currentCity.value = savedCity.name
     return
@@ -1424,8 +1430,8 @@ const handleCommand = (command) => {
   }
 }
 
-const handleLogout = () => {
-  userStore.clearUserInfo()
+const handleLogout = async () => {
+  await userStore.logout()
   router.push('/login')
 }
 
@@ -2107,6 +2113,7 @@ onMounted(() => {
   margin: 0;
   width: 100%;
   max-width: 100%;
+  overflow: visible;
 }
 
 // 企业化页脚样式

@@ -337,7 +337,7 @@ const legalPages = [
 ]
 
 const currentType = computed(() => route.params.type || 'business-license')
-const canEdit = computed(() => userStore.isAdmin || userStore.isSuperAdmin)
+const canEdit = computed(() => userStore.hasPermission('site-footer:manage'))
 const persistedLegalPages = computed(() => footerConfig.value.legalPages?.length ? footerConfig.value.legalPages : legalPages)
 const displayedLegalPages = computed(() => editMode.value ? editableLegalPages.value : persistedLegalPages.value)
 const currentPage = computed(() => displayedLegalPages.value.find(item => item.type === currentType.value) || displayedLegalPages.value[0])

@@ -92,7 +92,7 @@
             <el-table-column label="用户" width="140">
               <template #default="scope">
                 <div class="user-cell">
-                  <el-avatar :src="scope.row.userAvatar" :size="32">
+                  <el-avatar :src="resolveImageUrl(scope.row.userAvatar, '')" :size="32">
                     {{ (scope.row.userNickname || '用户').charAt(0) }}
                   </el-avatar>
                   <span class="user-name">{{ scope.row.userNickname || '用户' }}</span>
@@ -163,7 +163,7 @@
             <el-table-column label="用户" width="140">
               <template #default="scope">
                 <div class="user-cell">
-                  <el-avatar :src="scope.row.avatar" :size="32">
+                  <el-avatar :src="resolveImageUrl(scope.row.userAvatar || scope.row.avatar, '')" :size="32">
                     {{ (scope.row.nickname || '用户').charAt(0) }}
                   </el-avatar>
                   <span class="user-name">{{ scope.row.nickname || '用户' }}</span>
@@ -230,7 +230,7 @@
             <el-table-column label="作者" width="140">
               <template #default="scope">
                 <div class="user-cell">
-                  <el-avatar :src="scope.row.userAvatar" :size="32">
+                  <el-avatar :src="resolveImageUrl(scope.row.userAvatar, '')" :size="32">
                     {{ (scope.row.userNickname || '用户').charAt(0) }}
                   </el-avatar>
                   <span class="user-name">{{ scope.row.userNickname || '用户' }}</span>
@@ -286,7 +286,7 @@
                 <el-table-column label="用户" width="140">
                   <template #default="scope">
                     <div class="user-cell">
-                      <el-avatar :src="scope.row.userAvatar" :size="32">
+                      <el-avatar :src="resolveImageUrl(scope.row.userAvatar, '')" :size="32">
                         {{ (scope.row.userNickname || '用户').charAt(0) }}
                       </el-avatar>
                       <span class="user-name">{{ scope.row.userNickname || '用户' }}</span>
@@ -331,7 +331,7 @@
                 <el-table-column label="作者" width="140">
                   <template #default="scope">
                     <div class="user-cell">
-                      <el-avatar :src="scope.row.userAvatar" :size="32">
+                      <el-avatar :src="resolveImageUrl(scope.row.userAvatar, '')" :size="32">
                         {{ (scope.row.userNickname || '用户').charAt(0) }}
                       </el-avatar>
                       <span class="user-name">{{ scope.row.userNickname || '用户' }}</span>
@@ -376,7 +376,7 @@
                 <el-table-column label="用户" width="140">
                   <template #default="scope">
                     <div class="user-cell">
-                      <el-avatar :src="scope.row.avatar" :size="32">
+                      <el-avatar :src="resolveImageUrl(scope.row.userAvatar || scope.row.avatar, '')" :size="32">
                         {{ (scope.row.nickname || '用户').charAt(0) }}
                       </el-avatar>
                       <span class="user-name">{{ scope.row.nickname || '用户' }}</span>
@@ -435,6 +435,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { Clock, ChatDotRound, Document, Finished, Check, Close } from '@element-plus/icons-vue'
 import request from '@/utils/request'
+import { resolveImageUrl } from '@/utils/imageUrl'
 
 
 // 统计数据

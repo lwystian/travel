@@ -7,10 +7,8 @@ import jakarta.annotation.Resource;
 import org.example.springboot.annotation.OperationLog;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.SensitiveWord;
-import org.example.springboot.entity.User;
-import org.example.springboot.security.RolePermission;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.SensitiveWordService;
-import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,9 +37,7 @@ public class SensitiveWordController {
                           @RequestParam(required = false) Integer status,
                           @RequestParam(defaultValue = "1") Integer currentPage,
                           @RequestParam(defaultValue = "10") Integer size) {
-        if (!isAdmin()) {
-            return Result.error("无权限查看敏感词规则");
-        }
+        requireReviewPermission();
         Page<SensitiveWord> page = sensitiveWordService.getWordsByPage(keyword, category, level, status, currentPage, size);
         return Result.success(page);
     }
@@ -50,9 +46,7 @@ public class SensitiveWordController {
     @PostMapping
     @OperationLog(operationType = "CREATE", description = "新增敏感词规则", targetType = "敏感词规则")
     public Result<?> add(@RequestBody SensitiveWord word) {
-        if (!isAdmin()) {
-            return Result.error("无权限新增敏感词规则");
-        }
+        requireReviewPermission();
         sensitiveWordService.save(word);
         return Result.success("新增成功");
     }
@@ -61,9 +55,7 @@ public class SensitiveWordController {
     @PostMapping("/batch")
     @OperationLog(operationType = "CREATE", description = "批量导入敏感词规则", targetType = "敏感词规则")
     public Result<?> batchAdd(@RequestBody List<SensitiveWord> words) {
-        if (!isAdmin()) {
-            return Result.error("无权限导入敏感词规则");
-        }
+        requireReviewPermission();
         int saved = 0;
         if (words != null) {
             for (SensitiveWord word : words) {
@@ -88,9 +80,7 @@ public class SensitiveWordController {
     @PutMapping("/{id}")
     @OperationLog(operationType = "UPDATE", description = "更新敏感词规则", targetType = "敏感词规则")
     public Result<?> update(@PathVariable Long id, @RequestBody SensitiveWord word) {
-        if (!isAdmin()) {
-            return Result.error("无权限更新敏感词规则");
-        }
+        requireReviewPermission();
         word.setId(id);
         sensitiveWordService.updateById(word);
         return Result.success("更新成功");
@@ -100,9 +90,7 @@ public class SensitiveWordController {
     @PutMapping("/{id}/status")
     @OperationLog(operationType = "UPDATE", description = "调整敏感词状态", targetType = "敏感词规则")
     public Result<?> updateStatus(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
-        if (!isAdmin()) {
-            return Result.error("无权限调整敏感词状态");
-        }
+        requireReviewPermission();
         SensitiveWord word = new SensitiveWord();
         word.setId(id);
         word.setStatus(body.getOrDefault("status", 1));
@@ -114,9 +102,7 @@ public class SensitiveWordController {
     @DeleteMapping("/{id}")
     @OperationLog(operationType = "DELETE", description = "删除敏感词规则", targetType = "敏感词规则")
     public Result<?> delete(@PathVariable Long id) {
-        if (!isAdmin()) {
-            return Result.error("无权限删除敏感词规则");
-        }
+        requireReviewPermission();
         sensitiveWordService.removeById(id);
         return Result.success("删除成功");
     }
@@ -125,9 +111,7 @@ public class SensitiveWordController {
     @DeleteMapping("/batch")
     @OperationLog(operationType = "DELETE", description = "批量删除敏感词规则", targetType = "敏感词规则")
     public Result<?> batchDelete(@RequestBody List<Long> ids) {
-        if (!isAdmin()) {
-            return Result.error("无权限删除敏感词规则");
-        }
+        requireReviewPermission();
         if (ids == null || ids.isEmpty()) {
             return Result.error("请选择需要删除的敏感词");
         }
@@ -140,15 +124,12 @@ public class SensitiveWordController {
     @PostMapping("/check")
     @OperationLog(operationType = "CHECK", description = "测试敏感词规则", targetType = "敏感词规则", logParams = true)
     public Result<?> check(@RequestBody Map<String, String> body) {
-        if (!isAdmin()) {
-            return Result.error("无权限测试敏感词规则");
-        }
+        requireReviewPermission();
         String content = body.getOrDefault("content", "");
         return Result.success(sensitiveWordService.checkText(content, "测试内容", null));
     }
 
-    private boolean isAdmin() {
-        User currentUser = JwtTokenUtils.getCurrentUser();
-        return RolePermission.isAdmin(currentUser);
+    private void requireReviewPermission() {
+        SecurityGuards.requirePermission("review:manage");
     }
 }

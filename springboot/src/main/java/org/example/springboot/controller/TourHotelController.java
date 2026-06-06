@@ -52,7 +52,7 @@ public class TourHotelController {
     @Operation(summary = "添加行程酒店关联")
     @PostMapping
     public Result<?> addTourHotel(@RequestBody TourHotel tourHotel) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("tour:manage");
         LOGGER.info("添加行程酒店关联：{}", tourHotel);
         try {
             TourHotel saved = tourHotelService.addTourHotel(tourHotel);
@@ -66,7 +66,7 @@ public class TourHotelController {
     @Operation(summary = "更新行程酒店关联")
     @PutMapping("/{id}")
     public Result<?> updateTourHotel(@PathVariable Long id, @RequestBody TourHotel tourHotel) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("tour:manage");
         LOGGER.info("更新行程酒店关联，id={}，数据：{}", id, tourHotel);
         try {
             tourHotel.setId(id);
@@ -81,7 +81,7 @@ public class TourHotelController {
     @Operation(summary = "删除行程酒店关联")
     @DeleteMapping("/{id}")
     public Result<?> deleteTourHotel(@PathVariable Long id) {
-        SecurityGuards.requireAdmin();
+        SecurityGuards.requirePermission("tour:manage");
         LOGGER.info("删除行程酒店关联，id={}", id);
         try {
             boolean result = tourHotelService.deleteTourHotel(id);

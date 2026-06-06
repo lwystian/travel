@@ -26,6 +26,12 @@ public class SysOperationLog {
     
     @Schema(description = "用户名")
     private String username;
+
+    @Schema(description = "操作人角色编码: SUPER_ADMIN/ADMIN/USER")
+    private String roleCode;
+
+    @Schema(description = "操作人角色名称")
+    private String roleName;
     
     @Schema(description = "操作类型: LOGIN/LOGOUT/CREATE/UPDATE/DELETE/QUERY")
     private String operationType;
@@ -59,6 +65,18 @@ public class SysOperationLog {
     
     @Schema(description = "浏览器信息")
     private String userAgent;
+
+    @Schema(description = "设备ID")
+    private String deviceId;
+
+    @Schema(description = "设备指纹")
+    private String deviceFingerprint;
+
+    @Schema(description = "客户端硬件特征")
+    private String clientHardware;
+
+    @Schema(description = "MAC地址")
+    private String macAddress;
     
     @Schema(description = "响应状态: 1-成功, 0-失败")
     private Integer status;

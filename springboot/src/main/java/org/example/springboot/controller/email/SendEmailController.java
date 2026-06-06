@@ -4,10 +4,9 @@ import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
-import org.example.springboot.security.RolePermission;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.EmailService;
 import org.example.springboot.service.UserService;
-import org.example.springboot.util.JwtTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -83,10 +82,7 @@ public class SendEmailController {
             @RequestParam String subject, 
             @RequestParam String content) {
         try {
-            User currentUser = JwtTokenUtils.getCurrentUser();
-            if (!RolePermission.isAdmin(currentUser)) {
-                throw new ServiceException("无权限");
-            }
+            SecurityGuards.requirePermission("notification:manage");
             // 检查邮箱是否存在
             try {
                 userService.getByEmail(email);

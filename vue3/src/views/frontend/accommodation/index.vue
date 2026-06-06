@@ -1,7 +1,7 @@
 <template>
   <div class="accommodation-frontend-container">
     <!-- 顶部 Hero 区：背景图 + 标题 + 搜索框 -->
-    <div ref="heroSection" class="hero-section" :style="heroStyle">
+    <div class="hero-section" :style="heroStyle">
       <div class="hero-overlay"></div>
       <div class="hero-content">
         <div class="hero-text">
@@ -233,7 +233,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
+import { ref, reactive, onMounted, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import request from '@/utils/request'
 import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
@@ -250,19 +250,9 @@ import {
 const router = useRouter()
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const { siteAssets, loadSiteAssets } = useSiteAssets()
-const heroSection = ref(null)
-const heroHeight = ref(420)
 const heroStyle = computed(() => ({
-  '--page-hero-height': `${heroHeight.value}px`,
   '--accommodation-hero-url': `url("${getAssetUrl(siteAssets.value.accommodationHeroUrl, defaultPlaceholder)}")`
 }))
-
-const updateHeroHeight = () => {
-  if (!heroSection.value) return
-  const rect = heroSection.value.getBoundingClientRect()
-  const pageTop = rect.top + window.scrollY
-  heroHeight.value = Math.max(320, Math.round(window.innerHeight - pageTop))
-}
 
 // 数据状态
 const loading = ref(false)
@@ -436,16 +426,6 @@ onMounted(() => {
   fetchScenicOptions()
   fetchAccommodationTypes()
   fetchAccommodations()
-  nextTick(updateHeroHeight)
-  setTimeout(updateHeroHeight, 100)
-  setTimeout(updateHeroHeight, 400)
-  window.addEventListener('resize', updateHeroHeight)
-  window.addEventListener('orientationchange', updateHeroHeight)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', updateHeroHeight)
-  window.removeEventListener('orientationchange', updateHeroHeight)
 })
 </script>
 
@@ -468,8 +448,10 @@ $border: #ececec;
 /* ============== Hero 区 ============== */
 .hero-section {
   position: relative;
-  width: 100%;
-  height: var(--page-hero-height, calc(100vh - 180px));
+  width: min(var(--frontend-container-safe-width), var(--frontend-container-wide));
+  height: 420px;
+  margin: 20px auto 0;
+  border-radius: 12px;
   min-height: 320px;
   background: var(--accommodation-hero-url)
     center bottom / cover no-repeat;
@@ -1053,7 +1035,7 @@ $border: #ececec;
 /* ============== 响应式 ============== */
 @media (max-width: 992px) {
   .hero-section {
-    height: var(--page-hero-height, 420px);
+    height: 400px;
   }
   .hero-title {
     font-size: 30px;
@@ -1084,7 +1066,7 @@ $border: #ececec;
 
 @media (max-width: 640px) {
   .hero-section {
-    height: var(--page-hero-height, 380px);
+    height: 360px;
   }
   .hero-title {
     font-size: 24px;

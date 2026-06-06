@@ -5,11 +5,8 @@ import org.example.springboot.common.Result;
 import org.example.springboot.entity.SysLog;
 import org.example.springboot.entity.LoginLog;
 import org.example.springboot.entity.ReviewLog;
-import org.example.springboot.entity.User;
-import org.example.springboot.exception.ServiceException;
-import org.example.springboot.security.RolePermission;
+import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.*;
-import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
@@ -125,9 +122,6 @@ public class LogController {
     }
 
     private void requireAdmin() {
-        User currentUser = JwtTokenUtils.getCurrentUser();
-        if (!RolePermission.isAdmin(currentUser)) {
-            throw new ServiceException("无权限");
-        }
+        SecurityGuards.requirePermission("log:view");
     }
 }
