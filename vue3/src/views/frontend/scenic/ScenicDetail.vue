@@ -236,7 +236,7 @@
         </div>
       </section>
 
-      <section class="comment-section">
+      <section class="comment-section" v-if="publicInteractionEnabled">
         <div class="section-container">
           <div class="section-heading">
             <div>
@@ -270,6 +270,7 @@ import { getTourTypeLabel } from '@/utils/tourTypes'
 import { resolveImageUrl, resolveAbsoluteImageUrl } from '@/utils/imageUrl'
 import { renderContent } from '@/utils/contentRenderer'
 import { loadAmap } from '@/utils/amap'
+import { usePublicInteraction } from '@/utils/publicInteraction'
 import {
   Location, CollectionTag, Timer, Sunny, Loading, Star, StarFilled,
   InfoFilled, CopyDocument, Share, ChatDotRound, Tickets
@@ -288,6 +289,7 @@ const recommendedTours = ref([])
 const weather = ref({})
 const weatherForecast = ref([])
 const weatherLoading = ref(false)
+const { publicInteractionEnabled, loadPublicInteractionConfig } = usePublicInteraction()
 
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const hasCoordinates = computed(() => Boolean(scenic.value.longitude && scenic.value.latitude))
@@ -468,7 +470,11 @@ const fetchDetail = async () => {
         }
       })
 
-      fetchCommentStats(id)
+      if (publicInteractionEnabled.value) {
+        fetchCommentStats(id)
+      } else {
+        scenic.value.reviewCount = 0
+      }
       fetchWeatherInfo(res.location)
       fetchRecommendedTours(res.name, res.location)
 
@@ -678,7 +684,8 @@ watch(() => route.params.id, () => {
   fetchDetail()
 })
 
-onMounted(() => {
+onMounted(async () => {
+  await loadPublicInteractionConfig()
   fetchDetail()
 })
 

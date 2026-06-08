@@ -6,6 +6,7 @@ import lombok.Data;
 public class SiteAccessConfigDTO {
     private Boolean siteEnabled;
     private Boolean rejectMobile;
+    private Boolean publicInteractionEnabled;
     private String closedTitle = "";
     private String closedMessage = "";
     private String closedContact = "";

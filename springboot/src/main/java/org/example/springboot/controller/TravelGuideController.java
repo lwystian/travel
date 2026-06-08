@@ -10,6 +10,8 @@ import org.example.springboot.entity.TravelGuide;
 import org.example.springboot.entity.User;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.security.SecurityGuards;
+import org.example.springboot.security.RolePermission;
+import org.example.springboot.service.ContentModerationConfigService;
 import org.example.springboot.service.TravelGuideService;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +25,8 @@ import java.util.Map;
 public class TravelGuideController {
     @Resource
     private TravelGuideService travelGuideService;
+    @Resource
+    private ContentModerationConfigService contentModerationConfigService;
 
     @Operation(summary = "分页查询攻略")
     @GetMapping("/page")
@@ -78,6 +82,7 @@ public class TravelGuideController {
     @PostMapping("/add")
     @OperationLog(operationType = "CREATE", description = "发布旅游攻略", targetType = "攻略")
     public Result<?> addGuide(@RequestBody TravelGuide guide) {
+        requireInteractionEnabledForPublicUser();
         travelGuideService.addGuide(guide);
         return Result.success("攻略发布成功，需审核通过后才能正常显示");
     }
@@ -95,6 +100,7 @@ public class TravelGuideController {
     @PutMapping("/update")
     @OperationLog(operationType = "UPDATE", description = "编辑旅游攻略", targetType = "攻略")
     public Result<?> updateGuide(@RequestBody TravelGuide guide) {
+        requireInteractionEnabledForPublicUser();
         travelGuideService.updateGuide(guide);
         return Result.success();
     }
@@ -131,6 +137,13 @@ public class TravelGuideController {
             return true;
         } catch (ServiceException ignored) {
             return false;
+        }
+    }
+
+    private void requireInteractionEnabledForPublicUser() {
+        User currentUser = JwtTokenUtils.getCurrentUser();
+        if (!RolePermission.isAdmin(currentUser)) {
+            contentModerationConfigService.requirePublicInteractionEnabled();
         }
     }
 }

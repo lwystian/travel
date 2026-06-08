@@ -316,7 +316,7 @@
             </el-tab-pane>
 
             <!-- 我的评论标签页 -->
-            <el-tab-pane label="我的评论" name="mycomments">
+            <el-tab-pane v-if="publicInteractionEnabled" label="我的评论" name="mycomments">
               <template #label>
                 <div class="tab-label">
                   <el-icon><ChatDotRound /></el-icon>
@@ -582,11 +582,13 @@ import { maskEmail, maskPhone } from '@/utils/mask'
 import { getFrequentTravelers, saveFrequentTraveler, updateFrequentTraveler, deleteFrequentTraveler } from '@/api/frequentTraveler'
 import { getSupportedImageMessage, isSupportedImageFile } from "@/utils/imageCompression";
 import { resolveImageUrl } from '@/utils/imageUrl'
+import { usePublicInteraction } from '@/utils/publicInteraction'
 
 const userStore = useUserStore();
 const route = useRoute();
 const router = useRouter();
 const activeTab = ref("basic");
+const { publicInteractionEnabled, publicInteractionReady, loadPublicInteractionConfig } = usePublicInteraction()
 
 // 我的评论相关
 const myComments = ref([])
@@ -1179,6 +1181,11 @@ const submitPassword = async () => {
 
 // 获取我的评论
 const fetchMyComments = async () => {
+  if (!publicInteractionEnabled.value) {
+    myComments.value = []
+    commentTotal.value = 0
+    return
+  }
   myCommentsLoading.value = true
   try {
     const [scenicRes, hotelRes] = await Promise.all([
@@ -1406,6 +1413,10 @@ const removeTraveler = async (traveler) => {
 // 监听标签页切换
 watch(activeTab, (newTab) => {
   if (newTab === 'mycomments') {
+    if (!publicInteractionEnabled.value) {
+      activeTab.value = 'basic'
+      return
+    }
     fetchMyComments()
   } else if (newTab === 'travelers') {
     fetchFrequentTravelers()
@@ -1421,11 +1432,27 @@ watch(activeTab, (newTab) => {
 })
 
 watch(() => route.query.tab, (tab) => {
-  const validTabs = ['basic', 'password', 'travelers', 'mycomments', 'notifications']
+  if (!publicInteractionReady.value) return
+  const validTabs = ['basic', 'password', 'travelers', 'notifications']
+  if (publicInteractionEnabled.value) {
+    validTabs.push('mycomments')
+  }
   if (validTabs.includes(tab) && activeTab.value !== tab) {
     activeTab.value = tab
+  } else if (tab === 'mycomments' && !publicInteractionEnabled.value) {
+    activeTab.value = 'basic'
   }
 }, { immediate: true })
+
+watch(publicInteractionReady, (ready) => {
+  if (!ready) return
+  const tab = route.query.tab
+  if (tab === 'mycomments' && !publicInteractionEnabled.value) {
+    activeTab.value = 'basic'
+  } else if (tab === 'mycomments' && publicInteractionEnabled.value) {
+    activeTab.value = 'mycomments'
+  }
+})
 
 watch(() => travelerForm.idType, () => {
   travelerFormRef.value?.validateField?.('idNumber').catch?.(() => {})
@@ -1473,7 +1500,11 @@ const deleteMyComment = async (comment) => {
 }
 
 // 组件挂载时获取用户信息
-onMounted(() => {
+onMounted(async () => {
+  await loadPublicInteractionConfig()
+  if (!publicInteractionEnabled.value && activeTab.value === 'mycomments') {
+    activeTab.value = 'basic'
+  }
   getUserInfo();
   if (activeTab.value === 'notifications') {
     fetchNotifications()

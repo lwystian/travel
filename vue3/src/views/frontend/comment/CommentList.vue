@@ -1,5 +1,5 @@
 <template>
-  <div class="comment-list">
+  <div v-if="publicInteractionEnabled" class="comment-list">
     <div class="comment-form-container" v-if="isLoggedIn">
       <h3 class="section-title">发表评论</h3>
       <el-form :model="form" :rules="rules" ref="formRef" label-width="60px" class="comment-form">
@@ -65,6 +65,7 @@ import { resolveImageUrl } from '@/utils/imageUrl'
 import { formatDate } from '@/utils/dateUtils'
 import { useUserStore } from '@/store/user'
 import { useRoute } from 'vue-router'
+import { usePublicInteraction } from '@/utils/publicInteraction'
 
 
 const userStore = useUserStore()
@@ -72,6 +73,7 @@ const route = useRoute()
 const isLoggedIn = computed(() => !!userStore.token)
 const isAdmin = computed(() => userStore.isAdmin)
 const userId = computed(() => userStore.userInfo?.id)
+const { publicInteractionEnabled, loadPublicInteractionConfig } = usePublicInteraction()
 
 const scenicId = computed(() => Number(route.params.id) || route.query.scenicId)
 const comments = ref([])
@@ -97,6 +99,11 @@ const rules = {
 }
 
 const fetchComments = async () => {
+  if (!publicInteractionEnabled.value) {
+    comments.value = []
+    total.value = 0
+    return
+  }
   await request.get('/comment/page', {
       scenicId: scenicId.value,
       currentPage: currentPage.value,
@@ -110,7 +117,10 @@ const fetchComments = async () => {
   )
 }
 
-onMounted(fetchComments)
+onMounted(async () => {
+  await loadPublicInteractionConfig()
+  fetchComments()
+})
 
 const handleCurrentChange = (page) => {
   currentPage.value = page
@@ -118,6 +128,7 @@ const handleCurrentChange = (page) => {
 }
 
 const submitComment = () => {
+  if (!publicInteractionEnabled.value) return
   formRef.value.validate(async (valid) => {
     if (valid) {
       submitLoading.value = true
@@ -141,6 +152,7 @@ const submitComment = () => {
 }
 
 const likeComment = async (item) => {
+  if (!publicInteractionEnabled.value) return
   if (!isLoggedIn.value) {
     ElMessage.warning('请先登录')
     return

@@ -3,6 +3,7 @@ package org.example.springboot.service;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import jakarta.annotation.Resource;
 import org.example.springboot.dto.SiteAccessConfigDTO;
 import org.example.springboot.entity.AuthProviderConfig;
 import org.example.springboot.exception.ServiceException;
@@ -18,10 +19,14 @@ public class SiteAccessConfigService extends ServiceImpl<AuthProviderConfigMappe
     private static final String CONFIG_NAME = "网站访问控制";
     private static final String CONFIG_DESCRIPTION = "控制官网前台开放状态和移动端访问策略";
 
+    @Resource
+    private ContentModerationConfigService contentModerationConfigService;
+
     public SiteAccessConfigDTO getPublicConfig() {
         AuthProviderConfig entity = getOrCreate();
         SiteAccessConfigDTO dto = parse(entity.getConfigData());
         normalize(dto);
+        dto.setPublicInteractionEnabled(contentModerationConfigService.isPublicInteractionEnabled());
         return dto;
     }
 
@@ -34,7 +39,9 @@ public class SiteAccessConfigService extends ServiceImpl<AuthProviderConfigMappe
         if (dto == null) {
             throw new ServiceException("网站访问配置不能为空");
         }
+        Boolean publicInteractionEnabled = dto.getPublicInteractionEnabled();
         normalize(dto);
+        dto.setPublicInteractionEnabled(null);
         AuthProviderConfig entity = getOrCreate();
         entity.setConfigName(CONFIG_NAME);
         entity.setEnabled(Boolean.TRUE);
@@ -43,6 +50,9 @@ public class SiteAccessConfigService extends ServiceImpl<AuthProviderConfigMappe
         entity.setUpdatedAt(LocalDateTime.now());
         if (!updateById(entity)) {
             throw new ServiceException("保存网站访问配置失败");
+        }
+        if (publicInteractionEnabled != null) {
+            contentModerationConfigService.updatePublicInteractionEnabled(publicInteractionEnabled);
         }
     }
 

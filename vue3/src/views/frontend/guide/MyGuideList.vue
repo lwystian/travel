@@ -7,7 +7,7 @@
           <h1>我的攻略</h1>
           <p>管理已发布的旅行攻略，跟踪审核状态、浏览数据和内容维护动作。</p>
         </div>
-        <el-button type="primary" class="publish-btn" @click="goEdit()">
+        <el-button v-if="publicInteractionEnabled" type="primary" class="publish-btn" @click="goEdit()">
           <el-icon><Edit /></el-icon>
           发布新攻略
         </el-button>
@@ -53,8 +53,8 @@
             <el-icon><Document /></el-icon>
           </div>
           <h2>还没有发布攻略</h2>
-          <p>分享你的旅行经验，让更多用户发现值得去的地方。</p>
-          <el-button type="primary" @click="goEdit()">
+          <p>{{ publicInteractionEnabled ? '分享你的旅行经验，让更多用户发现值得去的地方。' : '当前站点暂未开放用户攻略发布。' }}</p>
+          <el-button v-if="publicInteractionEnabled" type="primary" @click="goEdit()">
             <el-icon><Edit /></el-icon>
             立即发布
           </el-button>
@@ -82,7 +82,7 @@
                 </div>
                 <div class="title-actions">
                   <span class="fresh-chip" v-if="isNew(guide.createTime)">新发布</span>
-                  <el-button text type="primary" @click.stop="goEdit(guide)">
+                  <el-button v-if="publicInteractionEnabled" text type="primary" @click.stop="goEdit(guide)">
                     <el-icon><Edit /></el-icon>
                     编辑
                   </el-button>
@@ -111,6 +111,7 @@
                 查看
               </el-button>
               <el-button
+                v-if="publicInteractionEnabled"
                 plain
                 @click.stop="goEdit(guide)"
               >
@@ -147,6 +148,7 @@ import { ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import noImage from '@/assets/images/no-image.png'
 import { formatDate } from '@/utils/dateUtils'
+import { usePublicInteraction } from '@/utils/publicInteraction'
 import {
   Delete,
   Document,
@@ -157,6 +159,7 @@ import {
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const router = useRouter()
+const { publicInteractionEnabled, loadPublicInteractionConfig } = usePublicInteraction()
 const tableData = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
@@ -244,6 +247,7 @@ const viewGuide = (row) => {
 }
 
 const goEdit = (row) => {
+  if (!publicInteractionEnabled.value) return
   if (row) {
     router.push({ name: 'GuideEdit', query: { id: row.id } })
   } else {
@@ -269,7 +273,10 @@ const deleteGuide = (row) => {
   }).catch(() => {})
 }
 
-onMounted(fetchGuides)
+onMounted(() => {
+  loadPublicInteractionConfig()
+  fetchGuides()
+})
 </script>
 
 <style lang="scss" scoped>

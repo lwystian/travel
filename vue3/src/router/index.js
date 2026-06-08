@@ -101,6 +101,12 @@ export const backendRoutes = [
         meta: { title: '访问终端', icon: 'Monitor', activeMenu: '/back/site-settings/site-access', permission: 'site-settings:manage' }
       },
       {
+        path: 'site-settings/public-interaction',
+        name: 'PublicInteractionSetting',
+        component: () => import('@/views/backend/site/WebsiteSettings.vue'),
+        meta: { title: '互动内容', icon: 'ChatDotRound', activeMenu: '/back/site-settings/site-access', permission: 'site-settings:manage' }
+      },
+      {
         path: 'log',
         name: 'LogManagement',
         component: () => import('@/views/backend/log/LogManager.vue'),

@@ -100,8 +100,8 @@
         <div class="empty-state" v-if="tableData.length === 0 && !loading">
           <div class="empty-icon">📝</div>
           <h3 class="empty-title">暂无攻略内容</h3>
-          <p class="empty-desc">成为第一个分享旅游攻略的人吧！</p>
-          <el-button type="primary" @click="goEdit" class="empty-action">
+          <p class="empty-desc">{{ publicInteractionEnabled ? '成为第一个分享旅游攻略的人吧！' : '暂未发布相关攻略内容' }}</p>
+          <el-button v-if="publicInteractionEnabled" type="primary" @click="goEdit" class="empty-action">
             <el-icon><Edit /></el-icon>
             发布攻略
           </el-button>
@@ -155,7 +155,7 @@
     </div>
 
     <!-- 发布攻略悬浮按钮 -->
-    <div class="float-publish-btn" @click="goEdit">
+    <div v-if="publicInteractionEnabled" class="float-publish-btn" @click="goEdit">
       <el-icon><Edit /></el-icon>
       <span>发布攻略</span>
     </div>
@@ -171,6 +171,7 @@ import noImage from '@/assets/images/no-image.png'
 import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
 import { resolveImageUrl } from '@/utils/imageUrl'
 import { chinaRegionOptions, leafRegionCascaderProps, getRegionKeyword } from '@/utils/chinaRegion'
+import { usePublicInteraction } from '@/utils/publicInteraction'
 
 const regionOptions = chinaRegionOptions
 
@@ -184,6 +185,7 @@ const router = useRouter()
 const route = useRoute()
 const { siteAssets, loadSiteAssets } = useSiteAssets()
 const guideHeroUrl = computed(() => getAssetUrl(siteAssets.value.guideHeroUrl, noImage))
+const { publicInteractionEnabled, loadPublicInteractionConfig } = usePublicInteraction()
 
 // 数据
 const tableData = ref([])
@@ -333,6 +335,7 @@ const goDetail = (id) => {
 
 // 跳转编辑
 const goEdit = () => {
+  if (!publicInteractionEnabled.value) return
   router.push('/guide/edit')
 }
 
@@ -357,6 +360,7 @@ watch(() => route.query.search, (newSearch, oldSearch) => {
 // 生命周期
 onMounted(() => {
   loadSiteAssets()
+  loadPublicInteractionConfig()
   handleUrlParams()
 })
 </script>

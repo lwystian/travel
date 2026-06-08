@@ -21,6 +21,7 @@ public class AdminGovernanceSchemaInitializer {
             ensureContentModerationConfigTable();
             ensureDefaultConfig("admin_guide_review_required", "0", "管理员发布或编辑攻略是否需要人工审核");
             ensureDefaultConfig("admin_comment_review_required", "0", "管理员发布评论或住宿评价是否需要人工审核");
+            ensureDefaultConfig("public_interaction_enabled", "1", "前台用户评论、住宿评价、攻略发布等互动内容是否开放");
         } catch (Exception e) {
             LOGGER.warn("初始化管理员权限与内容审核策略表失败", e);
         }

@@ -14,6 +14,7 @@ import org.example.springboot.exception.ServiceException;
 import org.example.springboot.security.RolePermission;
 import org.example.springboot.service.CommentLikeService;
 import org.example.springboot.service.CommentService;
+import org.example.springboot.service.ContentModerationConfigService;
 import org.example.springboot.service.ScenicSpotService;
 import org.example.springboot.service.UserService;
 import org.example.springboot.security.SecurityGuards;
@@ -37,6 +38,8 @@ public class CommentController {
     private CommentLikeService commentLikeService;
     @Resource
     private ScenicSpotService scenicSpotService;
+    @Resource
+    private ContentModerationConfigService contentModerationConfigService;
 
     @Operation(summary = "分页查询评论")
     @GetMapping("/page")
@@ -91,6 +94,7 @@ public class CommentController {
     @PostMapping("/add")
     @OperationLog(operationType = "CREATE", description = "发布景点评论", targetType = "评论")
     public Result<?> addComment(@RequestBody Comment comment, HttpServletRequest request) {
+        contentModerationConfigService.requirePublicInteractionEnabled();
         fillRequestMetadata(comment, request);
         commentService.addComment(comment);
         return Result.success(comment.getReviewStatus() != null && comment.getReviewStatus() == 1
@@ -151,6 +155,7 @@ public class CommentController {
     @PutMapping("/like/{id}")
     @OperationLog(operationType = "LIKE", description = "点赞或取消点赞评论", targetType = "评论")
     public Result<?> toggleLike(@PathVariable Long id) {
+        contentModerationConfigService.requirePublicInteractionEnabled();
         boolean isLiked = commentLikeService.toggleLike(id);
         return Result.success(isLiked ? "点赞成功" : "取消点赞成功", isLiked);
     }
@@ -222,6 +227,9 @@ public class CommentController {
     @Operation(summary = "检查评论是否已点赞")
     @GetMapping("/isLiked/{id}")
     public Result<?> isLiked(@PathVariable Long id) {
+        if (!contentModerationConfigService.isPublicInteractionEnabled()) {
+            return Result.success(false);
+        }
         boolean liked = commentLikeService.isLiked(id);
         return Result.success(liked);
     }

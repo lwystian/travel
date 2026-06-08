@@ -7,6 +7,7 @@ import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.AccommodationReview;
 import org.example.springboot.service.AccommodationReviewService;
+import org.example.springboot.service.ContentModerationConfigService;
 import org.example.springboot.util.JwtTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,8 @@ public class AccommodationReviewController {
     
     @Resource
     private AccommodationReviewService reviewService;
+    @Resource
+    private ContentModerationConfigService contentModerationConfigService;
     
     @Operation(summary = "分页查询住宿评价")
     @GetMapping("/page")
@@ -57,6 +60,7 @@ public class AccommodationReviewController {
     @PostMapping
     public Result<?> addReview(@RequestBody AccommodationReview review) {
         try {
+            contentModerationConfigService.requirePublicInteractionEnabled();
             LOGGER.info("添加住宿评价：{}", review);
             
             boolean result = reviewService.addReview(review);

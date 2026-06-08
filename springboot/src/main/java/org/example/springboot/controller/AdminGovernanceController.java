@@ -48,6 +48,14 @@ public class AdminGovernanceController {
         return Result.success(contentModerationConfigService.getConfig());
     }
 
+    @Operation(summary = "获取前台互动内容开放状态")
+    @GetMapping("/public-interaction-config")
+    public Result<?> getPublicInteractionConfig() {
+        return Result.success(Map.of(
+                "enabled", contentModerationConfigService.isPublicInteractionEnabled()
+        ));
+    }
+
     @Operation(summary = "保存内容审核策略")
     @PutMapping("/moderation-config")
     @OperationLog(operationType = "UPDATE", description = "配置管理员内容审核策略", targetType = "审核策略")

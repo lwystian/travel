@@ -28,11 +28,12 @@
                 <div class="meta-item rating">
                   <el-icon><Star /></el-icon>
                   <span>{{ getDisplayRating(accommodation.starLevel) }}</span>
-                  <span class="rating-text">({{ formatReviewCount(reviewTotal) }})</span>
+                  <span v-if="publicInteractionEnabled" class="rating-text">({{ formatReviewCount(reviewTotal) }})</span>
                 </div>
               </div>
               <div class="action-buttons">
                 <el-button
+                  v-if="publicInteractionEnabled"
                   type="primary"
                   size="large"
                   @click="openReviewDialog"
@@ -83,7 +84,7 @@
             </div>
 
             <!-- 评价列表 -->
-            <div class="info-card reviews-card">
+            <div v-if="publicInteractionEnabled" class="info-card reviews-card">
               <div class="reviews-header">
                 <h3 class="card-title">
                   <el-icon><ChatDotRound /></el-icon>
@@ -258,6 +259,7 @@
     
     <!-- 评价对话框 -->
     <el-dialog
+      v-if="publicInteractionEnabled"
       v-model="showReviewDialog"
       title="发表评价"
       width="500px"
@@ -296,6 +298,7 @@ import { shareCurrentPage } from '@/utils/share'
 import { updateSeo, seoDescription } from '@/utils/seo'
 import { useSiteAssets, getAssetUrl } from '@/utils/siteAssets'
 import { resolveImageUrl, resolveAbsoluteImageUrl } from '@/utils/imageUrl'
+import { usePublicInteraction } from '@/utils/publicInteraction'
 import defaultPlaceholder from '@/assets/images/no-image.png'
 import {
   Location, Star, Phone, Delete, House, MapLocation,
@@ -306,6 +309,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const { siteAssets, loadSiteAssets } = useSiteAssets()
+const { publicInteractionEnabled, loadPublicInteractionConfig } = usePublicInteraction()
 
 // 数据状态
 const accommodation = ref(null)
@@ -358,6 +362,7 @@ const officialBadge = (item) => {
 }
 
 const openReviewDialog = () => {
+  if (!publicInteractionEnabled.value) return
   if (!userStore.isLoggedIn) {
     ElMessageBox.confirm('发表评价需要登录，是否前往登录页面？', '提示', {
       confirmButtonText: '去登录',
@@ -421,6 +426,11 @@ const fetchAccommodationDetail = async () => {
 
 // 获取住宿评价列表
 const fetchAccommodationReviews = async () => {
+  if (!publicInteractionEnabled.value) {
+    reviewList.value = []
+    reviewTotal.value = 0
+    return
+  }
   loadingReviews.value = true
   try {
     await request.get('/accommodation/review/page', {
@@ -510,6 +520,10 @@ const formatDate = (dateStr) => {
 
 // 提交评价
 const submitReview = async () => {
+  if (!publicInteractionEnabled.value) {
+    showReviewDialog.value = false
+    return
+  }
   // 检查是否登录
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录再发表评价')
@@ -575,7 +589,9 @@ const goToAccommodation = (id) => {
     // 延迟执行以确保路由已经完成
     setTimeout(() => {
       fetchAccommodationDetail()
-      fetchAccommodationReviews()
+      if (publicInteractionEnabled.value) {
+        fetchAccommodationReviews()
+      }
       window.scrollTo(0, 0)
     }, 100)
   }
@@ -590,10 +606,13 @@ const handleShare = () => {
 }
 
 // 初始加载
-onMounted(() => {
+onMounted(async () => {
   loadSiteAssets()
+  await loadPublicInteractionConfig()
   fetchAccommodationDetail()
-  fetchAccommodationReviews()
+  if (publicInteractionEnabled.value) {
+    fetchAccommodationReviews()
+  }
 })
 
 // 监听住宿数据加载完成，加载相关推荐

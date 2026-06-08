@@ -2,13 +2,18 @@
   <div class="website-settings">
     <section class="settings-hero">
       <div class="hero-copy">
-        <p>Website Settings</p>
         <h1>网站设置</h1>
-        <span>集中管理官网访问策略，后续运营、安全、SEO 等配置可继续扩展到此目录。</span>
+        <span>集中管理官网访问、访问终端与互动内容开关。</span>
       </div>
-      <div class="site-status-pill" :class="{ closed: !form.siteEnabled }">
-        <span class="status-dot"></span>
-        <strong>{{ form.siteEnabled ? '网站开放中' : '网站已关闭' }}</strong>
+      <div class="status-group">
+        <div class="site-status-pill" :class="{ closed: !form.siteEnabled }">
+          <span class="status-dot"></span>
+          <strong>{{ form.siteEnabled ? '网站已开启' : '网站已关闭' }}</strong>
+        </div>
+        <div class="site-status-pill" :class="{ closed: !form.publicInteractionEnabled }">
+          <span class="status-dot"></span>
+          <strong>{{ form.publicInteractionEnabled ? '互动已开启' : '互动已关闭' }}</strong>
+        </div>
       </div>
     </section>
 
@@ -31,7 +36,6 @@
         <div v-if="activeTab === 'site-access'" class="control-card">
           <div class="card-head">
             <div>
-              <p>Site Availability</p>
               <h2>一键开启 / 关闭网站</h2>
               <span>关闭后普通前台页面会展示维护提示，后台仍可登录并恢复网站。</span>
             </div>
@@ -62,10 +66,31 @@
           </el-form>
         </div>
 
+        <div v-else-if="activeTab === 'public-interaction'" class="control-card interaction-module" :class="{ disabled: !form.publicInteractionEnabled }">
+          <div class="interaction-main">
+            <div class="interaction-icon">
+              <el-icon><ChatDotRound /></el-icon>
+            </div>
+            <div>
+              <h2>互动内容开关</h2>
+              <span>控制前台发帖、评论、评价入口，关闭后接口同步拒绝提交。</span>
+            </div>
+          </div>
+          <div class="interaction-side">
+            <el-switch
+              v-model="form.publicInteractionEnabled"
+              size="large"
+              inline-prompt
+              active-text="开放"
+              inactive-text="关闭"
+            />
+            <small>{{ form.publicInteractionEnabled ? '当前开放' : '当前关闭' }}</small>
+          </div>
+        </div>
+
         <div v-else class="control-card">
           <div class="card-head">
             <div>
-              <p>Device Access</p>
               <h2>一键拒绝移动端访问</h2>
               <span>开启后手机、平板等移动端访问前台时会看到桌面访问提示，电脑端不受影响。</span>
             </div>
@@ -96,9 +121,8 @@
           </el-form>
         </div>
 
-        <div class="support-config">
+        <div v-if="activeTab !== 'public-interaction'" class="support-config">
           <div class="support-head">
-            <p>Service Contact</p>
             <h2>客服入口设置</h2>
             <span>用于网站关闭和移动端拒绝页面。可填写企业微信、微信客服、企微活码、二维码图片或客服凭证。</span>
           </div>
@@ -133,7 +157,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Monitor, SwitchButton } from '@element-plus/icons-vue'
+import { ChatDotRound, Monitor, SwitchButton } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getSiteAccessConfig, saveSiteAccessConfig } from '@/api/siteAccess'
 
@@ -145,6 +169,7 @@ const saving = ref(false)
 const form = reactive({
   siteEnabled: true,
   rejectMobile: false,
+  publicInteractionEnabled: true,
   closedTitle: '',
   closedMessage: '',
   closedContact: '',
@@ -159,13 +184,23 @@ const form = reactive({
 
 const navItems = [
   { key: 'site-access', title: '网站开关', desc: '开启或关闭官网前台', icon: SwitchButton },
-  { key: 'device-access', title: '访问终端', desc: '控制移动端访问策略', icon: Monitor }
+  { key: 'device-access', title: '访问终端', desc: '控制移动端访问策略', icon: Monitor },
+  { key: 'public-interaction', title: '互动内容', desc: '关闭用户发帖评论', icon: ChatDotRound }
 ]
 
-const activeTab = computed(() => route.path.includes('device-access') ? 'device-access' : 'site-access')
+const activeTab = computed(() => {
+  if (route.path.includes('device-access')) return 'device-access'
+  if (route.path.includes('public-interaction')) return 'public-interaction'
+  return 'site-access'
+})
 
 const switchTab = (key) => {
-  router.push(key === 'device-access' ? '/back/site-settings/device-access' : '/back/site-settings/site-access')
+  const pathMap = {
+    'site-access': '/back/site-settings/site-access',
+    'device-access': '/back/site-settings/device-access',
+    'public-interaction': '/back/site-settings/public-interaction'
+  }
+  router.push(pathMap[key] || pathMap['site-access'])
 }
 
 const loadConfig = async () => {
@@ -218,17 +253,10 @@ onMounted(loadConfig)
 .settings-hero {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 24px;
   padding: 28px 30px;
   margin-bottom: 18px;
-
-  p {
-    margin: 0 0 8px;
-    color: #2563eb;
-    font-size: 13px;
-    font-weight: 800;
-  }
 
   h1 {
     margin: 0;
@@ -248,32 +276,56 @@ onMounted(loadConfig)
   min-width: 0;
 }
 
+.status-group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 0 0 auto;
+  max-width: 420px;
+}
+
 .site-status-pill {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   width: max-content;
-  margin-top: 80px;
   padding: 7px 11px;
+  line-height: 1;
   border: 1px solid rgba(22, 163, 74, 0.2);
   border-radius: 999px;
   background: linear-gradient(135deg, #ecfdf5 0%, #f7fee7 100%);
   box-shadow: 0 14px 34px rgba(22, 163, 74, 0.12);
 
   .status-dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    border-radius: 50%;
+    background: transparent;
+  }
+
+  .status-dot::after {
+    content: '';
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: #16a34a;
     box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.12);
-    transform: translateY(-4px);
+    transform: translateY(-5px);
   }
 
   strong {
+    display: inline-flex;
+    align-items: center;
+    height: 16px;
     color: #14532d;
     font-size: 13px;
     font-weight: 900;
-    line-height: 1;
+    line-height: 16px;
     white-space: nowrap;
   }
 }
@@ -284,6 +336,10 @@ onMounted(loadConfig)
   box-shadow: 0 14px 34px rgba(225, 29, 72, 0.12);
 
   .status-dot {
+    background: transparent;
+  }
+
+  .status-dot::after {
     background: #e11d48;
     box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.12);
   }
@@ -364,6 +420,79 @@ onMounted(loadConfig)
   border-radius: 18px;
   padding: 24px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.interaction-module {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  min-height: 126px;
+  padding: 22px 24px;
+  border: 1px solid #bfdbfe;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(239, 246, 255, 0.95) 0%, rgba(255, 255, 255, 0.98) 55%, rgba(236, 253, 245, 0.85) 100%);
+  box-shadow: 0 16px 36px rgba(37, 99, 235, 0.08);
+}
+
+.interaction-module.disabled {
+  border-color: #fed7aa;
+  background:
+    linear-gradient(135deg, #fff7ed 0%, #ffffff 54%, #fff1f2 100%);
+  box-shadow: 0 16px 36px rgba(234, 88, 12, 0.08);
+}
+
+.interaction-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+
+  h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 900;
+  }
+
+  span {
+    display: inline-block;
+    max-width: 720px;
+    margin-top: 8px;
+    color: #64748b;
+    line-height: 1.7;
+  }
+}
+
+.interaction-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  border-radius: 15px;
+  color: #1d4ed8;
+  background: #dbeafe;
+  font-size: 22px;
+}
+
+.interaction-module.disabled .interaction-icon {
+  color: #c2410c;
+  background: #ffedd5;
+}
+
+.interaction-side {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+  flex: 0 0 132px;
+
+  small {
+    color: #64748b;
+    font-weight: 700;
+    white-space: nowrap;
+  }
 }
 
 .card-head {
@@ -498,12 +627,34 @@ onMounted(loadConfig)
 }
 
 @media (max-width: 1080px) {
+  .settings-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .status-group {
+    justify-content: flex-start;
+    max-width: 100%;
+  }
+
   .settings-layout {
     grid-template-columns: 1fr;
   }
 
   .copy-form {
     grid-template-columns: 1fr;
+  }
+
+  .interaction-module {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .interaction-side {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 }
 </style>

@@ -99,6 +99,7 @@ import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
 import { chinaRegionOptions, regionCascaderProps, getRegionLabel, findRegionPath, selectRegionOnExpand } from '@/utils/chinaRegion'
+import { usePublicInteraction } from '@/utils/publicInteraction'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 const form = reactive({
@@ -114,6 +115,7 @@ const route = useRoute()
 const router = useRouter()
 const submitting = ref(false)
 const userStore = useUserStore()
+const { publicInteractionEnabled, loadPublicInteractionConfig } = usePublicInteraction()
 
 // 获取图片完整URL
 const getImageUrl = (url) => {
@@ -122,6 +124,12 @@ const getImageUrl = (url) => {
 }
 
 onMounted(async () => {
+  await loadPublicInteractionConfig()
+  if (!publicInteractionEnabled.value) {
+    ElMessage.info('当前站点暂未开放用户攻略发布')
+    router.replace('/guide')
+    return
+  }
   if (route.query.id) {
     try {
       await request.get(`/guide/${route.query.id}`, {}, {
@@ -184,6 +192,10 @@ const handleDestinationExpandChange = (value) => {
 }
 
 const submit = async () => {
+  if (!publicInteractionEnabled.value) {
+    ElMessage.warning('当前站点暂未开放用户攻略发布')
+    return
+  }
   form.destination = getRegionLabel(destinationPath.value, ' / ') || form.destination
 
   if (!form.title.trim()) {
