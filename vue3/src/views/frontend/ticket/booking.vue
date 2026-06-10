@@ -2812,16 +2812,18 @@ onUnmounted(() => {
 
 .coupon-picker {
   display: grid;
-  grid-template-columns: 42px minmax(220px, 1fr) auto;
+  grid-template-columns: max-content max-content auto;
   align-items: center;
   column-gap: 6px;
-  width: 100%;
+  width: max-content;
+  max-width: 100%;
   font-size: 12px;
   color: #666;
   justify-content: start;
 }
 
 .coupon-select {
+  width: 260px;
   min-width: 0;
   max-width: 260px;
   background: #fff;
@@ -3569,7 +3571,8 @@ onUnmounted(() => {
     margin-top: 5px;
   }
   .coupon-picker {
-    grid-template-columns: 42px minmax(0, 1fr);
+    grid-template-columns: max-content minmax(0, 1fr);
+    width: 100%;
   }
   .coupon-hint {
     grid-column: 2;
