@@ -147,6 +147,8 @@
       :title="isEdit ? '编辑住宿' : '添加住宿'"
       width="650px"
       :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="dialogGuard.beforeClose"
       class="accommodation-dialog"
     >
       <el-form
@@ -238,7 +240,7 @@
       
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="dialogVisible = false">取 消</el-button>
+          <el-button @click="dialogGuard.requestClose">取 消</el-button>
           <el-button type="primary" :loading="formLoading" @click="submitForm">确 定</el-button>
         </div>
       </template>
@@ -247,12 +249,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { Delete, Edit, Plus } from '@element-plus/icons-vue'
 import noImage from '@/assets/images/no-image.png'
 import { getSupportedImageMessage, isSupportedImageFile, SUPPORTED_IMAGE_FORMAT_LABEL } from '@/utils/imageCompression'
+import { createUnsavedDialogGuard } from '@/utils/unsavedDialogGuard'
 
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
 
@@ -289,6 +292,7 @@ const form = reactive({
   features: '',
   distance: '',
 })
+const dialogGuard = createUnsavedDialogGuard(() => form, dialogVisible)
 
 const normalizeSpaceSeparated = (value) => String(value || '')
   .split(/[,\s，、]+/)
@@ -427,6 +431,7 @@ const handleAdd = () => {
   resetForm()
   isEdit.value = false
   dialogVisible.value = true
+  nextTick(dialogGuard.markPristine)
 }
 
 // 编辑住宿
@@ -438,6 +443,7 @@ const handleEdit = (row) => {
   // 填充表单数据
   Object.assign(form, { ...row })
   form.features = normalizeSpaceSeparated(row.features)
+  nextTick(dialogGuard.markPristine)
 }
 
 // 删除住宿
@@ -518,7 +524,7 @@ const submitForm = async () => {
           await request.put(`/accommodation/${form.id}`, submitData, {
             successMsg: '更新成功',
             onSuccess: () => {
-              dialogVisible.value = false
+              dialogGuard.closeAfterSave()
               fetchAccommodations()
             }
           })
@@ -527,7 +533,7 @@ const submitForm = async () => {
           await request.post('/accommodation', submitData, {
             successMsg: '添加成功',
             onSuccess: () => {
-              dialogVisible.value = false
+              dialogGuard.closeAfterSave()
               fetchAccommodations()
             }
           })

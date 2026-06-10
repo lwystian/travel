@@ -306,6 +306,7 @@ public class OperationLogAspect {
             case "TravelGuide", "攻略" -> "攻略";
             case "Comment", "评论" -> "评论";
             case "Tour", "行程" -> "行程";
+            case "Coupon", "优惠券" -> "优惠券";
             case "TourOrder", "订单" -> "订单";
             case "PaymentConfig", "支付配置" -> "支付配置";
             case "Review", "内容审核" -> "内容审核";

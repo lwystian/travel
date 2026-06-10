@@ -23,5 +23,7 @@ public class HomeRecommendDTO {
     private String tourType;
     private Integer days;
     private BigDecimal minPrice;
+    private BigDecimal minOriginalPrice;
+    private String minDiscountLabel;
     private Integer status;
 }

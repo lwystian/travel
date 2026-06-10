@@ -21,27 +21,34 @@ public class TourSchemaInitializer {
 
     @PostConstruct
     public void init() {
-        addColumn("detail_content", "ALTER TABLE `tour` ADD COLUMN `detail_content` LONGTEXT DEFAULT NULL COMMENT '行程详细' AFTER `notice`");
+        addColumn("tour", "detail_content", "ALTER TABLE `tour` ADD COLUMN `detail_content` LONGTEXT DEFAULT NULL COMMENT '行程详细' AFTER `notice`");
+        addColumn("tour", "refund_policy_content", "ALTER TABLE `tour` ADD COLUMN `refund_policy_content` LONGTEXT DEFAULT NULL COMMENT '退订政策富文本' AFTER `detail_content`");
+        addColumn("tour_package", "original_adult_price", "ALTER TABLE `tour_package` ADD COLUMN `original_adult_price` DECIMAL(10,2) DEFAULT NULL COMMENT '成人原价/门市价，用于折扣展示' AFTER `adult_price`");
+        addColumn("tour_package", "original_child_price", "ALTER TABLE `tour_package` ADD COLUMN `original_child_price` DECIMAL(10,2) DEFAULT NULL COMMENT '儿童原价/门市价，用于折扣展示' AFTER `child_price`");
+        addColumn("tour_batch", "package_ids", "ALTER TABLE `tour_batch` ADD COLUMN `package_ids` TEXT DEFAULT NULL COMMENT '可选行程套餐ID列表JSON' AFTER `max_capacity`");
+        addColumn("tour_batch", "addon_ids", "ALTER TABLE `tour_batch` ADD COLUMN `addon_ids` TEXT DEFAULT NULL COMMENT '可选附加费用ID列表JSON' AFTER `package_ids`");
+        addColumn("tour_order", "addon_items", "ALTER TABLE `tour_order` ADD COLUMN `addon_items` TEXT DEFAULT NULL COMMENT '附加费用明细JSON' AFTER `batch_package_name`");
+        addColumn("tour_order", "addon_summary", "ALTER TABLE `tour_order` ADD COLUMN `addon_summary` VARCHAR(500) DEFAULT NULL COMMENT '附加费用摘要' AFTER `addon_items`");
         normalizeTourCodes();
         initTourCodeSequenceTable();
         seedTourCodeSequences();
         addUniqueIndex("uk_tour_code", "ALTER TABLE `tour` ADD UNIQUE INDEX `uk_tour_code` (`code`)");
     }
 
-    private void addColumn(@NonNull String columnName, @NonNull String sql) {
+    private void addColumn(@NonNull String tableName, @NonNull String columnName, @NonNull String sql) {
         try {
             Integer count = jdbcTemplate.queryForObject("""
                     SELECT COUNT(*)
                     FROM information_schema.COLUMNS
                     WHERE TABLE_SCHEMA = DATABASE()
-                      AND TABLE_NAME = 'tour'
+                      AND TABLE_NAME = ?
                       AND COLUMN_NAME = ?
-                    """, Integer.class, columnName);
+                    """, Integer.class, tableName, columnName);
             if (count == null || count == 0) {
                 jdbcTemplate.execute(Objects.requireNonNull(sql, "schema sql must not be null"));
             }
         } catch (Exception e) {
-            LOGGER.warn("Initialize tour column failed: {}", columnName, e);
+            LOGGER.warn("Initialize column failed: {}.{}", tableName, columnName, e);
         }
     }
 

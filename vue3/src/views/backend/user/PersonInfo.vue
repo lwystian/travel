@@ -166,6 +166,9 @@
       :title="form.email ? '安全更换邮箱' : '安全绑定邮箱'"
       width="560px"
       class="secure-dialog"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="emailDialogGuard.beforeClose"
       @close="resetEmailDialog"
     >
       <el-form ref="emailFormRef" :model="emailForm" :rules="emailRules" label-position="top" class="modern-form dialog-form">
@@ -193,7 +196,7 @@
         </div>
       </el-form>
       <template #footer>
-        <el-button @click="emailDialogVisible = false">取消</el-button>
+        <el-button @click="emailDialogGuard.requestClose">取消</el-button>
         <el-button type="primary" :loading="emailBinding" @click="confirmEmailBind">确认绑定</el-button>
       </template>
     </el-dialog>
@@ -203,6 +206,9 @@
       title="安全变更手机号"
       width="560px"
       class="secure-dialog"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="phoneDialogGuard.beforeClose"
       @close="resetPhoneDialog"
     >
       <el-form ref="phoneFormRef" :model="phoneForm" :rules="phoneRules" label-position="top" class="modern-form dialog-form">
@@ -251,7 +257,7 @@
         </div>
       </el-form>
       <template #footer>
-        <el-button @click="phoneDialogVisible = false">取消</el-button>
+        <el-button @click="phoneDialogGuard.requestClose">取消</el-button>
         <el-button type="primary" :loading="phoneSubmitting" @click="confirmPhoneChange">确认变更</el-button>
       </template>
     </el-dialog>
@@ -259,7 +265,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import request from '@/utils/request'
@@ -267,6 +273,7 @@ import GeetestBox from '@/components/auth/GeetestBox.vue'
 import { maskEmail, maskPhone } from '@/utils/mask'
 import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
 import { resolveImageUrl } from '@/utils/imageUrl'
+import { createUnsavedDialogGuard } from '@/utils/unsavedDialogGuard'
 
 const userStore = useUserStore()
 const formRef = ref(null)
@@ -350,6 +357,13 @@ const emailForm = reactive({
   email: '',
   code: ''
 })
+const profileEditGuard = createUnsavedDialogGuard(() => ({
+  nickname: form.nickname,
+  sex: form.sex,
+  avatar: form.avatar
+}), isEditing)
+const emailDialogGuard = createUnsavedDialogGuard(() => ({ ...emailForm }), emailDialogVisible)
+const phoneDialogGuard = createUnsavedDialogGuard(() => ({ ...phoneForm }), phoneDialogVisible)
 
 // 表单验证规则
 const rules = {
@@ -528,12 +542,14 @@ const customUploadAvatar = async (options) => {
 // 编辑信息
 const handleEdit = () => {
   isEditing.value = true
+  nextTick(profileEditGuard.markPristine)
 }
 
 // 取消编辑
-const handleCancel = () => {
-  isEditing.value = false
-  fetchUserInfo() // 重新获取数据，恢复原值
+const handleCancel = async () => {
+  if (await profileEditGuard.requestClose()) {
+    fetchUserInfo() // 重新获取数据，恢复原值
+  }
 }
 
 // 保存信息
@@ -555,7 +571,7 @@ const handleSave = async () => {
         showDefaultMsg: false,
         successMsg: '个人信息更新成功',
         onSuccess: () => {
-          isEditing.value = false
+          profileEditGuard.closeAfterSave()
           // 更新store中的用户信息
           userStore.updateUserInfo({
             ...userStore.userInfo,
@@ -579,6 +595,7 @@ const openPhoneDialog = () => {
   phoneForm.smsCode = ''
   phoneForm.currentSmsCode = ''
   phoneDialogVisible.value = true
+  nextTick(phoneDialogGuard.markPristine)
 }
 
 const openEmailDialog = () => {
@@ -587,6 +604,7 @@ const openEmailDialog = () => {
   emailGeetestValidate.value = null
   emailGeetestRequired.value = true
   emailDialogVisible.value = true
+  nextTick(emailDialogGuard.markPristine)
 }
 
 const resetEmailDialog = () => {
@@ -631,7 +649,7 @@ const confirmEmailBind = async () => {
     ElMessage.success('邮箱绑定成功')
     form.email = emailForm.email
     userStore.updateUserInfo({ ...userStore.userInfo, email: emailForm.email })
-    emailDialogVisible.value = false
+    emailDialogGuard.closeAfterSave()
   } catch (error) {
     ElMessage.error(error.message || '邮箱绑定失败')
   } finally {
@@ -726,7 +744,7 @@ const confirmPhoneChange = async () => {
     })
     form.phone = phoneForm.phone
     userStore.updateUserInfo({ ...userStore.userInfo, phone: phoneForm.phone })
-    phoneDialogVisible.value = false
+    phoneDialogGuard.closeAfterSave()
   } catch (error) {
     ElMessage.error(error.message || '手机号变更失败')
   } finally {

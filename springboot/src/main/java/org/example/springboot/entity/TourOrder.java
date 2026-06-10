@@ -45,6 +45,12 @@ public class TourOrder {
     @Schema(description = "批次套餐名称")
     private String batchPackageName;
 
+    @Schema(description = "附加费用明细JSON")
+    private String addonItems;
+
+    @Schema(description = "附加费用摘要")
+    private String addonSummary;
+
     @Schema(description = "出发日期")
     private LocalDate departureDate;
 
@@ -77,6 +83,18 @@ public class TourOrder {
 
     @Schema(description = "酒店总费用")
     private BigDecimal hotelAmount;
+
+    @Schema(description = "用户优惠券ID")
+    private Long couponUserId;
+
+    @Schema(description = "优惠券名称")
+    private String couponName;
+
+    @Schema(description = "优惠金额")
+    private BigDecimal discountAmount;
+
+    @Schema(description = "应付金额")
+    private BigDecimal payableAmount;
 
     @Schema(description = "订单总金额")
     private BigDecimal totalAmount;

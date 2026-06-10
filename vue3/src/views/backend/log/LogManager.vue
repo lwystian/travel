@@ -143,7 +143,13 @@
       </div>
     </div>
 
-    <el-dialog v-model="detailVisible" title="系统日志详情" width="820px">
+    <el-dialog
+      v-model="detailVisible"
+      title="系统日志详情"
+      width="820px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+    >
       <el-descriptions :column="2" border>
         <el-descriptions-item label="日志ID">{{ detailData.id }}</el-descriptions-item>
         <el-descriptions-item label="时间">{{ detailData.createTime || '-' }}</el-descriptions-item>
@@ -177,7 +183,14 @@
       </el-descriptions>
     </el-dialog>
 
-    <el-dialog v-model="exportVisible" title="导出系统日志" width="520px">
+    <el-dialog
+      v-model="exportVisible"
+      title="导出系统日志"
+      width="520px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="exportDialogGuard.beforeClose"
+    >
       <el-form :model="exportForm" label-width="110px">
         <el-form-item label="导出范围">
           <el-radio-group v-model="exportForm.scope">
@@ -195,7 +208,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="exportVisible = false">取消</el-button>
+        <el-button @click="exportDialogGuard.requestClose">取消</el-button>
         <el-button type="primary" :loading="downloadLoading" @click="handleDownload">导出 CSV</el-button>
       </template>
     </el-dialog>
@@ -203,11 +216,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, Download, Refresh, Search } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import logger from '@/utils/logger'
+import { createUnsavedDialogGuard } from '@/utils/unsavedDialogGuard'
 
 const loading = ref(false)
 const deleteLoading = ref(false)
@@ -232,6 +246,7 @@ const exportForm = reactive({
   includeUserAgent: true,
   includeParams: true
 })
+const exportDialogGuard = createUnsavedDialogGuard(() => ({ ...exportForm }), exportVisible)
 
 const pagination = reactive({
   currentPage: 1,
@@ -446,6 +461,7 @@ const openExportDialog = () => {
     exportForm.scope = 'filtered'
   }
   exportVisible.value = true
+  nextTick(exportDialogGuard.markPristine)
 }
 
 const handleDownload = async () => {
@@ -456,7 +472,7 @@ const handleDownload = async () => {
     const blob = await normalizeDownloadBlob(response)
     downloadBlob(blob, `系统日志备份_${formatFileTime(new Date())}.csv`)
     ElMessage.success('系统日志备份已下载')
-    exportVisible.value = false
+    exportDialogGuard.closeAfterSave()
   } catch (error) {
     logger.error('Download system logs failed:', error)
     ElMessage.error('下载备份失败')

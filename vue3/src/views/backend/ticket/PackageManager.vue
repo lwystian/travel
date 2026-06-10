@@ -4,6 +4,7 @@
     v-model="dialogVisible"
     width="800px"
     :close-on-click-modal="false"
+    :close-on-press-escape="false"
   >
     <!-- 套餐列表 -->
     <div class="package-section">
@@ -20,6 +21,20 @@
         <el-table-column label="成人价" width="100">
           <template #default="scope">
             <span class="price">¥{{ scope.row.adultPrice }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="成人原价" width="110">
+          <template #default="scope">
+            <span v-if="hasPromotion(scope.row.originalAdultPrice, scope.row.adultPrice)" class="origin-price">¥{{ scope.row.originalAdultPrice }}</span>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="折扣" width="90">
+          <template #default="scope">
+            <el-tag v-if="getDiscountLabel(scope.row.originalAdultPrice, scope.row.adultPrice)" type="danger" effect="light" size="small">
+              {{ getDiscountLabel(scope.row.originalAdultPrice, scope.row.adultPrice) }}
+            </el-tag>
+            <span v-else>-</span>
           </template>
         </el-table-column>
         <el-table-column label="儿童价" width="100">
@@ -53,6 +68,8 @@
       width="500px"
       append-to-body
       :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="packageDialogGuard.beforeClose"
     >
       <el-form ref="packageFormRef" :model="packageForm" :rules="packageRules" label-width="90px">
         <el-form-item label="套餐名称" prop="name">
@@ -61,8 +78,16 @@
         <el-form-item label="成人价格" prop="adultPrice">
           <el-input-number v-model="packageForm.adultPrice" :precision="2" :min="0" :step="10" style="width: 100%;" />
         </el-form-item>
+        <el-form-item label="成人原价">
+          <el-input-number v-model="packageForm.originalAdultPrice" :precision="2" :min="0" :step="10" style="width: 100%;" />
+          <div class="form-tip">可选，用于前台划线价和折扣展示；订单仍按成人价格结算。</div>
+        </el-form-item>
         <el-form-item label="儿童价格" prop="childPrice">
           <el-input-number v-model="packageForm.childPrice" :precision="2" :min="0" :step="10" style="width: 100%;" />
+        </el-form-item>
+        <el-form-item label="儿童原价">
+          <el-input-number v-model="packageForm.originalChildPrice" :precision="2" :min="0" :step="10" style="width: 100%;" />
+          <div class="form-tip">可选，儿童价有优惠时展示儿童原价。</div>
         </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input v-model="packageForm.description" type="textarea" :rows="2" placeholder="套餐描述" />
@@ -81,7 +106,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="packageDialogVisible = false">取消</el-button>
+        <el-button @click="packageDialogGuard.requestClose">取消</el-button>
         <el-button type="primary" @click="submitPackage" :loading="packageLoading">确定</el-button>
       </template>
     </el-dialog>
@@ -89,7 +114,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import {
@@ -98,6 +123,7 @@ import {
   updateTourPackage,
   deleteTourPackage
 } from '@/api/tourDetail'
+import { createUnsavedDialogGuard } from '@/utils/unsavedDialogGuard'
 
 const props = defineProps({
   modelValue: {
@@ -129,15 +155,39 @@ const packageForm = ref({
   id: null,
   name: '',
   adultPrice: 0,
+  originalAdultPrice: null,
   childPrice: 0,
+  originalChildPrice: null,
   description: '',
   sortOrder: 0,
   status: 1
 })
+const packageDialogGuard = createUnsavedDialogGuard(() => packageForm.value, packageDialogVisible)
 
 const packageRules = {
   name: [{ required: true, message: '请输入套餐名称', trigger: 'blur' }],
   adultPrice: [{ required: true, message: '请输入成人价格', trigger: 'blur' }]
+}
+
+const toPositiveNumber = (value) => {
+  const number = Number(value)
+  return Number.isFinite(number) && number > 0 ? number : null
+}
+
+const hasPromotion = (originalPrice, salePrice) => {
+  const original = toPositiveNumber(originalPrice)
+  const sale = toPositiveNumber(salePrice)
+  return Boolean(original && sale && original > sale)
+}
+
+const getDiscountLabel = (originalPrice, salePrice) => {
+  if (!hasPromotion(originalPrice, salePrice)) return ''
+  const discount = Number(salePrice) * 10 / Number(originalPrice)
+  return `${Number(discount.toFixed(1)).toString()}折`
+}
+
+const normalizeOriginalPrice = (originalPrice, salePrice) => {
+  return hasPromotion(originalPrice, salePrice) ? originalPrice : null
 }
 
 watch(() => props.modelValue, (val) => {
@@ -170,18 +220,22 @@ const showAddPackageDialog = () => {
     id: null,
     name: '',
     adultPrice: 0,
+    originalAdultPrice: null,
     childPrice: 0,
+    originalChildPrice: null,
     description: '',
     sortOrder: packages.value.length,
     status: 1
   }
   packageDialogVisible.value = true
+  nextTick(packageDialogGuard.markPristine)
 }
 
 const handleEditPackage = (row) => {
   isPackageEdit.value = true
   packageForm.value = { ...row }
   packageDialogVisible.value = true
+  nextTick(packageDialogGuard.markPristine)
 }
 
 const handleDeletePackage = (row) => {
@@ -205,7 +259,12 @@ const submitPackage = async () => {
     if (!valid) return
     packageLoading.value = true
     try {
-      const data = { ...packageForm.value, tourId: props.tourId }
+      const data = {
+        ...packageForm.value,
+        originalAdultPrice: normalizeOriginalPrice(packageForm.value.originalAdultPrice, packageForm.value.adultPrice),
+        originalChildPrice: normalizeOriginalPrice(packageForm.value.originalChildPrice, packageForm.value.childPrice),
+        tourId: props.tourId
+      }
       if (isPackageEdit.value) {
         await updateTourPackage(packageForm.value.id, data)
         ElMessage.success('更新成功')
@@ -213,7 +272,7 @@ const submitPackage = async () => {
         await addTourPackage(data)
         ElMessage.success('添加成功')
       }
-      packageDialogVisible.value = false
+      packageDialogGuard.closeAfterSave()
       fetchPackages()
     } catch (error) {
       console.error('操作失败:', error)
@@ -245,5 +304,17 @@ const submitPackage = async () => {
 .price {
   color: #f56c6c;
   font-weight: 600;
+}
+
+.origin-price {
+  color: #909399;
+  text-decoration: line-through;
+}
+
+.form-tip {
+  margin-top: 6px;
+  color: #909399;
+  font-size: 12px;
+  line-height: 1.5;
 }
 </style>

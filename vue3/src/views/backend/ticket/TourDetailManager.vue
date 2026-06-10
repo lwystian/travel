@@ -4,6 +4,8 @@
     v-model="dialogVisible"
     width="900px"
     :close-on-click-modal="false"
+    :close-on-press-escape="false"
+    :before-close="handleMainDialogBeforeClose"
     class="tour-detail-dialog"
   >
     <el-tabs v-model="activeTab" type="border-card">
@@ -96,6 +98,20 @@
                 <span class="price">¥{{ scope.row.adultPrice }}</span>
               </template>
             </el-table-column>
+            <el-table-column label="成人原价" width="110">
+              <template #default="scope">
+                <span v-if="hasPromotion(scope.row.originalAdultPrice, scope.row.adultPrice)" class="origin-price">¥{{ scope.row.originalAdultPrice }}</span>
+                <span v-else>-</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="折扣" width="90">
+              <template #default="scope">
+                <el-tag v-if="getDiscountLabel(scope.row.originalAdultPrice, scope.row.adultPrice)" type="danger" effect="light" size="small">
+                  {{ getDiscountLabel(scope.row.originalAdultPrice, scope.row.adultPrice) }}
+                </el-tag>
+                <span v-else>-</span>
+              </template>
+            </el-table-column>
             <el-table-column label="儿童价" width="100">
               <template #default="scope">
                 <span>{{ scope.row.childPrice !== null && scope.row.childPrice !== undefined ? '¥' + scope.row.childPrice : '-' }}</span>
@@ -119,19 +135,19 @@
         </div>
       </el-tab-pane>
 
-      <!-- 批次套餐 -->
-      <el-tab-pane label="批次套餐" name="batchPackages">
+      <!-- 附加费用 -->
+      <el-tab-pane label="附加费用" name="batchPackages">
         <div class="package-section">
           <div class="section-header">
-            <span class="section-title">批次套餐（附加费）</span>
+            <span class="section-title">附加费用</span>
             <el-button type="primary" size="small" @click="showAddBatchPackage">
-              <el-icon><Plus /></el-icon> 添加套餐
+              <el-icon><Plus /></el-icon> 添加费用
             </el-button>
           </div>
           <el-table :data="batchPackages" border style="width: 100%" size="small">
             <el-table-column prop="id" label="ID" width="60" />
-            <el-table-column prop="name" label="套餐名称" min-width="150" />
-            <el-table-column label="附加费/人" width="110">
+            <el-table-column prop="name" label="费用名称" min-width="150" />
+            <el-table-column label="单价/份" width="110">
               <template #default="scope">
                 <span class="price">+¥{{ scope.row.extraFeePerPerson }}</span>
               </template>
@@ -211,6 +227,23 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </el-tab-pane>
+
+      <el-tab-pane label="退订政策" name="refundPolicy">
+        <div class="detail-content-section">
+          <el-form label-width="100px">
+            <el-form-item label="退订政策">
+              <rich-markdown-editor
+                v-model="refundPolicyContent"
+                height="360px"
+                placeholder="填写前台行程预订页展示的退订政策"
+              />
+            </el-form-item>
+          </el-form>
+          <div class="detail-content-actions">
+            <el-button type="primary" @click="saveRefundPolicy" :loading="refundPolicyLoading">保存政策</el-button>
+          </div>
         </div>
       </el-tab-pane>
 
@@ -332,7 +365,7 @@
     </el-tabs>
 
     <div class="dialog-footer">
-      <el-button @click="dialogVisible = false">关闭</el-button>
+      <el-button @click="handleMainDialogCancel">关闭</el-button>
     </div>
 
     <!-- 添加/编辑行程套餐对话框 -->
@@ -341,6 +374,9 @@
       v-model="tripPackageDialogVisible"
       width="450px"
       append-to-body
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="(done) => handleSubDialogBeforeClose('tripPackage', done)"
     >
       <el-form ref="tripPackageFormRef" :model="tripPackageForm" label-width="90px">
         <el-form-item label="套餐名称" prop="name">
@@ -349,8 +385,16 @@
         <el-form-item label="成人价格" prop="adultPrice">
           <el-input-number v-model="tripPackageForm.adultPrice" :precision="2" :min="0" :step="10" style="width: 100%;" />
         </el-form-item>
+        <el-form-item label="成人原价">
+          <el-input-number v-model="tripPackageForm.originalAdultPrice" :precision="2" :min="0" :step="10" style="width: 100%;" />
+          <div class="form-tip">可选，用于前台划线价和折扣展示；订单仍按成人价格结算。</div>
+        </el-form-item>
         <el-form-item label="儿童价格" prop="childPrice">
           <el-input-number v-model="tripPackageForm.childPrice" :precision="2" :min="0" :step="10" style="width: 100%;" />
+        </el-form-item>
+        <el-form-item label="儿童原价">
+          <el-input-number v-model="tripPackageForm.originalChildPrice" :precision="2" :min="0" :step="10" style="width: 100%;" />
+          <div class="form-tip">可选，儿童价有优惠时展示儿童原价。</div>
         </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input v-model="tripPackageForm.description" type="textarea" :rows="2" />
@@ -360,23 +404,26 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="tripPackageDialogVisible = false">取消</el-button>
+        <el-button @click="closeSubDialogWithConfirm('tripPackage')">取消</el-button>
         <el-button type="primary" @click="submitTripPackage" :loading="tripPackageLoading">确定</el-button>
       </template>
     </el-dialog>
 
-    <!-- 添加/编辑批次套餐对话框 -->
+    <!-- 添加/编辑附加费用对话框 -->
     <el-dialog
-      :title="isBatchPackageEdit ? '编辑批次套餐' : '添加批次套餐'"
+      :title="isBatchPackageEdit ? '编辑附加费用' : '添加附加费用'"
       v-model="batchPackageDialogVisible"
       width="450px"
       append-to-body
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="(done) => handleSubDialogBeforeClose('batchPackage', done)"
     >
       <el-form ref="batchPackageFormRef" :model="batchPackageForm" label-width="90px">
-        <el-form-item label="套餐名称" prop="name">
-          <el-input v-model="batchPackageForm.name" placeholder="如：节假日套餐、周末套餐" />
+        <el-form-item label="费用名称" prop="name">
+          <el-input v-model="batchPackageForm.name" placeholder="如：接送机、保险、单房差" />
         </el-form-item>
-        <el-form-item label="附加费/人" prop="extraFeePerPerson">
+        <el-form-item label="单价/份" prop="extraFeePerPerson">
           <el-input-number v-model="batchPackageForm.extraFeePerPerson" :precision="2" :min="0" :step="10" style="width: 100%;" />
         </el-form-item>
         <el-form-item label="描述" prop="description">
@@ -387,7 +434,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="batchPackageDialogVisible = false">取消</el-button>
+        <el-button @click="closeSubDialogWithConfirm('batchPackage')">取消</el-button>
         <el-button type="primary" @click="submitBatchPackage" :loading="batchPackageLoading">确定</el-button>
       </template>
     </el-dialog>
@@ -398,6 +445,9 @@
       v-model="batchDialogVisible"
       width="450px"
       append-to-body
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="(done) => handleSubDialogBeforeClose('batch', done)"
     >
       <el-form ref="batchFormRef" :model="batchForm" label-width="100px">
         <el-form-item label="出发日期" prop="departureDate">
@@ -429,15 +479,47 @@
         <el-form-item label="最大容量">
           <el-input-number v-model="batchForm.maxCapacity" :min="Math.max(1, batchForm.remaining || 0)" :max="999" style="width: 100%;" />
         </el-form-item>
+        <el-form-item label="可选套餐">
+          <el-select
+            v-model="batchForm.packageIds"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="不选则默认全部行程套餐可选"
+            style="width: 100%;"
+          >
+            <el-option v-for="pkg in tripPackages" :key="pkg.id" :label="pkg.name" :value="pkg.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="附加费用">
+          <el-select
+            v-model="batchForm.addonIds"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="不选则默认全部附加费用可选"
+            style="width: 100%;"
+          >
+            <el-option v-for="pkg in batchPackages" :key="pkg.id" :label="pkg.name" :value="pkg.id" />
+          </el-select>
+        </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="batchDialogVisible = false">取消</el-button>
+        <el-button @click="closeSubDialogWithConfirm('batch')">取消</el-button>
         <el-button type="primary" @click="submitBatch" :loading="batchLoading">确定</el-button>
       </template>
     </el-dialog>
 
     <!-- 批量添加班期对话框 -->
-    <el-dialog title="批量添加班期" v-model="batchAddDialogVisible" width="500px" append-to-body>
+    <el-dialog
+      title="批量添加班期"
+      v-model="batchAddDialogVisible"
+      width="500px"
+      append-to-body
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="(done) => handleSubDialogBeforeClose('batchAdd', done)"
+    >
       <el-form :model="batchAddForm" label-width="100px">
         <el-form-item label="出发日期">
           <el-date-picker
@@ -468,15 +550,47 @@
             <el-option label="已满员" value="已满员" />
           </el-select>
         </el-form-item>
+        <el-form-item label="可选套餐">
+          <el-select
+            v-model="batchAddForm.packageIds"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="不选则默认全部行程套餐可选"
+            style="width: 100%;"
+          >
+            <el-option v-for="pkg in tripPackages" :key="pkg.id" :label="pkg.name" :value="pkg.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="附加费用">
+          <el-select
+            v-model="batchAddForm.addonIds"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="不选则默认全部附加费用可选"
+            style="width: 100%;"
+          >
+            <el-option v-for="pkg in batchPackages" :key="pkg.id" :label="pkg.name" :value="pkg.id" />
+          </el-select>
+        </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="batchAddDialogVisible = false">取消</el-button>
+        <el-button @click="closeSubDialogWithConfirm('batchAdd')">取消</el-button>
         <el-button type="primary" @click="submitBatchAdd" :loading="batchAddLoading">确定</el-button>
       </template>
     </el-dialog>
 
     <!-- 修改余位对话框 -->
-    <el-dialog title="修改余位" v-model="remainingDialogVisible" width="350px" append-to-body>
+    <el-dialog
+      title="修改余位"
+      v-model="remainingDialogVisible"
+      width="350px"
+      append-to-body
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="(done) => handleSubDialogBeforeClose('remaining', done)"
+    >
       <el-form label-width="80px">
         <el-form-item label="班期">
           <span>{{ currentBatch?.departureDate }}</span>
@@ -495,7 +609,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="remainingDialogVisible = false">取消</el-button>
+        <el-button @click="closeSubDialogWithConfirm('remaining')">取消</el-button>
         <el-button type="primary" @click="submitRemaining">确定</el-button>
       </template>
     </el-dialog>
@@ -506,6 +620,9 @@
       v-model="hotelDialogVisible"
       width="550px"
       append-to-body
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="(done) => handleSubDialogBeforeClose('hotel', done)"
     >
       <el-form ref="hotelFormRef" :model="hotelForm" label-width="100px">
         <el-form-item label="选择酒店" prop="accommodationId">
@@ -551,7 +668,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="hotelDialogVisible = false">取消</el-button>
+        <el-button @click="closeSubDialogWithConfirm('hotel')">取消</el-button>
         <el-button type="primary" @click="submitHotel" :loading="hotelLoading">确定</el-button>
       </template>
     </el-dialog>
@@ -559,7 +676,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Upload, InfoFilled } from '@element-plus/icons-vue'
 import request from '@/utils/request'
@@ -594,6 +711,8 @@ const emit = defineEmits(['update:modelValue'])
 const dialogVisible = ref(false)
 const activeTab = ref('images')
 const loading = ref(false)
+const mainSnapshot = ref('')
+const subDialogSnapshots = ref({})
 
 // 图片管理
 const images = ref(['', '', '', '', ''])
@@ -608,7 +727,7 @@ const isTripPackageEdit = ref(false)
 const tripPackageLoading = ref(false)
 const tripPackageFormRef = ref(null)
 const tripPackageForm = ref({
-  id: null, name: '', adultPrice: 0, childPrice: 0, description: '', status: 1
+  id: null, name: '', adultPrice: 0, originalAdultPrice: null, childPrice: 0, originalChildPrice: null, description: '', status: 1
 })
 
 // 批次套餐
@@ -629,7 +748,7 @@ const batchLoading = ref(false)
 const batchFormRef = ref(null)
 const batchForm = ref({
   id: null, departureDate: '', adultDateExtraFee: 0, childDateExtraFee: 0,
-  status: '可报名', remaining: 30, maxCapacity: 50
+  status: '可报名', remaining: 30, maxCapacity: 50, packageIds: [], addonIds: []
 })
 
 // 批量添加班期
@@ -637,7 +756,7 @@ const batchAddDialogVisible = ref(false)
 const batchAddLoading = ref(false)
 const batchAddForm = ref({
   dates: [], adultDateExtraFee: 0, childDateExtraFee: 0,
-  remaining: 30, maxCapacity: 50, status: '可报名'
+  remaining: 30, maxCapacity: 50, status: '可报名', packageIds: [], addonIds: []
 })
 
 // 余位修改
@@ -650,8 +769,8 @@ const notice = ref('')
 const noticeLoading = ref(false)
 const detailContent = ref('')
 const detailContentLoading = ref(false)
-const defaultBatchDates = ref([])
-const defaultBatchesEnsured = ref(false)
+const refundPolicyContent = ref('')
+const refundPolicyLoading = ref(false)
 
 // 产品信息（用于默认值）
 const productInfo = ref({ days: 1 })
@@ -686,10 +805,106 @@ watch(dialogVisible, (val) => {
   emit('update:modelValue', val)
 })
 
+const getMainSnapshot = () => JSON.stringify({
+  images: images.value,
+  videoEnabled: videoEnabled.value,
+  videoUrl: videoUrl.value,
+  videoPoster: videoPoster.value,
+  notice: notice.value,
+  detailContent: detailContent.value,
+  refundPolicyContent: refundPolicyContent.value
+})
+
+const markMainPristine = () => {
+  mainSnapshot.value = getMainSnapshot()
+}
+
+const isMainDirty = () => {
+  return dialogVisible.value && mainSnapshot.value && mainSnapshot.value !== getMainSnapshot()
+}
+
+const getSubDialogState = (type) => {
+  switch (type) {
+    case 'tripPackage': return tripPackageForm.value
+    case 'batchPackage': return batchPackageForm.value
+    case 'batch': return batchForm.value
+    case 'batchAdd': return batchAddForm.value
+    case 'remaining': return {
+      batchId: currentBatch.value?.id || null,
+      newRemaining: newRemaining.value
+    }
+    case 'hotel': return hotelForm.value
+    default: return null
+  }
+}
+
+const getSubDialogVisibleRef = (type) => {
+  switch (type) {
+    case 'tripPackage': return tripPackageDialogVisible
+    case 'batchPackage': return batchPackageDialogVisible
+    case 'batch': return batchDialogVisible
+    case 'batchAdd': return batchAddDialogVisible
+    case 'remaining': return remainingDialogVisible
+    case 'hotel': return hotelDialogVisible
+    default: return null
+  }
+}
+
+const markSubDialogPristine = (type) => {
+  subDialogSnapshots.value = {
+    ...subDialogSnapshots.value,
+    [type]: JSON.stringify(getSubDialogState(type) || {})
+  }
+}
+
+const isSubDialogDirty = (type) => {
+  const visibleRef = getSubDialogVisibleRef(type)
+  const snapshot = subDialogSnapshots.value[type]
+  if (!visibleRef?.value || !snapshot) return false
+  return snapshot !== JSON.stringify(getSubDialogState(type) || {})
+}
+
+const confirmDiscardChanges = async () => {
+  return ElMessageBox.confirm('当前修改尚未保存，是否放弃这些修改？', '未保存修改', {
+    confirmButtonText: '放弃修改',
+    cancelButtonText: '继续编辑',
+    type: 'warning',
+    distinguishCancelAndClose: true
+  }).then(() => true).catch(() => false)
+}
+
+const handleMainDialogCancel = async () => {
+  if (!isMainDirty() || await confirmDiscardChanges()) {
+    mainSnapshot.value = ''
+    dialogVisible.value = false
+  }
+}
+
+const handleMainDialogBeforeClose = async (done) => {
+  if (!isMainDirty() || await confirmDiscardChanges()) {
+    mainSnapshot.value = ''
+    done()
+  }
+}
+
+const closeSubDialogWithConfirm = async (type) => {
+  if (!isSubDialogDirty(type) || await confirmDiscardChanges()) {
+    const visibleRef = getSubDialogVisibleRef(type)
+    if (visibleRef) visibleRef.value = false
+    subDialogSnapshots.value = { ...subDialogSnapshots.value, [type]: '' }
+  }
+}
+
+const handleSubDialogBeforeClose = async (type, done) => {
+  if (!isSubDialogDirty(type) || await confirmDiscardChanges()) {
+    subDialogSnapshots.value = { ...subDialogSnapshots.value, [type]: '' }
+    done()
+  }
+}
+
 const loadAllData = async () => {
   loading.value = true
   try {
-    defaultBatchesEnsured.value = false
     await fetchTourDetail()
     await Promise.all([
       fetchTripPackages(),
@@ -698,6 +913,8 @@ const loadAllData = async () => {
       fetchAccommodationList()
     ])
     await fetchTourHotels()
+    await nextTick()
+    markMainPristine()
   } finally {
     loading.value = false
   }
@@ -708,7 +925,7 @@ const fetchTourDetail = async () => {
     const res = await getTourDetailFull(props.tourId)
     if (res) {
       // 图片
-      images.value = res.images?.main?.length > 0 ? res.images.main : ['', '', '', '', '']
+      images.value = normalizeImageSlots(res.images?.main)
       while (images.value.length < 5) images.value.push('')
       // 视频（读取后端的启用状态）
       videoEnabled.value = res.video?.enabled === 1
@@ -719,7 +936,7 @@ const fetchTourDetail = async () => {
       // 出团通知
       notice.value = res.tour?.notice || ''
       detailContent.value = res.tour?.detailContent || ''
-      defaultBatchDates.value = buildDefaultBatchDates(res.tour || {})
+      refundPolicyContent.value = res.refundPolicy?.content || ''
       // 产品信息
       if (res.tour) {
         productInfo.value = {
@@ -754,64 +971,12 @@ const fetchBatches = async () => {
   try {
     const res = await getTourBatches(props.tourId)
     batches.value = res || []
-    await ensureDefaultBatches()
   } catch (error) {
     console.error('获取班期失败:', error)
   }
 }
 
 // 图片上传
-const buildDefaultBatchDates = (tour = {}) => {
-  const dateSet = new Set()
-  const baseYear = /^\d{4}-\d{2}-\d{2}$/.test(tour.recommendDate || '')
-    ? Number(tour.recommendDate.slice(0, 4))
-    : new Date().getFullYear()
-
-  const addDate = (value) => {
-    if (!value) return
-    const text = String(value).trim()
-    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(text)) {
-      const [year, month, day] = text.split('-').map(Number)
-      dateSet.add(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`)
-      return
-    }
-    if (/^\d{1,2}-\d{1,2}$/.test(text)) {
-      const [month, day] = text.split('-').map(Number)
-      dateSet.add(`${baseYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`)
-    }
-  }
-
-  addDate(tour.recommendDate)
-  String(tour.moreDates || '').split(/[、,\s，]+/).forEach(addDate)
-
-  const today = new Date(new Date().toDateString())
-  return [...dateSet].filter(date => new Date(date) >= today).sort()
-}
-
-const ensureDefaultBatches = async () => {
-  if (defaultBatchesEnsured.value) return
-  defaultBatchesEnsured.value = true
-  if (!defaultBatchDates.value.length) return
-  const existingDates = new Set((batches.value || []).map(batch => batch.departureDate))
-  const missingDates = defaultBatchDates.value.filter(date => !existingDates.has(date))
-  if (!missingDates.length) return
-
-  const defaultCapacity = Math.max(30, ...batches.value.map(batch => Number(batch.maxCapacity || 0)))
-  const batchList = missingDates.map(date => ({
-    tourId: props.tourId,
-    departureDate: date,
-    adultDateExtraFee: 0,
-    childDateExtraFee: 0,
-    status: '可报名',
-    remaining: defaultCapacity,
-    occupied: 0,
-    maxCapacity: defaultCapacity
-  }))
-  await addTourBatchesBatch(batchList)
-  const res = await getTourBatches(props.tourId)
-  batches.value = res || []
-}
-
 const handleImageUpload = async (options, index) => {
   const { file, onSuccess, onError } = options
   const formData = new FormData()
@@ -834,6 +999,14 @@ const handleImageUpload = async (options, index) => {
 
 const removeImage = (index) => {
   images.value[index] = ''
+}
+
+const normalizeImageSlots = (value) => {
+  const normalized = Array.isArray(value)
+    ? [...new Set(value.map(item => String(item || '').trim()).filter(Boolean))].slice(0, 5)
+    : []
+  while (normalized.length < 5) normalized.push('')
+  return normalized
 }
 
 const beforeImageUpload = (file) => {
@@ -896,26 +1069,34 @@ const handlePosterUpload = async (options) => {
 // 行程套餐管理
 const showAddTripPackage = () => {
   isTripPackageEdit.value = false
-  tripPackageForm.value = { id: null, name: '', adultPrice: 0, childPrice: 0, description: '', status: 1 }
+  tripPackageForm.value = { id: null, name: '', adultPrice: 0, originalAdultPrice: null, childPrice: 0, originalChildPrice: null, description: '', status: 1 }
   tripPackageDialogVisible.value = true
+  nextTick(() => markSubDialogPristine('tripPackage'))
 }
 
 const editTripPackage = (row) => {
   isTripPackageEdit.value = true
   tripPackageForm.value = { ...row }
   tripPackageDialogVisible.value = true
+  nextTick(() => markSubDialogPristine('tripPackage'))
 }
 
 const submitTripPackage = async () => {
   tripPackageLoading.value = true
   try {
-    const data = { ...tripPackageForm.value, tourId: props.tourId }
+    const data = {
+      ...tripPackageForm.value,
+      originalAdultPrice: normalizeOriginalPrice(tripPackageForm.value.originalAdultPrice, tripPackageForm.value.adultPrice),
+      originalChildPrice: normalizeOriginalPrice(tripPackageForm.value.originalChildPrice, tripPackageForm.value.childPrice),
+      tourId: props.tourId
+    }
     if (isTripPackageEdit.value) {
       await updateTourPackage(tripPackageForm.value.id, data)
     } else {
       await addTourPackage(data)
     }
     ElMessage.success('保存成功')
+    markSubDialogPristine('tripPackage')
     tripPackageDialogVisible.value = false
     fetchTripPackages()
   } catch (error) {
@@ -940,12 +1121,14 @@ const showAddBatchPackage = () => {
   isBatchPackageEdit.value = false
   batchPackageForm.value = { id: null, name: '', extraFeePerPerson: 0, description: '', status: 1 }
   batchPackageDialogVisible.value = true
+  nextTick(() => markSubDialogPristine('batchPackage'))
 }
 
 const editBatchPackage = (row) => {
   isBatchPackageEdit.value = true
   batchPackageForm.value = { ...row }
   batchPackageDialogVisible.value = true
+  nextTick(() => markSubDialogPristine('batchPackage'))
 }
 
 const submitBatchPackage = async () => {
@@ -958,6 +1141,7 @@ const submitBatchPackage = async () => {
       await addBatchPackage(data)
     }
     ElMessage.success('保存成功')
+    markSubDialogPristine('batchPackage')
     batchPackageDialogVisible.value = false
     fetchBatchPackages()
   } catch (error) {
@@ -983,6 +1167,27 @@ const isExpired = (dateStr) => {
   return new Date(dateStr) < new Date(new Date().toDateString())
 }
 
+const toPositiveNumber = (value) => {
+  const number = Number(value)
+  return Number.isFinite(number) && number > 0 ? number : null
+}
+
+const hasPromotion = (originalPrice, salePrice) => {
+  const original = toPositiveNumber(originalPrice)
+  const sale = toPositiveNumber(salePrice)
+  return Boolean(original && sale && original > sale)
+}
+
+const getDiscountLabel = (originalPrice, salePrice) => {
+  if (!hasPromotion(originalPrice, salePrice)) return ''
+  const discount = Number(salePrice) * 10 / Number(originalPrice)
+  return `${Number(discount.toFixed(1)).toString()}折`
+}
+
+const normalizeOriginalPrice = (originalPrice, salePrice) => {
+  return hasPromotion(originalPrice, salePrice) ? originalPrice : null
+}
+
 const getAvailableSeats = (batch) => {
   return Math.max(0, (batch?.remaining || 0) - (batch?.occupied || 0))
 }
@@ -995,8 +1200,30 @@ const normalizeBatchCapacity = (batch) => {
     ...batch,
     occupied,
     remaining: Math.max(occupied, remaining),
-    maxCapacity: Math.max(1, remaining, maxCapacity)
+    maxCapacity: Math.max(1, remaining, maxCapacity),
+    packageIds: normalizeIdArray(batch.packageIds),
+    addonIds: normalizeIdArray(batch.addonIds)
   }
+}
+
+const normalizeIdArray = (value) => {
+  if (!value) return []
+  if (Array.isArray(value)) return value.map(Number).filter(Boolean)
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) return parsed.map(Number).filter(Boolean)
+    } catch (error) {
+      void error
+    }
+    return value.split(/[,\s，、]+/).map(Number).filter(Boolean)
+  }
+  return []
+}
+
+const serializeIdArray = (value) => {
+  const ids = normalizeIdArray(value)
+  return ids.length ? JSON.stringify(ids) : ''
 }
 
 const validateBatchCapacity = (batch) => {
@@ -1029,14 +1256,16 @@ const disabledDate = (date) => {
 
 const showAddBatch = () => {
   isBatchEdit.value = false
-  batchForm.value = { id: null, departureDate: '', adultDateExtraFee: 0, childDateExtraFee: 0, status: '可报名', remaining: 30, maxCapacity: 50 }
+  batchForm.value = { id: null, departureDate: '', adultDateExtraFee: 0, childDateExtraFee: 0, status: '可报名', remaining: 30, maxCapacity: 50, packageIds: [], addonIds: [] }
   batchDialogVisible.value = true
+  nextTick(() => markSubDialogPristine('batch'))
 }
 
 const editBatch = (row) => {
   isBatchEdit.value = true
   batchForm.value = normalizeBatchCapacity(row)
   batchDialogVisible.value = true
+  nextTick(() => markSubDialogPristine('batch'))
 }
 
 const submitBatch = async () => {
@@ -1048,6 +1277,8 @@ const submitBatch = async () => {
     ...batchForm.value,
     tourId: props.tourId
   })
+  data.packageIds = serializeIdArray(data.packageIds)
+  data.addonIds = serializeIdArray(data.addonIds)
   if (!validateBatchCapacity(data)) return
   batchLoading.value = true
   try {
@@ -1057,6 +1288,7 @@ const submitBatch = async () => {
       await addTourBatch(data)
     }
     ElMessage.success('保存成功')
+    markSubDialogPristine('batch')
     batchDialogVisible.value = false
     fetchBatches()
   } catch (error) {
@@ -1076,8 +1308,9 @@ const deleteBatch = (row) => {
 }
 
 const showBatchAdd = () => {
-  batchAddForm.value = { dates: [], adultDateExtraFee: 0, childDateExtraFee: 0, remaining: 30, maxCapacity: 50, status: '可报名' }
+  batchAddForm.value = { dates: [], adultDateExtraFee: 0, childDateExtraFee: 0, remaining: 30, maxCapacity: 50, status: '可报名', packageIds: [], addonIds: [] }
   batchAddDialogVisible.value = true
+  nextTick(() => markSubDialogPristine('batchAdd'))
 }
 
 const submitBatchAdd = async () => {
@@ -1095,10 +1328,13 @@ const submitBatchAdd = async () => {
       adultDateExtraFee: normalizedForm.adultDateExtraFee,
       childDateExtraFee: normalizedForm.childDateExtraFee,
       status: normalizedForm.status,
-      remaining: normalizedForm.remaining, maxCapacity: normalizedForm.maxCapacity
+      remaining: normalizedForm.remaining, maxCapacity: normalizedForm.maxCapacity,
+      packageIds: serializeIdArray(normalizedForm.packageIds),
+      addonIds: serializeIdArray(normalizedForm.addonIds)
     }))
     await addTourBatchesBatch(batchList)
     ElMessage.success(`成功添加 ${batchList.length} 个班期`)
+    markSubDialogPristine('batchAdd')
     batchAddDialogVisible.value = false
     fetchBatches()
   } catch (error) {
@@ -1112,6 +1348,7 @@ const updateRemaining = (row) => {
   currentBatch.value = row
   newRemaining.value = Math.max(row.remaining || 0, row.occupied || 0)
   remainingDialogVisible.value = true
+  nextTick(() => markSubDialogPristine('remaining'))
 }
 
 const submitRemaining = async () => {
@@ -1121,7 +1358,8 @@ const submitRemaining = async () => {
   try {
     await updateTourBatch(currentBatch.value.id, data)
     ElMessage.success('余位更新成功')
-    remainingDialogVisible.value = false
+    markSubDialogPristine('remaining')
+    closeSubDialogWithConfirm('remaining')
     fetchBatches()
   } catch (error) {
     console.error('更新余位失败:', error)
@@ -1133,6 +1371,7 @@ const saveNotice = async () => {
   noticeLoading.value = true
   try {
     await request.put(`/tour/${props.tourId}`, { notice: notice.value }, { successMsg: '保存成功' })
+    markMainPristine()
   } catch (error) {
     console.error('保存失败:', error)
   } finally {
@@ -1145,6 +1384,7 @@ const saveDetailContent = async () => {
   detailContentLoading.value = true
   try {
     await request.put(`/tour/${props.tourId}`, { detailContent: detailContent.value }, { successMsg: '保存成功' })
+    markMainPristine()
   } catch (error) {
     console.error('保存行程详细失败:', error)
   } finally {
@@ -1152,11 +1392,24 @@ const saveDetailContent = async () => {
   }
 }
 
+const saveRefundPolicy = async () => {
+  refundPolicyLoading.value = true
+  try {
+    await request.put(`/tour/${props.tourId}`, { refundPolicyContent: refundPolicyContent.value }, { successMsg: '保存成功' })
+    markMainPristine()
+  } catch (error) {
+    console.error('保存退订政策失败:', error)
+  } finally {
+    refundPolicyLoading.value = false
+  }
+}
+
 const saveImages = async () => {
   try {
-    const imagesToSave = images.value.filter(img => img)
+    const imagesToSave = [...new Set(images.value.map(img => String(img || '').trim()).filter(Boolean))].slice(0, 5)
     await updateTourImages(props.tourId, imagesToSave)
     ElMessage.success('图片保存成功')
+    markMainPristine()
   } catch (error) {
     console.error('保存图片失败:', error)
   }
@@ -1170,6 +1423,7 @@ const saveVideo = async (showMsg = false, msg = '视频已保存') => {
       videoPoster: videoPoster.value,
       videoEnabled: videoEnabled.value ? 1 : 0
     })
+    markMainPristine()
     if (showMsg) {
       ElMessage.success(msg)
     }
@@ -1238,6 +1492,7 @@ const showAddHotel = () => {
     starLevel: null
   }
   hotelDialogVisible.value = true
+  nextTick(() => markSubDialogPristine('hotel'))
 }
 
 // 编辑酒店
@@ -1245,6 +1500,7 @@ const editHotel = (row) => {
   isHotelEdit.value = true
   hotelForm.value = { ...row }
   hotelDialogVisible.value = true
+  nextTick(() => markSubDialogPristine('hotel'))
 }
 
 // 选择住宿时自动填充信息
@@ -1281,6 +1537,7 @@ const submitHotel = async () => {
       await request.post('/tour-hotel', data)
     }
     ElMessage.success('保存成功')
+    markSubDialogPristine('hotel')
     hotelDialogVisible.value = false
     fetchTourHotels()
   } catch (error) {
@@ -1477,6 +1734,18 @@ const handleHotelEnabledChange = async (row) => {
 .price {
   color: #f56c6c;
   font-weight: 600;
+}
+
+.origin-price {
+  color: #909399;
+  text-decoration: line-through;
+}
+
+.form-tip {
+  margin-top: 6px;
+  color: #909399;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .warning {

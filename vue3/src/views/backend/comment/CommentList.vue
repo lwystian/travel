@@ -143,7 +143,15 @@
       </div>
     </section>
 
-    <el-dialog v-model="rejectDialogVisible" title="拒绝原因" width="520px" align-center>
+    <el-dialog
+      v-model="rejectDialogVisible"
+      title="拒绝原因"
+      width="520px"
+      align-center
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="rejectDialogGuard.beforeClose"
+    >
       <el-input
         v-model="rejectComment"
         type="textarea"
@@ -153,7 +161,7 @@
         placeholder="请填写明确、可追溯的审核意见"
       />
       <template #footer>
-        <el-button @click="rejectDialogVisible = false">取消</el-button>
+        <el-button @click="rejectDialogGuard.requestClose">取消</el-button>
         <el-button type="warning" @click="confirmReject">确认拒绝</el-button>
       </template>
     </el-dialog>
@@ -161,13 +169,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { Check, Close, Delete, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
 import noImage from '@/assets/images/no-image.png'
 import { resolveImageUrl } from '@/utils/imageUrl'
+import { createUnsavedDialogGuard } from '@/utils/unsavedDialogGuard'
 const tableData = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
@@ -176,6 +185,10 @@ const total = ref(0)
 const rejectDialogVisible = ref(false)
 const rejectComment = ref('')
 const rejectTarget = ref(null)
+const rejectDialogGuard = createUnsavedDialogGuard(() => ({
+  rejectComment: rejectComment.value,
+  rejectTargetId: rejectTarget.value?.id || null
+}), rejectDialogVisible)
 
 const searchForm = reactive({
   type: 'all',
@@ -245,12 +258,13 @@ const openReject = (row) => {
   rejectTarget.value = row
   rejectComment.value = ''
   rejectDialogVisible.value = true
+  nextTick(rejectDialogGuard.markPristine)
 }
 
 const confirmReject = async () => {
   if (!rejectTarget.value) return
   await reviewItem(rejectTarget.value, 2, rejectComment.value || '内容不符合平台展示规范')
-  rejectDialogVisible.value = false
+  rejectDialogGuard.closeAfterSave()
 }
 
 const deleteItem = (row) => {

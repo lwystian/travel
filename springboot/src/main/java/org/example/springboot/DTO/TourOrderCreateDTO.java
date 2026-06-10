@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @Schema(description = "行程订单创建请求")
@@ -22,6 +23,9 @@ public class TourOrderCreateDTO {
 
     @Schema(description = "批次套餐ID")
     private Long batchPackageId;
+
+    @Schema(description = "附加费用选择列表")
+    private List<AddonSelection> addonSelections;
 
     @NotBlank(message = "出发日期不能为空")
     @Schema(description = "出发日期")
@@ -47,6 +51,9 @@ public class TourOrderCreateDTO {
     @Schema(description = "酒店每晚价格")
     private BigDecimal hotelPricePerNight;
 
+    @Schema(description = "用户优惠券ID")
+    private Long couponUserId;
+
     @Schema(description = "联系人姓名")
     private String contactName;
 
@@ -64,4 +71,16 @@ public class TourOrderCreateDTO {
 
     @Schema(description = "前端计算的儿童单价（用于校验）")
     private BigDecimal clientChildUnitPrice;
+
+    @Data
+    @Schema(description = "附加费用选择")
+    public static class AddonSelection {
+        @NotNull(message = "附加费用ID不能为空")
+        @Schema(description = "附加费用ID")
+        private Long batchPackageId;
+
+        @Min(value = 1, message = "附加费用数量至少为1")
+        @Schema(description = "数量/份数")
+        private Integer quantity;
+    }
 }

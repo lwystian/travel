@@ -11,6 +11,8 @@ DROP TABLE IF EXISTS `carousel`;
 DROP TABLE IF EXISTS `collection`;
 DROP TABLE IF EXISTS `comment`;
 DROP TABLE IF EXISTS `comment_like`;
+DROP TABLE IF EXISTS `coupon`;
+DROP TABLE IF EXISTS `coupon_user`;
 DROP TABLE IF EXISTS `frequent_traveler`;
 DROP TABLE IF EXISTS `home_recommend`;
 DROP TABLE IF EXISTS `login_log`;
@@ -212,6 +214,67 @@ CREATE TABLE `comment_like` (
   UNIQUE KEY `uk_user_comment` (`user_id`,`comment_id`) USING BTREE,
   KEY `comment_id` (`comment_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
+
+CREATE TABLE `coupon` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `name` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '优惠券名称',
+  `code` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '券码/批次码',
+  `description` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '使用说明',
+  `discount_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'AMOUNT固定金额 RATE折扣',
+  `discount_amount` decimal(10,2) DEFAULT NULL COMMENT '固定减免金额',
+  `discount_rate` decimal(5,2) DEFAULT NULL COMMENT '折扣比例，如0.85',
+  `max_discount_amount` decimal(10,2) DEFAULT NULL COMMENT '折扣封顶金额',
+  `min_order_amount` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '最低订单金额',
+  `scope_type` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ALL_TOUR' COMMENT 'ALL_TOUR全部行程 TOUR指定行程 TOUR_PACKAGE指定套餐 TOUR_TYPE行程类型',
+  `scope_ids` text COLLATE utf8mb4_unicode_ci COMMENT '适用范围ID/编码，逗号分隔',
+  `total_quantity` int NOT NULL DEFAULT '0' COMMENT '总发行量，0不限量',
+  `issued_quantity` int NOT NULL DEFAULT '0' COMMENT '已发放数量',
+  `used_quantity` int NOT NULL DEFAULT '0' COMMENT '已使用数量',
+  `per_user_limit` int NOT NULL DEFAULT '1' COMMENT '每用户限领',
+  `receive_start_time` datetime DEFAULT NULL COMMENT '领取开始时间',
+  `receive_end_time` datetime DEFAULT NULL COMMENT '领取结束时间',
+  `valid_start_time` datetime DEFAULT NULL COMMENT '有效期开始，空为不限',
+  `valid_end_time` datetime DEFAULT NULL COMMENT '有效期结束，空为不限',
+  `stackable` tinyint NOT NULL DEFAULT '0' COMMENT '是否可叠加',
+  `auto_receive` tinyint NOT NULL DEFAULT '1' COMMENT '是否前台可领取',
+  `status` tinyint NOT NULL DEFAULT '1' COMMENT '0停用 1启用',
+  `deleted` tinyint NOT NULL DEFAULT '0' COMMENT '0正常 1已删除',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_coupon_code` (`code`),
+  KEY `idx_coupon_status` (`status`,`valid_end_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `coupon_user` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `coupon_id` bigint NOT NULL,
+  `user_id` bigint NOT NULL,
+  `coupon_name` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `coupon_code` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `discount_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `discount_amount` decimal(10,2) DEFAULT NULL,
+  `discount_rate` decimal(5,2) DEFAULT NULL,
+  `max_discount_amount` decimal(10,2) DEFAULT NULL,
+  `min_order_amount` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `scope_type` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ALL_TOUR',
+  `scope_ids` text COLLATE utf8mb4_unicode_ci,
+  `valid_start_time` datetime DEFAULT NULL,
+  `valid_end_time` datetime DEFAULT NULL,
+  `status` tinyint NOT NULL DEFAULT '0' COMMENT '0未使用 1已锁定 2已使用 3已过期 4已作废',
+  `order_id` bigint DEFAULT NULL,
+  `order_no` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `used_amount` decimal(10,2) DEFAULT NULL,
+  `receive_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `lock_time` datetime DEFAULT NULL,
+  `use_time` datetime DEFAULT NULL,
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_coupon_user_user` (`user_id`,`status`,`valid_end_time`),
+  KEY `idx_coupon_user_coupon` (`coupon_id`,`user_id`),
+  KEY `idx_coupon_user_order` (`order_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `frequent_traveler` (
   `id` bigint NOT NULL AUTO_INCREMENT,
@@ -513,6 +576,8 @@ CREATE TABLE `tour` (
   `video_enabled` int DEFAULT '0' ,
   `images` text ,
   `notice` varchar(500) DEFAULT '' ,
+  `detail_content` longtext DEFAULT NULL ,
+  `refund_policy_content` longtext DEFAULT NULL ,
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP ,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP ,
   PRIMARY KEY (`id`),
@@ -532,6 +597,8 @@ CREATE TABLE `tour_batch` (
   `status` varchar(20) DEFAULT '可报名' ,
   `remaining` int DEFAULT '0' ,
   `max_capacity` int DEFAULT '50' ,
+  `package_ids` text DEFAULT NULL ,
+  `addon_ids` text DEFAULT NULL ,
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP ,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP ,
   `locked` int DEFAULT '0' ,
@@ -580,6 +647,8 @@ CREATE TABLE `tour_order` (
   `package_name` varchar(100) NOT NULL ,
   `batch_package_id` bigint DEFAULT NULL ,
   `batch_package_name` varchar(100) DEFAULT '标准' ,
+  `addon_items` text DEFAULT NULL ,
+  `addon_summary` varchar(500) DEFAULT NULL ,
   `departure_date` date NOT NULL ,
   `adult_count` int NOT NULL DEFAULT '1' ,
   `child_count` int DEFAULT '0' ,
@@ -591,6 +660,10 @@ CREATE TABLE `tour_order` (
   `hotel_days` int DEFAULT NULL ,
   `hotel_price_per_night` decimal(10,2) DEFAULT NULL ,
   `hotel_amount` decimal(10,2) DEFAULT '0.00' ,
+  `coupon_user_id` bigint DEFAULT NULL COMMENT '用户优惠券ID',
+  `coupon_name` varchar(120) DEFAULT NULL COMMENT '优惠券名称',
+  `discount_amount` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '优惠金额',
+  `payable_amount` decimal(10,2) DEFAULT NULL COMMENT '应付金额',
   `total_amount` decimal(10,2) NOT NULL ,
   `contact_name` varchar(50) DEFAULT NULL ,
   `contact_phone` varchar(20) DEFAULT NULL ,
@@ -632,7 +705,9 @@ CREATE TABLE `tour_package` (
   `tour_id` bigint NOT NULL ,
   `name` varchar(100) NOT NULL ,
   `adult_price` decimal(10,2) NOT NULL DEFAULT '0.00' ,
+  `original_adult_price` decimal(10,2) DEFAULT NULL ,
   `child_price` decimal(10,2) DEFAULT '0.00' ,
+  `original_child_price` decimal(10,2) DEFAULT NULL ,
   `description` varchar(500) DEFAULT '' ,
   `sort_order` int DEFAULT '0' ,
   `status` int DEFAULT '1' ,

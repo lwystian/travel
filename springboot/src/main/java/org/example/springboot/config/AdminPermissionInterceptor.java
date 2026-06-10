@@ -49,6 +49,7 @@ public class AdminPermissionInterceptor implements HandlerInterceptor {
         PATH_PERMISSIONS.put("/api/recommend", "recommend:manage");
         PATH_PERMISSIONS.put("/api/collection/admin", "collection:manage");
         PATH_PERMISSIONS.put("/api/notification/admin", "notification:manage");
+        PATH_PERMISSIONS.put("/api/coupon/admin", "coupon:manage");
         PATH_PERMISSIONS.put("/api/payment", "payment:manage");
         PATH_PERMISSIONS.put("/api/payment-config", "payment:manage");
         PATH_PERMISSIONS.put("/api/auth/config", "auth-config:manage");

@@ -139,7 +139,14 @@
       </div>
     </section>
 
-    <el-dialog v-model="dialogVisible" :title="dialogMode === 'create' ? '新增敏感词' : '编辑敏感词'" width="560px">
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogMode === 'create' ? '新增敏感词' : '编辑敏感词'"
+      width="560px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="dialogGuard.beforeClose"
+    >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="96px">
         <el-form-item label="敏感词" prop="word">
           <el-input v-model.trim="form.word" maxlength="120" placeholder="请输入敏感词或短语" />
@@ -173,12 +180,19 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="dialogGuard.requestClose">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="submitForm">保存</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="importVisible" title="批量导入敏感词" width="620px">
+    <el-dialog
+      v-model="importVisible"
+      title="批量导入敏感词"
+      width="620px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="importDialogGuard.beforeClose"
+    >
       <el-form label-width="96px">
         <el-form-item label="默认分类">
           <el-select v-model="importForm.category" class="full-width">
@@ -205,7 +219,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="importVisible = false">取消</el-button>
+        <el-button @click="importDialogGuard.requestClose">取消</el-button>
         <el-button type="primary" :loading="importing" @click="submitImport">导入</el-button>
       </template>
     </el-dialog>
@@ -213,11 +227,12 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CircleCheck, Delete, Edit, Plus, Refresh, Search, Upload } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
+import { createUnsavedDialogGuard } from '@/utils/unsavedDialogGuard'
 
 const categoryOptions = [
   { label: '涉黄', value: 'PORN' },
@@ -273,12 +288,14 @@ const form = reactive({
   status: 1,
   remark: ''
 })
+const dialogGuard = createUnsavedDialogGuard(() => form, dialogVisible)
 
 const importForm = reactive({
   words: '',
   category: 'TRAVEL_RISK',
   level: 'REVIEW'
 })
+const importDialogGuard = createUnsavedDialogGuard(() => importForm, importVisible)
 
 const rules = {
   word: [
@@ -339,6 +356,7 @@ const openCreate = () => {
   dialogMode.value = 'create'
   resetForm()
   dialogVisible.value = true
+  nextTick(dialogGuard.markPristine)
 }
 
 const openEdit = (row) => {
@@ -350,6 +368,7 @@ const openEdit = (row) => {
     status: row.status ?? 1
   })
   dialogVisible.value = true
+  nextTick(dialogGuard.markPristine)
 }
 
 const openImport = () => {
@@ -357,6 +376,7 @@ const openImport = () => {
   importForm.category = 'TRAVEL_RISK'
   importForm.level = 'REVIEW'
   importVisible.value = true
+  nextTick(importDialogGuard.markPristine)
 }
 
 const submitForm = async () => {
@@ -368,7 +388,7 @@ const submitForm = async () => {
     } else {
       await request.put(`/sensitive-word/${form.id}`, form, { successMsg: '敏感词已更新' })
     }
-    dialogVisible.value = false
+    dialogGuard.closeAfterSave()
     loadData()
   } finally {
     submitting.value = false
@@ -396,7 +416,7 @@ const submitImport = async () => {
       status: 1
     }))
     await request.post('/sensitive-word/batch', payload, { successMsg: '敏感词已导入' })
-    importVisible.value = false
+    importDialogGuard.closeAfterSave()
     loadData()
   } finally {
     importing.value = false

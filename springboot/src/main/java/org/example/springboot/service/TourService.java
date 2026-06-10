@@ -2,6 +2,8 @@ package org.example.springboot.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.example.springboot.dto.TourDetailDTO;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -28,6 +31,7 @@ public class TourService {
     private static final int HOME_FEATURED_LIMIT = 1;
     private static final int HOME_MORE_LIMIT = 10;
     private static final int TOUR_CODE_MAX_RETRY = 3;
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Resource
     private TourMapper tourMapper;
@@ -315,10 +319,7 @@ public class TourService {
         List<Tour> tours = getActiveTours();
         // 计算每个行程的实际最低价
         for (Tour tour : tours) {
-            BigDecimal minPrice = calculateMinPrice(tour.getId());
-            if (minPrice != null) {
-                tour.setMinPrice(minPrice);
-            }
+            applyMinPricePromotion(tour);
         }
         normalizeTourDates(tours);
         return tours;
@@ -646,10 +647,7 @@ public class TourService {
             return;
         }
         for (Tour tour : tours) {
-            BigDecimal minPrice = calculateMinPrice(tour.getId());
-            if (minPrice != null) {
-                tour.setMinPrice(minPrice);
-            }
+            applyMinPricePromotion(tour);
         }
     }
 
@@ -817,73 +815,143 @@ public class TourService {
         }
     }
 
-    /**
-     * 计算行程的实际最低价
-     * 计算公式：行程套餐成人价 + 批次套餐附加费 + 出发班期附加费 的最小组合
-     */
-    private BigDecimal calculateMinPrice(Long tourId) {
+    private PricePromotion calculateMinPricePromotion(Long tourId) {
         // 获取所有行程套餐
         List<TourPackage> packages = getTourPackages(tourId);
         if (packages == null || packages.isEmpty()) {
             return null;
         }
 
-        // 获取所有批次套餐的最小附加费
-        BigDecimal minBatchExtraFee = getMinBatchExtraFee(tourId);
-
-        // 获取所有出发班期的最小成人附加费
-        BigDecimal minDateExtraFee = getMinDateExtraFee(tourId);
-
-        // 计算每个套餐的最低价（套餐价 + 批次附加费 + 日期附加费）
-        BigDecimal minPrice = null;
-        for (TourPackage pkg : packages) {
-            if (pkg.getAdultPrice() != null) {
-                BigDecimal totalPrice = pkg.getAdultPrice();
-                if (minBatchExtraFee != null) {
-                    totalPrice = totalPrice.add(minBatchExtraFee);
-                }
-                if (minDateExtraFee != null) {
-                    totalPrice = totalPrice.add(minDateExtraFee);
-                }
-                if (minPrice == null || totalPrice.compareTo(minPrice) < 0) {
-                    minPrice = totalPrice;
-                }
-            }
-        }
-
-        return minPrice;
-    }
-
-    /**
-     * 获取所有批次套餐的最小附加费
-     */
-    private BigDecimal getMinBatchExtraFee(Long tourId) {
-        List<BatchPackage> batchPackages = getBatchPackages(tourId);
-        BigDecimal minFee = null;
-        for (BatchPackage bp : batchPackages) {
-            if (bp.getExtraFeePerPerson() != null) {
-                if (minFee == null || bp.getExtraFeePerPerson().compareTo(minFee) < 0) {
-                    minFee = bp.getExtraFeePerPerson();
-                }
-            }
-        }
-        return minFee;
-    }
-
-    /**
-     * 获取所有出发班期的最小成人附加费
-     */
-    private BigDecimal getMinDateExtraFee(Long tourId) {
         List<TourBatch> batches = getTourBatches(tourId);
-        BigDecimal minFee = null;
-        for (TourBatch batch : batches) {
-            if (batch.getAdultDateExtraFee() != null) {
-                if (minFee == null || batch.getAdultDateExtraFee().compareTo(minFee) < 0) {
-                    minFee = batch.getAdultDateExtraFee();
+        List<TourBatch> bookableBatches = batches.stream()
+                .filter(this::isBatchBookableForMinPrice)
+                .collect(Collectors.toList());
+
+        // 起价、划线价、折扣必须来自同一个最低可售组合，避免用 A 套餐售价搭配 B 套餐原价。
+        PricePromotion minPromotion = null;
+        for (TourPackage pkg : packages) {
+            if (pkg.getAdultPrice() == null || pkg.getAdultPrice().compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+
+            List<TourBatch> availableBatches = bookableBatches.stream()
+                    .filter(batch -> isPackageAvailableInBatch(batch, pkg.getId()))
+                    .collect(Collectors.toList());
+            List<BigDecimal> dateExtraFees = availableBatches.stream()
+                    .map(batch -> defaultAmount(batch.getAdultDateExtraFee()))
+                    .collect(Collectors.toList());
+
+            // 没配置班期或暂无可售班期时，仍保留套餐基础起价作为兜底展示。
+            if (dateExtraFees.isEmpty() && (batches == null || batches.isEmpty() || bookableBatches.isEmpty())) {
+                dateExtraFees = Collections.singletonList(BigDecimal.ZERO);
+            }
+
+            for (BigDecimal dateExtraFee : dateExtraFees) {
+                BigDecimal totalPrice = pkg.getAdultPrice().add(dateExtraFee);
+                BigDecimal originalPrice = resolveOriginalPrice(pkg.getOriginalAdultPrice(), pkg.getAdultPrice());
+                if (originalPrice != null) {
+                    originalPrice = originalPrice.add(dateExtraFee);
+                }
+                PricePromotion promotion = buildPricePromotion(totalPrice, originalPrice);
+                if (isBetterMinPromotion(promotion, minPromotion)) {
+                    minPromotion = promotion;
                 }
             }
         }
-        return minFee;
+
+        return minPromotion;
+    }
+
+    private boolean isBetterMinPromotion(PricePromotion candidate, PricePromotion current) {
+        if (candidate == null) {
+            return false;
+        }
+        if (current == null) {
+            return true;
+        }
+        int priceCompare = candidate.salePrice().compareTo(current.salePrice());
+        if (priceCompare != 0) {
+            return priceCompare < 0;
+        }
+        BigDecimal candidateSaved = Optional.ofNullable(candidate.savedAmount()).orElse(BigDecimal.ZERO);
+        BigDecimal currentSaved = Optional.ofNullable(current.savedAmount()).orElse(BigDecimal.ZERO);
+        return candidateSaved.compareTo(currentSaved) > 0;
+    }
+
+    private boolean isBatchBookableForMinPrice(TourBatch batch) {
+        if (batch == null) {
+            return false;
+        }
+        String status = StringUtils.defaultIfBlank(batch.getStatus(), "可报名");
+        int remaining = Optional.ofNullable(batch.getRemaining()).orElse(0);
+        int occupied = Optional.ofNullable(batch.getOccupied()).orElse(0);
+        return "可报名".equals(status) && remaining - occupied > 0;
+    }
+
+    private boolean isPackageAvailableInBatch(TourBatch batch, Long packageId) {
+        if (batch == null || packageId == null) {
+            return false;
+        }
+        List<Long> packageIds = parseIdList(batch.getPackageIds());
+        return packageIds.isEmpty() || packageIds.contains(packageId);
+    }
+
+    private BigDecimal defaultAmount(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private void applyMinPricePromotion(Tour tour) {
+        if (tour == null || tour.getId() == null) {
+            return;
+        }
+        PricePromotion promotion = calculateMinPricePromotion(tour.getId());
+        if (promotion == null) {
+            return;
+        }
+        tour.setMinPrice(promotion.salePrice());
+        tour.setMinOriginalPrice(promotion.originalPrice());
+        tour.setMinDiscountLabel(promotion.discountLabel());
+    }
+
+    private PricePromotion buildPricePromotion(BigDecimal salePrice, BigDecimal originalPrice) {
+        if (salePrice == null) {
+            return null;
+        }
+        BigDecimal effectiveOriginal = resolveOriginalPrice(originalPrice, salePrice);
+        String discountLabel = buildDiscountLabel(salePrice, effectiveOriginal);
+        BigDecimal savedAmount = null;
+        if (effectiveOriginal != null && effectiveOriginal.compareTo(salePrice) > 0) {
+            savedAmount = effectiveOriginal.subtract(salePrice).setScale(2, RoundingMode.HALF_UP);
+        }
+        return new PricePromotion(
+                salePrice.setScale(2, RoundingMode.HALF_UP),
+                effectiveOriginal == null ? null : effectiveOriginal.setScale(2, RoundingMode.HALF_UP),
+                discountLabel,
+                savedAmount);
+    }
+
+    private BigDecimal resolveOriginalPrice(BigDecimal originalPrice, BigDecimal salePrice) {
+        if (salePrice == null) {
+            return null;
+        }
+        if (originalPrice != null && originalPrice.compareTo(salePrice) > 0) {
+            return originalPrice;
+        }
+        return null;
+    }
+
+    private String buildDiscountLabel(BigDecimal salePrice, BigDecimal originalPrice) {
+        if (salePrice == null || originalPrice == null || originalPrice.compareTo(salePrice) <= 0 || originalPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+        BigDecimal discount = salePrice
+                .multiply(BigDecimal.TEN)
+                .divide(originalPrice, 1, RoundingMode.HALF_UP)
+                .stripTrailingZeros();
+        return discount.toPlainString() + "折";
+    }
+
+    private record PricePromotion(BigDecimal salePrice, BigDecimal originalPrice, String discountLabel, BigDecimal savedAmount) {
     }
 
     /**
@@ -918,11 +986,21 @@ public class TourService {
         ensurePersistedTourCode(tour);
         basicInfo.setCode(tour.getCode());
         basicInfo.setDays(tour.getDays());
+        PricePromotion minPromotion = calculateMinPricePromotion(id);
+        if (minPromotion != null) {
+            basicInfo.setMinPrice(minPromotion.salePrice());
+            basicInfo.setMinOriginalPrice(minPromotion.originalPrice());
+            basicInfo.setMinDiscountLabel(minPromotion.discountLabel());
+            basicInfo.setMinSavedAmount(minPromotion.savedAmount());
+        } else {
+            basicInfo.setMinPrice(tour.getMinPrice());
+        }
         basicInfo.setDeparture(getCityName(tour.getCity()));
         basicInfo.setEnrolledCount(tour.getEnrolledCount());
         basicInfo.setRecommendDate(tour.getRecommendDate());
         basicInfo.setMoreDates(tour.getMoreDates());
         basicInfo.setDetailContent(tour.getDetailContent());
+        basicInfo.setTourType(tour.getTourType());
         // 使用实体的 notice 字段，如果没有则使用默认值
         String notice = tour.getNotice();
         if (notice == null || notice.isEmpty()) {
@@ -934,7 +1012,7 @@ public class TourService {
         // 标签列表
         dto.setTags(parseTags(tour.getTags()));
 
-        // 产品特色（从feature字段解析）
+        dto.setFeatureText(tour.getFeature() != null ? tour.getFeature() : "");
         dto.setFeatures(parseFeatures(tour.getFeature()));
 
         // 供应商信息
@@ -946,6 +1024,9 @@ public class TourService {
         TourDetailDTO.RefundPolicy refundPolicy = new TourDetailDTO.RefundPolicy();
         refundPolicy.setSupport("支持退款");
         refundPolicy.setSpecial("特殊原因退订保障");
+        refundPolicy.setContent(StringUtils.isNotBlank(tour.getRefundPolicyContent())
+                ? tour.getRefundPolicyContent()
+                : "<p>支持退款，特殊原因退订保障。</p>");
         dto.setRefundPolicy(refundPolicy);
 
         // 行程套餐
@@ -956,6 +1037,18 @@ public class TourService {
             info.setName(pkg.getName());
             info.setAdultPrice(pkg.getAdultPrice());
             info.setChildPrice(pkg.getChildPrice());
+            info.setOriginalAdultPrice(pkg.getOriginalAdultPrice());
+            info.setOriginalChildPrice(pkg.getOriginalChildPrice());
+            PricePromotion adultPromotion = buildPricePromotion(pkg.getAdultPrice(), pkg.getOriginalAdultPrice());
+            if (adultPromotion != null) {
+                info.setAdultDiscountLabel(adultPromotion.discountLabel());
+                info.setAdultSavedAmount(adultPromotion.savedAmount());
+            }
+            PricePromotion childPromotion = buildPricePromotion(pkg.getChildPrice(), pkg.getOriginalChildPrice());
+            if (childPromotion != null) {
+                info.setChildDiscountLabel(childPromotion.discountLabel());
+                info.setChildSavedAmount(childPromotion.savedAmount());
+            }
             info.setDescription(pkg.getDescription());
             return info;
         }).collect(Collectors.toList()));
@@ -981,13 +1074,15 @@ public class TourService {
             info.setStatus(batch.getStatus() != null ? batch.getStatus() : "可报名");
             info.setRemaining(batch.getRemaining() != null ? batch.getRemaining() : 0);
             info.setOccupied(batch.getOccupied() != null ? batch.getOccupied() : 0);
+            info.setPackageIds(parseIdList(batch.getPackageIds()));
+            info.setAddonIds(parseIdList(batch.getAddonIds()));
             return info;
         }).collect(Collectors.toList()));
 
         // 图片信息
         TourDetailDTO.ImageInfo imageInfo = new TourDetailDTO.ImageInfo();
-        imageInfo.setMain(generateMainImages(tour.getMainImage(), tour.getImages()));
-        imageInfo.setThumbnails(generateThumbnails(tour.getMainImage(), tour.getImages()));
+        imageInfo.setMain(generateTourDetailImages(tour.getMainImage(), tour.getImages(), true));
+        imageInfo.setThumbnails(generateTourDetailImages(tour.getMainImage(), tour.getImages(), false));
         dto.setImages(imageInfo);
 
         // 视频信息
@@ -1055,6 +1150,7 @@ public class TourService {
         queryWrapper.eq(TourBatch::getTourId, tourId);
         // 只获取未来日期
         queryWrapper.ge(TourBatch::getDepartureDate, LocalDate.now());
+        queryWrapper.ne(TourBatch::getStatus, "已取消");
         queryWrapper.orderByAsc(TourBatch::getDepartureDate);
         return tourBatchMapper.selectList(queryWrapper);
     }
@@ -1088,95 +1184,75 @@ public class TourService {
         if (feature == null || feature.isEmpty()) {
             return new ArrayList<>();
         }
-        return Arrays.stream(feature.split("[,，、\\s]+"))
+        return Arrays.stream(feature.split("[,，、]+"))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 生成主图列表
-     */
-    private List<String> generateMainImages(String mainImage) {
-        List<String> images = new ArrayList<>();
-        // 优先从 tour.images 字段读取多图
-        if (mainImage != null && !mainImage.isEmpty()) {
-            try {
-                // 尝试解析为 JSON 数组
-                if (mainImage.startsWith("[")) {
-                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                    List<String> parsedImages = mapper.readValue(mainImage, mapper.getTypeFactory().constructCollectionType(List.class, String.class));
-                    if (parsedImages != null && !parsedImages.isEmpty()) {
-                        images.addAll(parsedImages);
-                        return images;
-                    }
-                }
-            } catch (Exception e) {
-                // 解析失败，当作单个图片URL处理
-                logger.debug("Parse tour images JSON failed: {}", e.getMessage());
-            }
-            // 如果解析失败，当作单个图片URL处理
-            images.add(mainImage);
+    private List<Long> parseIdList(String value) {
+        if (!StringUtils.isNotBlank(value)) {
+            return new ArrayList<>();
         }
-        // 如果没有图片，返回默认图片
+        try {
+            if (value.trim().startsWith("[")) {
+                return OBJECT_MAPPER.readValue(value, new TypeReference<List<Long>>() {});
+            }
+        } catch (Exception e) {
+            logger.debug("Parse id list JSON failed: {}", e.getMessage());
+        }
+        return Arrays.stream(value.split("[,，、\\s]+"))
+                .map(String::trim)
+                .filter(StringUtils::isNotBlank)
+                .map(text -> {
+                    try {
+                        return Long.parseLong(text);
+                    } catch (NumberFormatException ignored) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private List<String> generateTourDetailImages(String coverImage, String imagesJson, boolean mainSize) {
+        List<String> images = parseStoredImages(imagesJson);
+        if (images.isEmpty() && StringUtils.isNotBlank(coverImage)) {
+            images.add(coverImage.trim());
+        }
         if (images.isEmpty()) {
-            images.add("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&h=600&fit=crop");
+            images.add(mainSize
+                    ? "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&h=600&fit=crop"
+                    : "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=150&h=100&fit=crop");
         }
         return images;
     }
 
-    private List<String> generateMainImages(String coverImage, String imagesJson) {
-        List<String> images = new ArrayList<>();
-        if (StringUtils.isNotBlank(coverImage)) {
-            images.add(coverImage);
+    private List<String> parseStoredImages(String imagesJson) {
+        if (!StringUtils.isNotBlank(imagesJson)) {
+            return new ArrayList<>();
         }
-        for (String image : generateMainImages(imagesJson)) {
-            if (StringUtils.isNotBlank(image) && !images.contains(image)) {
-                images.add(image);
+        String value = imagesJson.trim();
+        try {
+            if (value.startsWith("[")) {
+                List<String> parsedImages = OBJECT_MAPPER.readValue(value, new TypeReference<List<String>>() {});
+                return normalizeImageList(parsedImages);
             }
+        } catch (Exception e) {
+            logger.debug("Parse tour images JSON failed: {}", e.getMessage());
         }
-        return images;
+        return normalizeImageList(List.of(value));
     }
 
-    /**
-     * 生成缩略图列表
-     */
-    private List<String> generateThumbnails(String images) {
-        List<String> thumbnails = new ArrayList<>();
-        if (images != null && !images.isEmpty()) {
-            try {
-                // 尝试解析为 JSON 数组
-                if (images.startsWith("[")) {
-                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                    List<String> parsedImages = mapper.readValue(images, mapper.getTypeFactory().constructCollectionType(List.class, String.class));
-                    if (parsedImages != null && !parsedImages.isEmpty()) {
-                        thumbnails.addAll(parsedImages);
-                        return thumbnails;
-                    }
-                }
-            } catch (Exception e) {
-                logger.debug("Parse tour thumbnails JSON failed: {}", e.getMessage());
-            }
-            // 解析失败，当作单个图片URL处理
-            thumbnails.add(images);
+    private List<String> normalizeImageList(List<String> images) {
+        if (images == null || images.isEmpty()) {
+            return new ArrayList<>();
         }
-        if (thumbnails.isEmpty()) {
-            thumbnails.add("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=150&h=100&fit=crop");
-        }
-        return thumbnails;
-    }
-
-    private List<String> generateThumbnails(String coverImage, String imagesJson) {
-        List<String> thumbnails = new ArrayList<>();
-        if (StringUtils.isNotBlank(coverImage)) {
-            thumbnails.add(coverImage);
-        }
-        for (String image : generateThumbnails(imagesJson)) {
-            if (StringUtils.isNotBlank(image) && !thumbnails.contains(image)) {
-                thumbnails.add(image);
-            }
-        }
-        return thumbnails;
+        return images.stream()
+                .filter(StringUtils::isNotBlank)
+                .map(String::trim)
+                .distinct()
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**
@@ -1217,6 +1293,7 @@ public class TourService {
         }
         tour.setCode(null);
         insertTourWithGeneratedCode(tour);
+        syncTourBatchesWithTravelDates(tour);
     }
 
     /**
@@ -1340,6 +1417,137 @@ public class TourService {
         }
         tour.setCode(existTour.getCode());
         tourMapper.updateById(tour);
+        syncTourBatchesWithTravelDates(tour);
+    }
+
+    private void syncTourBatchesWithTravelDates(Tour tour) {
+        if (tour == null || tour.getId() == null) {
+            return;
+        }
+        if (tour.getRecommendDate() == null && tour.getMoreDates() == null) {
+            return;
+        }
+
+        Set<LocalDate> desiredDates = parseTourTravelDates(tour.getRecommendDate(), tour.getMoreDates());
+        LocalDate today = LocalDate.now();
+
+        List<TourBatch> existingBatches = tourBatchMapper.selectList(new LambdaQueryWrapper<TourBatch>()
+                .eq(TourBatch::getTourId, tour.getId())
+                .orderByAsc(TourBatch::getDepartureDate)
+                .orderByAsc(TourBatch::getId));
+        Map<LocalDate, List<TourBatch>> existingByDate = existingBatches.stream()
+                .filter(batch -> batch.getDepartureDate() != null)
+                .collect(Collectors.groupingBy(TourBatch::getDepartureDate, LinkedHashMap::new, Collectors.toList()));
+
+        int defaultCapacity = Math.max(30, existingBatches.stream()
+                .map(TourBatch::getMaxCapacity)
+                .filter(Objects::nonNull)
+                .max(Integer::compareTo)
+                .orElse(0));
+
+        for (LocalDate date : desiredDates) {
+            if (date.isBefore(today) || existingByDate.containsKey(date)) {
+                continue;
+            }
+            TourBatch batch = new TourBatch();
+            batch.setTourId(tour.getId());
+            batch.setDepartureDate(date);
+            batch.setAdultDateExtraFee(BigDecimal.ZERO);
+            batch.setChildDateExtraFee(BigDecimal.ZERO);
+            batch.setStatus("可报名");
+            batch.setRemaining(defaultCapacity);
+            batch.setOccupied(0);
+            batch.setMaxCapacity(defaultCapacity);
+            tourBatchMapper.insert(batch);
+        }
+
+        for (Map.Entry<LocalDate, List<TourBatch>> entry : existingByDate.entrySet()) {
+            LocalDate date = entry.getKey();
+            if (date.isBefore(today)) {
+                continue;
+            }
+            boolean shouldRemainActive = desiredDates.contains(date);
+            List<TourBatch> batches = entry.getValue();
+            for (int i = 0; i < batches.size(); i++) {
+                TourBatch batch = batches.get(i);
+                boolean duplicate = shouldRemainActive && i > 0;
+                if (shouldRemainActive && i == 0) {
+                    restoreSyncedBatch(batch, defaultCapacity);
+                } else if (!shouldRemainActive || duplicate) {
+                    removeSyncedBatch(batch);
+                }
+            }
+        }
+    }
+
+    private Set<LocalDate> parseTourTravelDates(String recommendDate, String moreDates) {
+        LinkedHashSet<LocalDate> dates = new LinkedHashSet<>();
+        int baseYear = resolveBaseYear(recommendDate);
+        addTravelDate(dates, recommendDate, baseYear);
+        if (StringUtils.isNotBlank(moreDates)) {
+            Arrays.stream(moreDates.split("[、,，\\s]+"))
+                    .map(String::trim)
+                    .filter(StringUtils::isNotBlank)
+                    .forEach(value -> addTravelDate(dates, value, baseYear));
+        }
+        return dates;
+    }
+
+    private int resolveBaseYear(String recommendDate) {
+        if (StringUtils.isNotBlank(recommendDate) && recommendDate.matches("\\d{4}-\\d{1,2}-\\d{1,2}")) {
+            return Integer.parseInt(recommendDate.split("-")[0]);
+        }
+        return LocalDate.now().getYear();
+    }
+
+    private void addTravelDate(Set<LocalDate> dates, String value, int baseYear) {
+        if (!StringUtils.isNotBlank(value)) {
+            return;
+        }
+        String text = value.trim();
+        try {
+            if (text.matches("\\d{4}-\\d{1,2}-\\d{1,2}")) {
+                String[] parts = text.split("-");
+                dates.add(LocalDate.of(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2])));
+                return;
+            }
+            if (text.matches("\\d{1,2}-\\d{1,2}")) {
+                String[] parts = text.split("-");
+                dates.add(LocalDate.of(baseYear, Integer.parseInt(parts[0]), Integer.parseInt(parts[1])));
+            }
+        } catch (RuntimeException ignored) {
+            logger.debug("Ignore invalid tour travel date: {}", value);
+        }
+    }
+
+    private void removeSyncedBatch(TourBatch batch) {
+        if (batch == null || batch.getId() == null) {
+            return;
+        }
+        int occupied = Optional.ofNullable(batch.getOccupied()).orElse(0);
+        if (occupied <= 0) {
+            tourBatchMapper.deleteById(batch.getId());
+            return;
+        }
+        batch.setStatus("已取消");
+        batch.setRemaining(Math.max(occupied, Optional.ofNullable(batch.getRemaining()).orElse(0)));
+        tourBatchMapper.updateById(batch);
+    }
+
+    private void restoreSyncedBatch(TourBatch batch, int defaultCapacity) {
+        if (batch == null || batch.getId() == null || !"已取消".equals(batch.getStatus())) {
+            return;
+        }
+        int occupied = Optional.ofNullable(batch.getOccupied()).orElse(0);
+        int maxCapacity = Optional.ofNullable(batch.getMaxCapacity()).orElse(defaultCapacity);
+        int remaining = Optional.ofNullable(batch.getRemaining()).orElse(defaultCapacity);
+        maxCapacity = Math.max(maxCapacity, Math.max(defaultCapacity, 1));
+        remaining = Math.max(remaining, occupied);
+        remaining = Math.min(Math.max(remaining, 1), maxCapacity);
+        batch.setStatus("可报名");
+        batch.setMaxCapacity(maxCapacity);
+        batch.setRemaining(remaining);
+        tourBatchMapper.updateById(batch);
     }
 
     private void normalizeTourType(Tour tour) {
@@ -1459,17 +1667,19 @@ public class TourService {
         if (tour == null) {
             throw new ServiceException("行程不存在");
         }
+        List<String> normalizedImages = normalizeImageList(images).stream()
+                .limit(5)
+                .collect(Collectors.toCollection(ArrayList::new));
         // 存储所有图片到 images 字段（JSON数组）
         try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            tour.setImages(mapper.writeValueAsString(images));
+            tour.setImages(OBJECT_MAPPER.writeValueAsString(normalizedImages));
         } catch (Exception e) {
             logger.warn("Serialize tour images failed: id={}, reason={}", id, e.getMessage(), e);
         }
         // 同时更新 mainImage 为第一张图片
-        if (images != null && !images.isEmpty()) {
-            tour.setMainImage(images.get(0));
-            logger.debug("Set tour main image: id={}, mainImage={}", id, images.get(0));
+        if (!normalizedImages.isEmpty()) {
+            tour.setMainImage(normalizedImages.get(0));
+            logger.debug("Set tour main image: id={}, mainImage={}", id, normalizedImages.get(0));
         } else {
             tour.setMainImage(null);
             logger.debug("Clear tour main image: id={}", id);
@@ -1507,10 +1717,7 @@ public class TourService {
         );
         // 计算每个行程的实际最低价
         for (Tour tour : tours) {
-            BigDecimal minPrice = calculateMinPrice(tour.getId());
-            if (minPrice != null) {
-                tour.setMinPrice(minPrice);
-            }
+            applyMinPricePromotion(tour);
         }
         normalizeTourDates(tours);
         return tours;
@@ -1580,10 +1787,7 @@ public class TourService {
 
         // 计算每个行程的实际最低价
         for (Tour tour : tours) {
-            BigDecimal minPrice = calculateMinPrice(tour.getId());
-            if (minPrice != null) {
-                tour.setMinPrice(minPrice);
-            }
+            applyMinPricePromotion(tour);
         }
         normalizeTourDates(tours);
         return tours;
@@ -1633,10 +1837,7 @@ public class TourService {
                 Tour tour = tourMapper.selectById(recommend.getTourId());
                 if (tour != null && tour.getStatus() != null && tour.getStatus() == 1) {
                     // 计算最低价
-                    BigDecimal minPrice = calculateMinPrice(tour.getId());
-                    if (minPrice != null) {
-                        tour.setMinPrice(minPrice);
-                    }
+                    applyMinPricePromotion(tour);
                     tours.add(tour);
                     if (tours.size() >= HOME_FEATURED_LIMIT) {
                         break;
@@ -1679,10 +1880,7 @@ public class TourService {
                 Tour tour = tourMapper.selectById(recommend.getTourId());
                 if (tour != null && tour.getStatus() != null && tour.getStatus() == 1) {
                     // 计算最低价
-                    BigDecimal minPrice = calculateMinPrice(tour.getId());
-                    if (minPrice != null) {
-                        tour.setMinPrice(minPrice);
-                    }
+                    applyMinPricePromotion(tour);
                     tours.add(tour);
                 }
             }
@@ -1710,10 +1908,7 @@ public class TourService {
         );
         
         for (Tour tour : tours) {
-            BigDecimal minPrice = calculateMinPrice(tour.getId());
-            if (minPrice != null) {
-                tour.setMinPrice(minPrice);
-            }
+            applyMinPricePromotion(tour);
         }
         normalizeTourDates(tours);
         return tours;
@@ -1774,10 +1969,7 @@ public class TourService {
                 if (result.size() >= 10) break;
                 if (!featuredIds.contains(tour.getId())) {
                     featuredIds.add(tour.getId()); // 加入已排除集合
-                    BigDecimal minPrice = calculateMinPrice(tour.getId());
-                    if (minPrice != null) {
-                        tour.setMinPrice(minPrice);
-                    }
+                    applyMinPricePromotion(tour);
                     normalizeTourDates(tour);
                     result.add(tour);
                 }
@@ -1794,10 +1986,7 @@ public class TourService {
         
         List<Tour> tours = tourMapper.selectList(queryWrapper);
         for (Tour tour : tours) {
-            BigDecimal minPrice = calculateMinPrice(tour.getId());
-            if (minPrice != null) {
-                tour.setMinPrice(minPrice);
-            }
+            applyMinPricePromotion(tour);
         }
         normalizeTourDates(tours);
         return tours;
@@ -1876,8 +2065,12 @@ public class TourService {
                 dto.setStatus(tour.getStatus());
                 
                 // 计算最低价
-                BigDecimal minPrice = calculateMinPrice(tour.getId());
-                dto.setMinPrice(minPrice);
+                PricePromotion promotion = calculateMinPricePromotion(tour.getId());
+                if (promotion != null) {
+                    dto.setMinPrice(promotion.salePrice());
+                    dto.setMinOriginalPrice(promotion.originalPrice());
+                    dto.setMinDiscountLabel(promotion.discountLabel());
+                }
             }
             
             dtoList.add(dto);

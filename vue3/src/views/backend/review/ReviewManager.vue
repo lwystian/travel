@@ -416,14 +416,21 @@
     </el-card>
 
     <!-- 拒绝原因对话框 -->
-    <el-dialog v-model="rejectDialogVisible" title="拒绝原因" width="500px">
+    <el-dialog
+      v-model="rejectDialogVisible"
+      title="拒绝原因"
+      width="500px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="rejectDialogGuard.beforeClose"
+    >
       <el-form>
         <el-form-item label="拒绝原因">
           <el-input v-model="rejectComment" type="textarea" :rows="3" placeholder="请输入拒绝原因（可选）" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="rejectDialogVisible = false">取消</el-button>
+        <el-button @click="rejectDialogGuard.requestClose">取消</el-button>
         <el-button type="danger" @click="confirmReject">确认拒绝</el-button>
       </template>
     </el-dialog>
@@ -431,11 +438,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { Clock, ChatDotRound, Document, Finished, Check, Close } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { resolveImageUrl } from '@/utils/imageUrl'
+import { createUnsavedDialogGuard } from '@/utils/unsavedDialogGuard'
 
 
 // 统计数据
@@ -497,6 +505,11 @@ const rejectDialogVisible = ref(false)
 const rejectComment = ref('')
 const currentRejectItem = ref(null)
 const currentRejectType = ref('')
+const rejectDialogGuard = createUnsavedDialogGuard(() => ({
+  rejectComment: rejectComment.value,
+  currentRejectId: currentRejectItem.value?.id || null,
+  currentRejectType: currentRejectType.value
+}), rejectDialogVisible)
 
 // 获取统计数据
 const fetchStats = async () => {
@@ -678,6 +691,7 @@ const rejectItem = (type, item) => {
   currentRejectType.value = type
   rejectComment.value = ''
   rejectDialogVisible.value = true
+  nextTick(rejectDialogGuard.markPristine)
 }
 
 const confirmReject = async () => {
@@ -688,7 +702,7 @@ const confirmReject = async () => {
     }, {
       successMsg: '已拒绝'
     })
-    rejectDialogVisible.value = false
+    rejectDialogGuard.closeAfterSave()
     // 刷新列表
     if (currentRejectType.value === 'comment') {
       fetchPendingComments()

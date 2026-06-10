@@ -71,9 +71,10 @@
             {{ scope.row.contactPhone || '-' }}
           </template>
         </el-table-column>
-        <el-table-column prop="totalAmount" label="总金额" width="100">
+        <el-table-column prop="totalAmount" label="应付金额" width="110">
           <template #default="scope">
             <span class="amount">¥{{ scope.row.totalAmount }}</span>
+            <div v-if="scope.row.discountAmount && scope.row.discountAmount > 0" class="discount-text">省 ¥{{ scope.row.discountAmount }}</div>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="订单状态" width="100">
@@ -157,7 +158,16 @@
             </template>
             <template v-else>-</template>
           </el-descriptions-item>
-          <el-descriptions-item label="总金额" :span="2">
+          <el-descriptions-item label="优惠券">
+            <template v-if="currentOrder.couponName">
+              {{ currentOrder.couponName }}
+            </template>
+            <template v-else>-</template>
+          </el-descriptions-item>
+          <el-descriptions-item label="优惠金额">
+            -¥{{ currentOrder.discountAmount || 0 }}
+          </el-descriptions-item>
+          <el-descriptions-item label="应付金额" :span="2">
             <span class="amount">¥{{ currentOrder.totalAmount }}</span>
           </el-descriptions-item>
         </el-descriptions>
@@ -541,6 +551,12 @@ onMounted(() => {
       .amount {
         font-weight: 600;
         color: #e74c3c;
+      }
+
+      .discount-text {
+        margin-top: 2px;
+        color: #f97316;
+        font-size: 12px;
       }
 
       .date-text {

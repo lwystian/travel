@@ -1,6 +1,8 @@
 package org.example.springboot.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -28,6 +30,14 @@ public class TourPackage {
 
     @Schema(description = "儿童价格")
     private BigDecimal childPrice;
+
+    @Schema(description = "成人原价/门市价，用于前台划线价展示")
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private BigDecimal originalAdultPrice;
+
+    @Schema(description = "儿童原价/门市价，用于前台划线价展示")
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private BigDecimal originalChildPrice;
 
     @Schema(description = "套餐描述")
     private String description;

@@ -29,7 +29,7 @@ const updateCarouselHeight = () => {
   const rect = carouselRoot.value.getBoundingClientRect()
   const pageTop = rect.top + window.scrollY
   const availableHeight = window.innerHeight - pageTop
-  carouselHeight.value = Math.max(260, Math.round(availableHeight))
+  carouselHeight.value = Math.max(240, Math.round(availableHeight * 3 / 4))
 }
 
 const getImageUrl = (url) => {

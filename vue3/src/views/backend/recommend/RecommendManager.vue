@@ -163,6 +163,9 @@
       v-model="dialogVisible"
       width="800px"
       class="add-recommend-dialog"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="dialogGuard.beforeClose"
     >
       <div class="dialog-search">
         <el-input
@@ -270,7 +273,7 @@
       <template #footer>
         <span class="dialog-footer">
           <span v-if="currentType === 'more'" class="selected-count">已选择 {{ selectedTourIds.length }} 个行程</span>
-          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button @click="dialogGuard.requestClose">取消</el-button>
           <el-button type="primary" @click="handleConfirmAdd" :loading="submitting">
             确认
           </el-button>
@@ -281,11 +284,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import noImage from '@/assets/images/no-image.png'
 import { getTourTypeLabel } from '@/utils/tourTypes'
+import { createUnsavedDialogGuard } from '@/utils/unsavedDialogGuard'
 
 const currentType = ref('featured')
 const recommendList = ref([])
@@ -298,6 +302,11 @@ const selectedTourIds = ref([])
 const selectedTourId = ref([])
 const submitting = ref(false)
 const featuredRecommendIds = ref([])
+const dialogGuard = createUnsavedDialogGuard(() => ({
+  searchKeyword: searchKeyword.value,
+  selectedTourIds: selectedTourIds.value,
+  selectedTourId: selectedTourId.value
+}), dialogVisible)
 
 // 拖拽相关
 const sortableListRef = ref(null)
@@ -410,6 +419,7 @@ const handleAddRecommend = async () => {
   selectedTourId.value = []
   await loadFeaturedRecommendIds()
   dialogVisible.value = true
+  nextTick(dialogGuard.markPristine)
 }
 
 const loadFeaturedRecommendIds = async () => {
@@ -454,7 +464,7 @@ const handleConfirmAdd = async () => {
       }, {
         successMsg: '设置成功',
         onSuccess: () => {
-          dialogVisible.value = false
+          dialogGuard.closeAfterSave()
           selectedTourId.value = []
           fetchRecommends()
         }
@@ -479,7 +489,7 @@ const handleConfirmAdd = async () => {
       }, {
         successMsg: '添加成功',
         onSuccess: () => {
-          dialogVisible.value = false
+          dialogGuard.closeAfterSave()
           selectedTourIds.value = []
           fetchRecommends()
         }

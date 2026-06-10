@@ -163,6 +163,9 @@
       v-model="dialogVisible"
       width="500px"
       @close="resetForm"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="userDialogGuard.beforeClose"
       class="user-dialog"
     >
       <el-form
@@ -209,7 +212,7 @@
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button @click="userDialogGuard.requestClose">取消</el-button>
           <el-button type="primary" @click="submitForm" :loading="submitLoading">确定</el-button>
         </span>
       </template>
@@ -220,6 +223,9 @@
       title="重置密码"
       v-model="resetPasswordDialogVisible"
       width="400px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="resetPasswordDialogGuard.beforeClose"
       class="reset-password-dialog"
     >
       <el-form
@@ -237,7 +243,7 @@
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="resetPasswordDialogVisible = false">取消</el-button>
+          <el-button @click="resetPasswordDialogGuard.requestClose">取消</el-button>
           <el-button type="primary" @click="submitResetPassword" :loading="resetPasswordLoading">确定</el-button>
         </span>
       </template>
@@ -246,12 +252,13 @@
 </template>
 
 <script setup>
-import { computed, ref, reactive, onMounted } from 'vue'
+import { computed, ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
 import { useUserStore } from '@/store/user'
 import { maskEmail, maskPhone } from '@/utils/mask'
+import { createUnsavedDialogGuard } from '@/utils/unsavedDialogGuard'
 
 const userStore = useUserStore()
 const currentUserId = computed(() => userStore.userInfo?.id)
@@ -291,6 +298,7 @@ const userForm = reactive({
   roleCode: 'USER',
   status: 1
 })
+const userDialogGuard = createUnsavedDialogGuard(() => userForm, dialogVisible)
 
 const userFormRules = {
   username: [
@@ -323,6 +331,7 @@ const resetPasswordForm = reactive({
   newPassword: '',
   confirmPassword: ''
 })
+const resetPasswordDialogGuard = createUnsavedDialogGuard(() => resetPasswordForm, resetPasswordDialogVisible)
 
 const resetPasswordFormRules = {
   newPassword: [
@@ -454,7 +463,9 @@ const handleCurrentChange = (page) => {
 const handleAdd = () => {
   dialogType.value = 'add'
   dialogTitle.value = '新增用户'
+  resetForm()
   dialogVisible.value = true
+  nextTick(userDialogGuard.markPristine)
 }
 
 // 编辑用户
@@ -471,6 +482,7 @@ const handleEdit = (row) => {
     }
   })
   dialogVisible.value = true
+  nextTick(userDialogGuard.markPristine)
 }
 
 // 停用用户
@@ -553,6 +565,7 @@ const handleResetPassword = (row) => {
   resetPasswordForm.newPassword = ''
   resetPasswordForm.confirmPassword = ''
   resetPasswordDialogVisible.value = true
+  nextTick(resetPasswordDialogGuard.markPristine)
 }
 
 const submitResetPassword = () => {
@@ -565,7 +578,7 @@ const submitResetPassword = () => {
         }, {
           successMsg: '密码重置成功'
         })
-        resetPasswordDialogVisible.value = false
+        resetPasswordDialogGuard.closeAfterSave()
       } catch (error) {
         console.error('重置密码失败:', error)
       } finally {
@@ -590,7 +603,7 @@ const submitForm = () => {
             successMsg: '更新用户成功'
           })
         }
-        dialogVisible.value = false
+        userDialogGuard.closeAfterSave()
         fetchUsers()
       } catch (error) {
         console.error('提交表单失败:', error)

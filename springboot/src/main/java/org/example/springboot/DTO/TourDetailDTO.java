@@ -18,6 +18,9 @@ public class TourDetailDTO {
     @Schema(description = "产品特色列表")
     private List<String> features;
 
+    @Schema(description = "产品特色文本")
+    private String featureText;
+
     @Schema(description = "供应商信息")
     private SupplierInfo supplier;
 
@@ -50,12 +53,17 @@ public class TourDetailDTO {
         private String subtitle;
         private String code;
         private Integer days;
+        private BigDecimal minPrice;
+        private BigDecimal minOriginalPrice;
+        private String minDiscountLabel;
+        private BigDecimal minSavedAmount;
         private String departure;
         private Integer enrolledCount;
         private String notice;
         private String recommendDate;
         private String moreDates;
         private String detailContent;
+        private String tourType;
     }
 
     @Data
@@ -69,6 +77,7 @@ public class TourDetailDTO {
     public static class RefundPolicy {
         private String support;
         private String special;
+        private String content;
     }
 
     @Data
@@ -78,6 +87,12 @@ public class TourDetailDTO {
         private String name;
         private BigDecimal adultPrice;
         private BigDecimal childPrice;
+        private BigDecimal originalAdultPrice;
+        private BigDecimal originalChildPrice;
+        private String adultDiscountLabel;
+        private String childDiscountLabel;
+        private BigDecimal adultSavedAmount;
+        private BigDecimal childSavedAmount;
         private BigDecimal extraFeePerPerson;
         private String description;
     }
@@ -91,6 +106,8 @@ public class TourDetailDTO {
         private String status;
         private Integer remaining;
         private Integer occupied;
+        private List<Long> packageIds;
+        private List<Long> addonIds;
     }
 
     @Data

@@ -17,7 +17,7 @@ public final class RolePermission {
                     "user:view", "user:create", "user:update", "user:delete", "user:status", "user:reset-password", "user:grant-role",
                     "tour:manage", "recommend:manage", "scenic:manage", "accommodation:manage", "guide:manage",
                     "comment:manage", "collection:manage", "category:manage", "carousel:manage",
-                    "review:manage", "order:manage", "payment:manage", "auth-config:manage", "log:view",
+                    "review:manage", "order:manage", "coupon:manage", "payment:manage", "auth-config:manage", "log:view",
                     "notification:manage", "permission:manage", "site-footer:manage", "site-assets:manage", "site-settings:manage"
             ),
             ADMIN, List.of(
@@ -25,7 +25,7 @@ public final class RolePermission {
                     "user:view", "user:create-basic", "user:update-basic", "user:status-basic", "user:reset-password-basic",
                     "tour:manage", "recommend:manage", "scenic:manage", "accommodation:manage", "guide:manage",
                     "comment:manage", "collection:manage", "category:manage", "carousel:manage",
-                    "review:manage", "order:manage", "notification:manage"
+                    "review:manage", "order:manage", "coupon:manage", "notification:manage"
             ),
             USER, List.of(
                     "profile:view", "profile:update", "order:self", "collection:self", "guide:self", "comment:self"

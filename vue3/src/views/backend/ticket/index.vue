@@ -81,6 +81,8 @@
               fit="cover"
               style="width: 80px; height: 60px; border-radius: 4px;"
               :preview-src-list="[scope.row.mainImage]"
+              :preview-teleported="true"
+              :z-index="3000"
             />
             <span v-else>-</span>
           </template>
@@ -170,7 +172,15 @@
     </el-card>
 
     <!-- 添加/编辑行程对话框 -->
-    <el-dialog :title="isEdit ? '编辑行程' : '添加行程'" v-model="dialogVisible" width="75%" class="tour-dialog">
+    <el-dialog
+      :title="isEdit ? '编辑行程' : '添加行程'"
+      v-model="dialogVisible"
+      width="75%"
+      class="tour-dialog"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="handleTourDialogBeforeClose"
+    >
       <el-form ref="tourFormRef" :model="tourForm" :rules="tourRules" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="24" v-if="isEdit">
@@ -272,28 +282,18 @@
               <el-rate v-model="tourForm.starRating" allow-half />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="推荐日期" prop="recommendDate">
+          <el-col :span="24">
+            <el-form-item label="出行班期" prop="recommendDate">
               <el-date-picker
-                v-model="tourForm.recommendDate"
-                type="date"
-                placeholder="请选择推荐日期"
+                v-model="travelDateValues"
+                type="dates"
+                placeholder="请选择出行班期"
                 format="YYYY-MM-DD"
                 value-format="YYYY-MM-DD"
                 style="width: 100%;"
+                @change="syncTravelDatesToForm"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="更多日期" prop="moreDates">
-              <el-date-picker
-                v-model="moreDateValues"
-                type="dates"
-                placeholder="请选择更多日期"
-                format="MM-DD"
-                value-format="YYYY-MM-DD"
-                style="width: 100%;"
-              />
+              <div class="form-tip">选择一个或多个出行日期；保存时首个日期作为主班期，其余日期作为更多班期。</div>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -330,7 +330,7 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button @click="handleCancelTourDialog">取消</el-button>
           <el-button type="primary" @click="submitForm" :loading="formLoading">确定</el-button>
         </div>
       </template>
@@ -346,7 +346,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Refresh, Edit, Delete, Switch, ArrowDown, List } from '@element-plus/icons-vue'
 import request from '@/utils/request'
@@ -565,6 +565,7 @@ const dialogVisible = ref(false)
 const isEdit = ref(false)
 const formLoading = ref(false)
 const tourFormRef = ref(null)
+const tourDialogSnapshot = ref('')
 
 // 预订详情管理
 const detailDialogVisible = ref(false)
@@ -573,7 +574,7 @@ const detailManagerTourTitle = ref('')
 
 // 标签输入
 const tagsInput = ref('')
-const moreDateValues = ref([])
+const travelDateValues = ref([])
 const parsedTags = computed(() => {
   if (!tagsInput.value) return []
   return tagsInput.value.split(/[,\s，、]+/).map(t => t.trim()).filter(t => t)
@@ -615,6 +616,16 @@ const formatMoreDates = (dates) => {
     .sort()
     .join('、')
 }
+
+const sortTravelDates = (dates) => Array.from(new Set((dates || []).filter(Boolean))).sort()
+
+const syncTravelDatesToForm = () => {
+  const dates = sortTravelDates(travelDateValues.value)
+  tourForm.recommendDate = dates[0] || ''
+  moreDateValuesCompat.value = dates.slice(1)
+}
+
+const moreDateValuesCompat = ref([])
 
 const formatMoreDatesForDisplay = (value) => {
   if (!value) return ''
@@ -684,6 +695,48 @@ const beforeImageUpload = (file) => {
   return true
 }
 
+const getTourFormSnapshot = () => JSON.stringify({
+  ...tourForm,
+  tagsInput: tagsInput.value,
+  travelDateValues: travelDateValues.value
+})
+
+const markTourDialogPristine = () => {
+  tourDialogSnapshot.value = getTourFormSnapshot()
+}
+
+const isTourDialogDirty = () => {
+  return dialogVisible.value && tourDialogSnapshot.value && tourDialogSnapshot.value !== getTourFormSnapshot()
+}
+
+const confirmDiscardTourChanges = async () => {
+  if (!isTourDialogDirty()) return true
+  return ElMessageBox.confirm('当前修改尚未保存，是否放弃这些修改？', '未保存修改', {
+    confirmButtonText: '放弃修改',
+    cancelButtonText: '继续编辑',
+    type: 'warning',
+    distinguishCancelAndClose: true
+  }).then(() => true).catch(() => false)
+}
+
+const closeTourDialog = () => {
+  tourDialogSnapshot.value = ''
+  dialogVisible.value = false
+}
+
+const handleCancelTourDialog = async () => {
+  if (await confirmDiscardTourChanges()) {
+    closeTourDialog()
+  }
+}
+
+const handleTourDialogBeforeClose = async (done) => {
+  if (await confirmDiscardTourChanges()) {
+    tourDialogSnapshot.value = ''
+    done()
+  }
+}
+
 // 表单数据
 const tourForm = reactive({
   id: null,
@@ -717,7 +770,7 @@ const tourRules = {
   destination: [{ required: true, message: '请选择或输入目的地', trigger: 'change' }],
   days: [{ required: true, message: '请输入行程天数', trigger: 'blur' }],
   month: [{ required: true, message: '请选择出发月份', trigger: 'change' }],
-  recommendDate: [{ required: true, message: '请选择推荐日期', trigger: 'change' }],
+  recommendDate: [{ required: true, message: '请选择出行班期', trigger: 'change' }],
   feature: [{ required: true, message: '请输入行程特色', trigger: 'blur' }]
 }
 
@@ -836,6 +889,7 @@ const showAddDialog = () => {
   isEdit.value = false
   resetForm()
   dialogVisible.value = true
+  nextTick(markTourDialogPristine)
 }
 
 // 编辑
@@ -852,8 +906,12 @@ const handleEdit = (row) => {
   // 解析并设置标签输入
   tagsInput.value = parseTags(row.tags).join(' ')
   tourForm.month = normalizeMonthValue(row.month)
-  moreDateValues.value = parseMoreDates(row.moreDates)
+  travelDateValues.value = sortTravelDates([
+    row.recommendDate,
+    ...parseMoreDates(row.moreDates)
+  ])
   dialogVisible.value = true
+  nextTick(markTourDialogPristine)
 }
 
 // 下拉菜单操作处理
@@ -906,7 +964,7 @@ const getTourMissingFields = (tour) => {
   if (!tour.destination) missing.push('目的地')
   if (!tour.days || tour.days <= 0) missing.push('行程天数')
   if (!tour.month) missing.push('出发月份')
-  if (!tour.recommendDate) missing.push('推荐日期')
+  if (!tour.recommendDate) missing.push('出行班期')
   if (!tour.feature) missing.push('行程特色')
   return missing
 }
@@ -939,7 +997,8 @@ const resetForm = () => {
     recommendDate: '', moreDates: '', feature: '', tags: '',
     enrolledCount: 0, status: 1
   })
-  moreDateValues.value = []
+  travelDateValues.value = []
+  moreDateValuesCompat.value = []
 }
 
 // 管理预订详情
@@ -961,6 +1020,7 @@ void previewImage
 const submitForm = async () => {
   tourForm.city = getRegionLabel(tourForm.cityPath, ' / ') || tourForm.city
   tourForm.destination = getRegionLabel(tourForm.destinationPath, ' / ') || tourForm.destination
+  syncTravelDatesToForm()
 
   tourFormRef.value.validate(async (valid) => {
     if (!valid) {
@@ -978,7 +1038,7 @@ const submitForm = async () => {
       const submitData = {
         ...tourForm,
         month: Number(normalizeMonthValue(tourForm.month)),
-        moreDates: formatMoreDates(moreDateValues.value),
+        moreDates: formatMoreDates(moreDateValuesCompat.value),
         tags: parsedTags.value.join(' ')
       }
       delete submitData.code
@@ -989,7 +1049,8 @@ const submitForm = async () => {
         await request.put(`/tour/${tourForm.id}`, submitData, {
           successMsg: '更新成功',
           onSuccess: () => {
-            dialogVisible.value = false
+            markTourDialogPristine()
+            closeTourDialog()
             fetchTours()
           }
         })
@@ -997,7 +1058,8 @@ const submitForm = async () => {
         await request.post('/tour', submitData, {
           successMsg: '添加成功',
           onSuccess: () => {
-            dialogVisible.value = false
+            markTourDialogPristine()
+            closeTourDialog()
             fetchTours()
           }
         })
@@ -1171,5 +1233,9 @@ onMounted(() => {
       line-height: 32px;
     }
   }
+}
+
+:global(.el-image-viewer__wrapper) {
+  z-index: 3000 !important;
 }
 </style>

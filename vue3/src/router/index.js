@@ -119,6 +119,12 @@ export const backendRoutes = [
         meta: { title: '订单管理', icon: 'List', permission: 'order:manage' }
       },
       {
+        path: 'coupon',
+        name: 'CouponManagement',
+        component: () => import('@/views/backend/coupon/CouponManager.vue'),
+        meta: { title: '优惠券管理', icon: 'CollectionTag', permission: 'coupon:manage' }
+      },
+      {
         path: 'accommodation',
         name: 'AccommodationManagement',
         component: () => import('@/views/backend/accommodation/index.vue'),

@@ -79,6 +79,8 @@
       :title="isEdit ? '编辑支付配置' : '添加支付方式'"
       width="700px"
       :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="dialogGuard.beforeClose"
     >
       <el-form
         ref="formRef"
@@ -177,7 +179,7 @@
       </el-form>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="dialogGuard.requestClose">取消</el-button>
         <el-button type="primary" @click="handleSave" :loading="saving">
           保存配置
         </el-button>
@@ -187,7 +189,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Wallet, Warning } from '@element-plus/icons-vue'
 import {
@@ -198,6 +200,7 @@ import {
   togglePaymentEnabled,
   deletePaymentApi
 } from '@/api/paymentConfig'
+import { createUnsavedDialogGuard } from '@/utils/unsavedDialogGuard'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -247,6 +250,7 @@ const form = reactive({
   isSandbox: true,
   timeoutExpress: '2h'
 })
+const dialogGuard = createUnsavedDialogGuard(() => form, dialogVisible)
 
 const rules = {
   appId: [{ required: true, message: '请输入应用ID', trigger: 'blur' }],
@@ -312,6 +316,7 @@ const handleAdd = () => {
     isSandbox: true,
     timeoutExpress: '2h'
   })
+  nextTick(dialogGuard.markPristine)
 }
 
 // 编辑支付方式
@@ -340,6 +345,7 @@ const handleEdit = async (row) => {
     form.alipayPublicKey = ''
     form.timeoutExpress = '2h'
   }
+  nextTick(dialogGuard.markPristine)
 }
 
 // 删除支付方式
@@ -411,7 +417,7 @@ const doSave = async () => {
     }
 
     ElMessage.success('保存成功')
-    dialogVisible.value = false
+    dialogGuard.closeAfterSave()
     loadPayments()
   } catch (err) {
     console.error('保存失败:', err)

@@ -4,6 +4,7 @@
     v-model="dialogVisible"
     width="900px"
     :close-on-click-modal="false"
+    :close-on-press-escape="false"
   >
     <!-- 工具栏 -->
     <div class="toolbar">
@@ -78,6 +79,8 @@
       width="450px"
       append-to-body
       :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="batchDialogGuard.beforeClose"
     >
       <el-form ref="batchFormRef" :model="batchForm" :rules="batchRules" label-width="100px">
         <el-form-item label="出发日期" prop="departureDate">
@@ -112,7 +115,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="batchDialogVisible = false">取消</el-button>
+        <el-button @click="batchDialogGuard.requestClose">取消</el-button>
         <el-button type="primary" @click="submitBatch" :loading="batchLoading">确定</el-button>
       </template>
     </el-dialog>
@@ -124,6 +127,8 @@
       width="500px"
       append-to-body
       :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="batchAddDialogGuard.beforeClose"
     >
       <el-form ref="batchAddFormRef" :model="batchAddForm" label-width="100px">
         <el-form-item label="出发日期">
@@ -157,7 +162,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="batchAddDialogVisible = false">取消</el-button>
+        <el-button @click="batchAddDialogGuard.requestClose">取消</el-button>
         <el-button type="primary" @click="submitBatchAdd" :loading="batchAddLoading">确定</el-button>
       </template>
     </el-dialog>
@@ -168,6 +173,9 @@
       v-model="remainingDialogVisible"
       width="350px"
       append-to-body
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="remainingDialogGuard.beforeClose"
     >
       <el-form label-width="80px">
         <el-form-item label="班期">
@@ -187,7 +195,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="remainingDialogVisible = false">取消</el-button>
+        <el-button @click="remainingDialogGuard.requestClose">取消</el-button>
         <el-button type="primary" @click="submitRemaining">确定</el-button>
       </template>
     </el-dialog>
@@ -195,7 +203,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import {
@@ -205,6 +213,7 @@ import {
   updateTourBatch,
   deleteTourBatch
 } from '@/api/tourDetail'
+import { createUnsavedDialogGuard } from '@/utils/unsavedDialogGuard'
 
 const props = defineProps({
   modelValue: {
@@ -241,6 +250,7 @@ const batchForm = ref({
   remaining: 30,
   maxCapacity: 50
 })
+const batchDialogGuard = createUnsavedDialogGuard(() => batchForm.value, batchDialogVisible)
 
 const batchRules = {
   departureDate: [{ required: true, message: '请选择出发日期', trigger: 'change' }]
@@ -258,11 +268,16 @@ const batchAddForm = ref({
   maxCapacity: 50,
   status: '可报名'
 })
+const batchAddDialogGuard = createUnsavedDialogGuard(() => batchAddForm.value, batchAddDialogVisible)
 
 // 余位修改
 const remainingDialogVisible = ref(false)
 const currentBatch = ref(null)
 const newRemaining = ref(0)
+const remainingDialogGuard = createUnsavedDialogGuard(() => ({
+  batchId: currentBatch.value?.id || null,
+  newRemaining: newRemaining.value
+}), remainingDialogVisible)
 
 watch(() => props.modelValue, (val) => {
   dialogVisible.value = val
@@ -349,12 +364,14 @@ const showAddBatchDialog = () => {
     maxCapacity: 50
   }
   batchDialogVisible.value = true
+  nextTick(batchDialogGuard.markPristine)
 }
 
 const handleEditBatch = (row) => {
   isBatchEdit.value = true
   batchForm.value = normalizeBatchCapacity(row)
   batchDialogVisible.value = true
+  nextTick(batchDialogGuard.markPristine)
 }
 
 const handleDeleteBatch = (row) => {
@@ -390,7 +407,7 @@ const submitBatch = async () => {
         await addTourBatch(data)
         ElMessage.success('添加成功')
       }
-      batchDialogVisible.value = false
+      batchDialogGuard.closeAfterSave()
       fetchBatches()
     } catch (error) {
       console.error('操作失败:', error)
@@ -410,6 +427,7 @@ const showBatchAddDialog = () => {
     status: '可报名'
   }
   batchAddDialogVisible.value = true
+  nextTick(batchAddDialogGuard.markPristine)
 }
 
 const submitBatchAdd = async () => {
@@ -436,7 +454,7 @@ const submitBatchAdd = async () => {
 
     await addTourBatchesBatch(batchList)
     ElMessage.success(`成功添加 ${batchList.length} 个班期`)
-    batchAddDialogVisible.value = false
+    batchAddDialogGuard.closeAfterSave()
     fetchBatches()
   } catch (error) {
     console.error('批量添加失败:', error)
@@ -449,6 +467,7 @@ const handleUpdateRemaining = (row) => {
   currentBatch.value = row
   newRemaining.value = Math.max(row.remaining || 0, row.occupied || 0)
   remainingDialogVisible.value = true
+  nextTick(remainingDialogGuard.markPristine)
 }
 
 const submitRemaining = async () => {
@@ -464,7 +483,7 @@ const submitRemaining = async () => {
       ...data
     })
     ElMessage.success('余位更新成功')
-    remainingDialogVisible.value = false
+    remainingDialogGuard.closeAfterSave()
     fetchBatches()
   } catch (error) {
     console.error('更新余位失败:', error)

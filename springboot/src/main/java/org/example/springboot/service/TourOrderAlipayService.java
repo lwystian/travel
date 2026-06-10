@@ -43,6 +43,9 @@ public class TourOrderAlipayService {
     private TourOrderNotificationService tourOrderNotificationService;
 
     @Autowired
+    private CouponService couponService;
+
+    @Autowired
     private TourBatchMapper tourBatchMapper;
 
     @Autowired
@@ -220,6 +223,7 @@ public class TourOrderAlipayService {
         order.setUpdateTime(java.time.LocalDateTime.now());
 
         tourOrderMapper.updateById(order);
+        couponService.markUsed(order.getCouponUserId(), order.getId(), order.getOrderNo());
 
         logger.info("订单支付成功 - 订单号: {}, 交易号: {}", outTradeNo, tradeNo);
         tourOrderNotificationService.notifyPaymentSuccess(order);
@@ -277,6 +281,7 @@ public class TourOrderAlipayService {
         order.setPaymentTime(java.time.LocalDateTime.now());
         order.setUpdateTime(java.time.LocalDateTime.now());
         tourOrderMapper.updateById(order);
+        couponService.markUsed(order.getCouponUserId(), order.getId(), order.getOrderNo());
 
         logger.info("模拟支付成功，订单ID: {}", orderId);
         tourOrderNotificationService.notifyPaymentSuccess(order);

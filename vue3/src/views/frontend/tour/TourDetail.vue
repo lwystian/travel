@@ -155,6 +155,8 @@
             <div class="booking-card">
               <div class="price-section">
                 <div class="price-label">起售价</div>
+                <div v-if="minDiscountLabel" class="discount-badge">{{ minDiscountLabel }}</div>
+                <div v-if="minOriginalPrice" class="original-price">外网价 ¥{{ minOriginalPrice }}</div>
                 <div class="price-value">
                   <span class="currency">¥</span>
                   <span class="amount">{{ minPrice }}</span>
@@ -173,7 +175,11 @@
                       :value="pkg.id"
                     >
                       <span>{{ pkg.name }}</span>
-                      <span class="package-price">¥{{ pkg.adultPrice }}</span>
+                      <span class="package-price">
+                        <span v-if="hasPromotion(pkg.originalAdultPrice, pkg.adultPrice)" class="option-origin">¥{{ formatMoney(pkg.originalAdultPrice) }}</span>
+                        ¥{{ formatMoney(pkg.adultPrice) }}
+                        <span v-if="pkg.adultDiscountLabel || discountLabel(pkg.originalAdultPrice, pkg.adultPrice)" class="option-discount">{{ pkg.adultDiscountLabel || discountLabel(pkg.originalAdultPrice, pkg.adultPrice) }}</span>
+                      </span>
                     </el-option>
                   </el-select>
                 </div>
@@ -210,7 +216,10 @@
                 <div class="total-section">
                   <div class="total-row">
                     <span>成人单价</span>
-                    <span>¥{{ selectedPackage?.adultPrice || 0 }}</span>
+                    <span>
+                      <span v-if="selectedOriginalAdultPrice" class="option-origin">¥{{ selectedOriginalAdultPrice }}</span>
+                      ¥{{ selectedPackage?.adultPrice || 0 }}
+                    </span>
                   </div>
                   <div class="total-row">
                     <span>日期加价</span>
@@ -327,8 +336,51 @@ const minPrice = computed(() => {
   return tour.value.minPrice ? tour.value.minPrice.toLocaleString() : '暂无'
 })
 
+const toPositiveNumber = (value) => {
+  const number = Number(value)
+  return Number.isFinite(number) && number > 0 ? number : null
+}
+
+const hasPromotion = (originalPrice, salePrice) => {
+  const original = toPositiveNumber(originalPrice)
+  const sale = toPositiveNumber(salePrice)
+  return Boolean(original && sale && original > sale)
+}
+
+const discountLabel = (originalPrice, salePrice) => {
+  if (!hasPromotion(originalPrice, salePrice)) return ''
+  const discount = Number(salePrice) * 10 / Number(originalPrice)
+  return `${Number(discount.toFixed(1)).toString()}折`
+}
+
+const formatMoney = (value) => {
+  const number = Number(value || 0)
+  return Number.isInteger(number) ? String(number) : number.toFixed(2).replace(/\.?0+$/, '')
+}
+
+const minOriginalPrice = computed(() => {
+  if (packages.value.length > 0) {
+    const prices = packages.value
+      .filter(pkg => hasPromotion(pkg.originalAdultPrice, pkg.adultPrice))
+      .map(pkg => Number(pkg.originalAdultPrice))
+    return prices.length > 0 ? Math.min(...prices).toLocaleString() : ''
+  }
+  return tour.value.minOriginalPrice ? Number(tour.value.minOriginalPrice).toLocaleString() : ''
+})
+
+const minDiscountLabel = computed(() => {
+  if (tour.value.minDiscountLabel) return tour.value.minDiscountLabel
+  const pkg = packages.value.find(item => hasPromotion(item.originalAdultPrice, item.adultPrice))
+  return pkg ? discountLabel(pkg.originalAdultPrice, pkg.adultPrice) : ''
+})
+
 const selectedPackage = computed(() => {
   return packages.value.find(p => p.id === selectedPackageId.value)
+})
+
+const selectedOriginalAdultPrice = computed(() => {
+  if (!selectedPackage.value || !hasPromotion(selectedPackage.value.originalAdultPrice, selectedPackage.value.adultPrice)) return ''
+  return formatMoney(selectedPackage.value.originalAdultPrice)
 })
 
 const totalPrice = computed(() => {
@@ -772,6 +824,25 @@ onMounted(() => {
   opacity: 0.9;
 }
 
+.discount-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #7c2d12;
+  background: #ffedd5;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.original-price {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  text-decoration: line-through;
+}
+
 .price-value {
   display: flex;
   align-items: baseline;
@@ -828,8 +899,27 @@ onMounted(() => {
   justify-content: space-between;
 
   .package-price, .batch-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     color: #667eea;
     font-weight: 600;
+  }
+
+  .option-origin {
+    color: #9ca3af;
+    font-size: 12px;
+    text-decoration: line-through;
+  }
+
+  .option-discount {
+    padding: 0 6px;
+    border-radius: 999px;
+    color: #dc2626;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    font-size: 11px;
+    font-weight: 700;
   }
 
   .batch-status {

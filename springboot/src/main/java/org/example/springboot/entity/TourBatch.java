@@ -42,6 +42,12 @@ public class TourBatch {
     @Schema(description = "最大容量")
     private Integer maxCapacity;
 
+    @Schema(description = "该班期可选行程套餐ID列表(JSON数组，空表示全部)")
+    private String packageIds;
+
+    @Schema(description = "该班期可选附加费用ID列表(JSON数组，空表示全部)")
+    private String addonIds;
+
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
 

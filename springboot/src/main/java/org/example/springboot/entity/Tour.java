@@ -1,6 +1,7 @@
 package org.example.springboot.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -50,6 +51,14 @@ public class Tour {
     @Schema(description = "最低价格")
     private BigDecimal minPrice;
 
+    @Schema(description = "最低成人原价/门市价，用于前台折扣展示")
+    @TableField(exist = false)
+    private BigDecimal minOriginalPrice;
+
+    @Schema(description = "最低价折扣标签，如8折、85折")
+    @TableField(exist = false)
+    private String minDiscountLabel;
+
     @Schema(description = "评分")
     private BigDecimal starRating;
 
@@ -87,6 +96,9 @@ public class Tour {
     private String notice;
 
     private String detailContent;
+
+    @Schema(description = "退订政策富文本")
+    private String refundPolicyContent;
 
     @Schema(description = "创建时间")
     private LocalDateTime createTime;

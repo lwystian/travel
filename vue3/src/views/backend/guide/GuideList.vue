@@ -167,7 +167,9 @@
       width="75%"
       destroy-on-close
       :close-on-click-modal="false"
-      :before-close="handleDialogClose"
+      :close-on-press-escape="false"
+      :before-close="formDialogGuard.beforeClose"
+      @closed="resetGuideForm"
       class="guide-dialog"
     >
       <el-form 
@@ -247,7 +249,7 @@
       
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="handleDialogClose">取消</el-button>
+          <el-button @click="formDialogGuard.requestClose">取消</el-button>
           <el-button 
             type="primary" 
             @click="submitGuideForm" 
@@ -262,7 +264,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, nextTick } from 'vue'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
 import { ElMessageBox, ElMessage } from 'element-plus'
@@ -273,6 +275,7 @@ import { renderContent } from '@/utils/contentRenderer'
 import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
 import { resolveImageUrl } from '@/utils/imageUrl'
 import { chinaRegionOptions, regionCascaderProps, getRegionLabel, findRegionPath, selectRegionOnExpand } from '@/utils/chinaRegion'
+import { createUnsavedDialogGuard } from '@/utils/unsavedDialogGuard'
 
 // 用户状态
 const userStore = useUserStore()
@@ -303,6 +306,7 @@ const guideForm = reactive({
   content: '',
   coverImage: ''
 })
+const formDialogGuard = createUnsavedDialogGuard(() => ({ ...guideForm }), formDialogVisible)
 
 // 表单校验规则
 const guideFormRules = {
@@ -430,6 +434,7 @@ const handleCreate = () => {
   isEdit.value = false
   resetGuideForm()
   formDialogVisible.value = true
+  nextTick(formDialogGuard.markPristine)
 }
 
 // 编辑攻略
@@ -445,6 +450,7 @@ const handleEdit = (row) => {
     coverImage: row.coverImage
   })
   formDialogVisible.value = true
+  nextTick(formDialogGuard.markPristine)
 }
 
 // 重置表单
@@ -533,7 +539,7 @@ const submitGuideForm = () => {
         await request.put(`/guide/update`, formData, {
           successMsg: '攻略更新成功',
           onSuccess: () => {
-            formDialogVisible.value = false
+            formDialogGuard.closeAfterSave()
             fetchGuides()
           }
         })
@@ -543,7 +549,7 @@ const submitGuideForm = () => {
         await request.post('/guide/add', formData, {
           successMsg: '攻略创建成功',
           onSuccess: () => {
-            formDialogVisible.value = false
+            formDialogGuard.closeAfterSave()
             fetchGuides()
           }
         })
@@ -556,11 +562,6 @@ const submitGuideForm = () => {
   })
 }
 
-// 对话框关闭处理
-const handleDialogClose = () => {
-  formDialogVisible.value = false
-  resetGuideForm()
-}
 </script>
 
 <style lang="scss" scoped>

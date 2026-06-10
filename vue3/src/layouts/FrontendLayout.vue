@@ -16,7 +16,7 @@
               <span class="frontend-notice-bell">
                 <NotificationBell trigger="hover" click-to-center />
               </span>
-              <button v-if="userStore.isAdmin" class="admin-entry-btn" type="button" @click="router.push('/back/dashboard')">
+              <button v-if="userStore.isAdmin" class="admin-entry-btn" type="button" @click="openAdminDashboard">
                 <el-icon><DataBoard /></el-icon>
                 <span>管理后台</span>
               </button>
@@ -1413,7 +1413,7 @@ const handleCommand = (command) => {
       router.push('/profile')
       break
     case 'admin':
-      router.push('/back/dashboard')
+      openAdminDashboard()
       break
     case 'guide':
       router.push('/my-guide')
@@ -1428,6 +1428,11 @@ const handleCommand = (command) => {
       handleLogout()
       break
   }
+}
+
+const openAdminDashboard = () => {
+  const routeData = router.resolve('/back/dashboard')
+  window.open(routeData.href, '_blank', 'noopener,noreferrer')
 }
 
 const handleLogout = async () => {

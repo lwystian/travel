@@ -123,8 +123,9 @@
 
               <footer class="card-foot">
                 <div class="amount-box">
-                  <span>订单金额</span>
+                  <span>应付金额</span>
                   <strong>¥{{ formatPrice(order.totalAmount) }}</strong>
+                  <em v-if="Number(order.discountAmount || 0) > 0">已优惠 ¥{{ formatPrice(order.discountAmount) }}</em>
                 </div>
                 <div class="pay-state" :class="{ waiting: !order.paymentTime }">
                   <el-icon><CreditCard /></el-icon>
@@ -187,8 +188,9 @@
             <p>{{ currentOrder.packageName || '标准套餐' }} · {{ formatDate(currentOrder.departureDate) }}</p>
           </div>
           <div class="detail-price">
-            <span>订单金额</span>
+            <span>应付金额</span>
             <strong>¥{{ formatPrice(currentOrder.totalAmount) }}</strong>
+            <em v-if="Number(currentOrder.discountAmount || 0) > 0">已优惠 ¥{{ formatPrice(currentOrder.discountAmount) }}</em>
           </div>
         </section>
 
@@ -200,6 +202,7 @@
           <div><span>下单时间</span><strong>{{ formatTime(currentOrder.createTime) }}</strong></div>
           <div><span>支付时间</span><strong>{{ currentOrder.paymentTime ? formatTime(currentOrder.paymentTime) : '-' }}</strong></div>
           <div><span>支付方式</span><strong>{{ currentOrder.paymentMethod || '-' }}</strong></div>
+          <div v-if="currentOrder.couponName"><span>优惠券</span><strong>{{ currentOrder.couponName }}（-¥{{ formatPrice(currentOrder.discountAmount) }}）</strong></div>
           <div class="wide"><span>备注</span><strong>{{ currentOrder.remark || '无' }}</strong></div>
         </section>
       </div>
@@ -898,6 +901,16 @@ onUnmounted(() => {
   font-size: 24px;
   font-weight: 900;
   white-space: nowrap;
+}
+
+.amount-box em,
+.detail-price em {
+  display: block;
+  margin-top: 4px;
+  color: #f97316;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .pay-state {

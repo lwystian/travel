@@ -2,6 +2,8 @@ package org.example.springboot.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.example.springboot.dto.TourOrderCreateDTO;
@@ -19,9 +21,13 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 @Service
@@ -29,6 +35,7 @@ public class TourOrderService {
 
     private static final Logger logger = LoggerFactory.getLogger(TourOrderService.class);
     private static final BigDecimal PRICE_TOLERANCE = new BigDecimal("0.01");
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Resource
     private TourOrderMapper tourOrderMapper;
@@ -49,6 +56,9 @@ public class TourOrderService {
 
     @Resource
     private TourOrderNotificationService tourOrderNotificationService;
+
+    @Resource
+    private CouponService couponService;
 
     @Resource
     private AdminPermissionService adminPermissionService;
@@ -120,6 +130,10 @@ public class TourOrderService {
         if (!"可报名".equals(tourBatch.getStatus())) {
             throw new ServiceException("该批次" + tourBatch.getStatus() + "，不可预订");
         }
+        Set<Long> availablePackageIds = parseIdSet(tourBatch.getPackageIds());
+        if (!availablePackageIds.isEmpty() && !availablePackageIds.contains(tourPackage.getId())) {
+            throw new ServiceException("该出发日期不支持所选行程套餐");
+        }
 
         // 6. 计算总人数
         int totalPeople = dto.getAdultCount() + (dto.getChildCount() != null ? dto.getChildCount() : 0);
@@ -135,21 +149,14 @@ public class TourOrderService {
             throw new ServiceException("余位不足，当前剩余" + currentAvailable + "个名额");
         }
 
+        Long lockedCouponUserId = null;
         try {
-            // 8. 获取批次套餐及附加费
-            BigDecimal batchExtraFee = BigDecimal.ZERO;
-            String batchPackageName = "标准";
-            if (dto.getBatchPackageId() != null) {
-                BatchPackage batchPackage = batchPackageMapper.selectById(dto.getBatchPackageId());
-                if (batchPackage != null && batchPackage.getTourId().equals(tour.getId())) {
-                    batchExtraFee = batchPackage.getExtraFeePerPerson() != null ? batchPackage.getExtraFeePerPerson() : BigDecimal.ZERO;
-                    batchPackageName = batchPackage.getName();
-                }
-            }
+            // 8. 获取附加费用及份数
+            AddonPriceResult addonPriceResult = calculateAddonPrice(tour, tourBatch, dto, totalPeople);
 
             // 9. 后端精确计算价格
-            BigDecimal adultUnitPrice = calculateAdultUnitPrice(tourPackage, tourBatch, batchExtraFee);
-            BigDecimal childUnitPrice = calculateChildUnitPrice(tourPackage, tourBatch, batchExtraFee);
+            BigDecimal adultUnitPrice = calculateAdultUnitPrice(tourPackage, tourBatch);
+            BigDecimal childUnitPrice = calculateChildUnitPrice(tourPackage, tourBatch);
 
             // 10. 验证前端传来的价格（允许0.01元误差）
             if (dto.getClientAdultUnitPrice() != null) {
@@ -175,6 +182,7 @@ public class TourOrderService {
             if (dto.getChildCount() != null && dto.getChildCount() > 0) {
                 tourAmount = tourAmount.add(childUnitPrice.multiply(new BigDecimal(dto.getChildCount())));
             }
+            tourAmount = tourAmount.add(addonPriceResult.totalAmount());
 
             // 12. 计算酒店费用（如有）
             BigDecimal hotelAmount = BigDecimal.ZERO;
@@ -187,13 +195,17 @@ public class TourOrderService {
 
             // 13. 计算订单总金额
             BigDecimal totalAmount = tourAmount.add(hotelAmount);
+            CouponService.CouponUseResult couponResult = couponService.lockForOrder(dto.getCouponUserId(), tour, tourPackage, totalAmount, null, null);
+            lockedCouponUserId = couponResult.couponUserId();
+            BigDecimal discountAmount = couponResult.discountAmount();
+            BigDecimal payableAmount = totalAmount.subtract(discountAmount).max(BigDecimal.ZERO);
 
             // 14. 验证前端传来的总价（允许0.01元误差）
             if (dto.getClientTotalPrice() != null) {
-                BigDecimal diff = totalAmount.subtract(dto.getClientTotalPrice()).abs();
+                BigDecimal diff = payableAmount.subtract(dto.getClientTotalPrice()).abs();
                 if (diff.compareTo(PRICE_TOLERANCE) > 0) {
                     logger.warn("总价校验失败：前端={}, 后端={}, 差异={}",
-                        dto.getClientTotalPrice(), totalAmount, diff);
+                        dto.getClientTotalPrice(), payableAmount, diff);
                     throw new ServiceException("价格已变更，请刷新页面后重试");
                 }
             }
@@ -207,8 +219,10 @@ public class TourOrderService {
             order.setTourCode(tour.getCode());
             order.setPackageId(tourPackage.getId());
             order.setPackageName(tourPackage.getName());
-            order.setBatchPackageId(dto.getBatchPackageId());
-            order.setBatchPackageName(batchPackageName);
+            order.setBatchPackageId(addonPriceResult.primaryAddonId());
+            order.setBatchPackageName(addonPriceResult.summary());
+            order.setAddonItems(addonPriceResult.itemsJson());
+            order.setAddonSummary(addonPriceResult.summary());
             order.setDepartureDate(departureDate);
             order.setAdultCount(dto.getAdultCount());
             order.setChildCount(dto.getChildCount() != null ? dto.getChildCount() : 0);
@@ -220,7 +234,11 @@ public class TourOrderService {
             order.setHotelDays(dto.getHotelDays());
             order.setHotelPricePerNight(dto.getHotelPricePerNight());
             order.setHotelAmount(hotelAmount);
-            order.setTotalAmount(totalAmount);
+            order.setCouponUserId(couponResult.couponUserId());
+            order.setCouponName(couponResult.couponName());
+            order.setDiscountAmount(discountAmount);
+            order.setPayableAmount(payableAmount);
+            order.setTotalAmount(payableAmount);
             order.setContactName(dto.getContactName());
             order.setContactPhone(dto.getContactPhone());
             order.setRemark(dto.getRemark());
@@ -230,6 +248,9 @@ public class TourOrderService {
 
             // 16. 保存订单
             tourOrderMapper.insert(order);
+            if (couponResult.couponUserId() != null) {
+                couponService.bindLockedOrder(couponResult.couponUserId(), order.getId(), order.getOrderNo());
+            }
 
             logger.info("行程订单创建成功：订单号={}, 用户={}, 行程={}, 总价={}, 锁定人数={}",
                 order.getOrderNo(), currentUser.getUsername(), tour.getTitle(), totalAmount, totalPeople);
@@ -263,12 +284,77 @@ public class TourOrderService {
         } catch (ServiceException e) {
             // 业务异常：释放已锁定的库存
             releaseBatchOccupancy(tourBatch.getId(), totalPeople);
+            couponService.releaseLocked(lockedCouponUserId);
             throw e;
         } catch (Exception e) {
             // 其他异常：释放已锁定的库存
             releaseBatchOccupancy(tourBatch.getId(), totalPeople);
+            couponService.releaseLocked(lockedCouponUserId);
             throw new ServiceException("订单创建失败：" + e.getMessage());
         }
+    }
+
+    private AddonPriceResult calculateAddonPrice(Tour tour, TourBatch tourBatch, TourOrderCreateDTO dto, int totalPeople) {
+        List<TourOrderCreateDTO.AddonSelection> selections = new ArrayList<>();
+        if (dto.getAddonSelections() != null && !dto.getAddonSelections().isEmpty()) {
+            selections.addAll(dto.getAddonSelections());
+        } else if (dto.getBatchPackageId() != null) {
+            TourOrderCreateDTO.AddonSelection legacySelection = new TourOrderCreateDTO.AddonSelection();
+            legacySelection.setBatchPackageId(dto.getBatchPackageId());
+            legacySelection.setQuantity(Math.max(1, totalPeople));
+            selections.add(legacySelection);
+        }
+        if (selections.isEmpty()) {
+            return new AddonPriceResult(BigDecimal.ZERO, null, "无", null);
+        }
+
+        Set<Long> availableAddonIds = parseIdSet(tourBatch.getAddonIds());
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        List<Map<String, Object>> itemList = new ArrayList<>();
+        List<String> summaryParts = new ArrayList<>();
+        Long primaryAddonId = null;
+
+        for (TourOrderCreateDTO.AddonSelection selection : selections) {
+            if (selection == null || selection.getBatchPackageId() == null) {
+                continue;
+            }
+            int quantity = selection.getQuantity() != null ? selection.getQuantity() : 0;
+            if (quantity <= 0) {
+                continue;
+            }
+            if (!availableAddonIds.isEmpty() && !availableAddonIds.contains(selection.getBatchPackageId())) {
+                throw new ServiceException("该出发日期不支持所选附加费用");
+            }
+            BatchPackage addon = batchPackageMapper.selectById(selection.getBatchPackageId());
+            if (addon == null || !addon.getTourId().equals(tour.getId()) || !Integer.valueOf(1).equals(addon.getStatus())) {
+                throw new ServiceException("附加费用不存在或已停用");
+            }
+            BigDecimal unitPrice = addon.getExtraFeePerPerson() != null ? addon.getExtraFeePerPerson() : BigDecimal.ZERO;
+            BigDecimal itemAmount = unitPrice.multiply(new BigDecimal(quantity));
+            totalAmount = totalAmount.add(itemAmount);
+            if (primaryAddonId == null) {
+                primaryAddonId = addon.getId();
+            }
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", addon.getId());
+            item.put("name", addon.getName());
+            item.put("unitPrice", unitPrice);
+            item.put("quantity", quantity);
+            item.put("amount", itemAmount);
+            itemList.add(item);
+            summaryParts.add(addon.getName() + " x" + quantity);
+        }
+
+        if (itemList.isEmpty()) {
+            return new AddonPriceResult(BigDecimal.ZERO, null, "无", null);
+        }
+        String itemsJson = null;
+        try {
+            itemsJson = OBJECT_MAPPER.writeValueAsString(itemList);
+        } catch (Exception e) {
+            logger.warn("Serialize addon items failed", e);
+        }
+        return new AddonPriceResult(totalAmount, primaryAddonId, String.join("，", summaryParts), itemsJson);
     }
 
     /**
@@ -293,19 +379,18 @@ public class TourOrderService {
     /**
      * 计算成人单价：套餐价 + 日期附加费 + 批次附加费
      */
-    private BigDecimal calculateAdultUnitPrice(TourPackage tourPackage, TourBatch tourBatch, BigDecimal batchExtraFee) {
+    private BigDecimal calculateAdultUnitPrice(TourPackage tourPackage, TourBatch tourBatch) {
         BigDecimal price = tourPackage.getAdultPrice() != null ? tourPackage.getAdultPrice() : BigDecimal.ZERO;
         if (tourBatch.getAdultDateExtraFee() != null) {
             price = price.add(tourBatch.getAdultDateExtraFee());
         }
-        price = price.add(batchExtraFee);
         return price;
     }
 
     /**
      * 计算儿童单价：套餐儿童价 + 日期附加费 + 批次附加费
      */
-    private BigDecimal calculateChildUnitPrice(TourPackage tourPackage, TourBatch tourBatch, BigDecimal batchExtraFee) {
+    private BigDecimal calculateChildUnitPrice(TourPackage tourPackage, TourBatch tourBatch) {
         BigDecimal childPrice = tourPackage.getChildPrice();
         if (childPrice == null || childPrice.compareTo(BigDecimal.ZERO) == 0) {
             // 如果没有儿童价，返回0
@@ -315,8 +400,36 @@ public class TourOrderService {
         if (tourBatch.getChildDateExtraFee() != null) {
             price = price.add(tourBatch.getChildDateExtraFee());
         }
-        price = price.add(batchExtraFee);
         return price;
+    }
+
+    private Set<Long> parseIdSet(String value) {
+        if (!StringUtils.isNotBlank(value)) {
+            return Set.of();
+        }
+        try {
+            if (value.trim().startsWith("[")) {
+                List<Long> ids = OBJECT_MAPPER.readValue(value, new TypeReference<List<Long>>() {});
+                return ids.stream().filter(Objects::nonNull).collect(Collectors.toSet());
+            }
+        } catch (Exception e) {
+            logger.debug("Parse batch id list JSON failed: {}", e.getMessage());
+        }
+        return java.util.Arrays.stream(value.split("[,，、\\s]+"))
+                .map(String::trim)
+                .filter(StringUtils::isNotBlank)
+                .map(text -> {
+                    try {
+                        return Long.parseLong(text);
+                    } catch (NumberFormatException ignored) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
+    private record AddonPriceResult(BigDecimal totalAmount, Long primaryAddonId, String summary, String itemsJson) {
     }
 
     /**
@@ -382,6 +495,7 @@ public class TourOrderService {
         order.setUpdateTime(LocalDateTime.now());
 
         tourOrderMapper.updateById(order);
+        couponService.markUsed(order.getCouponUserId(), order.getId(), order.getOrderNo());
         tourOrderNotificationService.notifyPaymentSuccess(order);
         logger.info("行程订单支付成功：订单号={}", order.getOrderNo());
     }
@@ -421,6 +535,7 @@ public class TourOrderService {
         order.setUpdateTime(LocalDateTime.now());
 
         tourOrderMapper.updateById(order);
+        couponService.releaseLocked(order.getCouponUserId());
         siteNotificationService.sendToUser(order.getUserId(), "订单已取消",
                 "订单 " + order.getOrderNo() + " 已取消，如需出行可重新下单。",
                 "ORDER", "TOUR_ORDER", String.valueOf(order.getId()), "/orders");
@@ -704,6 +819,8 @@ public class TourOrderService {
         copy.setPackageName(source.getPackageName());
         copy.setBatchPackageId(source.getBatchPackageId());
         copy.setBatchPackageName(source.getBatchPackageName());
+        copy.setAddonItems(source.getAddonItems());
+        copy.setAddonSummary(source.getAddonSummary());
         copy.setDepartureDate(source.getDepartureDate());
         copy.setAdultCount(source.getAdultCount());
         copy.setChildCount(source.getChildCount());
@@ -715,6 +832,10 @@ public class TourOrderService {
         copy.setHotelDays(source.getHotelDays());
         copy.setHotelPricePerNight(source.getHotelPricePerNight());
         copy.setHotelAmount(source.getHotelAmount());
+        copy.setCouponUserId(source.getCouponUserId());
+        copy.setCouponName(source.getCouponName());
+        copy.setDiscountAmount(source.getDiscountAmount());
+        copy.setPayableAmount(source.getPayableAmount());
         copy.setTotalAmount(source.getTotalAmount());
         copy.setContactName(source.getContactName());
         copy.setContactPhone(maskPhoneForUser(source.getContactPhone()));

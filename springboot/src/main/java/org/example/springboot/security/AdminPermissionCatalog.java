@@ -12,6 +12,7 @@ public final class AdminPermissionCatalog {
     public static final List<PermissionItem> ITEMS = List.of(
             new PermissionItem("dashboard:view", "首页概览", "工作台", "查看后台首页数据概览"),
             new PermissionItem("order:manage", "订单管理", "业务运营", "查看和处理旅游线路订单"),
+            new PermissionItem("coupon:manage", "优惠券管理", "业务运营", "配置优惠券、发放对象和适用范围"),
             new PermissionItem("user:view", "用户管理", "账号权限", "查看用户列表和用户资料"),
             new PermissionItem("user:create", "新增用户", "账号权限", "创建后台或前台用户账号"),
             new PermissionItem("user:update", "编辑用户", "账号权限", "编辑用户基础资料和状态"),

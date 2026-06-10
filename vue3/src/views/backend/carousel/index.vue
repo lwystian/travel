@@ -85,6 +85,9 @@
       v-model="dialogVisible" 
       width="500px"
       class="carousel-dialog"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="dialogGuard.beforeClose"
     >
       <el-form :model="form" :rules="rules" ref="formRef" label-width="100px" class="carousel-form">
         <el-form-item label="标题" prop="title">
@@ -115,7 +118,7 @@
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button @click="dialogGuard.requestClose">取消</el-button>
           <el-button type="primary" @click="submitForm" :loading="submitLoading">确认</el-button>
         </span>
       </template>
@@ -124,12 +127,13 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, nextTick } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import noImage from '@/assets/images/no-image.png'
 import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
+import { createUnsavedDialogGuard } from '@/utils/unsavedDialogGuard'
 
 // 基础 API 路径
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
@@ -159,6 +163,7 @@ const form = reactive({
 const imageUrl = computed(() => {
   return form.imageUrl ? (form.imageUrl.startsWith('http') ? form.imageUrl : baseAPI + form.imageUrl) : noImage
 })
+const dialogGuard = createUnsavedDialogGuard(() => form, dialogVisible)
 
 // 获取图片URL
 const getImageUrl = (url) => {
@@ -218,6 +223,7 @@ const handleAdd = () => {
   dialogType.value = 'add'
   resetForm()
   dialogVisible.value = true
+  nextTick(dialogGuard.markPristine)
 }
 
 // 编辑轮播图
@@ -226,6 +232,7 @@ const handleEdit = (row) => {
   resetForm()
   Object.assign(form, row)
   dialogVisible.value = true
+  nextTick(dialogGuard.markPristine)
 }
 
 // 修改状态
@@ -323,7 +330,7 @@ const submitForm = () => {
           await request.post('/carousel', form, {
             successMsg: '添加成功',
             onSuccess: () => {
-              dialogVisible.value = false
+              dialogGuard.closeAfterSave()
               fetchCarousels()
             }
           })
@@ -332,7 +339,7 @@ const submitForm = () => {
           await request.put('/carousel', form, {
             successMsg: '编辑成功',
             onSuccess: () => {
-              dialogVisible.value = false
+              dialogGuard.closeAfterSave()
               fetchCarousels()
             }
           })

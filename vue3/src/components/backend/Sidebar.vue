@@ -29,6 +29,11 @@
           <template #title>订单管理</template>
         </el-menu-item>
 
+        <el-menu-item index="/back/coupon" v-if="can('coupon:manage')">
+          <el-icon><CollectionTag /></el-icon>
+          <template #title>优惠券管理</template>
+        </el-menu-item>
+
         <el-menu-item index="/back/user" v-if="can('user:view')">
           <el-icon><User /></el-icon>
           <template #title>用户管理</template>

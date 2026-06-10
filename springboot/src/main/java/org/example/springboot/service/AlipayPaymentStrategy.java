@@ -70,6 +70,9 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
     @Autowired
     private TourOrderNotificationService tourOrderNotificationService;
 
+    @Autowired
+    private CouponService couponService;
+
     private AlipayConfigDTO configDTO;
     private final ThreadLocal<String> requestReturnUrl = new ThreadLocal<>();
     private final ThreadLocal<String> requestNotifyUrl = new ThreadLocal<>();
@@ -231,6 +234,7 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
         order.setPaymentMethod("alipay");
 
         tourOrderMapper.updateById(order);
+        couponService.markUsed(order.getCouponUserId(), order.getId(), order.getOrderNo());
         logger.info("订单支付成功: {}, 金额: {}", orderNo, amount);
         tourOrderNotificationService.notifyPaymentSuccess(order);
         return "success";
@@ -328,6 +332,7 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
         order.setPaymentTime(LocalDateTime.now());
         order.setPaymentMethod("alipay");
         tourOrderMapper.updateById(order);
+        couponService.markUsed(order.getCouponUserId(), order.getId(), order.getOrderNo());
         logger.info("模拟支付成功，订单ID: {}", orderId);
         tourOrderNotificationService.notifyPaymentSuccess(order);
     }

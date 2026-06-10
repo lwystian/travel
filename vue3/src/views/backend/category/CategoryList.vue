@@ -86,6 +86,9 @@
       v-model="dialogVisible"
       width="500px"
       class="category-dialog"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="dialogGuard.beforeClose"
     >
       <el-form
         ref="formRef"
@@ -117,7 +120,7 @@
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button @click="dialogGuard.requestClose">取消</el-button>
           <el-button type="primary" @click="submitForm" :loading="submitting">
             确定
           </el-button>
@@ -128,10 +131,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import request from '@/utils/request'
 import { ElMessageBox } from 'element-plus'
 import { formatDate } from '@/utils/dateUtils'
+import { createUnsavedDialogGuard } from '@/utils/unsavedDialogGuard'
 
 const tableData = ref([])
 const loading = ref(false)
@@ -159,6 +163,7 @@ const formRules = {
 const formRef = ref(null)
 const submitting = ref(false)
 const parentCategories = ref([])
+const dialogGuard = createUnsavedDialogGuard(() => form, dialogVisible)
 
 // 基础API路径
 // 获取分类列表
@@ -222,6 +227,7 @@ const handleAdd = () => {
   resetForm()
   fetchParentCategories()
   dialogVisible.value = true
+  nextTick(dialogGuard.markPristine)
 }
 
 // 打开编辑对话框
@@ -230,6 +236,7 @@ const handleEdit = (row) => {
   resetForm()
   Object.assign(form, row)
   dialogVisible.value = true
+  nextTick(dialogGuard.markPristine)
 }
 
 // 重置表单
@@ -257,7 +264,7 @@ const submitForm = async () => {
           await request.post('/scenic-category', form, {
             successMsg: '新增成功',
             onSuccess: () => {
-              dialogVisible.value = false
+              dialogGuard.closeAfterSave()
               fetchCategories()
             }
           })
@@ -266,7 +273,7 @@ const submitForm = async () => {
           await request.put(`/scenic-category/${form.id}`, form, {
             successMsg: '更新成功',
             onSuccess: () => {
-              dialogVisible.value = false
+              dialogGuard.closeAfterSave()
               fetchCategories()
             }
           })

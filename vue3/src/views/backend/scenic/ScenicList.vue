@@ -169,6 +169,9 @@
       v-model="dialogVisible"
       width="min(860px, calc(100vw - 32px))"
       @close="resetForm"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="dialogGuard.beforeClose"
       class="scenic-dialog"
     >
       <el-form
@@ -276,7 +279,7 @@
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button @click="dialogGuard.requestClose">取消</el-button>
           <el-button type="primary" @click="submitForm" :loading="submitLoading">确定</el-button>
         </span>
       </template>
@@ -287,7 +290,10 @@
       title="确认坐标位置"
       v-model="mapDialogVisible"
       width="800px"
-      @close="cancelCoordinates"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :before-close="mapDialogGuard.beforeClose"
+      @closed="resetMapDialog"
       class="map-dialog"
       destroy-on-close
     >
@@ -337,7 +343,7 @@
       </div>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="cancelCoordinates">取消</el-button>
+          <el-button @click="mapDialogGuard.requestClose">取消</el-button>
           <el-button type="primary" @click="confirmCoordinates">确认坐标</el-button>
         </span>
       </template>
@@ -346,7 +352,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch, onUnmounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { formatDate } from '@/utils/dateUtils'
@@ -356,6 +362,7 @@ import { resolveImageUrl } from '@/utils/imageUrl'
 import WangEditor from '@/components/WangEditor.vue'
 import { selectRegionOnExpand } from '@/utils/chinaRegion'
 import { loadAmap } from '@/utils/amap'
+import { createUnsavedDialogGuard } from '@/utils/unsavedDialogGuard'
 
 let amapLoadPromise = null
 
@@ -436,6 +443,10 @@ const scenicForm = reactive({
   longitude: '',
   latitude: ''
 })
+const dialogGuard = createUnsavedDialogGuard(() => ({
+  ...scenicForm,
+  tagsInput: tagsInput.value
+}), dialogVisible)
 
 const scenicFormRules = {
   name: [
@@ -458,6 +469,11 @@ const tempCoordinates = reactive({
   lng: null,
   lat: null
 })
+const mapDialogGuard = createUnsavedDialogGuard(() => ({
+  lng: tempCoordinates.lng,
+  lat: tempCoordinates.lat,
+  keyword: mapSearchKeyword.value
+}), mapDialogVisible)
 
 onMounted(() => {
   fetchCategories()
@@ -510,8 +526,10 @@ const handleCurrentChange = (page) => {
 const handleAdd = () => {
   dialogType.value = 'add'
   dialogTitle.value = '新增景点'
+  resetForm()
   tagsInput.value = ''
   dialogVisible.value = true
+  nextTick(dialogGuard.markPristine)
 }
 
 const parseTags = (tags) => {
@@ -541,6 +559,7 @@ const handleEdit = (row) => {
   scenicForm.regionValue = parseLocationToRegionValue(row.location)
   tagsInput.value = parseTags(row.tags).join(' ')
   dialogVisible.value = true
+  nextTick(dialogGuard.markPristine)
 }
 
 const handleDelete = (row) => {
@@ -579,7 +598,7 @@ const submitForm = () => {
             successMsg: '更新景点成功'
           })
         }
-        dialogVisible.value = false
+        dialogGuard.closeAfterSave()
         fetchScenicSpots()
       } catch (error) {
         console.error('提交表单失败:', error)
@@ -771,6 +790,7 @@ const searchCoordinates = async () => {
     
     // 打开地图对话框
     mapDialogVisible.value = true
+    nextTick(mapDialogGuard.markPristine)
     
     // 延迟初始化地图，确保DOM已渲染
     setTimeout(() => {
@@ -829,6 +849,7 @@ const performGeocoding = (searchText, loadingMessage) => {
         
         // 打开地图对话框让用户确认
         mapDialogVisible.value = true
+        nextTick(mapDialogGuard.markPristine)
         // 延迟初始化地图，确保DOM已渲染
         setTimeout(() => {
           initConfirmMap(location.lng, location.lat, searchText)
@@ -965,19 +986,18 @@ const confirmCoordinates = () => {
   searchResults.value = []
   showSearchResults.value = false
   
-  mapDialogVisible.value = false
+  mapDialogGuard.closeAfterSave()
   ElMessage.success('坐标已确认')
 }
 
-// 取消确认
-const cancelCoordinates = () => {
+// 重置地图确认弹窗临时数据
+const resetMapDialog = () => {
   // 清除临时坐标数据
   tempCoordinates.lng = null
   tempCoordinates.lat = null
   mapSearchKeyword.value = ''
   searchResults.value = []
   showSearchResults.value = false
-  mapDialogVisible.value = false
   console.log('对话框已关闭，临时坐标已清除')
 }
 

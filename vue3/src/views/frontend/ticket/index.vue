@@ -222,7 +222,7 @@
         <!-- 左侧图片 -->
         <div class="card-image">
           <img :src="getTourImage(item.mainImage)" :alt="item.title" loading="lazy" decoding="async" />
-          <span class="image-tag">{{ item.tag }}</span>
+          <span v-if="item.tag" class="image-tag">{{ item.tag }}</span>
         </div>
 
         <!-- 中间信息 -->
@@ -243,31 +243,32 @@
             <span class="row-departure">{{ item.subtitle }}</span>
           </div>
 
-          <div class="card-row">
-            <span class="row-label">推荐班期：</span>
-            <span class="row-date">{{ item.recommendDate }}</span>
-            <span class="row-label more-label">更多班期：</span>
-            <span class="row-more">{{ formatMoreDatesForDisplay(item.moreDates) }}</span>
+          <div class="card-row schedule-row" v-if="item.displayDates">
+            <span class="row-label">出行班期：</span>
+            <span class="row-more">{{ item.displayDates }}</span>
           </div>
 
-          <div class="card-row feature-row">
+          <div class="card-row feature-row" v-if="item.feature">
             <span class="row-label">班期特色：</span>
             <span class="row-feature">{{ item.feature }}</span>
           </div>
 
           <!-- 标签组 -->
-          <div class="card-tags">
+          <div class="card-tags" v-if="item.tags && item.tags.length">
             <span class="card-tag" v-for="tag in item.tags" :key="tag">{{ tag }}</span>
           </div>
         </div>
 
         <!-- 右侧价格 - 底部对齐 -->
         <div class="card-price">
+          <div v-if="item.minDiscountLabel" class="discount-ribbon">{{ item.minDiscountLabel }}</div>
+          <div v-if="item.minOriginalPrice" class="original-price">外网价 ¥{{ formatPrice(item.minOriginalPrice) }}</div>
           <div class="price-wrapper">
             <span class="currency">¥</span>
             <span class="price">{{ formatPrice(item.minPrice) }}</span>
             <span class="unit">起/人</span>
           </div>
+          <div v-if="getSavedAmount(item)" class="save-line">已省 ¥{{ formatPrice(getSavedAmount(item)) }}</div>
         </div>
       </div>
 
@@ -307,7 +308,7 @@
             >
               <div class="card-image">
                 <img :src="getTourImage(item.mainImage)" :alt="item.title" loading="lazy" decoding="async" />
-                <span class="image-tag">{{ item.tag }}</span>
+                <span v-if="item.tag" class="image-tag">{{ item.tag }}</span>
               </div>
 
               <div class="card-content">
@@ -326,29 +327,30 @@
                   <span class="row-departure">{{ item.subtitle }}</span>
                 </div>
 
-                <div class="card-row">
-                  <span class="row-label">推荐班期：</span>
-                  <span class="row-date">{{ item.recommendDate }}</span>
-                  <span class="row-label more-label">更多班期：</span>
-                  <span class="row-more">{{ formatMoreDatesForDisplay(item.moreDates) }}</span>
+                <div class="card-row schedule-row" v-if="item.displayDates">
+                  <span class="row-label">出行班期：</span>
+                  <span class="row-more">{{ item.displayDates }}</span>
                 </div>
 
-                <div class="card-row feature-row">
+                <div class="card-row feature-row" v-if="item.feature">
                   <span class="row-label">班期特色：</span>
                   <span class="row-feature">{{ item.feature }}</span>
                 </div>
 
-                <div class="card-tags">
+                <div class="card-tags" v-if="item.tags && item.tags.length">
                   <span class="card-tag" v-for="tag in item.tags" :key="tag">{{ tag }}</span>
                 </div>
               </div>
 
               <div class="card-price">
+                <div v-if="item.minDiscountLabel" class="discount-ribbon">{{ item.minDiscountLabel }}</div>
+                <div v-if="item.minOriginalPrice" class="original-price">外网价 ¥{{ formatPrice(item.minOriginalPrice) }}</div>
                 <div class="price-wrapper">
                   <span class="currency">¥</span>
                   <span class="price">{{ formatPrice(item.minPrice) }}</span>
                   <span class="unit">起/人</span>
                 </div>
+                <div v-if="getSavedAmount(item)" class="save-line">已省 ¥{{ formatPrice(getSavedAmount(item)) }}</div>
               </div>
             </div>
           </div>
@@ -425,6 +427,34 @@ const formatMoreDatesForDisplay = (value) => {
   }
   const items = Array.isArray(value) ? value : String(value).split(/[、,，\s]+/)
   return items.map(normalize).filter(Boolean).join('、')
+}
+
+const parseDateItems = (value) => {
+  if (!value) return []
+  const source = Array.isArray(value) ? value : String(value).split(/[、,，\s]+/)
+  return source.map(item => String(item || '').trim()).filter(Boolean)
+}
+
+const normalizeDateForDisplay = item => {
+  const text = String(item || '').trim()
+  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(text)) {
+    const [, month, day] = text.split('-')
+    return `${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+  }
+  if (/^\d{1,2}-\d{1,2}$/.test(text)) {
+    const [month, day] = text.split('-')
+    return `${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+  }
+  return text
+}
+
+const formatTravelDatesForDisplay = (recommendDate, moreDates, limit = 8) => {
+  const dates = [recommendDate, ...parseDateItems(moreDates)]
+    .map(normalizeDateForDisplay)
+    .filter(Boolean)
+  const uniqueDates = Array.from(new Set(dates))
+  const visibleDates = uniqueDates.slice(0, limit)
+  return uniqueDates.length > limit ? `${visibleDates.join('、')}、...` : visibleDates.join('、')
 }
 
 // 全国省市数据
@@ -840,7 +870,8 @@ const applyFilterLabels = data => {
 const normalizeTours = records => (records || []).map(item => ({
   ...item,
   moreDates: formatMoreDatesForDisplay(item.moreDates),
-  tags: parseTags(item.tags)
+  tags: parseTags(item.tags),
+  displayDates: formatTravelDatesForDisplay(item.recommendDate, item.moreDates)
 }))
 
 const buildQueryParams = () => ({
@@ -938,6 +969,13 @@ const getFilterTotalCount = (key) => {
 const formatPrice = (price) => {
   if (!price) return '0'
   return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+const getSavedAmount = (item) => {
+  const original = Number(item?.minOriginalPrice || 0)
+  const sale = Number(item?.minPrice || 0)
+  if (!original || !sale || original <= sale) return 0
+  return Math.round((original - sale) * 100) / 100
 }
 
 // 跳转到详情页
@@ -1392,6 +1430,7 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  height: 200px;
 }
 
 .ticket-card:hover {
@@ -1402,7 +1441,7 @@ onMounted(() => {
 .card-image {
   position: relative;
   width: 300px;
-  height: 200px;
+  height: 100%;
   flex-shrink: 0;
   overflow: hidden;
   background: #f0f0f0;
@@ -1433,16 +1472,19 @@ onMounted(() => {
 
 .card-content {
   flex: 1;
-  padding: 16px 20px;
+  padding: 11px 20px 14px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 5px;
   min-width: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .card-title {
   width: 100%;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   text-align: left;
 }
 
@@ -1485,9 +1527,10 @@ onMounted(() => {
   align-items: flex-start;
   font-size: 13px;
   color: #666;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
-  line-height: 1.5;
+  line-height: 1.42;
+  min-width: 0;
 }
 
 /* 出发城市行 - 左对齐 */
@@ -1510,10 +1553,6 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.more-label {
-  margin-left: 24px;
-}
-
 .row-date {
   color: #333;
   font-weight: 500;
@@ -1521,27 +1560,43 @@ onMounted(() => {
 
 .row-more {
   color: #666;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* 班期特色行 - 左对齐且可换行 */
+.schedule-row .row-more {
+  color: #333;
+}
+
 .feature-row {
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 4px;
 }
 
 .feature-row .row-feature {
   color: #f60;
-  flex: 0 1 auto;
   min-width: 0;
   word-break: break-word;
   white-space: normal;
-  line-height: 1.5;
+  line-height: 1.42;
+  max-height: 2.84em;
+  text-align: left;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .card-tag {
@@ -1556,19 +1611,41 @@ onMounted(() => {
 
 /* 右侧价格区域 - 底部对齐 */
 .card-price {
-  width: 150px;
-  height: 200px;
+  width: 168px;
+  height: 100%;
   flex-shrink: 0;
   display: flex;
+  flex-direction: column;
   align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 20px;
-  background: #fefaf5;
+  justify-content: flex-end;
+  gap: 5px;
+  padding: 14px 16px 16px 10px;
+  background: linear-gradient(180deg, #fff7ed 0%, #fff 100%);
   border-left: 1px solid #f0f0f0;
+  text-align: right;
+}
+
+.discount-ribbon {
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, #f97316, #dc2626);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 6px 14px rgba(220, 38, 38, 0.18);
+}
+
+.original-price {
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.2;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
 }
 
 .price-wrapper {
-  text-align: center;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .card-price .currency {
@@ -1588,6 +1665,13 @@ onMounted(() => {
 .card-price .unit {
   font-size: 12px;
   color: #999;
+}
+
+.save-line {
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 /* 初始状态样式 */
@@ -1673,6 +1757,7 @@ onMounted(() => {
 @media (max-width: 768px) {
   .ticket-card {
     flex-direction: column;
+    height: auto;
   }
   
   .card-image {
@@ -1682,8 +1767,10 @@ onMounted(() => {
   
   .card-price {
     width: 100%;
+    min-height: auto;
     padding: 16px 20px;
-    justify-content: flex-start;
+    align-items: flex-end;
+    justify-content: flex-end;
     border-left: none;
     border-top: 1px solid #f0f0f0;
   }
@@ -1692,10 +1779,6 @@ onMounted(() => {
     display: flex;
     align-items: baseline;
     gap: 4px;
-  }
-  
-  .more-label {
-    margin-left: 8px;
   }
   
   .sort-bar {
@@ -1711,18 +1794,8 @@ onMounted(() => {
     padding: 12px 16px;
   }
   
-  /* 班期特色行 - 左对齐，描述跟在标签后面 */
-  .feature-row {
-    align-items: flex-start;
-  }
-
-  .feature-row .row-feature {
-    color: #f60;
-    flex: 0 1 auto;
-    min-width: 0;
-    word-break: break-word;
-    white-space: normal;
-    line-height: 1.5;
+  .card-content {
+    gap: 8px;
   }
 }
 </style>

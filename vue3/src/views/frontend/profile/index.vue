@@ -381,6 +381,98 @@
               </div>
             </el-tab-pane>
 
+            <el-tab-pane label="我的优惠券" name="coupons">
+              <template #label>
+                <div class="tab-label">
+                  <el-icon><Ticket /></el-icon>
+                  <span>我的优惠券</span>
+                </div>
+              </template>
+
+              <div class="coupon-center">
+                <section class="coupon-head">
+                  <div>
+                    <span>Coupons</span>
+                    <h3>优惠券包</h3>
+                    <p>领取平台优惠券，预订行程时系统会自动筛选当前订单可用券。</p>
+                  </div>
+                  <el-button plain :loading="couponLoading" @click="loadCouponCenter">刷新</el-button>
+                </section>
+
+                <section class="coupon-section" v-if="receivableCoupons.length">
+                  <div class="coupon-section-title">
+                    <h4>可领取优惠</h4>
+                    <span>运营活动券会实时更新</span>
+                  </div>
+                  <div class="coupon-wallet-grid">
+                    <article
+                      v-for="coupon in receivableCoupons"
+                      :key="coupon.id"
+                      class="wallet-coupon public"
+                      :class="{ disabled: isCouponReceived(coupon) || isCouponSoldOut(coupon) || coupon.status !== 1 }"
+                    >
+                      <div class="wallet-value">
+                        <strong v-if="coupon.discountType === 'RATE'">{{ formatCouponRate(coupon.discountRate) }}</strong>
+                        <strong v-else>¥{{ formatCouponMoney(coupon.discountAmount) }}</strong>
+                        <span>{{ coupon.discountType === 'RATE' ? '折扣券' : '满减券' }}</span>
+                      </div>
+                      <div class="wallet-body">
+                        <h4>{{ coupon.name }}</h4>
+                        <p>满 ¥{{ formatCouponMoney(coupon.minOrderAmount) }} 可用 · {{ couponScopeText(coupon) }}</p>
+                        <small>{{ coupon.validEndTime ? `${formatCouponDate(coupon.validEndTime)} 前有效` : '长期有效' }}</small>
+                      </div>
+                      <el-button
+                        type="primary"
+                        plain
+                        :disabled="isCouponReceived(coupon) || isCouponSoldOut(coupon) || coupon.status !== 1"
+                        :loading="receivingCouponId === coupon.id"
+                        @click="handleReceiveCoupon(coupon)"
+                      >
+                        {{ isCouponReceived(coupon) ? '已领取' : (isCouponSoldOut(coupon) || coupon.status !== 1 ? '不可领取' : '领取') }}
+                      </el-button>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="coupon-section">
+                  <div class="coupon-section-title">
+                    <h4>我的券</h4>
+                    <el-radio-group v-model="couponStatusFilter" size="large" @change="fetchMyCoupons">
+                      <el-radio-button label="">全部</el-radio-button>
+                      <el-radio-button :label="0">未使用</el-radio-button>
+                      <el-radio-button :label="2">已使用</el-radio-button>
+                      <el-radio-button :label="3">已过期</el-radio-button>
+                    </el-radio-group>
+                  </div>
+                  <div v-if="couponLoading" class="loading-state">
+                    <el-skeleton :rows="4" animated />
+                  </div>
+                  <el-empty v-else-if="myCoupons.length === 0" description="暂无优惠券" />
+                  <div v-else class="coupon-wallet-grid">
+                    <article
+                      v-for="coupon in myCoupons"
+                      :key="coupon.id"
+                      class="wallet-coupon"
+                      :class="couponStatusClass(coupon)"
+                    >
+                      <div class="wallet-value">
+                        <strong v-if="coupon.discountType === 'RATE'">{{ formatCouponRate(coupon.discountRate) }}</strong>
+                        <strong v-else>¥{{ formatCouponMoney(coupon.discountAmount) }}</strong>
+                        <span>{{ couponStatusText(coupon.status) }}</span>
+                      </div>
+                      <div class="wallet-body">
+                        <h4>{{ coupon.couponName }}</h4>
+                        <p>满 ¥{{ formatCouponMoney(coupon.minOrderAmount) }} 可用 · {{ couponScopeText(coupon) }}</p>
+                        <small>{{ coupon.validStartTime || coupon.validEndTime ? `${formatCouponDate(coupon.validStartTime)} - ${formatCouponDate(coupon.validEndTime)}` : '长期有效' }}</small>
+                        <em v-if="coupon.status === 4">该优惠券已被平台关闭或删除，未使用券无法继续使用</em>
+                      </div>
+                      <el-button v-if="coupon.status === 0" type="primary" @click="useCoupon(coupon)">去使用</el-button>
+                    </article>
+                  </div>
+                </section>
+              </div>
+            </el-tab-pane>
+
             <el-tab-pane label="站内消息" name="notifications">
               <template #label>
                 <div class="tab-label">
@@ -576,13 +668,14 @@ import { useUserStore } from "@/store/user";
 import { useRoute, useRouter } from "vue-router";
 import request from "@/utils/request";
 import GeetestBox from '@/components/auth/GeetestBox.vue'
-import {User,Lock,Key,Check,Camera,Phone,Message,EditPen,ChatDotRound,Location,Bell,Plus,Delete} from '@element-plus/icons-vue'
+import {User,Lock,Key,Check,Camera,Phone,Message,EditPen,ChatDotRound,Location,Bell,Plus,Delete,Ticket} from '@element-plus/icons-vue'
 import { formatDate } from '@/utils/dateUtils'
 import { maskEmail, maskPhone } from '@/utils/mask'
 import { getFrequentTravelers, saveFrequentTraveler, updateFrequentTraveler, deleteFrequentTraveler } from '@/api/frequentTraveler'
 import { getSupportedImageMessage, isSupportedImageFile } from "@/utils/imageCompression";
 import { resolveImageUrl } from '@/utils/imageUrl'
 import { usePublicInteraction } from '@/utils/publicInteraction'
+import { getMyCoupons, getReceivableCoupons, receiveCoupon } from '@/api/coupon'
 
 const userStore = useUserStore();
 const route = useRoute();
@@ -607,6 +700,13 @@ const notificationUnreadCount = ref(0)
 const notificationReadStatus = ref('')
 let notificationRefreshTimer = null
 const NOTIFICATION_REFRESH_INTERVAL = 15000
+
+// 优惠券
+const myCoupons = ref([])
+const receivableCoupons = ref([])
+const couponLoading = ref(false)
+const couponStatusFilter = ref('')
+const receivingCouponId = ref(null)
 
 // 常用出行人
 const frequentTravelers = ref([])
@@ -1218,6 +1318,104 @@ const fetchMyComments = async () => {
   }
 }
 
+const formatCouponMoney = (value) => {
+  const number = Number(value || 0)
+  return Number.isInteger(number) ? String(number) : number.toFixed(2).replace(/\.?0+$/, '')
+}
+
+const formatCouponRate = (value) => `${Number((Number(value || 1) * 10).toFixed(1)).toString()}折`
+
+const formatCouponDate = (value) => value ? String(value).replace('T', ' ').slice(0, 10) : '不限'
+
+const couponScopeText = (coupon) => {
+  if (coupon.scopeType === 'TOUR') return '指定行程'
+  if (coupon.scopeType === 'TOUR_PACKAGE') return '指定套餐'
+  if (coupon.scopeType === 'TOUR_TYPE') return '指定类型'
+  return '全部行程'
+}
+
+const couponStatusText = (status) => {
+  const map = { 0: '未使用', 1: '已锁定', 2: '已使用', 3: '已过期', 4: '已作废' }
+  return map[status] || '未知'
+}
+
+const couponStatusClass = (coupon) => {
+  if (coupon.status === 0) return 'usable'
+  if (coupon.status === 2) return 'used'
+  return 'disabled'
+}
+
+const isCouponReceived = (coupon) => {
+  return myCoupons.value.some(item => Number(item.couponId) === Number(coupon.id))
+}
+
+const isCouponSoldOut = (coupon) => {
+  return Number(coupon.totalQuantity || 0) > 0 && Number(coupon.issuedQuantity || 0) >= Number(coupon.totalQuantity || 0)
+}
+
+const firstCouponScopeValue = (coupon) => {
+  return String(coupon?.scopeIds || '').split(/[,\s，、]+/).map(item => item.trim()).filter(Boolean)[0] || ''
+}
+
+const useCoupon = (coupon) => {
+  const scopeValue = firstCouponScopeValue(coupon)
+  if (coupon.scopeType === 'TOUR_PACKAGE' && scopeValue) {
+    const [tourId, packageId] = scopeValue.split(':')
+    if (tourId && packageId) {
+      router.push({ path: `/ticket/booking/${tourId}`, query: { packageId } })
+      return
+    }
+  }
+  if (coupon.scopeType === 'TOUR' && scopeValue) {
+    router.push(`/ticket/booking/${scopeValue}`)
+    return
+  }
+  router.push('/tickets')
+}
+
+const fetchMyCoupons = async () => {
+  couponLoading.value = true
+  try {
+    const params = {}
+    if (couponStatusFilter.value !== '') params.status = couponStatusFilter.value
+    myCoupons.value = await getMyCoupons(params) || []
+  } catch (error) {
+    console.error('获取优惠券失败', error)
+  } finally {
+    couponLoading.value = false
+  }
+}
+
+const fetchReceivableCoupons = async () => {
+  try {
+    receivableCoupons.value = await getReceivableCoupons() || []
+  } catch (error) {
+    receivableCoupons.value = []
+  }
+}
+
+const loadCouponCenter = async () => {
+  couponLoading.value = true
+  try {
+    await Promise.all([fetchMyCoupons(), fetchReceivableCoupons()])
+  } finally {
+    couponLoading.value = false
+  }
+}
+
+const handleReceiveCoupon = async (coupon) => {
+  receivingCouponId.value = coupon.id
+  try {
+    await receiveCoupon(coupon.id)
+    ElMessage.success('优惠券已领取')
+    await loadCouponCenter()
+  } catch (error) {
+    ElMessage.error(error.message || '领取失败')
+  } finally {
+    receivingCouponId.value = null
+  }
+}
+
 const fetchNotificationUnreadCount = async () => {
   try {
     notificationUnreadCount.value = await request.get('/notification/unread-count', {}, { showDefaultMsg: false })
@@ -1295,6 +1493,16 @@ const openNotification = async (item) => {
     await markNotificationRead(item)
   }
   if (item.linkUrl) {
+    if (item.linkUrl.startsWith('/profile')) {
+      const queryIndex = item.linkUrl.indexOf('?')
+      const params = new URLSearchParams(queryIndex >= 0 ? item.linkUrl.slice(queryIndex + 1) : '')
+      const tab = params.get('tab')
+      if (tab) {
+        activeTab.value = tab
+      }
+      router.replace({ path: '/profile', query: { ...route.query, tab: tab || route.query.tab } })
+      return
+    }
     router.push(item.linkUrl)
   }
 }
@@ -1420,6 +1628,8 @@ watch(activeTab, (newTab) => {
     fetchMyComments()
   } else if (newTab === 'travelers') {
     fetchFrequentTravelers()
+  } else if (newTab === 'coupons') {
+    loadCouponCenter()
   } else if (newTab === 'notifications') {
     fetchNotifications()
     startNotificationRefresh()
@@ -1433,7 +1643,7 @@ watch(activeTab, (newTab) => {
 
 watch(() => route.query.tab, (tab) => {
   if (!publicInteractionReady.value) return
-  const validTabs = ['basic', 'password', 'travelers', 'notifications']
+  const validTabs = ['basic', 'password', 'travelers', 'coupons', 'notifications']
   if (publicInteractionEnabled.value) {
     validTabs.push('mycomments')
   }
@@ -1511,6 +1721,8 @@ onMounted(async () => {
     startNotificationRefresh()
   } else if (activeTab.value === 'travelers') {
     fetchFrequentTravelers()
+  } else if (activeTab.value === 'coupons') {
+    loadCouponCenter()
   }
   document.addEventListener('visibilitychange', handleNotificationVisibilityChange)
 })
@@ -1560,6 +1772,114 @@ onUnmounted(() => {
     background: rgba(255, 255, 255, 0.88);
     box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
     backdrop-filter: blur(12px);
+  }
+
+  .coupon-center {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .coupon-head,
+  .coupon-section {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+  }
+
+  .coupon-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .coupon-head span,
+  .coupon-section-title span {
+    color: #f97316;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .coupon-head h3,
+  .coupon-section-title h4 {
+    margin: 6px 0;
+    color: #111827;
+  }
+
+  .coupon-head p {
+    margin: 0;
+    color: #64748b;
+  }
+
+  .coupon-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+
+  .coupon-wallet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+  }
+
+  .wallet-coupon {
+    display: grid;
+    grid-template-columns: 104px 1fr auto;
+    gap: 16px;
+    align-items: center;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #fff7ed 0%, #ffffff 60%);
+  }
+
+  .wallet-coupon.disabled,
+  .wallet-coupon.used {
+    background: #f8fafc;
+    opacity: 0.7;
+  }
+
+  .wallet-value {
+    min-height: 76px;
+    border-radius: 8px;
+    color: #fff;
+    background: #f97316;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .wallet-coupon.used .wallet-value,
+  .wallet-coupon.disabled .wallet-value {
+    background: #94a3b8;
+  }
+
+  .wallet-value strong {
+    font-size: 26px;
+    line-height: 1;
+  }
+
+  .wallet-value span {
+    margin-top: 6px;
+    font-size: 12px;
+  }
+
+  .wallet-body h4 {
+    margin: 0 0 8px;
+    font-size: 16px;
+  }
+
+  .wallet-body p,
+  .wallet-body small {
+    display: block;
+    margin: 0 0 5px;
+    color: #64748b;
   }
 
   .header-content {
