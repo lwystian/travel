@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,7 @@ public class TourOrderNotificationService {
     private static final Duration NOTIFY_DEDUP_TTL = Duration.ofDays(7);
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-    private final Set<Long> paidOrderNotifyCache = ConcurrentHashMap.newKeySet();
+    private final Set<String> paidOrderNotifyCache = ConcurrentHashMap.newKeySet();
 
     @Resource
     private UserMapper userMapper;
@@ -56,14 +57,10 @@ public class TourOrderNotificationService {
         if (order == null || order.getId() == null) {
             return;
         }
-        if (!markPaidOrderNotified(order.getId())) {
-            LOGGER.info("订单支付成功通知已发送过，跳过重复通知。orderId={}, orderNo={}", order.getId(), order.getOrderNo());
-            return;
-        }
 
         try {
             User user = userMapper.selectById(order.getUserId());
-            sendSiteNotifications(order);
+            runOnce(order.getId(), "site", () -> sendSiteNotifications(order));
             notifyUser(order, user);
             notifyAdmins(order, user);
             LOGGER.info("订单支付成功通知处理完成。orderId={}, orderNo={}", order.getId(), order.getOrderNo());
@@ -106,15 +103,23 @@ public class TourOrderNotificationService {
     private void notifyUser(TourOrder order, User user) {
         String email = normalizeEmail(user == null ? null : user.getEmail());
         if (StringUtils.hasText(email)) {
-            sendEmailQuietly(email, "【" + COMPANY_SHORT_NAME + "】行程订单支付成功通知", buildUserEmail(order, user));
+            sendEmailOnce(
+                    order,
+                    "user-email:" + targetKey(email),
+                    email,
+                    "【" + COMPANY_SHORT_NAME + "】行程订单支付成功通知",
+                    buildUserEmail(order, user)
+            );
         }
 
-        String phone = normalizePhone(user == null ? null : user.getPhone());
-        if (!StringUtils.hasText(phone)) {
-            phone = normalizePhone(order.getContactPhone());
+        Set<String> phones = resolveUserSmsPhones(order, user);
+        if (phones.isEmpty()) {
+            LOGGER.warn("订单用户短信无有效接收手机号，跳过发送。orderId={}, orderNo={}", order.getId(), order.getOrderNo());
+            return;
         }
-        if (StringUtils.hasText(phone)) {
-            sendSmsQuietly(phone, true, buildSmsParams(order, user));
+        Map<String, Object> params = buildSmsParams(order, user);
+        for (String phone : phones) {
+            sendSmsOnce(order, "user-sms:" + targetKey(phone), phone, true, params);
         }
     }
 
@@ -130,12 +135,18 @@ public class TourOrderNotificationService {
             }
             String email = normalizeEmail(admin.getEmail());
             if (StringUtils.hasText(email)) {
-                sendEmailQuietly(email, "【" + COMPANY_SHORT_NAME + "】新支付行程订单待跟进", emailContent);
+                sendEmailOnce(
+                        order,
+                        "admin-email:" + admin.getId() + ":" + targetKey(email),
+                        email,
+                        "【" + COMPANY_SHORT_NAME + "】新支付行程订单待跟进",
+                        emailContent
+                );
             }
 
             String phone = normalizePhone(admin.getPhone());
             if (StringUtils.hasText(phone)) {
-                sendSmsQuietly(phone, false, params);
+                sendSmsOnce(order, "admin-sms:" + admin.getId() + ":" + targetKey(phone), phone, false, params);
             }
         }
     }
@@ -148,17 +159,36 @@ public class TourOrderNotificationService {
         }
     }
 
-    private void sendSmsQuietly(String phone, boolean userTemplate, Map<String, Object> params) {
+    private void sendEmailOnce(TourOrder order, String channel, String email, String subject, String content) {
+        runOnce(order.getId(), channel, () -> sendEmailQuietly(email, subject, content));
+    }
+
+    private void sendSmsOnce(TourOrder order, String channel, String phone, boolean userTemplate, Map<String, Object> params) {
+        if (!markNotifyChannelStarted(order.getId(), channel)) {
+            LOGGER.info("订单{}短信已发送过，跳过重复发送。orderId={}, orderNo={}, phone={}",
+                    userTemplate ? "用户" : "管理员", order.getId(), order.getOrderNo(), maskPhone(phone));
+            return;
+        }
+        if (!sendSmsQuietly(phone, userTemplate, params)) {
+            clearNotifyChannelMark(order.getId(), channel);
+        }
+    }
+
+    private boolean sendSmsQuietly(String phone, boolean userTemplate, Map<String, Object> params) {
         try {
             AliyunSmsConfigDTO config = authConfigService.getSmsConfigForSend();
             String templateCode = userTemplate ? config.getOrderUserTemplateCode() : config.getOrderAdminTemplateCode();
             if (!StringUtils.hasText(templateCode)) {
                 LOGGER.warn("订单{}短信模板未配置，跳过发送。phone={}", userTemplate ? "用户" : "管理员", maskPhone(phone));
-                return;
+                return false;
             }
             aliyunSmsSenderService.sendTemplate(config, phone, templateCode, params);
+            LOGGER.info("订单{}短信发送成功。phone={}, templateCode={}",
+                    userTemplate ? "用户" : "管理员", maskPhone(phone), templateCode);
+            return true;
         } catch (Exception e) {
             LOGGER.warn("订单通知短信发送失败。phone={}, userTemplate={}, reason={}", maskPhone(phone), userTemplate, e.getMessage());
+            return false;
         }
     }
 
@@ -263,8 +293,21 @@ public class TourOrderNotificationService {
         return params;
     }
 
-    private boolean markPaidOrderNotified(Long orderId) {
-        String key = "tour:order:paid-notify:" + orderId;
+    private void runOnce(Long orderId, String channel, Runnable action) {
+        if (!markNotifyChannelStarted(orderId, channel)) {
+            LOGGER.info("订单支付成功通知通道已处理过，跳过重复通知。orderId={}, channel={}", orderId, channel);
+            return;
+        }
+        try {
+            action.run();
+        } catch (Exception e) {
+            clearNotifyChannelMark(orderId, channel);
+            throw e;
+        }
+    }
+
+    private boolean markNotifyChannelStarted(Long orderId, String channel) {
+        String key = Objects.requireNonNull(buildNotifyChannelKey(orderId, channel), "notify channel key must not be null");
         if (stringRedisTemplate != null) {
             try {
                 Boolean marked = stringRedisTemplate.opsForValue()
@@ -279,7 +322,41 @@ public class TourOrderNotificationService {
                 LOGGER.warn("订单通知 Redis 去重失败，降级为本地内存去重。orderId={}, reason={}", orderId, e.getMessage());
             }
         }
-        return paidOrderNotifyCache.add(orderId);
+        return paidOrderNotifyCache.add(key);
+    }
+
+    private void clearNotifyChannelMark(Long orderId, String channel) {
+        String key = Objects.requireNonNull(buildNotifyChannelKey(orderId, channel), "notify channel key must not be null");
+        if (stringRedisTemplate != null) {
+            try {
+                stringRedisTemplate.delete(key);
+            } catch (Exception e) {
+                LOGGER.warn("清理订单通知 Redis 去重标记失败。orderId={}, channel={}, reason={}", orderId, channel, e.getMessage());
+            }
+        }
+        paidOrderNotifyCache.remove(key);
+    }
+
+    private String buildNotifyChannelKey(Long orderId, String channel) {
+        return "tour:order:paid-notify:" + orderId + ":" + channel;
+    }
+
+    private Set<String> resolveUserSmsPhones(TourOrder order, User user) {
+        Set<String> phones = new LinkedHashSet<>();
+        addPhone(phones, order == null ? null : order.getContactPhone());
+        addPhone(phones, user == null ? null : user.getPhone());
+        return phones;
+    }
+
+    private void addPhone(Set<String> phones, String phone) {
+        String normalized = normalizePhone(phone);
+        if (StringUtils.hasText(normalized)) {
+            phones.add(normalized);
+        }
+    }
+
+    private String targetKey(String value) {
+        return Integer.toHexString(value == null ? 0 : value.hashCode());
     }
 
     private String resolveUserName(User user, TourOrder order) {
