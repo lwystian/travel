@@ -21,6 +21,9 @@ public class Carousel {
     
     @Schema(description = "轮播图片地址")
     private String imageUrl;
+
+    @Schema(description = "点击跳转链接，支持站内路径或 http/https 地址")
+    private String linkUrl;
     
     @Schema(description = "状态: 1-启用, 0-禁用")
     private Integer status;

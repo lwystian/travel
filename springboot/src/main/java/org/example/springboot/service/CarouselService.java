@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.annotation.Resource;
 import org.example.springboot.entity.Carousel;
+import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.CarouselMapper;
 import org.springframework.stereotype.Service;
 
@@ -53,6 +54,7 @@ public class CarouselService {
      * @return 添加结果
      */
     public boolean addCarousel(Carousel carousel) {
+        normalizeCarousel(carousel);
         return carouselMapper.insert(carousel) > 0;
     }
     
@@ -62,6 +64,7 @@ public class CarouselService {
      * @return 更新结果
      */
     public boolean updateCarousel(Carousel carousel) {
+        normalizeCarousel(carousel);
         return carouselMapper.updateById(carousel) > 0;
     }
     
@@ -85,5 +88,21 @@ public class CarouselService {
         carousel.setId(id);
         carousel.setStatus(status);
         return carouselMapper.updateById(carousel) > 0;
+    }
+
+    private void normalizeCarousel(Carousel carousel) {
+        if (carousel == null) {
+            return;
+        }
+        String linkUrl = carousel.getLinkUrl();
+        if (linkUrl == null || linkUrl.isBlank()) {
+            carousel.setLinkUrl(null);
+            return;
+        }
+        String normalized = linkUrl.trim();
+        if (!normalized.startsWith("/") && !normalized.matches("(?i)^https?://.+")) {
+            throw new ServiceException("轮播图链接仅支持站内路径或 http/https 地址");
+        }
+        carousel.setLinkUrl(normalized);
     }
 } 

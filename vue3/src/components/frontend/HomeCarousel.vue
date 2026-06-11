@@ -2,7 +2,7 @@
   <div ref="carouselRoot" class="home-carousel" :style="{ '--home-carousel-height': `${carouselHeight}px` }">
     <el-carousel :interval="4000" :height="`${carouselHeight}px`" indicator-position="outside" arrow="never" v-loading="loading">
       <el-carousel-item v-for="item in carouselList" :key="item.id">
-        <div class="carousel-content">
+        <div class="carousel-content" :class="{ clickable: hasLink(item) }" @click="handleCarouselClick(item)">
           <img :src="getImageUrl(item.imageUrl)" :alt="item.title" class="carousel-image" />
           <div class="carousel-overlay">
             <div class="carousel-title" v-if="item.title">{{ item.title }}</div>
@@ -15,9 +15,11 @@
 
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import request from '@/utils/request'
 import noImage from '@/assets/images/no-image.png'
 
+const router = useRouter()
 const carouselList = ref([])
 const loading = ref(false)
 const carouselRoot = ref(null)
@@ -35,6 +37,20 @@ const updateCarouselHeight = () => {
 const getImageUrl = (url) => {
   if (!url) return noImage
   return url.startsWith('http') ? url : baseAPI + url
+}
+
+const hasLink = (item) => Boolean(String(item?.linkUrl || '').trim())
+
+const handleCarouselClick = (item) => {
+  const url = String(item?.linkUrl || '').trim()
+  if (!url) return
+  if (/^https?:\/\//i.test(url)) {
+    window.open(url, '_blank', 'noopener,noreferrer')
+    return
+  }
+  if (url.startsWith('/')) {
+    router.push(url)
+  }
 }
 
 const fetchCarousels = async () => {
@@ -80,6 +96,10 @@ onBeforeUnmount(() => {
   position: relative;
   width: 100%;
   height: 100%;
+}
+
+.carousel-content.clickable {
+  cursor: pointer;
 }
 
 .carousel-image {

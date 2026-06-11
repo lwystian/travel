@@ -31,6 +31,11 @@
           </template>
         </el-table-column>
         <el-table-column prop="title" label="标题" />
+        <el-table-column label="跳转链接" min-width="180" show-overflow-tooltip>
+          <template #default="scope">
+            <span class="link-text">{{ scope.row.linkUrl || '未设置' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="scope">
             <el-tag :type="scope.row.status === 1 ? 'success' : 'info'">
@@ -108,6 +113,11 @@
           </el-upload>
           <div class="el-upload-tip">建议尺寸: 1920×500像素, 大小不超过2MB</div>
         </el-form-item>
+
+        <el-form-item label="跳转链接" prop="linkUrl">
+          <el-input v-model="form.linkUrl" clearable placeholder="如 /tickets 或 https://example.com" />
+          <div class="form-tip">留空则点击轮播图不跳转；支持站内路径或 http/https 地址。</div>
+        </el-form-item>
         
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
@@ -156,6 +166,7 @@ const form = reactive({
   id: null,
   title: '',
   imageUrl: '',
+  linkUrl: '',
   status: 1
 })
 
@@ -179,6 +190,19 @@ const rules = {
   ],
   imageUrl: [
     { required: true, message: '请上传轮播图片', trigger: 'change' }
+  ],
+  linkUrl: [
+    {
+      validator: (rule, value, callback) => {
+        const url = String(value || '').trim()
+        if (!url || url.startsWith('/') || /^https?:\/\/.+/i.test(url)) {
+          callback()
+          return
+        }
+        callback(new Error('链接仅支持站内路径或 http/https 地址'))
+      },
+      trigger: 'blur'
+    }
   ],
   status: [
     { required: true, message: '请选择状态', trigger: 'change' }
@@ -312,6 +336,7 @@ const resetForm = () => {
   form.id = null
   form.title = ''
   form.imageUrl = ''
+  form.linkUrl = ''
   form.status = 1
   
   if (formRef.value) {
@@ -436,6 +461,11 @@ onMounted(() => {
         color: #7f8c8d;
         font-size: 12px;
       }
+
+      .link-text {
+        color: #606266;
+        font-size: 13px;
+      }
       
       .edit-btn {
         margin-right: 8px;
@@ -508,6 +538,13 @@ onMounted(() => {
         font-size: 12px;
         color: #606266;
         margin-top: 8px;
+      }
+
+      .form-tip {
+        margin-top: 6px;
+        color: #909399;
+        font-size: 12px;
+        line-height: 1.5;
       }
     }
   }

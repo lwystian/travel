@@ -488,7 +488,7 @@
             placeholder="不选则默认全部行程套餐可选"
             style="width: 100%;"
           >
-            <el-option v-for="pkg in tripPackages" :key="pkg.id" :label="pkg.name" :value="pkg.id" />
+            <el-option v-for="pkg in tripPackages" :key="pkg.id" :label="formatPackageOptionLabel(pkg)" :value="pkg.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="附加费用">
@@ -500,7 +500,7 @@
             placeholder="不选则默认全部附加费用可选"
             style="width: 100%;"
           >
-            <el-option v-for="pkg in batchPackages" :key="pkg.id" :label="pkg.name" :value="pkg.id" />
+            <el-option v-for="pkg in batchPackages" :key="pkg.id" :label="formatAddonOptionLabel(pkg)" :value="pkg.id" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -559,7 +559,7 @@
             placeholder="不选则默认全部行程套餐可选"
             style="width: 100%;"
           >
-            <el-option v-for="pkg in tripPackages" :key="pkg.id" :label="pkg.name" :value="pkg.id" />
+            <el-option v-for="pkg in tripPackages" :key="pkg.id" :label="formatPackageOptionLabel(pkg)" :value="pkg.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="附加费用">
@@ -571,7 +571,7 @@
             placeholder="不选则默认全部附加费用可选"
             style="width: 100%;"
           >
-            <el-option v-for="pkg in batchPackages" :key="pkg.id" :label="pkg.name" :value="pkg.id" />
+            <el-option v-for="pkg in batchPackages" :key="pkg.id" :label="formatAddonOptionLabel(pkg)" :value="pkg.id" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -1186,6 +1186,25 @@ const getDiscountLabel = (originalPrice, salePrice) => {
 
 const normalizeOriginalPrice = (originalPrice, salePrice) => {
   return hasPromotion(originalPrice, salePrice) ? originalPrice : null
+}
+
+const formatAmount = (value) => {
+  const number = Number(value || 0)
+  return Number.isInteger(number) ? String(number) : number.toFixed(2)
+}
+
+const formatPackageOptionLabel = (pkg) => {
+  if (!pkg) return ''
+  const parts = [`成人¥${formatAmount(pkg.adultPrice)}`]
+  if (pkg.childPrice !== null && pkg.childPrice !== undefined && pkg.childPrice !== '') {
+    parts.push(`儿童¥${formatAmount(pkg.childPrice)}`)
+  }
+  return `${pkg.name || `套餐 ${pkg.id}`}（${parts.join(' / ')}）`
+}
+
+const formatAddonOptionLabel = (pkg) => {
+  if (!pkg) return ''
+  return `${pkg.name || `附加费用 ${pkg.id}`}（¥${formatAmount(pkg.extraFeePerPerson)}/份）`
 }
 
 const getAvailableSeats = (batch) => {
