@@ -408,24 +408,9 @@
                 <span class="total-label">附加：</span>
                 <span class="total-unit">¥{{ addonTotalPrice }}</span>
               </div>
-              <div class="coupon-picker">
-                <span class="total-label">优惠券：</span>
-                <select v-if="availableCoupons.length > 0" v-model="selectedCouponUserId" class="booking-select coupon-select">
-                  <option value="">不使用优惠券</option>
-                  <option v-for="coupon in availableCoupons" :key="coupon.id" :value="coupon.id">
-                    {{ couponOptionText(coupon) }}
-                  </option>
-                </select>
-                <span v-else class="coupon-empty-text">无可用优惠券</span>
-                <span v-if="couponsLoading" class="coupon-hint">加载中...</span>
-              </div>
-              <div v-if="couponDiscountAmount > 0" class="total-detail discount-row">
-                <span class="total-label">优惠：</span>
-                <span class="total-unit">-¥{{ formatMoney(couponDiscountAmount) }}</span>
-              </div>
               <div class="total-amount">
                 <span class="total-label">应付：</span>
-                <span class="total-value">¥{{ formatMoney(payablePrice) }}</span>
+                <span class="total-value">¥{{ formatMoney(totalPrice) }}</span>
               </div>
             </div>
 
@@ -679,14 +664,9 @@
             <span>订单原价</span>
             <strong>¥{{ formatMoney(totalPrice) }}</strong>
           </div>
-          <div v-if="selectedCoupon" class="discount">
-            <span>优惠券</span>
-            <strong>-¥{{ formatMoney(couponDiscountAmount) }}</strong>
-            <em>{{ selectedCoupon.couponName }}</em>
-          </div>
           <div class="payable">
             <span>应付金额</span>
-            <strong>¥{{ formatMoney(payablePrice) }}</strong>
+            <strong>¥{{ formatMoney(totalPrice) }}</strong>
           </div>
         </div>
       </section>
@@ -763,7 +743,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowDown, Check } from '@element-plus/icons-vue'
 import { getTourDetailFull } from '@/api/tour'
 import { createTourOrder } from '@/api/tourOrder'
-import { getAvailableCoupons } from '@/api/coupon'
 import request from '@/utils/request'
 import { renderContent } from '@/utils/contentRenderer'
 import { getTourTypeLabel } from '@/utils/tourTypes'
@@ -835,6 +814,7 @@ const parseTags = (tags) => {
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const BOOKING_SELECTION_PREFIX = 'ticketBookingSelection:'
 
 // =============================================
 // 响应式数据
@@ -949,9 +929,8 @@ const bookingSubmitting = ref(false)
 const pendingOrderData = ref(null)
 const createdOrder = ref(null)
 const orderSuccessVisible = ref(false)
-const availableCoupons = ref([])
-const selectedCouponUserId = ref(null)
-const couponsLoading = ref(false)
+
+const bookingSelectionKey = computed(() => `${BOOKING_SELECTION_PREFIX}${route.params.id}`)
 
 // =============================================
 // 计算属性 - 最低价
@@ -986,15 +965,6 @@ const savedAmount = (originalPrice, salePrice) => {
 const formatMoney = (value) => {
   const number = Number(value || 0)
   return Number.isInteger(number) ? String(number) : number.toFixed(2).replace(/\.?0+$/, '')
-}
-
-const couponOptionText = (coupon) => {
-  if (!coupon) return ''
-  if (coupon.discountType === 'RATE') {
-    const cap = Number(coupon.maxDiscountAmount || 0)
-    return `${coupon.couponName} · 折扣券 · ${Number((Number(coupon.discountRate || 1) * 10).toFixed(1))}折${cap > 0 ? ` 最高减¥${formatMoney(cap)}` : ''}`
-  }
-  return `${coupon.couponName} · 满减券 · ¥${formatMoney(coupon.discountAmount)}`
 }
 
 const isBatchBookableForMinPrice = (batch) => {
@@ -1217,62 +1187,10 @@ const totalPrice = computed(() => {
   return adultTotal + childTotal + addonTotalPrice.value + hotelTotal
 })
 
-const selectedCoupon = computed(() => {
-  return availableCoupons.value.find(item => Number(item.id) === Number(selectedCouponUserId.value)) || null
-})
-
-const couponDiscountAmount = computed(() => {
-  const coupon = selectedCoupon.value
-  if (!coupon) return 0
-  const amount = Number(totalPrice.value || 0)
-  if (amount <= 0) return 0
-  if (coupon.discountType === 'RATE') {
-    const rate = Number(coupon.discountRate || 1)
-    let discount = amount * (1 - rate)
-    if (Number(coupon.maxDiscountAmount || 0) > 0) {
-      discount = Math.min(discount, Number(coupon.maxDiscountAmount))
-    }
-    return Math.max(0, Math.round(Math.min(discount, amount) * 100) / 100)
-  }
-  return Math.max(0, Math.round(Math.min(Number(coupon.discountAmount || 0), amount) * 100) / 100)
-})
-
-const payablePrice = computed(() => {
-  return Math.max(0, Math.round((Number(totalPrice.value || 0) - couponDiscountAmount.value) * 100) / 100)
-})
-
 // 酒店总费用
 const hotelTotalPrice = computed(() => {
   return hotelBookingDays.value * hotelPricePerNight.value
 })
-
-const fetchAvailableCoupons = async () => {
-  if (!productInfo.value?.code || !productInfo.value?.id || !isSelectionComplete.value || totalPrice.value <= 0) {
-    availableCoupons.value = []
-    selectedCouponUserId.value = null
-    return
-  }
-  couponsLoading.value = true
-  try {
-    const res = await getAvailableCoupons({
-      tourId: productInfo.value.id,
-      packageId: selectedPackage.value,
-      orderAmount: totalPrice.value
-    }, { showDefaultMsg: false })
-    availableCoupons.value = res || []
-    if (selectedCouponUserId.value && !availableCoupons.value.some(item => Number(item.id) === Number(selectedCouponUserId.value))) {
-      selectedCouponUserId.value = null
-    }
-    if (!selectedCouponUserId.value && availableCoupons.value.length > 0) {
-      selectedCouponUserId.value = availableCoupons.value[0].id
-    }
-  } catch (error) {
-    availableCoupons.value = []
-    selectedCouponUserId.value = null
-  } finally {
-    couponsLoading.value = false
-  }
-}
 
 // =============================================
 // 计算属性 - 批次列表展示
@@ -1577,6 +1495,82 @@ const buildBatchDisplay = (batch) => {
   return display || null
 }
 
+const saveBookingSelectionForLogin = () => {
+  const selection = {
+    selectedTrip: selectedTrip.value,
+    selectedPackage: selectedPackage.value,
+    selectedBatchDate: selectedBatchDate.value,
+    selectedAddonIds: selectedAddonIds.value,
+    addonQuantities: addonQuantities.value,
+    adultCount: adultCount.value,
+    childCount: childCount.value,
+    selectedHotelId: selectedHotel.value?.accommodationId || selectedHotelId.value || null,
+    hotelBookingDays: hotelBookingDays.value,
+    isHotelExpanded: isHotelExpanded.value,
+    viewMode: viewMode.value,
+    savedAt: Date.now()
+  }
+  sessionStorage.setItem(bookingSelectionKey.value, JSON.stringify(selection))
+}
+
+const restoreBookingSelectionAfterLogin = () => {
+  const raw = sessionStorage.getItem(bookingSelectionKey.value)
+  if (!raw) return
+
+  try {
+    const selection = JSON.parse(raw)
+    const isRecent = Date.now() - Number(selection.savedAt || 0) < 60 * 60 * 1000
+    if (!isRecent) {
+      sessionStorage.removeItem(bookingSelectionKey.value)
+      return
+    }
+
+    const preferredPackageId = Number(selection.selectedPackage || selection.selectedTrip || 0)
+    if (preferredPackageId && tripPackages.value.some(pkg => Number(pkg.id) === preferredPackageId)) {
+      selectedPackage.value = preferredPackageId
+      selectedTrip.value = String(preferredPackageId)
+    }
+
+    if (selection.selectedBatchDate && batchDates.value.some(batch => batch.date === selection.selectedBatchDate)) {
+      selectedBatchDate.value = selection.selectedBatchDate
+      selectedDate.value = selection.selectedBatchDate
+      const batch = batchDates.value.find(item => item.date === selection.selectedBatchDate)
+      currentBatch.value = buildBatchDisplay(batch)
+    }
+
+    syncSelectionForCurrentBatch()
+
+    const validAddonIds = new Set(availableAddonPackages.value.map(pkg => Number(pkg.id)))
+    selectedAddonIds.value = Array.isArray(selection.selectedAddonIds)
+      ? selection.selectedAddonIds.map(Number).filter(id => validAddonIds.has(id))
+      : []
+    const nextQuantities = {}
+    selectedAddonIds.value.forEach(id => {
+      nextQuantities[id] = Math.min(MAX_ADDON_COUNT, Math.max(1, Number(selection.addonQuantities?.[id] || 1)))
+    })
+    addonQuantities.value = nextQuantities
+
+    adultCount.value = Math.max(1, Number(selection.adultCount || 1))
+    childCount.value = hasChildPrice.value ? Math.max(0, Number(selection.childCount || 0)) : 0
+    viewMode.value = selection.viewMode === 'list' ? 'list' : 'calendar'
+
+    const hotelId = Number(selection.selectedHotelId || 0)
+    if (hotelId) {
+      selectedHotelId.value = hotelId
+      handleHotelSelect(hotelId)
+      hotelBookingDays.value = Math.max(1, Number(selection.hotelBookingDays || hotelBookingDays.value || 1))
+      isHotelExpanded.value = Boolean(selection.isHotelExpanded)
+    }
+
+    refreshCurrentBatchPrice()
+    sessionStorage.removeItem(bookingSelectionKey.value)
+    ElMessage.success('已恢复登录前选择的行程信息')
+  } catch (error) {
+    void error
+    sessionStorage.removeItem(bookingSelectionKey.value)
+  }
+}
+
 // 酒店预订相关方法
 const toggleHotelSection = () => {
   isHotelExpanded.value = !isHotelExpanded.value
@@ -1767,6 +1761,9 @@ const fetchProductDetail = async () => {
         selectedTrip.value = String(preferredPackage.id)
       }
       initDefaultSelection()
+      if (userStore.checkLoginStatus()) {
+        restoreBookingSelectionAfterLogin()
+      }
     }
   } catch (error) {
     void error
@@ -1813,6 +1810,17 @@ const handleBooking = async () => {
     return
   }
 
+  userStore.syncFromStorage()
+  if (!userStore.checkLoginStatus()) {
+    saveBookingSelectionForLogin()
+    ElMessage.warning('请先登录后再提交报名信息')
+    router.push({
+      path: '/login',
+      query: { redirect: route.fullPath }
+    })
+    return
+  }
+
   // 构建订单数据
   const orderData = {
     productId: productInfo.value.code,
@@ -1828,8 +1836,8 @@ const handleBooking = async () => {
     // 传递前端计算的价格用于后端校验
     clientAdultUnitPrice: currentFinalAdultPrice.value,
     clientChildUnitPrice: hasChildPrice.value ? currentFinalChildPrice.value : 0,
-    clientTotalPrice: payablePrice.value,
-    couponUserId: selectedCouponUserId.value ? Number(selectedCouponUserId.value) : null
+    clientTotalPrice: totalPrice.value,
+    couponUserId: null
   }
 
   // 添加酒店信息
@@ -1856,6 +1864,17 @@ const confirmCreateOrder = async () => {
     orderSuccessVisible.value = true
   } catch (err) {
     const errorMsg = err?.message || err?.msg || '订单创建失败'
+
+    if (String(err?.code) === '401') {
+      saveBookingSelectionForLogin()
+      bookingConfirmVisible.value = false
+      ElMessage.warning('登录已过期，请重新登录后继续报名')
+      router.push({
+        path: '/login',
+        query: { redirect: route.fullPath }
+      })
+      return
+    }
 
     if (errorMsg.includes('待支付订单')) {
       const goToOrders = await ElMessageBox.confirm(
@@ -1998,13 +2017,6 @@ watch(isTourDetailExpanded, () => {
     requestDetailNavPositionUpdate()
   })
 })
-
-watch(
-  () => [productInfo.value.id, selectedPackage.value, selectedBatchDate.value, adultCount.value, childCount.value, addonTotalPrice.value, hotelTotalPrice.value, totalPrice.value],
-  () => {
-    fetchAvailableCoupons()
-  }
-)
 
 // =============================================
 // 生命周期
@@ -2810,40 +2822,6 @@ onUnmounted(() => {
   color: #333;
 }
 
-.coupon-picker {
-  display: grid;
-  grid-template-columns: max-content max-content auto;
-  align-items: center;
-  column-gap: 6px;
-  width: max-content;
-  max-width: 100%;
-  font-size: 12px;
-  color: #666;
-  justify-content: start;
-}
-
-.coupon-select {
-  width: 260px;
-  min-width: 0;
-  max-width: 260px;
-  background: #fff;
-}
-
-.coupon-empty-text {
-  color: #98a2b3;
-}
-
-.coupon-hint {
-  color: #98a2b3;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.discount-row .total-unit {
-  color: #f97316;
-  font-weight: 700;
-}
-
 .total-origin {
   display: inline-block;
   margin-right: 5px;
@@ -3569,14 +3547,6 @@ onUnmounted(() => {
     border-top: 1px solid #eee;
     padding-top: 10px;
     margin-top: 5px;
-  }
-  .coupon-picker {
-    grid-template-columns: max-content minmax(0, 1fr);
-    width: 100%;
-  }
-  .coupon-hint {
-    grid-column: 2;
-    white-space: normal;
   }
   .submit-btn {
     width: 100%;

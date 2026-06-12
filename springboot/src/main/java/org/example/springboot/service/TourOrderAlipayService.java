@@ -101,6 +101,8 @@ public class TourOrderAlipayService {
             throw new ServiceException("订单状态异常，无法发起支付");
         }
         assertCanReadOrder(order);
+        couponService.revalidateOrderCoupon(order.getId());
+        order = tourOrderMapper.selectById(orderId);
 
         // 3. 验证订单金额
         if (order.getTotalAmount() == null || order.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {

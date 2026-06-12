@@ -30,11 +30,13 @@ public class CouponSchemaInitializer {
                       `name` VARCHAR(120) NOT NULL COMMENT '优惠券名称',
                       `code` VARCHAR(60) NOT NULL COMMENT '券码/批次码',
                       `description` VARCHAR(500) DEFAULT NULL COMMENT '使用说明',
-                      `discount_type` VARCHAR(20) NOT NULL COMMENT 'AMOUNT固定金额 RATE折扣',
+                      `discount_type` VARCHAR(20) NOT NULL COMMENT 'AMOUNT满减 RATE折扣，年龄范围由min_age/max_age控制',
                       `discount_amount` DECIMAL(10,2) DEFAULT NULL COMMENT '固定减免金额',
                       `discount_rate` DECIMAL(5,2) DEFAULT NULL COMMENT '折扣比例，如0.85',
                       `max_discount_amount` DECIMAL(10,2) DEFAULT NULL COMMENT '折扣封顶金额',
                       `min_order_amount` DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '最低订单金额',
+                      `min_age` INT DEFAULT NULL COMMENT '最低适用年龄，空为不限',
+                      `max_age` INT DEFAULT NULL COMMENT '最高适用年龄，空为不限',
                       `scope_type` VARCHAR(30) NOT NULL DEFAULT 'ALL_TOUR' COMMENT 'ALL_TOUR全部行程 TOUR指定行程 TOUR_PACKAGE指定套餐 TOUR_TYPE行程类型',
                       `scope_ids` TEXT DEFAULT NULL COMMENT '适用范围ID/编码，逗号分隔',
                       `total_quantity` INT NOT NULL DEFAULT 0 COMMENT '总发行量，0不限量',
@@ -68,6 +70,8 @@ public class CouponSchemaInitializer {
                       `discount_rate` DECIMAL(5,2) DEFAULT NULL,
                       `max_discount_amount` DECIMAL(10,2) DEFAULT NULL,
                       `min_order_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
+                      `min_age` INT DEFAULT NULL,
+                      `max_age` INT DEFAULT NULL,
                       `scope_type` VARCHAR(30) NOT NULL DEFAULT 'ALL_TOUR',
                       `scope_ids` TEXT DEFAULT NULL,
                       `valid_start_time` DATETIME DEFAULT NULL,
@@ -97,6 +101,10 @@ public class CouponSchemaInitializer {
         addColumn("tour_order", "coupon_name", "ALTER TABLE `tour_order` ADD COLUMN `coupon_name` VARCHAR(120) DEFAULT NULL COMMENT '优惠券名称' AFTER `coupon_user_id`");
         addColumn("tour_order", "discount_amount", "ALTER TABLE `tour_order` ADD COLUMN `discount_amount` DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '优惠金额' AFTER `coupon_name`");
         addColumn("tour_order", "payable_amount", "ALTER TABLE `tour_order` ADD COLUMN `payable_amount` DECIMAL(10,2) DEFAULT NULL COMMENT '应付金额' AFTER `discount_amount`");
+        addColumn("coupon", "min_age", "ALTER TABLE `coupon` ADD COLUMN `min_age` INT DEFAULT NULL COMMENT '最低适用年龄，空为不限' AFTER `min_order_amount`");
+        addColumn("coupon", "max_age", "ALTER TABLE `coupon` ADD COLUMN `max_age` INT DEFAULT NULL COMMENT '最高适用年龄，空为不限' AFTER `min_age`");
+        addColumn("coupon_user", "min_age", "ALTER TABLE `coupon_user` ADD COLUMN `min_age` INT DEFAULT NULL AFTER `min_order_amount`");
+        addColumn("coupon_user", "max_age", "ALTER TABLE `coupon_user` ADD COLUMN `max_age` INT DEFAULT NULL AFTER `min_age`");
         addColumn("coupon", "deleted", "ALTER TABLE `coupon` ADD COLUMN `deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '0正常 1已删除' AFTER `status`");
         relaxNullable("coupon", "valid_start_time", "ALTER TABLE `coupon` MODIFY COLUMN `valid_start_time` DATETIME DEFAULT NULL COMMENT '有效期开始，空为不限'");
         relaxNullable("coupon", "valid_end_time", "ALTER TABLE `coupon` MODIFY COLUMN `valid_end_time` DATETIME DEFAULT NULL COMMENT '有效期结束，空为不限'");

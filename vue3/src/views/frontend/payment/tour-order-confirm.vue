@@ -135,6 +135,7 @@
                   <span>{{ index + 1 }}</span>
                   <strong>{{ traveler.name }}</strong>
                   <em>{{ traveler.travelerType === 'ADULT' ? '成人' : '儿童' }}</em>
+                  <b>{{ travelerAgeText(traveler) }}</b>
                   <small>{{ maskPhone(traveler.phone, '-') }}</small>
                   <el-button link type="danger" @click="removeSelectedTraveler(index)">移除</el-button>
                 </div>
@@ -166,6 +167,30 @@
               <div v-if="order.hotelAmount">
                 <span>酒店住宿</span>
                 <strong>¥{{ formatPrice(order.hotelAmount) }}</strong>
+              </div>
+              <div class="coupon-line">
+                <span>优惠券</span>
+                <el-select
+                  v-if="availableCoupons.length > 0"
+                  v-model="selectedCouponUserId"
+                  class="coupon-confirm-select"
+                  :loading="couponLoading"
+                  placeholder="选择优惠券"
+                  @change="handleCouponChange"
+                >
+                  <el-option label="不使用优惠券" :value="null" />
+                  <el-option
+                    v-for="coupon in availableCoupons"
+                    :key="coupon.id"
+                    :label="couponOptionText(coupon)"
+                    :value="coupon.id"
+                  />
+                </el-select>
+                <strong v-else class="coupon-empty">{{ couponLoading ? '正在筛选...' : '无可用优惠券' }}</strong>
+              </div>
+              <div v-if="Number(order.discountAmount || 0) > 0" class="discount-line">
+                <span>优惠金额</span>
+                <strong>-¥{{ formatPrice(order.discountAmount) }}</strong>
               </div>
             </div>
             <div class="total-row">
@@ -253,6 +278,7 @@ import { Plus } from '@element-plus/icons-vue'
 import { getTourOrderDetail, getOrderContactForEdit, updateOrderContact } from '@/api/tourOrder'
 import { getFrequentTravelers, saveFrequentTraveler, updateFrequentTraveler, deleteFrequentTraveler as deleteFrequentTravelerApi } from '@/api/frequentTraveler'
 import { saveTravelers } from '@/api/traveler'
+import { applyOrderCoupon, getOrderAvailableCoupons } from '@/api/coupon'
 import { maskPhone } from '@/utils/mask'
 
 const route = useRoute()
@@ -290,6 +316,10 @@ const contactRules = {
 const frequentTravelers = ref([])
 const selectedFrequentTravelerIds = ref([])
 const selectedTravelers = ref([])
+const availableCoupons = ref([])
+const selectedCouponUserId = ref(null)
+const couponLoading = ref(false)
+const couponChoiceTouched = ref(false)
 const travelerDialogVisible = ref(false)
 const editingTraveler = ref(null)
 
@@ -364,7 +394,7 @@ const selectedAdultCount = computed(() => selectedTravelers.value.filter(t => t.
 const selectedChildCount = computed(() => selectedTravelers.value.filter(t => t.travelerType === 'CHILD').length)
 const idNumberPlaceholder = computed(() => travelerForm.idType === 'ID_CARD' ? '请输入 18 位身份证号码' : '请输入 5-20 位护照号码')
 
-const getIdTypeLabel = () => '身份证'
+const getIdTypeLabel = (type) => type === 'PASSPORT' ? '护照' : '身份证'
 
 const maskIdNumber = (idNumber) => {
   if (!idNumber) return ''
@@ -379,6 +409,37 @@ const formatDate = (dateStr) => {
 
 const formatPrice = (price) => Number(price || 0).toFixed(2)
 const disableFutureDate = (date) => date.getTime() > Date.now()
+
+const calculateAge = (birthDate) => {
+  if (!birthDate || !order.value?.departureDate) return null
+  const birth = new Date(String(birthDate).split('T')[0])
+  const depart = new Date(String(order.value.departureDate).split('T')[0])
+  if (Number.isNaN(birth.getTime()) || Number.isNaN(depart.getTime())) return null
+  let age = depart.getFullYear() - birth.getFullYear()
+  const monthDiff = depart.getMonth() - birth.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && depart.getDate() < birth.getDate())) age -= 1
+  return age < 0 ? null : age
+}
+
+const travelerAgeText = (traveler) => {
+  const age = calculateAge(traveler?.birthDate)
+  return age === null ? '年龄待算' : `${age}岁`
+}
+
+const couponOptionText = (coupon) => {
+  if (!coupon) return ''
+  let typeText = `满减券 ¥${formatPrice(coupon.discountAmount)}`
+  if (coupon.discountType === 'RATE' || coupon.discountType === 'AGE_GROUP_RATE') {
+    typeText = `折扣券 ${Number((Number(coupon.discountRate || 1) * 10).toFixed(1))}折`
+  } else if (coupon.discountType === 'AGE_GROUP_AMOUNT' || coupon.discountType === 'AGE_PER_PERSON') {
+    typeText = `满减券 ¥${formatPrice(coupon.discountAmount)}`
+  }
+  const threshold = Number(coupon.minOrderAmount || 0) > 0 ? `满¥${formatPrice(coupon.minOrderAmount)}` : '无门槛'
+  const ageText = coupon.minAge != null || coupon.maxAge != null
+    ? ` · ${coupon.minAge ?? 0}-${coupon.maxAge ?? '不限'}岁按人计算`
+    : ''
+  return `${coupon.couponName} · ${typeText} · ${threshold}${ageText}`
+}
 
 watch(() => travelerForm.idType, () => {
   travelerForm.idNumber = ''
@@ -480,6 +541,9 @@ const removeSelectedTraveler = (index) => {
     if (idIndex > -1) selectedFrequentTravelerIds.value.splice(idIndex, 1)
   }
   selectedTravelers.value.splice(index, 1)
+  availableCoupons.value = []
+  selectedCouponUserId.value = null
+  couponChoiceTouched.value = false
 }
 
 const resetTravelerForm = () => {
@@ -581,6 +645,7 @@ const loadOrderInfo = async () => {
       getOrderContactForEdit(orderId)
     ])
     order.value = data
+    selectedCouponUserId.value = data?.couponUserId || null
     contactForm.name = contactData?.contactName || ''
     contactForm.phone = contactData?.contactPhone || ''
   } catch (err) {
@@ -591,27 +656,86 @@ const loadOrderInfo = async () => {
   }
 }
 
-const validateTravelers = () => {
+const fetchOrderCoupons = async (autoApply = false) => {
+  if (!order.value?.id || !validateTravelers(false)) {
+    availableCoupons.value = []
+    selectedCouponUserId.value = null
+    return
+  }
+  couponLoading.value = true
+  try {
+    const travelersData = selectedTravelers.value.map(t => {
+      const traveler = { ...t }
+      delete traveler.frequentTravelerId
+      return traveler
+    })
+    const list = await getOrderAvailableCoupons(order.value.id, travelersData, { showDefaultMsg: false })
+    availableCoupons.value = list || []
+    if (selectedCouponUserId.value && !availableCoupons.value.some(item => Number(item.id) === Number(selectedCouponUserId.value))) {
+      selectedCouponUserId.value = null
+    }
+    if (autoApply && !couponChoiceTouched.value && !selectedCouponUserId.value && availableCoupons.value.length > 0) {
+      selectedCouponUserId.value = availableCoupons.value[0].id
+      await handleCouponChange(selectedCouponUserId.value)
+    }
+  } catch (err) {
+    availableCoupons.value = []
+    selectedCouponUserId.value = null
+  } finally {
+    couponLoading.value = false
+  }
+}
+
+const validateTravelers = (showMessage = true) => {
   if (selectedTravelers.value.length < totalRequired.value) {
-    ElMessage.warning(`请选择至少 ${totalRequired.value} 位出行人`)
+    if (showMessage) ElMessage.warning(`请选择至少 ${totalRequired.value} 位出行人`)
     return false
   }
   if (selectedAdultCount.value < adultRequired.value) {
-    ElMessage.warning(`请选择至少 ${adultRequired.value} 位成人`)
+    if (showMessage) ElMessage.warning(`请选择至少 ${adultRequired.value} 位成人`)
     return false
   }
   if (childRequired.value > 0 && selectedChildCount.value < childRequired.value) {
-    ElMessage.warning(`请选择至少 ${childRequired.value} 位儿童`)
+    if (showMessage) ElMessage.warning(`请选择至少 ${childRequired.value} 位儿童`)
     return false
   }
   for (let i = 0; i < selectedTravelers.value.length; i++) {
     const t = selectedTravelers.value[i]
     if (!t.name || !t.phone || !/^1[3-9]\d{9}$/.test(t.phone) || !t.idType || !t.idNumber || !t.birthDate) {
-      ElMessage.warning(`第 ${i + 1} 位出行人信息不完整`)
+      if (showMessage) ElMessage.warning(`第 ${i + 1} 位出行人信息不完整`)
       return false
     }
   }
   return true
+}
+
+const handleCouponChange = async (couponUserId) => {
+  if (!order.value?.id) return
+  couponChoiceTouched.value = true
+  if (!validateTravelers(true)) return
+  couponLoading.value = true
+  try {
+    const travelersData = selectedTravelers.value.map((t, index) => {
+      const traveler = { ...t }
+      delete traveler.frequentTravelerId
+      return { ...traveler, travelerIndex: index + 1 }
+    })
+    await saveTravelers(order.value.id, order.value.orderNo, travelersData)
+    const updated = await applyOrderCoupon(order.value.id, couponUserId || null, { showDefaultMsg: false })
+    order.value = updated || order.value
+    selectedCouponUserId.value = updated?.couponUserId || null
+    if (couponUserId) {
+      ElMessage.success('优惠券已应用')
+    } else {
+      ElMessage.success('已取消使用优惠券')
+    }
+  } catch (err) {
+    ElMessage.error(err.message || '优惠券不可用，请重新选择')
+    await loadOrderInfo()
+    await fetchOrderCoupons(false)
+  } finally {
+    couponLoading.value = false
+  }
 }
 
 const handlePay = async () => {
@@ -632,6 +756,7 @@ const handlePay = async () => {
       return { ...traveler, travelerIndex: index + 1 }
     })
     await saveTravelers(order.value.id, order.value.orderNo, travelersData)
+    await fetchOrderCoupons(false)
     router.push(`/tour-order-pay/${order.value.id}`)
   } catch (err) {
     console.error('保存信息失败:', err)
@@ -640,6 +765,15 @@ const handlePay = async () => {
     submitting.value = false
   }
 }
+
+watch(
+  () => selectedTravelers.value.map(t => `${t.name}|${t.birthDate}|${t.travelerType}|${t.idNumber}`).join(';'),
+  () => {
+    if (validateTravelers(false)) {
+      fetchOrderCoupons(true)
+    }
+  }
+)
 
 const goBack = () => router.back()
 
@@ -1064,7 +1198,7 @@ onBeforeUnmount(() => {
 
 .selected-item {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 54px 120px auto;
+  grid-template-columns: 28px minmax(0, 1fr) 54px 64px 120px auto;
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
@@ -1084,10 +1218,22 @@ onBeforeUnmount(() => {
 }
 
 .selected-item em,
+.selected-item b,
 .selected-item small {
   color: #667085;
   font-style: normal;
   font-size: 13px;
+}
+
+.selected-item b {
+  display: inline-flex;
+  justify-content: center;
+  min-width: 54px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #ecfdf3;
+  color: #027a48;
+  font-weight: 900;
 }
 
 .summary-panel {
@@ -1126,6 +1272,29 @@ onBeforeUnmount(() => {
 
 .fee-list strong {
   color: #344054;
+}
+
+.coupon-line {
+  align-items: center;
+}
+
+.coupon-line span,
+.discount-line span {
+  flex-shrink: 0;
+}
+
+.coupon-confirm-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.coupon-empty {
+  color: #98a2b3;
+  font-weight: 800;
+}
+
+.discount-line strong {
+  color: #f97316;
 }
 
 .total-row {

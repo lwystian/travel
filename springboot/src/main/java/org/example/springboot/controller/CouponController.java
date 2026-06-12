@@ -9,9 +9,13 @@ import org.example.springboot.common.Result;
 import org.example.springboot.entity.Coupon;
 import org.example.springboot.entity.CouponUser;
 import org.example.springboot.entity.Tour;
+import org.example.springboot.entity.TourBatch;
+import org.example.springboot.entity.TourOrder;
 import org.example.springboot.entity.TourPackage;
+import org.example.springboot.entity.Traveler;
 import org.example.springboot.entity.User;
 import org.example.springboot.mapper.TourMapper;
+import org.example.springboot.mapper.TourBatchMapper;
 import org.example.springboot.mapper.TourPackageMapper;
 import org.example.springboot.mapper.UserMapper;
 import org.example.springboot.security.SecurityGuards;
@@ -32,6 +36,8 @@ public class CouponController {
     private CouponService couponService;
     @Resource
     private TourMapper tourMapper;
+    @Resource
+    private TourBatchMapper tourBatchMapper;
     @Resource
     private TourPackageMapper tourPackageMapper;
     @Resource
@@ -80,6 +86,7 @@ public class CouponController {
         SecurityGuards.requirePermission("coupon:manage");
         List<Tour> tours = tourMapper.selectList(null);
         List<TourPackage> packages = tourPackageMapper.selectList(null);
+        List<TourBatch> batches = tourBatchMapper.selectList(null);
         Map<Long, List<Map<String, Object>>> packageMap = packages.stream().collect(Collectors.groupingBy(
                 TourPackage::getTourId,
                 Collectors.mapping(pkg -> {
@@ -90,6 +97,19 @@ public class CouponController {
                     return item;
                 }, Collectors.toList())
         ));
+        Map<Long, List<Map<String, Object>>> batchMap = batches.stream().collect(Collectors.groupingBy(
+                TourBatch::getTourId,
+                Collectors.mapping(batch -> {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("id", batch.getId());
+                    item.put("departureDate", batch.getDepartureDate() == null ? "" : batch.getDepartureDate().toString());
+                    item.put("status", batch.getStatus() == null ? "" : batch.getStatus());
+                    item.put("remaining", batch.getRemaining() == null ? 0 : batch.getRemaining());
+                    item.put("occupied", batch.getOccupied() == null ? 0 : batch.getOccupied());
+                    item.put("packageIds", batch.getPackageIds() == null ? "" : batch.getPackageIds());
+                    return item;
+                }, Collectors.toList())
+        ));
         List<Map<String, Object>> records = tours.stream().map(tour -> {
             Map<String, Object> item = new HashMap<>();
             item.put("id", tour.getId());
@@ -97,6 +117,7 @@ public class CouponController {
             item.put("title", tour.getTitle() == null ? "" : tour.getTitle());
             item.put("status", tour.getStatus() == null ? 1 : tour.getStatus());
             item.put("packages", packageMap.getOrDefault(tour.getId(), List.of()));
+            item.put("batches", batchMap.getOrDefault(tour.getId(), List.of()));
             return item;
         }).toList();
         return Result.success(records);
@@ -170,5 +191,19 @@ public class CouponController {
                                               @RequestParam(required = false) Long packageId,
                                               @RequestParam BigDecimal orderAmount) {
         return Result.success(couponService.availableForOrder(tourId, packageId, orderAmount));
+    }
+
+    @PostMapping("/order/{orderId}/available")
+    @Operation(summary = "订单确认页可用优惠券")
+    public Result<List<CouponUser>> availableForOrder(@PathVariable Long orderId,
+                                                      @RequestBody(required = false) List<Traveler> travelers) {
+        return Result.success(couponService.availableForOrder(orderId, travelers));
+    }
+
+    @PutMapping("/order/{orderId}/apply")
+    @Operation(summary = "订单确认页应用优惠券")
+    public Result<TourOrder> applyForOrder(@PathVariable Long orderId,
+                                           @RequestParam(required = false) Long couponUserId) {
+        return Result.success(couponService.applyCouponToOrder(orderId, couponUserId));
     }
 }

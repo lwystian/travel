@@ -149,7 +149,6 @@ public class TourOrderService {
             throw new ServiceException("余位不足，当前剩余" + currentAvailable + "个名额");
         }
 
-        Long lockedCouponUserId = null;
         try {
             // 8. 获取附加费用及份数
             AddonPriceResult addonPriceResult = calculateAddonPrice(tour, tourBatch, dto, totalPeople);
@@ -195,9 +194,7 @@ public class TourOrderService {
 
             // 13. 计算订单总金额
             BigDecimal totalAmount = tourAmount.add(hotelAmount);
-            CouponService.CouponUseResult couponResult = couponService.lockForOrder(dto.getCouponUserId(), tour, tourPackage, totalAmount, null, null);
-            lockedCouponUserId = couponResult.couponUserId();
-            BigDecimal discountAmount = couponResult.discountAmount();
+            BigDecimal discountAmount = BigDecimal.ZERO;
             BigDecimal payableAmount = totalAmount.subtract(discountAmount).max(BigDecimal.ZERO);
 
             // 14. 验证前端传来的总价（允许0.01元误差）
@@ -234,8 +231,8 @@ public class TourOrderService {
             order.setHotelDays(dto.getHotelDays());
             order.setHotelPricePerNight(dto.getHotelPricePerNight());
             order.setHotelAmount(hotelAmount);
-            order.setCouponUserId(couponResult.couponUserId());
-            order.setCouponName(couponResult.couponName());
+            order.setCouponUserId(null);
+            order.setCouponName(null);
             order.setDiscountAmount(discountAmount);
             order.setPayableAmount(payableAmount);
             order.setTotalAmount(payableAmount);
@@ -248,10 +245,6 @@ public class TourOrderService {
 
             // 16. 保存订单
             tourOrderMapper.insert(order);
-            if (couponResult.couponUserId() != null) {
-                couponService.bindLockedOrder(couponResult.couponUserId(), order.getId(), order.getOrderNo());
-            }
-
             logger.info("行程订单创建成功：订单号={}, 用户={}, 行程={}, 总价={}, 锁定人数={}",
                 order.getOrderNo(), currentUser.getUsername(), tour.getTitle(), totalAmount, totalPeople);
             siteNotificationService.sendToUser(
@@ -284,12 +277,10 @@ public class TourOrderService {
         } catch (ServiceException e) {
             // 业务异常：释放已锁定的库存
             releaseBatchOccupancy(tourBatch.getId(), totalPeople);
-            couponService.releaseLocked(lockedCouponUserId);
             throw e;
         } catch (Exception e) {
             // 其他异常：释放已锁定的库存
             releaseBatchOccupancy(tourBatch.getId(), totalPeople);
-            couponService.releaseLocked(lockedCouponUserId);
             throw new ServiceException("订单创建失败：" + e.getMessage());
         }
     }

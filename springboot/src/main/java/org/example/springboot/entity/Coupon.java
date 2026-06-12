@@ -26,6 +26,8 @@ public class Coupon {
     private BigDecimal discountRate;
     private BigDecimal maxDiscountAmount;
     private BigDecimal minOrderAmount;
+    private Integer minAge;
+    private Integer maxAge;
     private String scopeType;
     private String scopeIds;
     private Integer totalQuantity;

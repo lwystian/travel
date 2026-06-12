@@ -28,6 +28,8 @@ public class TravelerService extends ServiceImpl<TravelerMapper, Traveler> {
     private TourOrderMapper tourOrderMapper;
     @Resource
     private AdminPermissionService adminPermissionService;
+    @Resource
+    private CouponService couponService;
 
     /**
      * 根据订单ID获取出行人列表
@@ -60,6 +62,8 @@ public class TravelerService extends ServiceImpl<TravelerMapper, Traveler> {
     @Transactional
     public void saveBatch(Long orderId, String orderNo, List<Traveler> travelers) {
         TourOrder order = requireEditableOrderAccess(orderId);
+        validateTravelers(travelers, order.getAdultCount() == null ? 0 : order.getAdultCount(),
+                order.getChildCount() == null ? 0 : order.getChildCount());
         // 删除旧的出行人信息
         LambdaQueryWrapper<Traveler> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Traveler::getOrderId, orderId);
@@ -76,6 +80,7 @@ public class TravelerService extends ServiceImpl<TravelerMapper, Traveler> {
             traveler.setUpdateTime(now);
         }
         saveBatch(travelers);
+        couponService.revalidateOrderCoupon(orderId);
     }
 
     private TourOrder requireEditableOrderAccess(Long orderId) {

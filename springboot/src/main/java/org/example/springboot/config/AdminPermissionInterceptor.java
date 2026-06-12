@@ -99,7 +99,7 @@ public class AdminPermissionInterceptor implements HandlerInterceptor {
         if (orderPermission != null) {
             return orderPermission;
         }
-        if ("GET".equalsIgnoreCase(method) && isPublicFrontendGet(path)) {
+        if ("GET".equalsIgnoreCase(method) && isPublicFrontendGet(request)) {
             return null;
         }
         String crossPagePermission = auxiliaryReadPermission(request);
@@ -157,16 +157,11 @@ public class AdminPermissionInterceptor implements HandlerInterceptor {
         return null;
     }
 
-    private boolean isPublicFrontendGet(String path) {
-        return path.equals("/api/carousel/active")
+    private boolean isPublicFrontendGet(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return isPublicTourGet(request)
+                || path.equals("/api/carousel/active")
                 || path.equals("/api/payment-config/enabled")
-                || path.equals("/api/tour/list")
-                || path.equals("/api/tour/featured")
-                || path.equals("/api/tour/more")
-                || path.equals("/api/tour/filters")
-                || path.equals("/api/tour/hot-keywords")
-                || path.equals("/api/tour/ticket-featured")
-                || path.equals("/api/tour/recommended")
                 || path.equals("/api/tour-order-pay/methods")
                 || path.startsWith("/api/site/access/public")
                 || path.startsWith("/api/site/assets/public")
@@ -178,5 +173,23 @@ public class AdminPermissionInterceptor implements HandlerInterceptor {
                 || path.startsWith("/api/guide/")
                 || path.startsWith("/api/comment/page")
                 || path.startsWith("/api/comment/scenic/");
+    }
+
+    private boolean isPublicTourGet(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        if (path.equals("/api/tour/page")) {
+            return !"true".equalsIgnoreCase(request.getParameter("includeInactive"));
+        }
+        return path.equals("/api/tour/list")
+                || path.equals("/api/tour/featured")
+                || path.equals("/api/tour/more")
+                || path.equals("/api/tour/filters")
+                || path.equals("/api/tour/hot-keywords")
+                || path.equals("/api/tour/ticket-featured")
+                || path.equals("/api/tour/recommended")
+                || path.matches("^/api/tour/\\d+$")
+                || path.matches("^/api/tour/\\d+/detail$")
+                || path.startsWith("/api/tour-detail/")
+                || path.startsWith("/api/tour-hotel/");
     }
 }

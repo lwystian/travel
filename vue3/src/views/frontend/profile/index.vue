@@ -412,13 +412,13 @@
                       :class="{ disabled: isCouponReceived(coupon) || isCouponSoldOut(coupon) || coupon.status !== 1 }"
                     >
                       <div class="wallet-value">
-                        <strong v-if="coupon.discountType === 'RATE'">{{ formatCouponRate(coupon.discountRate) }}</strong>
+                        <strong v-if="isRateCoupon(coupon)">{{ formatCouponRate(coupon.discountRate) }}</strong>
                         <strong v-else>¥{{ formatCouponMoney(coupon.discountAmount) }}</strong>
-                        <span>{{ coupon.discountType === 'RATE' ? '折扣券' : '满减券' }}</span>
+                        <span>{{ couponTypeText(coupon) }}</span>
                       </div>
                       <div class="wallet-body">
                         <h4>{{ coupon.name }}</h4>
-                        <p>满 ¥{{ formatCouponMoney(coupon.minOrderAmount) }} 可用 · {{ couponScopeText(coupon) }}</p>
+                        <p>满 ¥{{ formatCouponMoney(coupon.minOrderAmount) }} 可用 · {{ couponScopeText(coupon) }}{{ couponAgeText(coupon) }}</p>
                         <small>{{ coupon.validEndTime ? `${formatCouponDate(coupon.validEndTime)} 前有效` : '长期有效' }}</small>
                       </div>
                       <el-button
@@ -456,13 +456,13 @@
                       :class="couponStatusClass(coupon)"
                     >
                       <div class="wallet-value">
-                        <strong v-if="coupon.discountType === 'RATE'">{{ formatCouponRate(coupon.discountRate) }}</strong>
+                        <strong v-if="isRateCoupon(coupon)">{{ formatCouponRate(coupon.discountRate) }}</strong>
                         <strong v-else>¥{{ formatCouponMoney(coupon.discountAmount) }}</strong>
                         <span>{{ couponStatusText(coupon.status) }}</span>
                       </div>
                       <div class="wallet-body">
                         <h4>{{ coupon.couponName }}</h4>
-                        <p>满 ¥{{ formatCouponMoney(coupon.minOrderAmount) }} 可用 · {{ couponScopeText(coupon) }}</p>
+                        <p>满 ¥{{ formatCouponMoney(coupon.minOrderAmount) }} 可用 · {{ couponScopeText(coupon) }}{{ couponAgeText(coupon) }}</p>
                         <small>{{ coupon.validStartTime || coupon.validEndTime ? `${formatCouponDate(coupon.validStartTime)} - ${formatCouponDate(coupon.validEndTime)}` : '长期有效' }}</small>
                         <em v-if="coupon.status === 4">该优惠券已被平台关闭或删除，未使用券无法继续使用</em>
                       </div>
@@ -1326,6 +1326,18 @@ const formatCouponMoney = (value) => {
 const formatCouponRate = (value) => `${Number((Number(value || 1) * 10).toFixed(1)).toString()}折`
 
 const formatCouponDate = (value) => value ? String(value).replace('T', ' ').slice(0, 10) : '不限'
+
+const isRateCoupon = (coupon) => coupon?.discountType === 'RATE' || coupon?.discountType === 'AGE_GROUP_RATE'
+
+const couponTypeText = (coupon) => {
+  if (isRateCoupon(coupon)) return couponAgeText(coupon) ? '年龄折扣券' : '折扣券'
+  return couponAgeText(coupon) ? '年龄满减券' : '满减券'
+}
+
+const couponAgeText = (coupon) => {
+  if (coupon?.minAge == null && coupon?.maxAge == null) return ''
+  return ` · ${coupon.minAge ?? 0}-${coupon.maxAge ?? '不限'}岁按人计算`
+}
 
 const couponScopeText = (coupon) => {
   if (coupon.scopeType === 'TOUR') return '指定行程'

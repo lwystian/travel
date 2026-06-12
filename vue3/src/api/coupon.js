@@ -43,3 +43,14 @@ export function getMyCoupons(params = {}) {
 export function getAvailableCoupons(params, config = {}) {
   return request.get('/coupon/available', params, config)
 }
+
+export function getOrderAvailableCoupons(orderId, travelers = [], config = {}) {
+  return request.post(`/coupon/order/${orderId}/available`, travelers, config)
+}
+
+export function applyOrderCoupon(orderId, couponUserId = null, config = {}) {
+  return request.put(`/coupon/order/${orderId}/apply`, null, {
+    ...config,
+    params: couponUserId ? { couponUserId } : {}
+  })
+}

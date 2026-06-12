@@ -227,7 +227,7 @@ const frontendRoutes = [
         path: 'ticket/booking/:id',
         name: 'TicketBooking',
         component: () => import('@/views/frontend/ticket/booking.vue'),
-        meta: { title: '预订行程', requiresAuth: true, indexable: false }
+        meta: { title: '预订行程', indexable: false }
       },
       {
         path: 'orders',

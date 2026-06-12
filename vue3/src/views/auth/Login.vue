@@ -243,7 +243,10 @@ const submitLogin = async () => {
     ElMessage.success('登录成功')
     const roleCode = String(data.roleCode || '').trim().toUpperCase()
     const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(roleCode)
-    const redirect = route.query.redirect || (isAdmin ? '/back/dashboard' : '/')
+    const rawRedirect = Array.isArray(route.query.redirect) ? route.query.redirect[0] : route.query.redirect
+    const redirect = typeof rawRedirect === 'string' && rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
+      ? rawRedirect
+      : (isAdmin ? '/back/dashboard' : '/')
     router.push(redirect)
   } catch (err) {
     ElMessage.error(err.message || '登录失败')

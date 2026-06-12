@@ -32,7 +32,7 @@
       <article v-for="item in coupons" :key="item.id" class="coupon-card" :class="{ disabled: item.status !== 1 }">
         <div class="coupon-card-main">
           <div class="coupon-value">
-            <span v-if="item.discountType === 'RATE'">{{ formatRate(item.discountRate) }}</span>
+            <span v-if="item.discountType === 'RATE' || item.discountType === 'AGE_GROUP_RATE'">{{ formatRate(item.discountRate) }}</span>
             <span v-else>¥{{ formatMoney(item.discountAmount) }}</span>
             <small>{{ couponTypeText(item) }}</small>
           </div>
@@ -45,6 +45,7 @@
             <div class="coupon-tags">
               <el-tag size="small" effect="plain">{{ scopeText(item) }}</el-tag>
               <el-tag size="small" type="warning" effect="plain">满 ¥{{ formatMoney(item.minOrderAmount) }} 可用</el-tag>
+              <el-tag v-if="ageLimitText(item)" size="small" type="danger" effect="plain">{{ ageLimitText(item) }}</el-tag>
               <el-tag size="small" type="success" effect="plain">已领 {{ item.issuedQuantity || 0 }}</el-tag>
               <el-tag size="small" type="info" effect="plain">已用 {{ item.usedQuantity || 0 }}</el-tag>
               <el-tag v-if="isSoldOut(item)" size="small" type="danger" effect="plain">已领完</el-tag>
@@ -117,15 +118,33 @@
           <el-form-item label="使用门槛" prop="minOrderAmount">
             <el-input-number v-model="form.minOrderAmount" :min="0" :precision="2" style="width:100%" />
           </el-form-item>
-          <el-form-item v-if="form.discountType === 'AMOUNT'" label="减免金额" prop="discountAmount">
-            <el-input-number v-model="form.discountAmount" :min="1" :precision="2" style="width:100%" />
-          </el-form-item>
-          <el-form-item v-else label="折扣比例" prop="discountRate">
-            <el-input-number v-model="form.discountRate" :min="0.01" :max="0.99" :step="0.01" :precision="2" style="width:100%" />
-          </el-form-item>
-          <el-form-item v-if="form.discountType === 'RATE'" label="折扣封顶">
-            <el-input-number v-model="form.maxDiscountAmount" :min="0" :precision="2" style="width:100%" />
-          </el-form-item>
+          <section class="discount-rule-card">
+            <div class="rule-card-head">
+              <strong>优惠规则</strong>
+              <span>可设置整单优惠，也可限定年龄后按符合条件的出行人逐人计算。</span>
+            </div>
+            <div class="rule-card-grid">
+              <el-form-item v-if="form.discountType !== 'RATE'" label="减免金额" prop="discountAmount">
+                <el-input-number v-model="form.discountAmount" :min="1" :precision="2" style="width:100%" />
+              </el-form-item>
+              <el-form-item v-else label="折扣比例" prop="discountRate">
+                <el-input-number v-model="form.discountRate" :min="0.01" :max="0.99" :step="0.01" :precision="2" style="width:100%" />
+              </el-form-item>
+              <el-form-item v-if="form.discountType === 'RATE'" label="折扣封顶">
+                <el-input-number v-model="form.maxDiscountAmount" :min="0" :precision="2" style="width:100%" />
+              </el-form-item>
+              <el-form-item label="年龄范围" class="age-range-field">
+                <div class="age-range-input">
+                  <el-input-number v-model="form.minAge" :min="0" :max="150" :precision="0" placeholder="不限" />
+                  <span>至</span>
+                  <el-input-number v-model="form.maxAge" :min="0" :max="150" :precision="0" placeholder="不限" />
+                </div>
+              </el-form-item>
+            </div>
+            <p class="form-tip">
+              年龄不填时按订单总价优惠；填写年龄后，系统会按出发日期计算出行人年龄，并在对应成人/儿童单价上分别判断门槛与优惠。
+            </p>
+          </section>
           <el-form-item label="总发行量">
             <el-input-number v-model="form.totalQuantity" :min="0" :precision="0" style="width:100%" />
           </el-form-item>
@@ -167,6 +186,20 @@
                   {{ pkg.name || `套餐 ${pkg.id}` }}
                 </button>
                 <small v-if="!tour.packages || tour.packages.length === 0">暂无套餐</small>
+              </div>
+              <div class="scope-batch-list">
+                <small>出发班期</small>
+                <button
+                  v-for="batch in tour.batches || []"
+                  :key="batch.id"
+                  type="button"
+                  :class="{ active: isBatchSelected(tour, batch), disabled: batch.status !== '可报名' }"
+                  :disabled="batch.status !== '可报名'"
+                  @click="toggleBatchScope(tour, batch)"
+                >
+                  {{ batch.departureDate }}<span>{{ batch.status }}</span>
+                </button>
+                <em v-if="!tour.batches || tour.batches.length === 0">暂无班期，选择行程则默认全部班期</em>
               </div>
             </article>
           </div>
@@ -288,6 +321,8 @@ const defaultForm = () => ({
   discountRate: 0.9,
   maxDiscountAmount: 0,
   minOrderAmount: 0,
+  minAge: null,
+  maxAge: null,
   scopeType: 'ALL_TOUR',
   scopeIds: '',
   totalQuantity: 0,
@@ -328,8 +363,19 @@ const formatMoney = value => {
 const formatRate = value => `${Number((Number(value || 1) * 10).toFixed(1)).toString()}折`
 const formatDateTime = value => value ? String(value).replace('T', ' ').slice(0, 16) : '不限'
 const rangeText = (start, end) => `${formatDateTime(start)} - ${formatDateTime(end)}`
-const couponTypeText = item => item.discountType === 'RATE' ? '折扣券' : '满减券'
+const couponTypeText = item => {
+  if (item.discountType === 'RATE' || item.discountType === 'AGE_GROUP_RATE') {
+    return ageLimitText(item) ? '年龄折扣券' : '折扣券'
+  }
+  return ageLimitText(item) ? '年龄满减券' : '满减券'
+}
 const isSoldOut = item => Number(item.totalQuantity || 0) > 0 && Number(item.issuedQuantity || 0) >= Number(item.totalQuantity || 0)
+const ageLimitText = item => {
+  if (item?.minAge == null && item?.maxAge == null) return ''
+  if (item.minAge != null && item.maxAge != null) return `${item.minAge}-${item.maxAge}岁可用`
+  if (item.minAge != null) return `${item.minAge}岁以上可用`
+  return `${item.maxAge}岁以下可用`
+}
 const scopeText = item => {
   if (item.scopeType === 'TOUR') return '指定行程'
   if (item.scopeType === 'TOUR_PACKAGE') return '指定套餐'
@@ -346,18 +392,20 @@ const detailedScopeText = item => {
   if (!values.length) return scopeText(item)
   if (item.scopeType === 'TOUR') {
     return values.map(value => {
-      const tour = findScopeTour(value)
-      return tour?.title || tour?.code || value
+      const { scope, date } = parseScopeValue(value)
+      const tour = findScopeTour(scope)
+      return `${tour?.title || tour?.code || scope}${date ? `（${date}）` : ''}`
     }).join('、')
   }
   if (item.scopeType === 'TOUR_PACKAGE') {
     return values.map(value => {
-      const [tourValue, packageValue] = value.split(':')
+      const { scope, date } = parseScopeValue(value)
+      const [tourValue, packageValue] = scope.split(':')
       const tour = findScopeTour(tourValue)
       const pkg = tour?.packages?.find(item => String(item.id) === String(packageValue))
       const tourName = tour?.title || tour?.code || tourValue
       const pkgName = pkg?.name || (packageValue ? `套餐 ${packageValue}` : '指定套餐')
-      return `${tourName} / ${pkgName}`
+      return `${tourName} / ${pkgName}${date ? `（${date}）` : ''}`
     }).join('、')
   }
   return values.join('、')
@@ -391,6 +439,13 @@ const fetchScopeOptions = async () => {
 const openEditor = async (item) => {
   await fetchScopeOptions()
   Object.assign(form, defaultForm(), item || {})
+  if (form.discountType === 'AGE_PER_PERSON') {
+    form.discountType = 'AMOUNT'
+  } else if (form.discountType === 'AGE_GROUP_AMOUNT') {
+    form.discountType = 'AMOUNT'
+  } else if (form.discountType === 'AGE_GROUP_RATE') {
+    form.discountType = 'RATE'
+  }
   validRange.value = form.validStartTime && form.validEndTime ? [form.validStartTime, form.validEndTime] : []
   selectedScopeValues.value = form.scopeType === 'ALL_TOUR'
     ? []
@@ -430,6 +485,23 @@ const handleScopeTypeChange = () => {
 
 const isTourSelected = tour => selectedScopeValues.value.includes(String(tour.id))
 const isPackageSelected = (tour, pkg) => selectedScopeValues.value.includes(`${tour.id}:${pkg.id}`)
+const parseScopeValue = value => {
+  const text = String(value || '')
+  const index = text.indexOf('@')
+  return index > -1
+    ? { scope: text.slice(0, index), date: text.slice(index + 1) }
+    : { scope: text, date: '' }
+}
+const isBatchSelected = (tour, batch) => {
+  const date = batch.departureDate
+  if (form.scopeType === 'TOUR') {
+    return selectedScopeValues.value.includes(`${tour.id}@${date}`)
+  }
+  if (form.scopeType === 'TOUR_PACKAGE') {
+    return selectedScopeValues.value.some(value => value.startsWith(`${tour.id}:`) && value.endsWith(`@${date}`))
+  }
+  return false
+}
 
 const toggleTourScope = (tour) => {
   if (form.scopeType !== 'TOUR') return
@@ -447,6 +519,46 @@ const togglePackageScope = (tour, pkg) => {
     : [...selectedScopeValues.value, value]
 }
 
+const toggleBatchScope = (tour, batch) => {
+  if (batch.status !== '可报名') return
+  const date = batch.departureDate
+  if (form.scopeType === 'TOUR') {
+    const plain = String(tour.id)
+    const value = `${tour.id}@${date}`
+    selectedScopeValues.value = selectedScopeValues.value.filter(item => item !== plain)
+    selectedScopeValues.value = selectedScopeValues.value.includes(value)
+      ? selectedScopeValues.value.filter(item => item !== value)
+      : [...selectedScopeValues.value, value]
+    return
+  }
+  if (form.scopeType === 'TOUR_PACKAGE') {
+    const availablePackageIds = parseBatchPackageIds(batch)
+    const packageIds = availablePackageIds.length
+      ? availablePackageIds
+      : (tour.packages || []).filter(pkg => pkg.status !== 0).map(pkg => Number(pkg.id))
+    const values = packageIds.map(id => `${tour.id}:${id}@${date}`)
+    const allSelected = values.length > 0 && values.every(value => selectedScopeValues.value.includes(value))
+    selectedScopeValues.value = allSelected
+      ? selectedScopeValues.value.filter(item => !values.includes(item))
+      : Array.from(new Set([...selectedScopeValues.value, ...values]))
+  }
+}
+
+const parseBatchPackageIds = (batch) => {
+  const raw = batch?.packageIds
+  if (Array.isArray(raw)) return raw.map(Number).filter(Boolean)
+  const text = String(raw || '').trim()
+  if (!text) return []
+  try {
+    if (text.startsWith('[')) {
+      return JSON.parse(text).map(Number).filter(Boolean)
+    }
+  } catch (error) {
+    return text.split(/[,\s，、]+/).map(Number).filter(Boolean)
+  }
+  return text.split(/[,\s，、]+/).map(Number).filter(Boolean)
+}
+
 const submitCoupon = async () => {
   await formRef.value?.validate()
   if (form.scopeType !== 'ALL_TOUR' && selectedScopeValues.value.length === 0) {
@@ -457,6 +569,8 @@ const submitCoupon = async () => {
   try {
     const data = {
       ...form,
+      minAge: form.minAge === '' ? null : form.minAge,
+      maxAge: form.maxAge === '' ? null : form.maxAge,
       scopeIds: form.scopeType === 'ALL_TOUR' ? '' : selectedScopeValues.value.join(','),
       receiveStartTime: null,
       receiveEndTime: null,
@@ -684,6 +798,81 @@ onMounted(async () => {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+.discount-rule-card {
+  grid-column: 1 / -1;
+  padding: 14px 16px;
+  border: 1px solid #dbe7f3;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+}
+.rule-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.rule-card-head strong {
+  flex: 0 0 auto;
+  color: #0f172a;
+  font-size: 14px;
+}
+.rule-card-head span {
+  color: #8a99ad;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.rule-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 14px;
+  row-gap: 10px;
+}
+.rule-card-grid .el-form-item {
+  margin-bottom: 0;
+}
+.rule-card-grid .age-range-field {
+  grid-column: 1 / -1;
+}
+.age-range-input {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 32px minmax(140px, 1fr);
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 420px);
+}
+.age-range-input span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+.form-tip {
+  margin: 10px 0 0;
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.6;
+}
+@media (max-width: 720px) {
+  .coupon-form .form-grid,
+  .rule-card-grid {
+    grid-template-columns: 1fr;
+  }
+  .rule-card-head {
+    display: block;
+  }
+  .rule-card-head span {
+    display: block;
+    margin-top: 4px;
+  }
+  .age-range-input {
+    grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr);
+    width: 100%;
+  }
+}
 .scope-panel {
   margin: 0 0 18px;
   border: 1px solid #e5e7eb;
@@ -754,6 +943,50 @@ onMounted(async () => {
 .scope-package-list button.disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+.scope-batch-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0 32px;
+  padding-top: 10px;
+  border-top: 1px dashed #e5e7eb;
+}
+.scope-batch-list small {
+  color: #64748b;
+  font-weight: 800;
+}
+.scope-batch-list button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #dbe3ef;
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px 9px;
+  color: #475569;
+  cursor: pointer;
+  font-weight: 700;
+}
+.scope-batch-list button span {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+}
+.scope-batch-list button.active {
+  border-color: #0d9488;
+  background: #ecfdf5;
+  color: #0f766e;
+}
+.scope-batch-list button.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.scope-batch-list em {
+  color: #94a3b8;
+  font-size: 12px;
+  font-style: normal;
 }
 .issue-user-panel {
   margin-top: 16px;
