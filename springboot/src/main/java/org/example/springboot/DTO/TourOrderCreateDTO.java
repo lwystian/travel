@@ -21,6 +21,9 @@ public class TourOrderCreateDTO {
     @Schema(description = "套餐ID")
     private Long tripPackageId;
 
+    @Schema(description = "套餐价格项ID")
+    private Long packagePriceItemId;
+
     @Schema(description = "批次套餐ID")
     private Long batchPackageId;
 
@@ -78,6 +81,9 @@ public class TourOrderCreateDTO {
         @NotNull(message = "附加费用ID不能为空")
         @Schema(description = "附加费用ID")
         private Long batchPackageId;
+
+        @Schema(description = "附加费用价格项ID")
+        private Long addonPriceItemId;
 
         @Min(value = 1, message = "附加费用数量至少为1")
         @Schema(description = "数量/份数")

@@ -46,6 +46,9 @@ public class TourService {
     private TourBatchMapper tourBatchMapper;
 
     @Resource
+    private TourPriceItemService tourPriceItemService;
+
+    @Resource
     private TourHotelMapper tourHotelMapper;
 
     @Resource
@@ -816,6 +819,11 @@ public class TourService {
     }
 
     private PricePromotion calculateMinPricePromotion(Long tourId) {
+        PricePromotion priceItemPromotion = calculateMinPriceItemPromotion(tourId);
+        if (priceItemPromotion != null) {
+            return priceItemPromotion;
+        }
+
         // 获取所有行程套餐
         List<TourPackage> packages = getTourPackages(tourId);
         if (packages == null || packages.isEmpty()) {
@@ -859,6 +867,38 @@ public class TourService {
             }
         }
 
+        return minPromotion;
+    }
+
+    private PricePromotion calculateMinPriceItemPromotion(Long tourId) {
+        List<TourPackagePriceItem> priceItems = tourPriceItemService.getPackagePriceItemsByTourId(tourId).stream()
+                .filter(item -> Integer.valueOf(1).equals(item.getStatus()))
+                .filter(item -> item.getAdultPrice() != null && item.getAdultPrice().compareTo(BigDecimal.ZERO) > 0)
+                .collect(Collectors.toList());
+        if (priceItems.isEmpty()) {
+            return null;
+        }
+        Map<Long, TourBatch> batchMap = getTourBatches(tourId).stream()
+                .filter(this::isBatchBookableForMinPrice)
+                .collect(Collectors.toMap(TourBatch::getId, batch -> batch, (left, right) -> left));
+        Set<Long> activePackageIds = getTourPackages(tourId).stream()
+                .map(TourPackage::getId)
+                .collect(Collectors.toSet());
+        PricePromotion minPromotion = null;
+        for (TourPackagePriceItem item : priceItems) {
+            if (!activePackageIds.contains(item.getPackageId())) {
+                continue;
+            }
+            boolean hasBookableBatch = tourPriceItemService.parseBatchIds(item.getBatchIds()).stream()
+                    .anyMatch(batchMap::containsKey);
+            if (!hasBookableBatch) {
+                continue;
+            }
+            PricePromotion promotion = buildPricePromotion(item.getAdultPrice(), item.getOriginalAdultPrice());
+            if (isBetterMinPromotion(promotion, minPromotion)) {
+                minPromotion = promotion;
+            }
+        }
         return minPromotion;
     }
 
@@ -1066,8 +1106,18 @@ public class TourService {
 
         // 出发日期
         List<TourBatch> batches = getTourBatches(id);
+        Set<Long> visibleBatchIds = batches.stream()
+                .map(TourBatch::getId)
+                .collect(Collectors.toSet());
+        dto.setPackagePriceItems(tourPriceItemService.getPackagePriceItemsByTourId(id).stream()
+                .map(item -> toPackagePriceItemInfo(item, visibleBatchIds))
+                .collect(Collectors.toList()));
+        dto.setAddonPriceItems(tourPriceItemService.getAddonPriceItemsByTourId(id).stream()
+                .map(item -> toAddonPriceItemInfo(item, visibleBatchIds))
+                .collect(Collectors.toList()));
         dto.setBatchDates(batches.stream().map(batch -> {
             TourDetailDTO.BatchDateInfo info = new TourDetailDTO.BatchDateInfo();
+            info.setId(batch.getId());
             info.setDate(batch.getDepartureDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
             info.setAdultDateExtraFee(batch.getAdultDateExtraFee() != null ? batch.getAdultDateExtraFee() : BigDecimal.ZERO);
             info.setChildDateExtraFee(batch.getChildDateExtraFee() != null ? batch.getChildDateExtraFee() : BigDecimal.ZERO);
@@ -1107,6 +1157,50 @@ public class TourService {
         }).collect(Collectors.toList()));
 
         return dto;
+    }
+
+    private TourDetailDTO.PackagePriceItemInfo toPackagePriceItemInfo(TourPackagePriceItem item, Set<Long> visibleBatchIds) {
+        TourDetailDTO.PackagePriceItemInfo info = new TourDetailDTO.PackagePriceItemInfo();
+        info.setId(item.getId());
+        info.setPackageId(item.getPackageId());
+        info.setName(item.getName());
+        info.setAdultPrice(item.getAdultPrice());
+        info.setChildPrice(item.getChildPrice());
+        info.setOriginalAdultPrice(item.getOriginalAdultPrice());
+        info.setOriginalChildPrice(item.getOriginalChildPrice());
+        PricePromotion adultPromotion = buildPricePromotion(item.getAdultPrice(), item.getOriginalAdultPrice());
+        if (adultPromotion != null) {
+            info.setAdultDiscountLabel(adultPromotion.discountLabel());
+            info.setAdultSavedAmount(adultPromotion.savedAmount());
+        }
+        PricePromotion childPromotion = buildPricePromotion(item.getChildPrice(), item.getOriginalChildPrice());
+        if (childPromotion != null) {
+            info.setChildDiscountLabel(childPromotion.discountLabel());
+            info.setChildSavedAmount(childPromotion.savedAmount());
+        }
+        info.setBatchIds(tourPriceItemService.parseBatchIds(item.getBatchIds()).stream()
+                .filter(visibleBatchIds::contains)
+                .collect(Collectors.toList()));
+        info.setStatus(item.getStatus());
+        info.setSortOrder(item.getSortOrder());
+        return info;
+    }
+
+    private TourDetailDTO.AddonPriceItemInfo toAddonPriceItemInfo(TourAddonPriceItem item, Set<Long> visibleBatchIds) {
+        TourDetailDTO.AddonPriceItemInfo info = new TourDetailDTO.AddonPriceItemInfo();
+        info.setId(item.getId());
+        info.setAddonId(item.getAddonId());
+        info.setName(item.getName());
+        info.setPrice(item.getPrice());
+        info.setOriginalPrice(null);
+        info.setDiscountLabel(null);
+        info.setSavedAmount(null);
+        info.setBatchIds(tourPriceItemService.parseBatchIds(item.getBatchIds()).stream()
+                .filter(visibleBatchIds::contains)
+                .collect(Collectors.toList()));
+        info.setStatus(item.getStatus());
+        info.setSortOrder(item.getSortOrder());
+        return info;
     }
 
     /**

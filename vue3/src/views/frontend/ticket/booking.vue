@@ -70,9 +70,19 @@
         <!-- 日历组件 -->
         <div v-if="viewMode === 'calendar'" class="calendar-container">
           <div class="calendar-header">
-            <button class="nav-btn" @click="prevMonth">&lt;</button>
-            <span class="current-month">{{ currentYear }}-{{ String(currentMonth).padStart(2, '0') }}</span>
-            <button class="nav-btn" @click="nextMonth">&gt;</button>
+            <button class="nav-btn" :disabled="!canGoPrevMonth" @click="prevMonth">&lt;</button>
+            <div v-if="availableCalendarMonths.length > 1" class="calendar-month-tabs">
+              <button
+                v-for="month in availableCalendarMonths"
+                :key="month.key"
+                :class="['calendar-month-tab', { active: month.key === currentMonthKey }]"
+                @click="selectCalendarMonth(month)"
+              >
+                {{ month.label }}
+              </button>
+            </div>
+            <span v-else class="current-month">{{ currentMonthLabel }}</span>
+            <button class="nav-btn" :disabled="!canGoNextMonth" @click="nextMonth">&gt;</button>
           </div>
           <div class="calendar-weekdays">
             <span
@@ -92,10 +102,10 @@
                 { 'other-month': day.otherMonth },
                 { 'has-trip': day.hasTrip },
                 { selected: selectedDate === day.fullDate },
-                { disabled: day.hasTrip && !day.canBook },
+                { disabled: day.disabled },
                 { weekend: day.isWeekend }
               ]"
-              @click="toggleDateSelection(day)"
+              @click="day.canBook && toggleDateSelection(day)"
             >
               <span class="day-number">{{ day.day }}</span>
               <div v-if="day.hasTrip && !day.otherMonth && day.batch" class="trip-info">
@@ -268,16 +278,16 @@
           <span class="package-label">行程套餐：</span>
           <div class="package-options">
             <button
-              v-for="pkg in availableTripPackages"
+              v-for="pkg in displayTripPackages"
               :key="pkg.id"
               :class="['package-btn', { active: selectedPackage === pkg.id }]"
               @click="selectTripPackage(pkg.id)"
             >
               <span class="package-name">
                 {{ pkg.name }}
-                <span v-if="packageSharedDiscountLabel(pkg)" class="package-discount name-discount">{{ packageSharedDiscountLabel(pkg) }}</span>
+                <span v-if="selectedBatchDate && isBatchPackageAvailable(currentRawBatch, pkg.id) && packageSharedDiscountLabel(pkg)" class="package-discount name-discount">{{ packageSharedDiscountLabel(pkg) }}</span>
               </span>
-              <div class="package-prices">
+              <div v-if="selectedBatchDate && isBatchPackageAvailable(currentRawBatch, pkg.id)" class="package-prices">
                 <span class="package-price adult">
                   <span v-if="!packageSharedDiscountLabel(pkg) && packageAdultDiscountLabel(pkg)" class="package-discount">{{ packageAdultDiscountLabel(pkg) }}</span>
                   <span v-if="hasPromotion(pkg.originalAdultPrice, pkg.adultPrice)" class="package-origin">¥{{ formatMoney(pkg.originalAdultPrice) }}</span>
@@ -289,8 +299,9 @@
                   儿童 ¥{{ formatMoney(pkg.childPrice) }}
                 </span>
               </div>
+              <span v-else class="package-date-hint">{{ packageAvailableDateLabel(pkg.id) }}</span>
             </button>
-            <span v-if="availableTripPackages.length === 0" class="package-empty">当前日期暂无可选行程套餐</span>
+            <span v-if="displayTripPackages.length === 0" class="package-empty">暂无可选行程套餐</span>
           </div>
         </div>
 
@@ -331,7 +342,7 @@
                 </span>
               </span>
             </div>
-            <span v-if="availableAddonPackages.length === 0" class="package-empty">当前日期暂无附加费用</span>
+            <span v-if="availableAddonPackages.length === 0" class="package-empty">{{ addonEmptyText }}</span>
           </div>
         </div>
       </div>
@@ -344,8 +355,8 @@
               <span class="booking-label">行程套餐：</span>
               <select v-model="selectedTrip" class="booking-select" @change="handleTripSelect">
                 <option value="">请选择行程套餐</option>
-                <option v-for="pkg in availableTripPackages" :key="pkg.id" :value="String(pkg.id)">
-                  {{ pkg.name }} (成人¥{{ formatMoney(pkg.adultPrice) }}<span v-if="hasChildPrice">/儿童¥{{ formatMoney(pkg.childPrice) }}</span>)
+                <option v-for="pkg in displayTripPackages" :key="pkg.id" :value="String(pkg.id)">
+                  {{ packageSelectLabel(pkg) }}
                 </option>
               </select>
             </div>
@@ -362,7 +373,7 @@
               <span class="booking-label">出行日期：</span>
               <select v-model="selectedBatchDate" class="booking-select" @change="handleBatchDateChange">
                 <option value="">请选择出发日期</option>
-                <option v-for="batch in batchDatesWithDisplay" :key="batch.date" :value="batch.date" :disabled="Boolean(getBatchBaseUnavailableReason(batch))">
+                <option v-for="batch in batchDatesWithDisplay" :key="batch.date" :value="batch.date" :disabled="!batch.canBook">
                   {{ batch.date }} ({{ batch.weekdayName }}) - {{ batch.canBook ? `成人¥${formatMoney(batch.finalAdultPrice)}` : '' }}<span v-if="hasChildPrice && batch.canBook"> / 儿童¥{{ formatMoney(batch.finalChildPrice) }}</span> {{ !batch.canBook ? `[${batch.unavailableReason}]` : '' }}
                 </option>
               </select>
@@ -883,9 +894,13 @@ const currentImage = computed(() => {
 // 行程套餐数据
 // =============================================
 const tripPackages = ref([])
+const packagePriceItems = ref([])
 
 // 判断是否有儿童价
 const hasChildPrice = computed(() => {
+  if (hasPackagePriceItemMode.value) {
+    return activePackagePriceItems.value.some(item => item.childPrice !== null && item.childPrice !== undefined)
+  }
   return tripPackages.value.some(pkg =>
     pkg.childPrice !== null &&
     pkg.childPrice !== undefined
@@ -894,6 +909,7 @@ const hasChildPrice = computed(() => {
 
 // 批次套餐数据
 const batchPackages = ref([])
+const addonPriceItems = ref([])
 
 // 出发日期数据
 const batchDates = ref([])
@@ -975,8 +991,92 @@ const isBatchBookableForMinPrice = (batch) => {
 
 const isPackageAvailableForBatch = (batch, packageId) => {
   if (!batch || !packageId) return false
+  if (hasPackagePriceItemMode.value) {
+    return Boolean(getPackagePriceItemForBatch(batch, packageId))
+  }
   const packageIds = Array.isArray(batch.packageIds) ? batch.packageIds.map(Number).filter(Boolean) : []
   return !packageIds.length || packageIds.includes(Number(packageId))
+}
+
+const hasPackagePriceItemMode = computed(() => activePackagePriceItems.value.length > 0)
+
+const activePackagePriceItems = computed(() => {
+  return packagePriceItems.value.filter(item => Number(item.status ?? 1) === 1)
+})
+
+const activeAddonPriceItems = computed(() => {
+  return addonPriceItems.value.filter(item => Number(item.status ?? 1) === 1)
+})
+
+const normalizeBatchIds = (value) => {
+  if (!value) return []
+  if (Array.isArray(value)) return value.map(Number).filter(Boolean)
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) return parsed.map(Number).filter(Boolean)
+    } catch (error) {
+      void error
+    }
+    return value.split(/[,\s，、]+/).map(Number).filter(Boolean)
+  }
+  return []
+}
+
+const getPackageById = (id) => tripPackages.value.find(pkg => Number(pkg.id) === Number(id)) || null
+
+const getAddonById = (id) => batchPackages.value.find(pkg => Number(pkg.id) === Number(id)) || null
+
+const batchIdentity = (batch) => Number(batch?.batchId || batch?.id || 0)
+
+const getPackagePriceItemForBatch = (batch, packageId = selectedPackage.value) => {
+  const id = batchIdentity(batch)
+  if (!id || !packageId) return null
+  return activePackagePriceItems.value.find(item =>
+    Number(item.packageId) === Number(packageId) &&
+    normalizeBatchIds(item.batchIds).includes(id)
+  ) || null
+}
+
+const getAddonPriceItemForBatch = (batch, addonId) => {
+  const id = batchIdentity(batch)
+  if (!id || !addonId) return null
+  return activeAddonPriceItems.value.find(item =>
+    Number(item.addonId) === Number(addonId) &&
+    normalizeBatchIds(item.batchIds).includes(id)
+  ) || null
+}
+
+const buildPackageWithPriceItem = (priceItem) => {
+  const base = getPackageById(priceItem?.packageId)
+  if (!base || !priceItem) return null
+  return {
+    ...base,
+    packagePriceItemId: priceItem.id,
+    priceItemName: priceItem.name || '',
+    adultPrice: priceItem.adultPrice,
+    childPrice: priceItem.childPrice,
+    originalAdultPrice: priceItem.originalAdultPrice,
+    originalChildPrice: priceItem.originalChildPrice,
+    adultDiscountLabel: priceItem.adultDiscountLabel || '',
+    childDiscountLabel: priceItem.childDiscountLabel || '',
+    adultSavedAmount: priceItem.adultSavedAmount || 0,
+    childSavedAmount: priceItem.childSavedAmount || 0
+  }
+}
+
+const buildAddonWithPriceItem = (priceItem) => {
+  const base = getAddonById(priceItem?.addonId)
+  if (!base || !priceItem) return null
+  return {
+    ...base,
+    addonPriceItemId: priceItem.id,
+    priceItemName: priceItem.name || '',
+    extraFeePerPerson: priceItem.price,
+    originalPrice: priceItem.originalPrice,
+    discountLabel: priceItem.discountLabel || '',
+    savedAmount: priceItem.savedAmount || 0
+  }
 }
 
 const getMinPriceCandidate = (type) => {
@@ -986,6 +1086,29 @@ const getMinPriceCandidate = (type) => {
   const extraKey = isChild ? 'childDateExtraFee' : 'adultDateExtraFee'
   let best = null
   const bookableBatches = batchDates.value.filter(isBatchBookableForMinPrice)
+
+  if (hasPackagePriceItemMode.value) {
+    const bookableBatchIds = new Set(bookableBatches.map(batch => Number(batch.batchId || batch.id)))
+    activePackagePriceItems.value.forEach(item => {
+      if (item[priceKey] === null || item[priceKey] === undefined) return
+      const hasBookableBatch = normalizeBatchIds(item.batchIds).some(id => bookableBatchIds.has(id))
+      if (!hasBookableBatch) return
+      const packagePrice = Number(item[priceKey])
+      if (!Number.isFinite(packagePrice) || packagePrice < 0) return
+      const originalPrice = hasPromotion(item[originalKey], item[priceKey]) ? Number(item[originalKey]) : 0
+      const amountSaved = savedAmount(originalPrice, packagePrice)
+      if (!best || packagePrice < best.salePrice || (packagePrice === best.salePrice && amountSaved > best.savedAmount)) {
+        best = {
+          package: getPackageById(item.packageId),
+          salePrice: packagePrice,
+          originalPrice,
+          discountLabel: discountLabel(originalPrice, packagePrice, item[isChild ? 'childDiscountLabel' : 'adultDiscountLabel']),
+          savedAmount: amountSaved
+        }
+      }
+    })
+    return best
+  }
 
   tripPackages.value.forEach(pkg => {
     if (pkg[priceKey] === null || pkg[priceKey] === undefined) return
@@ -1066,6 +1189,40 @@ const packageSharedDiscountLabel = (pkg) => {
   return sameDiscountLabel(adultLabel, childLabel) ? adultLabel : ''
 }
 
+const currentMonthLabel = computed(() => `${currentYear.value}-${String(currentMonth.value).padStart(2, '0')}`)
+
+const currentMonthKey = computed(() => `${currentYear.value}-${String(currentMonth.value).padStart(2, '0')}`)
+
+const availableCalendarMonths = computed(() => {
+  const monthMap = new Map()
+  packageAvailableBatches(selectedPackage.value).forEach(batch => {
+    const date = new Date(batch.date)
+    if (Number.isNaN(date.getTime())) return
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    monthMap.set(key, {
+      key,
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      label: key
+    })
+  })
+  return Array.from(monthMap.values()).sort((left, right) => {
+    if (left.year !== right.year) return left.year - right.year
+    return left.month - right.month
+  })
+})
+
+const currentCalendarMonthIndex = computed(() => {
+  return availableCalendarMonths.value.findIndex(month => month.key === currentMonthKey.value)
+})
+
+const canGoPrevMonth = computed(() => currentCalendarMonthIndex.value > 0)
+
+const canGoNextMonth = computed(() => {
+  const index = currentCalendarMonthIndex.value
+  return index >= 0 && index < availableCalendarMonths.value.length - 1
+})
+
 // =============================================
 // 计算属性 - 选中的套餐
 // =============================================
@@ -1079,14 +1236,48 @@ const getAvailableIds = (batch, field) => {
   return Array.isArray(ids) ? ids.map(id => Number(id)).filter(Boolean) : []
 }
 
+const packageAvailableBatches = (packageId) => {
+  if (!packageId) return []
+  return batchDates.value.filter(batch => isBatchPackageAvailable(batch, packageId))
+}
+
+const getPackageForCurrentBatch = (pkg) => {
+  if (!pkg) return null
+  if (hasPackagePriceItemMode.value && currentRawBatch.value) {
+    return buildPackageWithPriceItem(getPackagePriceItemForBatch(currentRawBatch.value, pkg.id)) || pkg
+  }
+  return pkg
+}
+
+const packageAvailableDateLabel = (packageId) => {
+  const batches = packageAvailableBatches(packageId)
+  if (!batches.length) return '暂无可选日期'
+  return `可选 ${batches.length} 个出发日`
+}
+
+const packageSelectLabel = (pkg) => {
+  const displayPackage = getPackageForCurrentBatch(pkg)
+  if (selectedBatchDate.value && currentRawBatch.value && isBatchPackageAvailable(currentRawBatch.value, pkg.id)) {
+    const childText = hasChildPrice.value ? ` / 儿童¥${formatMoney(displayPackage?.childPrice)}` : ''
+    return `${pkg.name}（成人¥${formatMoney(displayPackage?.adultPrice)}${childText}）`
+  }
+  return `${pkg.name}（${packageAvailableDateLabel(pkg.id)}）`
+}
+
 const isBatchPackageAvailable = (batch, packageId = selectedPackage.value) => {
   if (!batch || !packageId) return false
+  if (hasPackagePriceItemMode.value) {
+    return Boolean(getPackagePriceItemForBatch(batch, packageId))
+  }
   const packageIds = getAvailableIds(batch, 'packageIds')
   return !packageIds.length || packageIds.includes(Number(packageId))
 }
 
 const areSelectedAddonsAvailable = (batch) => {
   if (!batch || selectedAddonIds.value.length === 0) return true
+  if (hasPackagePriceItemMode.value) {
+    return selectedAddonIds.value.every(id => getAddonPriceItemForBatch(batch, id))
+  }
   const addonIds = getAvailableIds(batch, 'addonIds')
   if (!addonIds.length) return true
   return selectedAddonIds.value.every(id => addonIds.includes(Number(id)))
@@ -1096,15 +1287,15 @@ const getBatchBaseUnavailableReason = (batch) => {
   if (!batch) return '无班期'
   const requiredCount = adultCount.value + (hasChildPrice.value ? childCount.value : 0)
   const remaining = (batch.remaining ?? 0) - (batch.occupied ?? 0)
-  if (batch.status !== '可报名') return batch.status || '不可报名'
-  if (remaining < requiredCount) return `余位不足`
+  if (batch.status !== '可报名') return batch.status || '不可选'
+  if (remaining < requiredCount) return '已满'
   return ''
 }
 
 const getBatchSelectionUnavailableReason = (batch) => {
   if (!batch) return '无班期'
-  if (!isBatchPackageAvailable(batch)) return '需更换套餐'
-  if (!areSelectedAddonsAvailable(batch)) return '需调整附加费用'
+  if (!isBatchPackageAvailable(batch)) return '不可出行'
+  if (!areSelectedAddonsAvailable(batch)) return '附加费用不可用'
   return ''
 }
 
@@ -1113,18 +1304,49 @@ const getBatchUnavailableReason = (batch) => {
 }
 
 const availableTripPackages = computed(() => {
-  const packageIds = getAvailableIds(currentRawBatch.value, 'packageIds')
-  if (!packageIds.length) return tripPackages.value
-  return tripPackages.value.filter(pkg => packageIds.includes(Number(pkg.id)))
+  if (hasPackagePriceItemMode.value) {
+    const packageIds = new Set(activePackagePriceItems.value.map(item => Number(item.packageId)).filter(Boolean))
+    return tripPackages.value.filter(pkg => packageIds.has(Number(pkg.id)))
+  }
+  return tripPackages.value
+})
+
+const displayTripPackages = computed(() => {
+  if (hasPackagePriceItemMode.value) {
+    return availableTripPackages.value.map(pkg => getPackageForCurrentBatch(pkg))
+  }
+  return availableTripPackages.value
 })
 
 const availableAddonPackages = computed(() => {
+  if (!currentRawBatch.value) return []
+  if (hasPackagePriceItemMode.value) {
+    const rows = activeAddonPriceItems.value.filter(item => normalizeBatchIds(item.batchIds).includes(batchIdentity(currentRawBatch.value)))
+    const seen = new Set()
+    return rows
+      .map(buildAddonWithPriceItem)
+      .filter(Boolean)
+      .filter(pkg => {
+        if (seen.has(Number(pkg.id))) return false
+        seen.add(Number(pkg.id))
+        return true
+      })
+  }
   const addonIds = getAvailableIds(currentRawBatch.value, 'addonIds')
   if (!addonIds.length) return batchPackages.value
   return batchPackages.value.filter(pkg => addonIds.includes(Number(pkg.id)))
 })
 
+const addonEmptyText = computed(() => {
+  return selectedBatchDate.value ? '当前日期暂无附加费用' : '选择出发日期后查看可选附加费用'
+})
+
 const selectedTripPackage = computed(() => {
+  if (hasPackagePriceItemMode.value && currentRawBatch.value) {
+    const priceItem = getPackagePriceItemForBatch(currentRawBatch.value, selectedPackage.value)
+    const pricePackage = buildPackageWithPriceItem(priceItem)
+    if (pricePackage) return pricePackage
+  }
   return availableTripPackages.value.find(pkg => pkg.id === selectedPackage.value) ||
     tripPackages.value.find(pkg => pkg.id === selectedPackage.value)
 })
@@ -1151,12 +1373,20 @@ const addonSummary = computed(() => {
 // 计算属性 - 最终价格
 // =============================================
 const currentFinalAdultPrice = computed(() => {
+  if (hasPackagePriceItemMode.value) {
+    return Number(selectedTripPackage.value?.adultPrice || 0)
+  }
   const tripAdultPrice = Number(selectedTripPackage.value?.adultPrice || 0)
   const dateAdultExtra = Number(currentBatch.value?.adultDateExtraFee || 0)
   return tripAdultPrice + dateAdultExtra
 })
 
 const currentFinalAdultOriginalPrice = computed(() => {
+  if (hasPackagePriceItemMode.value) {
+    return hasPromotion(selectedTripPackage.value?.originalAdultPrice, selectedTripPackage.value?.adultPrice)
+      ? Number(selectedTripPackage.value?.originalAdultPrice || 0)
+      : 0
+  }
   if (!hasPromotion(selectedTripPackage.value?.originalAdultPrice, selectedTripPackage.value?.adultPrice)) return 0
   const tripAdultOriginalPrice = Number(selectedTripPackage.value?.originalAdultPrice || 0)
   const dateAdultExtra = Number(currentBatch.value?.adultDateExtraFee || 0)
@@ -1165,6 +1395,9 @@ const currentFinalAdultOriginalPrice = computed(() => {
 
 const currentFinalChildPrice = computed(() => {
   if (!hasChildPrice.value) return 0
+  if (hasPackagePriceItemMode.value) {
+    return Number(selectedTripPackage.value?.childPrice ?? 0)
+  }
   const tripChildPrice = Number(selectedTripPackage.value?.childPrice ?? selectedTripPackage.value?.adultPrice ?? 0)
   const dateChildExtra = Number(currentBatch.value?.childDateExtraFee || 0)
   return tripChildPrice + dateChildExtra
@@ -1172,6 +1405,9 @@ const currentFinalChildPrice = computed(() => {
 
 const currentFinalChildOriginalPrice = computed(() => {
   if (!hasChildPrice.value || !hasPromotion(selectedTripPackage.value?.originalChildPrice, selectedTripPackage.value?.childPrice)) return 0
+  if (hasPackagePriceItemMode.value) {
+    return Number(selectedTripPackage.value?.originalChildPrice || 0)
+  }
   const tripChildOriginalPrice = Number(selectedTripPackage.value?.originalChildPrice || 0)
   const dateChildExtra = Number(currentBatch.value?.childDateExtraFee || 0)
   return tripChildOriginalPrice + dateChildExtra
@@ -1206,7 +1442,17 @@ const batchDatesWithDisplay = computed(() => {
     : 0
   const requiredCount = adultCount.value + (hasChildPrice.value ? childCount.value : 0)
 
-  return batchDates.value.map(batch => {
+  return batchDates.value.filter(batch => isBatchPackageAvailable(batch)).map(batch => {
+    const priceItem = getPackagePriceItemForBatch(batch)
+    const pricePackage = buildPackageWithPriceItem(priceItem)
+    const displayAdultPrice = hasPackagePriceItemMode.value ? Number(pricePackage?.adultPrice || 0) : tripAdultPrice + Number(batch.adultDateExtraFee || 0)
+    const displayAdultOriginalPrice = hasPackagePriceItemMode.value
+      ? (hasPromotion(pricePackage?.originalAdultPrice, pricePackage?.adultPrice) ? Number(pricePackage?.originalAdultPrice || 0) : 0)
+      : (tripAdultOriginalPrice ? tripAdultOriginalPrice + Number(batch.adultDateExtraFee || 0) : 0)
+    const displayChildPrice = hasPackagePriceItemMode.value ? Number(pricePackage?.childPrice || 0) : tripChildPrice + Number(batch.childDateExtraFee || 0)
+    const displayChildOriginalPrice = hasPackagePriceItemMode.value
+      ? (hasPromotion(pricePackage?.originalChildPrice, pricePackage?.childPrice) ? Number(pricePackage?.originalChildPrice || 0) : 0)
+      : (tripChildOriginalPrice ? tripChildOriginalPrice + Number(batch.childDateExtraFee || 0) : 0)
     const date = new Date(batch.date)
     // 可用余位 = 剩余余位 - 已锁定库存
     const remaining = (batch.remaining ?? 0) - (batch.occupied ?? 0)
@@ -1215,10 +1461,10 @@ const batchDatesWithDisplay = computed(() => {
     return {
       ...batch,
       weekdayName: weekdayNames[date.getDay()],
-      finalAdultPrice: isBatchPackageAvailable(batch) ? tripAdultPrice + Number(batch.adultDateExtraFee || 0) : 0,
-      finalAdultOriginalPrice: isBatchPackageAvailable(batch) && tripAdultOriginalPrice ? tripAdultOriginalPrice + Number(batch.adultDateExtraFee || 0) : 0,
-      finalChildPrice: isBatchPackageAvailable(batch) && hasChildPrice.value ? (tripChildPrice + Number(batch.childDateExtraFee || 0)) : 0,
-      finalChildOriginalPrice: isBatchPackageAvailable(batch) && tripChildOriginalPrice ? tripChildOriginalPrice + Number(batch.childDateExtraFee || 0) : 0,
+      finalAdultPrice: isBatchPackageAvailable(batch) ? displayAdultPrice : 0,
+      finalAdultOriginalPrice: isBatchPackageAvailable(batch) ? displayAdultOriginalPrice : 0,
+      finalChildPrice: isBatchPackageAvailable(batch) && hasChildPrice.value ? displayChildPrice : 0,
+      finalChildOriginalPrice: isBatchPackageAvailable(batch) && hasChildPrice.value ? displayChildOriginalPrice : 0,
       unavailableReason,
       canBook,
       remainingAvailable: remaining,
@@ -1233,7 +1479,10 @@ const batchDatesWithDisplay = computed(() => {
 const getBatchForDate = (dateStr) => {
   const batch = batchDates.value.find(b => b.date === dateStr)
   if (!batch) return null
+  if (!isBatchPackageAvailable(batch)) return null
 
+  const priceItem = getPackagePriceItemForBatch(batch)
+  const pricePackage = buildPackageWithPriceItem(priceItem)
   const tripAdultPrice = Number(selectedTripPackage.value?.adultPrice || 0)
   const tripAdultOriginalPrice = hasPromotion(selectedTripPackage.value?.originalAdultPrice, selectedTripPackage.value?.adultPrice)
     ? Number(selectedTripPackage.value?.originalAdultPrice || 0)
@@ -1250,10 +1499,14 @@ const getBatchForDate = (dateStr) => {
 
   return {
     ...batch,
-    finalAdultPrice: isBatchPackageAvailable(batch) ? tripAdultPrice + Number(batch.adultDateExtraFee || 0) : 0,
-    finalAdultOriginalPrice: isBatchPackageAvailable(batch) && tripAdultOriginalPrice ? tripAdultOriginalPrice + Number(batch.adultDateExtraFee || 0) : 0,
-    finalChildPrice: isBatchPackageAvailable(batch) && hasChildPrice.value ? (tripChildPrice + Number(batch.childDateExtraFee || 0)) : 0,
-    finalChildOriginalPrice: isBatchPackageAvailable(batch) && tripChildOriginalPrice ? tripChildOriginalPrice + Number(batch.childDateExtraFee || 0) : 0,
+    finalAdultPrice: isBatchPackageAvailable(batch) ? (hasPackagePriceItemMode.value ? Number(pricePackage?.adultPrice || 0) : tripAdultPrice + Number(batch.adultDateExtraFee || 0)) : 0,
+    finalAdultOriginalPrice: isBatchPackageAvailable(batch) ? (hasPackagePriceItemMode.value
+      ? (hasPromotion(pricePackage?.originalAdultPrice, pricePackage?.adultPrice) ? Number(pricePackage?.originalAdultPrice || 0) : 0)
+      : (tripAdultOriginalPrice ? tripAdultOriginalPrice + Number(batch.adultDateExtraFee || 0) : 0)) : 0,
+    finalChildPrice: isBatchPackageAvailable(batch) && hasChildPrice.value ? (hasPackagePriceItemMode.value ? Number(pricePackage?.childPrice || 0) : tripChildPrice + Number(batch.childDateExtraFee || 0)) : 0,
+    finalChildOriginalPrice: isBatchPackageAvailable(batch) && hasChildPrice.value ? (hasPackagePriceItemMode.value
+      ? (hasPromotion(pricePackage?.originalChildPrice, pricePackage?.childPrice) ? Number(pricePackage?.originalChildPrice || 0) : 0)
+      : (tripChildOriginalPrice ? tripChildOriginalPrice + Number(batch.childDateExtraFee || 0) : 0)) : 0,
     unavailableReason,
     canBook,
     remainingAvailable: remaining,
@@ -1275,6 +1528,7 @@ const calendarDays = computed(() => {
   for (let i = 1; i <= lastDay.getDate(); i++) {
     const date = new Date(currentYear.value, currentMonth.value - 1, i)
     const dateStr = `${currentYear.value}-${String(currentMonth.value).padStart(2, '0')}-${String(i).padStart(2, '0')}`
+    const rawBatch = batchDates.value.find(b => b.date === dateStr)
     const batch = getBatchForDate(dateStr)
     days.push({
       day: i,
@@ -1283,7 +1537,8 @@ const calendarDays = computed(() => {
       isWeekend: date.getDay() === 0 || date.getDay() === 6,
       fullDate: dateStr,
       batch: batch || null,
-      canBook: batch?.canBook ?? false
+      canBook: batch?.canBook ?? false,
+      disabled: !batch || !batch.canBook || Boolean(rawBatch && !batch)
     })
   }
 
@@ -1310,17 +1565,11 @@ const cannotBookReason = computed(() => {
   if (!currentBatch.value) return ''
   const selectionReason = getBatchSelectionUnavailableReason(currentBatch.value)
   if (selectionReason) {
-    return `${selectionReason}，请重新选择`
+    return `当前日期${selectionReason}，请重新选择出行日期`
   }
   const baseReason = getBatchBaseUnavailableReason(currentBatch.value)
-  if (baseReason && baseReason !== '余位不足') {
-    return `该批次${baseReason}，不可预订`
-  }
-  // 可用余位 = 剩余余位 - 已锁定库存
-  const requiredCount = adultCount.value + (hasChildPrice.value ? childCount.value : 0)
-  const remaining = (currentBatch.value.remaining ?? 0) - (currentBatch.value.occupied ?? 0)
-  if (remaining < requiredCount) {
-    return `余位不足，当前剩余${remaining}个名额，需要${requiredCount}人`
+  if (baseReason) {
+    return `当前日期${baseReason}，不可预订`
   }
   return ''
 })
@@ -1329,41 +1578,37 @@ const cannotBookReason = computed(() => {
 // 方法
 // =============================================
 const prevMonth = () => {
-  if (currentMonth.value === 1) {
-    currentMonth.value = 12
-    currentYear.value--
-  } else {
-    currentMonth.value--
-  }
+  if (!canGoPrevMonth.value) return
+  selectCalendarMonth(availableCalendarMonths.value[currentCalendarMonthIndex.value - 1])
 }
 
 const nextMonth = () => {
-  if (currentMonth.value === 12) {
-    currentMonth.value = 1
-    currentYear.value++
-  } else {
-    currentMonth.value++
-  }
+  if (!canGoNextMonth.value) return
+  selectCalendarMonth(availableCalendarMonths.value[currentCalendarMonthIndex.value + 1])
+}
+
+const selectCalendarMonth = (month) => {
+  if (!month) return
+  currentYear.value = month.year
+  currentMonth.value = month.month
 }
 
 const toggleDateSelection = (item) => {
   // 检查是否可以预订
   const rawBatch = item.batch || item
+  const displayBatch = item.batch || item
+  if ('fullDate' in item && (item.otherMonth || !item.hasTrip || !item.batch)) return
+  if (displayBatch && !displayBatch.canBook) {
+    ElMessage.warning(displayBatch.unavailableReason || '该日期暂不可选')
+    return
+  }
   const baseUnavailableReason = getBatchBaseUnavailableReason(rawBatch)
   if (baseUnavailableReason) {
-    // 可用余位 = 剩余余位 - 已锁定库存
-    const remaining = ((item.batch?.remaining ?? item.remaining ?? 0) - (item.batch?.occupied ?? item.occupied ?? 0))
-    const required = adultCount.value + (hasChildPrice.value ? childCount.value : 0)
-    if (remaining < required) {
-      ElMessage.warning(`余位不足，当前剩余${remaining}个名额，需要${required}人`)
-    } else {
-      ElMessage.warning(`该批次${baseUnavailableReason}，不可选择`)
-    }
+    ElMessage.warning(`该日期${baseUnavailableReason}，不可选择`)
     return
   }
 
   if ('fullDate' in item) {
-    if (item.otherMonth || !item.hasTrip || !item.batch) return
     if (selectedDate.value === item.fullDate) {
       selectedDate.value = ''
       selectedBatchDate.value = ''
@@ -1419,14 +1664,20 @@ const handleVideoEnded = () => {
 const selectTripPackage = (id) => {
   selectedPackage.value = id
   selectedTrip.value = String(id)
+  if (currentRawBatch.value && !isBatchPackageAvailable(currentRawBatch.value, id)) {
+    selectedDate.value = ''
+    selectedBatchDate.value = ''
+    currentBatch.value = null
+    selectedAddonIds.value = []
+    addonQuantities.value = {}
+  } else {
+    syncSelectionForCurrentBatch()
+  }
+  setCalendarMonthByPackage()
   refreshCurrentBatchPrice()
 }
 
 const syncSelectionForCurrentBatch = () => {
-  if (availableTripPackages.value.length > 0 && !availableTripPackages.value.some(pkg => pkg.id === selectedPackage.value)) {
-    selectedPackage.value = availableTripPackages.value[0].id
-    selectedTrip.value = String(availableTripPackages.value[0].id)
-  }
   const availableAddonIds = new Set(availableAddonPackages.value.map(pkg => Number(pkg.id)))
   selectedAddonIds.value = selectedAddonIds.value.filter(id => availableAddonIds.has(Number(id)))
   const nextQuantities = {}
@@ -1460,22 +1711,30 @@ const handleTripSelect = () => {
   if (selectedTrip.value) {
     selectedPackage.value = parseInt(selectedTrip.value)
   }
+  if (currentRawBatch.value && !isBatchPackageAvailable(currentRawBatch.value, selectedPackage.value)) {
+    selectedDate.value = ''
+    selectedBatchDate.value = ''
+    currentBatch.value = null
+    selectedAddonIds.value = []
+    addonQuantities.value = {}
+  } else {
+    syncSelectionForCurrentBatch()
+  }
+  setCalendarMonthByPackage()
   refreshCurrentBatchPrice()
 }
 
 const handleBatchDateChange = () => {
   if (selectedBatchDate.value) {
     // 检查是否选择了不可预订的批次
-    const batch = batchDates.value.find(b => b.date === selectedBatchDate.value)
-    const baseUnavailableReason = getBatchBaseUnavailableReason(batch)
-    if (batch && baseUnavailableReason) {
-      ElMessage.warning(`该批次${baseUnavailableReason}，不可选择`)
+    const batchDisplay = batchDatesWithDisplay.value.find(b => b.date === selectedBatchDate.value)
+    if (batchDisplay && !batchDisplay.canBook) {
+      ElMessage.warning(batchDisplay.unavailableReason || '该日期暂不可选')
       selectedBatchDate.value = ''
       currentBatch.value = null
       selectedDate.value = ''
       return
     }
-    const batchDisplay = batchDatesWithDisplay.value.find(b => b.date === selectedBatchDate.value)
     currentBatch.value = batchDisplay || null
     selectedDate.value = selectedBatchDate.value
     syncSelectionForCurrentBatch()
@@ -1526,7 +1785,8 @@ const restoreBookingSelectionAfterLogin = () => {
     }
 
     const preferredPackageId = Number(selection.selectedPackage || selection.selectedTrip || 0)
-    if (preferredPackageId && tripPackages.value.some(pkg => Number(pkg.id) === preferredPackageId)) {
+    const packages = displayTripPackages.value.length ? displayTripPackages.value : tripPackages.value
+    if (preferredPackageId && packages.some(pkg => Number(pkg.id) === preferredPackageId)) {
       selectedPackage.value = preferredPackageId
       selectedTrip.value = String(preferredPackageId)
     }
@@ -1617,16 +1877,32 @@ const viewHotelDetail = (accommodationId) => {
 }
 
 const initDefaultSelection = () => {
-  if (batchDates.value.length > 0) {
-    // 默认选中第一个可报名的批次
-    const firstBookableBatch = batchDatesWithDisplay.value.find(b => b.canBook) ||
-      batchDates.value.find(b => !getBatchBaseUnavailableReason(b)) ||
-      batchDates.value[0]
-    selectedBatchDate.value = firstBookableBatch.date
-    selectedDate.value = firstBookableBatch.date
-    syncSelectionForCurrentBatch()
-    currentBatch.value = buildBatchDisplay(firstBookableBatch)
-  }
+  selectedBatchDate.value = ''
+  selectedDate.value = ''
+  currentBatch.value = null
+  selectedAddonIds.value = []
+  addonQuantities.value = {}
+}
+
+const initDefaultPackageSelection = () => {
+  const queryPackageId = Number(route.query.packageId || 0)
+  const packages = displayTripPackages.value.length ? displayTripPackages.value : tripPackages.value
+  const preferredPackage = packages.find(pkg => Number(pkg.id) === queryPackageId) || packages[0]
+  if (!preferredPackage) return
+  selectedPackage.value = preferredPackage.id
+  selectedTrip.value = String(preferredPackage.id)
+  setCalendarMonthByPackage()
+}
+
+const setCalendarMonthByPackage = () => {
+  const firstBatch = packageAvailableBatches(selectedPackage.value)
+    .slice()
+    .sort((left, right) => new Date(left.date) - new Date(right.date))[0]
+  if (!firstBatch) return
+  const date = new Date(firstBatch.date)
+  if (Number.isNaN(date.getTime())) return
+  currentYear.value = date.getFullYear()
+  currentMonth.value = date.getMonth() + 1
 }
 
 // =============================================
@@ -1717,8 +1993,38 @@ const fetchProductDetail = async () => {
         description: pkg.description || ''
       }))
 
+      packagePriceItems.value = (data.packagePriceItems || []).map(item => ({
+        id: item.id,
+        packageId: item.packageId,
+        name: item.name || '',
+        adultPrice: item.adultPrice,
+        childPrice: item.childPrice,
+        originalAdultPrice: item.originalAdultPrice,
+        originalChildPrice: item.originalChildPrice,
+        adultDiscountLabel: item.adultDiscountLabel || '',
+        childDiscountLabel: item.childDiscountLabel || '',
+        adultSavedAmount: item.adultSavedAmount || 0,
+        childSavedAmount: item.childSavedAmount || 0,
+        batchIds: normalizeBatchIds(item.batchIds),
+        status: item.status ?? 1
+      }))
+
+      addonPriceItems.value = (data.addonPriceItems || []).map(item => ({
+        id: item.id,
+        addonId: item.addonId,
+        name: item.name || '',
+        price: item.price || 0,
+        originalPrice: item.originalPrice,
+        discountLabel: item.discountLabel || '',
+        savedAmount: item.savedAmount || 0,
+        batchIds: normalizeBatchIds(item.batchIds),
+        status: item.status ?? 1
+      }))
+
       // 出发日期
       batchDates.value = (data.batchDates || []).map(batch => ({
+        id: batch.id,
+        batchId: batch.id,
         date: batch.date,
         adultDateExtraFee: batch.adultDateExtraFee || 0,
         childDateExtraFee: batch.childDateExtraFee || 0,
@@ -1753,13 +2059,8 @@ const fetchProductDetail = async () => {
       // 设置日历默认月份为最早有行程的月份
       setDefaultCalendarMonth()
 
-      // 设置默认选中
-      if (tripPackages.value.length > 0) {
-        const queryPackageId = Number(route.query.packageId || 0)
-        const preferredPackage = tripPackages.value.find(pkg => Number(pkg.id) === queryPackageId) || tripPackages.value[0]
-        selectedPackage.value = preferredPackage.id
-        selectedTrip.value = String(preferredPackage.id)
-      }
+      // 设置默认套餐
+      initDefaultPackageSelection()
       initDefaultSelection()
       if (userStore.checkLoginStatus()) {
         restoreBookingSelectionAfterLogin()
@@ -1825,9 +2126,11 @@ const handleBooking = async () => {
   const orderData = {
     productId: productInfo.value.code,
     tripPackageId: selectedPackage.value,
+    packagePriceItemId: selectedTripPackage.value?.packagePriceItemId || null,
     batchPackageId: selectedAddonPackages.value[0]?.id || null,
     addonSelections: selectedAddonPackages.value.map(pkg => ({
       batchPackageId: pkg.id,
+      addonPriceItemId: pkg.addonPriceItemId || null,
       quantity: Math.max(1, Number(addonQuantities.value[pkg.id] || 1))
     })),
     batchDate: selectedBatchDate.value,
@@ -2597,21 +2900,66 @@ onUnmounted(() => {
 .calendar-header {
   display: flex;
   align-items: center;
-  gap: 15px;
+  justify-content: center;
+  gap: 14px;
   margin-bottom: 15px;
 }
 
 .nav-btn {
   background: none;
   border: 1px solid #ddd;
-  padding: 5px 10px;
+  width: 36px;
+  height: 32px;
+  padding: 0;
   cursor: pointer;
   border-radius: 4px;
+}
+
+.nav-btn:disabled {
+  color: #c0c4cc;
+  background: #f7f8fa;
+  border-color: #ebeef5;
+  cursor: not-allowed;
 }
 
 .current-month {
   font-size: 16px;
   font-weight: bold;
+  min-width: 84px;
+  text-align: center;
+}
+
+.calendar-month-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 84px;
+}
+
+.calendar-month-tab {
+  min-width: 76px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: #fff;
+  color: #667085;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.calendar-month-tab:hover {
+  border-color: #f60;
+  color: #f60;
+}
+
+.calendar-month-tab.active {
+  border-color: #f60;
+  background: #fff5f0;
+  color: #f60;
+  font-weight: 700;
 }
 
 .calendar-weekdays {
@@ -2650,6 +2998,12 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 
+.calendar-day.disabled {
+  color: #c9cdd4;
+  background: #fff;
+  cursor: not-allowed;
+}
+
 .calendar-day.has-trip {
   background: #fff8f5;
   cursor: pointer;
@@ -2662,12 +3016,13 @@ onUnmounted(() => {
 }
 
 .calendar-day.has-trip.disabled {
-  background: #f5f5f5;
+  background: #fff;
   cursor: not-allowed;
 }
 
+.calendar-day.disabled:hover,
 .calendar-day.has-trip.disabled:hover {
-  background: #f5f5f5;
+  background: #fff;
   border-color: transparent;
 }
 
@@ -3383,6 +3738,17 @@ onUnmounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.package-date-hint {
+  color: #667085;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.package-btn.active .package-date-hint {
+  color: #c2410c;
 }
 
 .package-price {

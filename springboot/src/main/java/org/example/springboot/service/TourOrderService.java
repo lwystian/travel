@@ -63,6 +63,9 @@ public class TourOrderService {
     @Resource
     private AdminPermissionService adminPermissionService;
 
+    @Resource
+    private TourPriceItemService tourPriceItemService;
+
     /**
      * 创建行程订单
      */
@@ -130,8 +133,9 @@ public class TourOrderService {
         if (!"可报名".equals(tourBatch.getStatus())) {
             throw new ServiceException("该批次" + tourBatch.getStatus() + "，不可预订");
         }
+        boolean priceItemMode = tourPriceItemService.hasActivePackagePriceItems(tour.getId());
         Set<Long> availablePackageIds = parseIdSet(tourBatch.getPackageIds());
-        if (!availablePackageIds.isEmpty() && !availablePackageIds.contains(tourPackage.getId())) {
+        if (!priceItemMode && !availablePackageIds.isEmpty() && !availablePackageIds.contains(tourPackage.getId())) {
             throw new ServiceException("该出发日期不支持所选行程套餐");
         }
 
@@ -154,8 +158,10 @@ public class TourOrderService {
             AddonPriceResult addonPriceResult = calculateAddonPrice(tour, tourBatch, dto, totalPeople);
 
             // 9. 后端精确计算价格
-            BigDecimal adultUnitPrice = calculateAdultUnitPrice(tourPackage, tourBatch);
-            BigDecimal childUnitPrice = calculateChildUnitPrice(tourPackage, tourBatch);
+            TourPackagePriceItem packagePriceItem = tourPriceItemService.resolvePackagePriceItem(
+                    tour.getId(), tourPackage.getId(), tourBatch.getId(), dto.getPackagePriceItemId(), true);
+            BigDecimal adultUnitPrice = calculateAdultUnitPrice(tourPackage, tourBatch, packagePriceItem);
+            BigDecimal childUnitPrice = calculateChildUnitPrice(tourPackage, tourBatch, packagePriceItem);
 
             // 10. 验证前端传来的价格（允许0.01元误差）
             if (dto.getClientAdultUnitPrice() != null) {
@@ -216,6 +222,7 @@ public class TourOrderService {
             order.setTourCode(tour.getCode());
             order.setPackageId(tourPackage.getId());
             order.setPackageName(tourPackage.getName());
+            order.setPackagePriceItemId(packagePriceItem == null ? null : packagePriceItem.getId());
             order.setBatchPackageId(addonPriceResult.primaryAddonId());
             order.setBatchPackageName(addonPriceResult.summary());
             order.setAddonItems(addonPriceResult.itemsJson());
@@ -313,14 +320,18 @@ public class TourOrderService {
             if (quantity <= 0) {
                 continue;
             }
-            if (!availableAddonIds.isEmpty() && !availableAddonIds.contains(selection.getBatchPackageId())) {
-                throw new ServiceException("该出发日期不支持所选附加费用");
-            }
             BatchPackage addon = batchPackageMapper.selectById(selection.getBatchPackageId());
             if (addon == null || !addon.getTourId().equals(tour.getId()) || !Integer.valueOf(1).equals(addon.getStatus())) {
                 throw new ServiceException("附加费用不存在或已停用");
             }
-            BigDecimal unitPrice = addon.getExtraFeePerPerson() != null ? addon.getExtraFeePerPerson() : BigDecimal.ZERO;
+            TourAddonPriceItem addonPriceItem = tourPriceItemService.resolveAddonPriceItem(
+                    tour.getId(), addon.getId(), tourBatch.getId(), selection.getAddonPriceItemId());
+            if (addonPriceItem == null && !availableAddonIds.isEmpty() && !availableAddonIds.contains(selection.getBatchPackageId())) {
+                throw new ServiceException("该出发日期不支持所选附加费用");
+            }
+            BigDecimal unitPrice = addonPriceItem != null && addonPriceItem.getPrice() != null
+                    ? addonPriceItem.getPrice()
+                    : (addon.getExtraFeePerPerson() != null ? addon.getExtraFeePerPerson() : BigDecimal.ZERO);
             BigDecimal itemAmount = unitPrice.multiply(new BigDecimal(quantity));
             totalAmount = totalAmount.add(itemAmount);
             if (primaryAddonId == null) {
@@ -328,6 +339,7 @@ public class TourOrderService {
             }
             Map<String, Object> item = new HashMap<>();
             item.put("id", addon.getId());
+            item.put("priceItemId", addonPriceItem == null ? null : addonPriceItem.getId());
             item.put("name", addon.getName());
             item.put("unitPrice", unitPrice);
             item.put("quantity", quantity);
@@ -370,7 +382,10 @@ public class TourOrderService {
     /**
      * 计算成人单价：套餐价 + 日期附加费 + 批次附加费
      */
-    private BigDecimal calculateAdultUnitPrice(TourPackage tourPackage, TourBatch tourBatch) {
+    private BigDecimal calculateAdultUnitPrice(TourPackage tourPackage, TourBatch tourBatch, TourPackagePriceItem priceItem) {
+        if (priceItem != null) {
+            return priceItem.getAdultPrice() != null ? priceItem.getAdultPrice() : BigDecimal.ZERO;
+        }
         BigDecimal price = tourPackage.getAdultPrice() != null ? tourPackage.getAdultPrice() : BigDecimal.ZERO;
         if (tourBatch.getAdultDateExtraFee() != null) {
             price = price.add(tourBatch.getAdultDateExtraFee());
@@ -381,7 +396,10 @@ public class TourOrderService {
     /**
      * 计算儿童单价：套餐儿童价 + 日期附加费 + 批次附加费
      */
-    private BigDecimal calculateChildUnitPrice(TourPackage tourPackage, TourBatch tourBatch) {
+    private BigDecimal calculateChildUnitPrice(TourPackage tourPackage, TourBatch tourBatch, TourPackagePriceItem priceItem) {
+        if (priceItem != null) {
+            return priceItem.getChildPrice() != null ? priceItem.getChildPrice() : BigDecimal.ZERO;
+        }
         BigDecimal childPrice = tourPackage.getChildPrice();
         if (childPrice == null || childPrice.compareTo(BigDecimal.ZERO) == 0) {
             // 如果没有儿童价，返回0
@@ -808,6 +826,7 @@ public class TourOrderService {
         copy.setTourCode(source.getTourCode());
         copy.setPackageId(source.getPackageId());
         copy.setPackageName(source.getPackageName());
+        copy.setPackagePriceItemId(source.getPackagePriceItemId());
         copy.setBatchPackageId(source.getBatchPackageId());
         copy.setBatchPackageName(source.getBatchPackageName());
         copy.setAddonItems(source.getAddonItems());

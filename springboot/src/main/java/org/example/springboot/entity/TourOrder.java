@@ -39,6 +39,9 @@ public class TourOrder {
     @Schema(description = "套餐名称")
     private String packageName;
 
+    @Schema(description = "套餐价格项ID")
+    private Long packagePriceItemId;
+
     @Schema(description = "批次套餐ID")
     private Long batchPackageId;
 

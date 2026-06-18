@@ -27,6 +27,8 @@ public class AccommodationService {
     @Resource
     private AccommodationReviewMapper reviewMapper;
 
+    private static final String PRICE_START_SQL = "CAST(NULLIF(REGEXP_SUBSTR(price_range, '[0-9]+'), '') AS UNSIGNED)";
+
     /**
      * 分页查询住宿列表
      * @param name 住宿名称
@@ -35,6 +37,7 @@ public class AccommodationService {
      * @param minPrice 最低价格
      * @param maxPrice 最高价格
      * @param minRating 最低评分
+     * @param sort 排序方式
      * @param currentPage 当前页码
      * @param size 每页记录数
      * @return 分页数据
@@ -42,6 +45,7 @@ public class AccommodationService {
     public Page<Accommodation> getAccommodationsByPage(String name, Integer scenicId, String type,
                                                       String minPrice, String maxPrice,
                                                       String minRating,
+                                                      String sort,
                                                       Integer currentPage, Integer size) {
         LambdaQueryWrapper<Accommodation> queryWrapper = new LambdaQueryWrapper<>();
 
@@ -65,20 +69,19 @@ public class AccommodationService {
         // 处理价格区间筛选 - 根据住宿的最低价格进行筛选
         if (StringUtils.isNotBlank(minPrice) && StringUtils.isNotBlank(maxPrice)) {
             queryWrapper.and(wrapper -> wrapper
-                    .apply("CAST(SUBSTRING_INDEX(price_range, '-', 1) AS SIGNED) >= {0}", Integer.parseInt(minPrice))
-                    .apply("CAST(SUBSTRING_INDEX(price_range, '-', 1) AS SIGNED) <= {0}", Integer.parseInt(maxPrice)));
+                    .apply(PRICE_START_SQL + " >= {0}", Integer.parseInt(minPrice))
+                    .apply(PRICE_START_SQL + " <= {0}", Integer.parseInt(maxPrice)));
         } else if (StringUtils.isNotBlank(maxPrice)) {
-            queryWrapper.apply("CAST(SUBSTRING_INDEX(price_range, '-', 1) AS SIGNED) <= {0}", Integer.parseInt(maxPrice));
+            queryWrapper.apply(PRICE_START_SQL + " <= {0}", Integer.parseInt(maxPrice));
         } else if (StringUtils.isNotBlank(minPrice)) {
-            queryWrapper.apply("CAST(SUBSTRING_INDEX(price_range, '-', 1) AS SIGNED) >= {0}", Integer.parseInt(minPrice));
+            queryWrapper.apply(PRICE_START_SQL + " >= {0}", Integer.parseInt(minPrice));
         }
 
         if (StringUtils.isNotBlank(minRating)) {
             queryWrapper.ge(Accommodation::getStarLevel, Double.parseDouble(minRating));
         }
 
-        // 按评分降序排序
-        queryWrapper.orderByDesc(Accommodation::getStarLevel);
+        applySort(queryWrapper, sort);
 
         Page<Accommodation> page = accommodationMapper.selectPage(new Page<>(currentPage, size), queryWrapper);
 
@@ -102,6 +105,28 @@ public class AccommodationService {
         }
 
         return page;
+    }
+
+    private void applySort(LambdaQueryWrapper<Accommodation> queryWrapper, String sort) {
+        String sortType = StringUtils.defaultIfBlank(sort, "recommend").trim();
+        switch (sortType) {
+            case "rating" -> queryWrapper
+                    .orderByDesc(Accommodation::getStarLevel)
+                    .orderByDesc(Accommodation::getUpdateTime)
+                    .orderByDesc(Accommodation::getId);
+            case "price_asc" -> queryWrapper
+                    .last("ORDER BY CASE WHEN " + PRICE_START_SQL + " IS NULL THEN 1 ELSE 0 END ASC, " + PRICE_START_SQL + " ASC, star_level DESC, id DESC");
+            case "price_desc" -> queryWrapper
+                    .last("ORDER BY CASE WHEN " + PRICE_START_SQL + " IS NULL THEN 1 ELSE 0 END ASC, " + PRICE_START_SQL + " DESC, star_level DESC, id DESC");
+            case "recommend" -> queryWrapper
+                    .orderByDesc(Accommodation::getStarLevel)
+                    .orderByDesc(Accommodation::getUpdateTime)
+                    .orderByDesc(Accommodation::getId);
+            default -> queryWrapper
+                    .orderByDesc(Accommodation::getStarLevel)
+                    .orderByDesc(Accommodation::getUpdateTime)
+                    .orderByDesc(Accommodation::getId);
+        }
     }
 
     /**

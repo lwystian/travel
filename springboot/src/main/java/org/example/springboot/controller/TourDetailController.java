@@ -7,10 +7,13 @@ import org.example.springboot.common.Result;
 import org.example.springboot.entity.TourPackage;
 import org.example.springboot.entity.BatchPackage;
 import org.example.springboot.entity.TourBatch;
+import org.example.springboot.entity.TourAddonPriceItem;
+import org.example.springboot.entity.TourPackagePriceItem;
 import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.TourPackageService;
 import org.example.springboot.service.BatchPackageService;
 import org.example.springboot.service.TourBatchService;
+import org.example.springboot.service.TourPriceItemService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,6 +32,9 @@ public class TourDetailController {
     @Resource
     private TourBatchService tourBatchService;
 
+    @Resource
+    private TourPriceItemService tourPriceItemService;
+
     // ==================== 行程套餐管理 ====================
 
     @Operation(summary = "获取行程套餐列表")
@@ -43,7 +49,7 @@ public class TourDetailController {
     public Result<?> addTourPackage(@RequestBody TourPackage tourPackage) {
         SecurityGuards.requirePermission("tour:manage");
         tourPackageService.add(tourPackage);
-        return Result.success();
+        return Result.success(tourPackage);
     }
 
     @Operation(summary = "更新行程套餐")
@@ -63,6 +69,28 @@ public class TourDetailController {
         return Result.success();
     }
 
+    @Operation(summary = "获取指定行程套餐价格项")
+    @GetMapping("/packages/{packageId}/price-items")
+    public Result<?> getTourPackagePriceItems(@PathVariable Long packageId) {
+        return Result.success(tourPriceItemService.getPackagePriceItems(packageId));
+    }
+
+    @Operation(summary = "保存行程套餐价格项")
+    @PostMapping("/packages/{packageId}/price-items")
+    public Result<?> saveTourPackagePriceItem(@PathVariable Long packageId,
+                                              @RequestBody TourPackagePriceItem item) {
+        SecurityGuards.requirePermission("tour:manage");
+        return Result.success(tourPriceItemService.savePackagePriceItem(packageId, item));
+    }
+
+    @Operation(summary = "删除行程套餐价格项")
+    @DeleteMapping("/packages/{packageId}/price-items/{itemId}")
+    public Result<?> deleteTourPackagePriceItem(@PathVariable Long packageId, @PathVariable Long itemId) {
+        SecurityGuards.requirePermission("tour:manage");
+        tourPriceItemService.deletePackagePriceItem(packageId, itemId);
+        return Result.success();
+    }
+
     // ==================== 批次套餐管理 ====================
 
     @Operation(summary = "获取批次套餐列表")
@@ -77,7 +105,7 @@ public class TourDetailController {
     public Result<?> addBatchPackage(@RequestBody BatchPackage batchPackage) {
         SecurityGuards.requirePermission("tour:manage");
         batchPackageService.add(batchPackage);
-        return Result.success();
+        return Result.success(batchPackage);
     }
 
     @Operation(summary = "更新批次套餐")
@@ -94,6 +122,28 @@ public class TourDetailController {
     public Result<?> deleteBatchPackage(@PathVariable Long id) {
         SecurityGuards.requirePermission("tour:manage");
         batchPackageService.delete(id);
+        return Result.success();
+    }
+
+    @Operation(summary = "获取指定附加费用价格项")
+    @GetMapping("/batch-packages/{addonId}/price-items")
+    public Result<?> getAddonPriceItems(@PathVariable Long addonId) {
+        return Result.success(tourPriceItemService.getAddonPriceItems(addonId));
+    }
+
+    @Operation(summary = "保存附加费用价格项")
+    @PostMapping("/batch-packages/{addonId}/price-items")
+    public Result<?> saveAddonPriceItem(@PathVariable Long addonId,
+                                        @RequestBody TourAddonPriceItem item) {
+        SecurityGuards.requirePermission("tour:manage");
+        return Result.success(tourPriceItemService.saveAddonPriceItem(addonId, item));
+    }
+
+    @Operation(summary = "删除附加费用价格项")
+    @DeleteMapping("/batch-packages/{addonId}/price-items/{itemId}")
+    public Result<?> deleteAddonPriceItem(@PathVariable Long addonId, @PathVariable Long itemId) {
+        SecurityGuards.requirePermission("tour:manage");
+        tourPriceItemService.deleteAddonPriceItem(addonId, itemId);
         return Result.success();
     }
 

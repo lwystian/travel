@@ -30,8 +30,14 @@ public class TourDetailDTO {
     @Schema(description = "行程套餐列表")
     private List<PackageInfo> tripPackages;
 
+    @Schema(description = "行程套餐价格项列表")
+    private List<PackagePriceItemInfo> packagePriceItems;
+
     @Schema(description = "批次套餐列表")
     private List<PackageInfo> batchPackages;
+
+    @Schema(description = "附加费用价格项列表")
+    private List<AddonPriceItemInfo> addonPriceItems;
 
     @Schema(description = "出发日期列表")
     private List<BatchDateInfo> batchDates;
@@ -98,8 +104,43 @@ public class TourDetailDTO {
     }
 
     @Data
+    @Schema(description = "行程套餐价格项信息")
+    public static class PackagePriceItemInfo {
+        private Long id;
+        private Long packageId;
+        private String name;
+        private BigDecimal adultPrice;
+        private BigDecimal childPrice;
+        private BigDecimal originalAdultPrice;
+        private BigDecimal originalChildPrice;
+        private String adultDiscountLabel;
+        private String childDiscountLabel;
+        private BigDecimal adultSavedAmount;
+        private BigDecimal childSavedAmount;
+        private List<Long> batchIds;
+        private Integer status;
+        private Integer sortOrder;
+    }
+
+    @Data
+    @Schema(description = "附加费用价格项信息")
+    public static class AddonPriceItemInfo {
+        private Long id;
+        private Long addonId;
+        private String name;
+        private BigDecimal price;
+        private BigDecimal originalPrice;
+        private String discountLabel;
+        private BigDecimal savedAmount;
+        private List<Long> batchIds;
+        private Integer status;
+        private Integer sortOrder;
+    }
+
+    @Data
     @Schema(description = "出发日期信息")
     public static class BatchDateInfo {
+        private Long id;
         private String date;
         private BigDecimal adultDateExtraFee;
         private BigDecimal childDateExtraFee;

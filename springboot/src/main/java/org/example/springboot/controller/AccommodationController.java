@@ -33,15 +33,16 @@ public class AccommodationController {
             @RequestParam(required = false) String minPrice,
             @RequestParam(required = false) String maxPrice,
             @RequestParam(required = false) String minRating,
+            @RequestParam(defaultValue = "recommend") String sort,
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "10") Integer size) {
         
         try {
-            LOGGER.info("分页查询住宿列表，参数：name={}, scenicId={}, type={}, price={}~{}, rating>={}, page={}, size={}", 
-                        name, scenicId, type, minPrice, maxPrice, minRating, currentPage, size);
+            LOGGER.info("分页查询住宿列表，参数：name={}, scenicId={}, type={}, price={}~{}, rating>={}, sort={}, page={}, size={}",
+                        name, scenicId, type, minPrice, maxPrice, minRating, sort, currentPage, size);
             
             Page<Accommodation> page = accommodationService.getAccommodationsByPage(
-                    name, scenicId, type, minPrice, maxPrice, minRating, currentPage, size);
+                    name, scenicId, type, minPrice, maxPrice, minRating, sort, currentPage, size);
             
             return Result.success(page);
         } catch (Exception e) {

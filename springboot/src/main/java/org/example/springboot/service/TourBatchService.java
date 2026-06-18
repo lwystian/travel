@@ -22,6 +22,9 @@ public class TourBatchService {
     @Resource
     private TourMapper tourMapper;
 
+    @Resource
+    private TourPriceItemService tourPriceItemService;
+
     /**
      * 根据行程ID获取出发班期列表
      */
@@ -83,6 +86,7 @@ public class TourBatchService {
     public void delete(Long id) {
         TourBatch existing = tourBatchMapper.selectById(id);
         tourBatchMapper.deleteById(id);
+        tourPriceItemService.deletePriceItemsByBatch(id);
         if (existing != null) {
             syncTourTravelDates(existing.getTourId());
         }

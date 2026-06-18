@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS `accommodation_review`;
 DROP TABLE IF EXISTS `auth_provider_config`;
 DROP TABLE IF EXISTS `backup_log`;
 DROP TABLE IF EXISTS `batch_package`;
+DROP TABLE IF EXISTS `tour_addon_price_item`;
 DROP TABLE IF EXISTS `behavior_log`;
 DROP TABLE IF EXISTS `carousel`;
 DROP TABLE IF EXISTS `collection`;
@@ -33,6 +34,7 @@ DROP TABLE IF EXISTS `tour_hotel`;
 DROP TABLE IF EXISTS `tour_order`;
 DROP TABLE IF EXISTS `tour_order_traveler`;
 DROP TABLE IF EXISTS `tour_package`;
+DROP TABLE IF EXISTS `tour_package_price_item`;
 DROP TABLE IF EXISTS `travel_guide`;
 DROP TABLE IF EXISTS `user`;
 
@@ -650,6 +652,7 @@ CREATE TABLE `tour_order` (
   `tour_code` varchar(50) NOT NULL ,
   `package_id` bigint NOT NULL ,
   `package_name` varchar(100) NOT NULL ,
+  `package_price_item_id` bigint DEFAULT NULL COMMENT '套餐价格项ID',
   `batch_package_id` bigint DEFAULT NULL ,
   `batch_package_name` varchar(100) DEFAULT '标准' ,
   `addon_items` text DEFAULT NULL ,
@@ -720,6 +723,42 @@ CREATE TABLE `tour_package` (
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP ,
   PRIMARY KEY (`id`),
   KEY `idx_tour_id` (`tour_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `tour_package_price_item` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '套餐价格项ID',
+  `tour_id` bigint NOT NULL COMMENT '行程ID',
+  `package_id` bigint NOT NULL COMMENT '套餐ID',
+  `name` varchar(120) NOT NULL DEFAULT '价格项' COMMENT '价格项名称',
+  `adult_price` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '成人销售价',
+  `child_price` decimal(10,2) DEFAULT NULL COMMENT '儿童销售价',
+  `original_adult_price` decimal(10,2) DEFAULT NULL COMMENT '成人原价',
+  `original_child_price` decimal(10,2) DEFAULT NULL COMMENT '儿童原价',
+  `batch_ids` text DEFAULT NULL COMMENT '适用出发班期ID列表JSON',
+  `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态 1启用 0停用',
+  `sort_order` int NOT NULL DEFAULT '0' COMMENT '排序',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_pkg` (`package_id`),
+  KEY `idx_tour` (`tour_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `tour_addon_price_item` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '附加费用价格项ID',
+  `tour_id` bigint NOT NULL COMMENT '行程ID',
+  `addon_id` bigint NOT NULL COMMENT '附加费用ID',
+  `name` varchar(120) NOT NULL DEFAULT '价格项' COMMENT '价格项名称',
+  `price` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '销售价',
+  `original_price` decimal(10,2) DEFAULT NULL COMMENT '兼容旧数据字段，当前附加费用不使用划线价',
+  `batch_ids` text DEFAULT NULL COMMENT '适用出发班期ID列表JSON',
+  `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态 1启用 0停用',
+  `sort_order` int NOT NULL DEFAULT '0' COMMENT '排序',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_addon` (`addon_id`),
+  KEY `idx_tour` (`tour_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `travel_guide` (

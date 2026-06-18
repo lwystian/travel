@@ -63,7 +63,7 @@
         style="width: 100%"
         class="accommodation-table"
       >
-        <el-table-column type="index" label="#" width="50" />
+        <el-table-column type="index" label="#" width="70" align="center" header-align="center" />
         <el-table-column prop="name" label="住宿名称" min-width="120">
           <template #default="scope">
             <span class="accommodation-name">{{ scope.row.name }}</span>
@@ -79,14 +79,16 @@
             <span class="price-range">{{ scope.row.priceRange }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="starLevel" label="评分" width="120">
+        <el-table-column prop="starLevel" label="评分" width="170" align="center" header-align="center">
           <template #default="{ row }">
-            <el-rate
-              v-model="row.starLevel"
-              disabled
-              show-score
-              text-color="#ff9900"
-            />
+            <div class="rating-cell">
+              <el-rate
+                v-model="row.starLevel"
+                disabled
+                show-score
+                text-color="#ff9900"
+              />
+            </div>
           </template>
         </el-table-column>
         
@@ -187,6 +189,19 @@
         
         <el-form-item label="价格区间" prop="priceRange">
           <el-input v-model="form.priceRange" placeholder="例如: 200-500" />
+        </el-form-item>
+
+        <el-form-item label="评分" prop="starLevel">
+          <div class="rating-editor">
+            <el-rate
+              v-model="form.starLevel"
+              allow-half
+              show-score
+              text-color="#ff9900"
+              score-template="{value}"
+            />
+            <span class="rating-tip">可选，最多 5 分</span>
+          </div>
         </el-form-item>
         
         <el-form-item label="地址" prop="address">
@@ -517,6 +532,7 @@ const submitForm = async () => {
       try {
         const submitData = {
           ...form,
+          starLevel: Number(form.starLevel || 0),
           features: normalizeSpaceSeparated(form.features)
         }
         if (isEdit.value) {
@@ -683,6 +699,31 @@ onMounted(() => {
         font-weight: 600;
         color: #e74c3c;
       }
+
+      .rating-cell {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-width: 140px;
+        overflow: visible;
+
+        :deep(.el-rate) {
+          height: 24px;
+          display: inline-flex;
+          align-items: center;
+          white-space: nowrap;
+        }
+
+        :deep(.el-rate__item) {
+          margin-right: 2px;
+        }
+
+        :deep(.el-rate__text) {
+          margin-left: 6px;
+          font-size: 12px;
+          line-height: 1;
+        }
+      }
       
       .no-image {
         color: #95a5a6;
@@ -727,6 +768,24 @@ onMounted(() => {
       display: flex;
       justify-content: flex-end;
     }
+  }
+
+  .rating-editor {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 32px;
+
+    :deep(.el-rate) {
+      height: 24px;
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  .rating-tip {
+    color: #909399;
+    font-size: 12px;
   }
 
   .avatar-uploader {

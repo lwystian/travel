@@ -27,12 +27,59 @@ public class TourSchemaInitializer {
         addColumn("tour_package", "original_child_price", "ALTER TABLE `tour_package` ADD COLUMN `original_child_price` DECIMAL(10,2) DEFAULT NULL COMMENT '儿童原价/门市价，用于折扣展示' AFTER `child_price`");
         addColumn("tour_batch", "package_ids", "ALTER TABLE `tour_batch` ADD COLUMN `package_ids` TEXT DEFAULT NULL COMMENT '可选行程套餐ID列表JSON' AFTER `max_capacity`");
         addColumn("tour_batch", "addon_ids", "ALTER TABLE `tour_batch` ADD COLUMN `addon_ids` TEXT DEFAULT NULL COMMENT '可选附加费用ID列表JSON' AFTER `package_ids`");
+        addColumn("tour_order", "package_price_item_id", "ALTER TABLE `tour_order` ADD COLUMN `package_price_item_id` BIGINT DEFAULT NULL COMMENT '套餐价格项ID' AFTER `package_name`");
         addColumn("tour_order", "addon_items", "ALTER TABLE `tour_order` ADD COLUMN `addon_items` TEXT DEFAULT NULL COMMENT '附加费用明细JSON' AFTER `batch_package_name`");
         addColumn("tour_order", "addon_summary", "ALTER TABLE `tour_order` ADD COLUMN `addon_summary` VARCHAR(500) DEFAULT NULL COMMENT '附加费用摘要' AFTER `addon_items`");
+        initPriceItemTables();
         normalizeTourCodes();
         initTourCodeSequenceTable();
         seedTourCodeSequences();
         addUniqueIndex("uk_tour_code", "ALTER TABLE `tour` ADD UNIQUE INDEX `uk_tour_code` (`code`)");
+    }
+
+    private void initPriceItemTables() {
+        try {
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS `tour_package_price_item` (
+                      `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '套餐价格项ID',
+                      `tour_id` BIGINT NOT NULL COMMENT '行程ID',
+                      `package_id` BIGINT NOT NULL COMMENT '套餐ID',
+                      `name` VARCHAR(120) NOT NULL DEFAULT '价格项' COMMENT '价格项名称',
+                      `adult_price` DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '成人销售价',
+                      `child_price` DECIMAL(10,2) DEFAULT NULL COMMENT '儿童销售价',
+                      `original_adult_price` DECIMAL(10,2) DEFAULT NULL COMMENT '成人原价',
+                      `original_child_price` DECIMAL(10,2) DEFAULT NULL COMMENT '儿童原价',
+                      `batch_ids` TEXT DEFAULT NULL COMMENT '适用出发班期ID列表JSON',
+                      `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态 1启用 0停用',
+                      `sort_order` INT NOT NULL DEFAULT 0 COMMENT '排序',
+                      `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                      `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                      PRIMARY KEY (`id`),
+                      KEY `idx_pkg` (`package_id`),
+                      KEY `idx_tour` (`tour_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='套餐价格项表'
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS `tour_addon_price_item` (
+                      `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '附加费用价格项ID',
+                      `tour_id` BIGINT NOT NULL COMMENT '行程ID',
+                      `addon_id` BIGINT NOT NULL COMMENT '附加费用ID',
+                      `name` VARCHAR(120) NOT NULL DEFAULT '价格项' COMMENT '价格项名称',
+                      `price` DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '销售价',
+                      `original_price` DECIMAL(10,2) DEFAULT NULL COMMENT '兼容旧数据字段，当前附加费用不使用划线价',
+                      `batch_ids` TEXT DEFAULT NULL COMMENT '适用出发班期ID列表JSON',
+                      `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态 1启用 0停用',
+                      `sort_order` INT NOT NULL DEFAULT 0 COMMENT '排序',
+                      `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                      `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                      PRIMARY KEY (`id`),
+                      KEY `idx_addon` (`addon_id`),
+                      KEY `idx_tour` (`tour_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='附加费用价格项表'
+                    """);
+        } catch (Exception e) {
+            LOGGER.warn("Initialize tour price item tables failed", e);
+        }
     }
 
     private void addColumn(@NonNull String tableName, @NonNull String columnName, @NonNull String sql) {

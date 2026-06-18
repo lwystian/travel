@@ -146,7 +146,7 @@
               :key="s.value"
               class="sort-tab"
               :class="{ active: currentSort === s.value }"
-              @click="currentSort = s.value"
+              @click="setSort(s.value)"
             >
               {{ s.label }}
             </span>
@@ -319,6 +319,11 @@ const setRating = r => {
   filters.minRating = r
   handleSearch()
 }
+const setSort = sort => {
+  if (currentSort.value === sort) return
+  currentSort.value = sort
+  handleSearch()
+}
 
 // 获取住宿列表
 const fetchAccommodations = async () => {
@@ -334,6 +339,7 @@ const fetchAccommodations = async () => {
     if (filters.minPrice) params.minPrice = filters.minPrice
     if (filters.maxPrice) params.maxPrice = filters.maxPrice
     if (filters.minRating > 0) params.minRating = filters.minRating
+    if (currentSort.value) params.sort = currentSort.value
 
     await request.get('/accommodation/page', params, {
       onSuccess: res => {

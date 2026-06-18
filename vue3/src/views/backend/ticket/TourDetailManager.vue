@@ -85,7 +85,10 @@
       <el-tab-pane label="行程套餐" name="tripPackages">
         <div class="package-section">
           <div class="section-header">
-            <span class="section-title">行程套餐（成人/儿童价格）</span>
+            <div class="section-title-block">
+              <span class="section-title">行程套餐（成人/儿童售价）</span>
+              <span class="legacy-note">旧模式兼容字段：新产品价格请在套餐价格项中按出发日期配置。</span>
+            </div>
             <el-button type="primary" size="small" @click="showAddTripPackage">
               <el-icon><Plus /></el-icon> 添加套餐
             </el-button>
@@ -93,12 +96,12 @@
           <el-table :data="tripPackages" border style="width: 100%" size="small">
             <el-table-column prop="id" label="ID" width="60" />
             <el-table-column prop="name" label="套餐名称" min-width="120" />
-            <el-table-column label="成人价" width="100">
+            <el-table-column label="成人售价" width="110">
               <template #default="scope">
                 <span class="price">¥{{ scope.row.adultPrice }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="成人原价" width="110">
+            <el-table-column label="成人划线价" width="120">
               <template #default="scope">
                 <span v-if="hasPromotion(scope.row.originalAdultPrice, scope.row.adultPrice)" class="origin-price">¥{{ scope.row.originalAdultPrice }}</span>
                 <span v-else>-</span>
@@ -112,7 +115,7 @@
                 <span v-else>-</span>
               </template>
             </el-table-column>
-            <el-table-column label="儿童价" width="100">
+            <el-table-column label="儿童售价" width="110">
               <template #default="scope">
                 <span>{{ scope.row.childPrice !== null && scope.row.childPrice !== undefined ? '¥' + scope.row.childPrice : '-' }}</span>
               </template>
@@ -139,7 +142,10 @@
       <el-tab-pane label="附加费用" name="batchPackages">
         <div class="package-section">
           <div class="section-header">
-            <span class="section-title">附加费用</span>
+            <div class="section-title-block">
+              <span class="section-title">附加费用</span>
+              <span class="legacy-note">旧模式兼容单价保留；新产品建议在附加费用价格项中批量绑定出发日期。</span>
+            </div>
             <el-button type="primary" size="small" @click="showAddBatchPackage">
               <el-icon><Plus /></el-icon> 添加费用
             </el-button>
@@ -174,7 +180,10 @@
       <el-tab-pane label="出发班期" name="batches">
         <div class="batch-section">
           <div class="section-header">
-            <span class="section-title">出发日期管理</span>
+            <div class="section-title-block">
+              <span class="section-title">出发日期管理</span>
+              <span class="legacy-note">班期内的可选套餐/附加费用为旧模式入口；配置价格项后，以价格项绑定日期为主。</span>
+            </div>
             <div class="header-actions">
               <el-button type="primary" size="small" @click="showAddBatch">
                 <el-icon><Plus /></el-icon> 添加班期
@@ -186,13 +195,13 @@
           </div>
           <table class="batch-table">
             <colgroup>
-              <col style="width: 8%;">
-              <col style="width: 17%;">
-              <col style="width: 15%;">
-              <col style="width: 15%;">
-              <col style="width: 17%;">
-              <col style="width: 12%;">
+              <col style="width: 7%;">
               <col style="width: 16%;">
+              <col style="width: 13%;">
+              <col style="width: 13%;">
+              <col style="width: 17%;">
+              <col style="width: 10%;">
+              <col style="width: 24%;">
             </colgroup>
             <thead>
               <tr>
@@ -217,7 +226,7 @@
                   </span>
                 </td>
                 <td><el-tag :type="getStatusType(row.status)" size="small">{{ row.status }}</el-tag></td>
-                <td>
+                <td class="batch-action-cell">
                   <div class="table-actions">
                     <el-button type="primary" size="small" @click="editBatch(row)">编辑</el-button>
                     <el-button type="warning" size="small" @click="updateRemaining(row)">余位</el-button>
@@ -372,7 +381,7 @@
     <el-dialog
       :title="isTripPackageEdit ? '编辑行程套餐' : '添加行程套餐'"
       v-model="tripPackageDialogVisible"
-      width="450px"
+      width="880px"
       append-to-body
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -382,19 +391,21 @@
         <el-form-item label="套餐名称" prop="name">
           <el-input v-model="tripPackageForm.name" placeholder="如：标准套餐、VIP套餐" />
         </el-form-item>
-        <el-form-item label="成人价格" prop="adultPrice">
+        <el-form-item label="成人售价" prop="adultPrice">
           <el-input-number v-model="tripPackageForm.adultPrice" :precision="2" :min="0" :step="10" style="width: 100%;" />
+          <div class="form-tip">旧模式兼容字段。未配置套餐价格项时作为前台和下单价格；已配置价格项后可不填，系统优先使用下方价格项。</div>
         </el-form-item>
-        <el-form-item label="成人原价">
+        <el-form-item label="成人划线价">
           <el-input-number v-model="tripPackageForm.originalAdultPrice" :precision="2" :min="0" :step="10" style="width: 100%;" />
-          <div class="form-tip">可选，用于前台划线价和折扣展示；订单仍按成人价格结算。</div>
+          <div class="form-tip">旧模式兼容划线价。价格项已配置划线价时，前台优先展示价格项划线价。</div>
         </el-form-item>
-        <el-form-item label="儿童价格" prop="childPrice">
+        <el-form-item label="儿童售价" prop="childPrice">
           <el-input-number v-model="tripPackageForm.childPrice" :precision="2" :min="0" :step="10" style="width: 100%;" />
+          <div class="form-tip">旧模式兼容字段。未配置套餐价格项时作为儿童结算价格；已配置价格项后可不填。</div>
         </el-form-item>
-        <el-form-item label="儿童原价">
+        <el-form-item label="儿童划线价">
           <el-input-number v-model="tripPackageForm.originalChildPrice" :precision="2" :min="0" :step="10" style="width: 100%;" />
-          <div class="form-tip">可选，儿童价有优惠时展示儿童原价。</div>
+          <div class="form-tip">旧模式兼容划线价。价格项已配置划线价时，前台优先展示价格项划线价。</div>
         </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input v-model="tripPackageForm.description" type="textarea" :rows="2" />
@@ -403,6 +414,60 @@
           <el-switch v-model="tripPackageForm.status" :active-value="1" :inactive-value="0" />
         </el-form-item>
       </el-form>
+      <div class="price-item-editor">
+        <div class="price-item-head">
+          <div>
+            <h4>套餐价格项</h4>
+            <p>新模式主入口：一个套餐可添加多个价格项，每个价格项可批量绑定多个出发日期。</p>
+          </div>
+          <el-button type="primary" size="small" @click="addPackagePriceItem">添加价格项</el-button>
+        </div>
+        <div v-if="packagePriceItems.length === 0" class="price-item-empty">暂无价格项，前台将使用上方成人/儿童售价；此时售价必须填写。</div>
+        <div v-for="(item, index) in packagePriceItems" :key="item.localKey" class="price-item-card">
+          <div class="price-item-card-head">
+            <strong>价格项 {{ index + 1 }}</strong>
+            <el-button type="danger" size="small" link @click="removePackagePriceItem(index)">删除</el-button>
+          </div>
+          <div class="price-item-grid package-price-grid">
+            <label class="price-field">
+              <span>成人售价</span>
+              <el-input-number v-model="item.adultPrice" :precision="2" :min="0" :step="10" />
+            </label>
+            <label class="price-field">
+              <span>成人划线价</span>
+              <el-input-number v-model="item.originalAdultPrice" :precision="2" :min="0" :step="10" />
+            </label>
+            <label class="price-field">
+              <span>儿童售价</span>
+              <el-input-number v-model="item.childPrice" :precision="2" :min="0" :step="10" />
+            </label>
+            <label class="price-field">
+              <span>儿童划线价</span>
+              <el-input-number v-model="item.originalChildPrice" :precision="2" :min="0" :step="10" />
+            </label>
+            <div class="price-field price-field--switch">
+              <span>状态</span>
+              <el-switch v-model="item.status" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="停用" />
+            </div>
+          </div>
+          <el-select
+            v-model="item.batchIds"
+            multiple
+            filterable
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="选择适用出发日期"
+            class="price-item-batches"
+          >
+            <el-option
+              v-for="batch in batches"
+              :key="batch.id"
+              :label="formatBatchOptionLabel(batch)"
+              :value="batch.id"
+            />
+          </el-select>
+        </div>
+      </div>
       <template #footer>
         <el-button @click="closeSubDialogWithConfirm('tripPackage')">取消</el-button>
         <el-button type="primary" @click="submitTripPackage" :loading="tripPackageLoading">确定</el-button>
@@ -413,7 +478,7 @@
     <el-dialog
       :title="isBatchPackageEdit ? '编辑附加费用' : '添加附加费用'"
       v-model="batchPackageDialogVisible"
-      width="450px"
+      width="820px"
       append-to-body
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -423,8 +488,9 @@
         <el-form-item label="费用名称" prop="name">
           <el-input v-model="batchPackageForm.name" placeholder="如：接送机、保险、单房差" />
         </el-form-item>
-        <el-form-item label="单价/份" prop="extraFeePerPerson">
+        <el-form-item label="售价/份" prop="extraFeePerPerson">
           <el-input-number v-model="batchPackageForm.extraFeePerPerson" :precision="2" :min="0" :step="10" style="width: 100%;" />
+          <div class="form-tip">旧模式兼容单价。未配置附加费用价格项时使用；已配置价格项后，前台优先按价格项和出发日期展示。</div>
         </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input v-model="batchPackageForm.description" type="textarea" :rows="2" />
@@ -433,6 +499,48 @@
           <el-switch v-model="batchPackageForm.status" :active-value="1" :inactive-value="0" />
         </el-form-item>
       </el-form>
+      <div class="price-item-editor">
+        <div class="price-item-head">
+          <div>
+            <h4>附加费用价格项</h4>
+            <p>新模式主入口：同一附加费用可以为不同出发日期设置不同单价。</p>
+          </div>
+          <el-button type="primary" size="small" @click="addAddonPriceItem">添加价格项</el-button>
+        </div>
+        <div v-if="addonPriceItems.length === 0" class="price-item-empty">暂无价格项，前台将使用上方售价/份。</div>
+        <div v-for="(item, index) in addonPriceItems" :key="item.localKey" class="price-item-card">
+          <div class="price-item-card-head">
+            <strong>价格项 {{ index + 1 }}</strong>
+            <el-button type="danger" size="small" link @click="removeAddonPriceItem(index)">删除</el-button>
+          </div>
+          <div class="price-item-grid addon-price-grid">
+            <label class="price-field">
+              <span>售价/份</span>
+              <el-input-number v-model="item.price" :precision="2" :min="0" :step="10" />
+            </label>
+            <div class="price-field price-field--switch">
+              <span>状态</span>
+              <el-switch v-model="item.status" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="停用" />
+            </div>
+          </div>
+          <el-select
+            v-model="item.batchIds"
+            multiple
+            filterable
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="选择适用出发日期"
+            class="price-item-batches"
+          >
+            <el-option
+              v-for="batch in batches"
+              :key="batch.id"
+              :label="formatBatchOptionLabel(batch)"
+              :value="batch.id"
+            />
+          </el-select>
+        </div>
+      </div>
       <template #footer>
         <el-button @click="closeSubDialogWithConfirm('batchPackage')">取消</el-button>
         <el-button type="primary" @click="submitBatchPackage" :loading="batchPackageLoading">确定</el-button>
@@ -490,6 +598,7 @@
           >
             <el-option v-for="pkg in tripPackages" :key="pkg.id" :label="formatPackageOptionLabel(pkg)" :value="pkg.id" />
           </el-select>
+          <div class="form-tip">旧模式入口。仅用于兼容未配置套餐价格项的老产品；新产品请到“行程套餐 - 套餐价格项”中绑定出发日期。</div>
         </el-form-item>
         <el-form-item label="附加费用">
           <el-select
@@ -502,6 +611,7 @@
           >
             <el-option v-for="pkg in batchPackages" :key="pkg.id" :label="formatAddonOptionLabel(pkg)" :value="pkg.id" />
           </el-select>
+          <div class="form-tip">旧模式入口。仅用于兼容未配置附加费用价格项的老产品；新产品请到“附加费用价格项”中绑定出发日期。</div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -561,6 +671,7 @@
           >
             <el-option v-for="pkg in tripPackages" :key="pkg.id" :label="formatPackageOptionLabel(pkg)" :value="pkg.id" />
           </el-select>
+          <div class="form-tip">旧模式入口。批量新增老产品班期时可用；新产品优先在套餐价格项中批量选择出发日期。</div>
         </el-form-item>
         <el-form-item label="附加费用">
           <el-select
@@ -573,6 +684,7 @@
           >
             <el-option v-for="pkg in batchPackages" :key="pkg.id" :label="formatAddonOptionLabel(pkg)" :value="pkg.id" />
           </el-select>
+          <div class="form-tip">旧模式入口。批量新增老产品班期时可用；新产品优先在附加费用价格项中批量选择出发日期。</div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -687,10 +799,16 @@ import {
   addTourPackage,
   updateTourPackage,
   deleteTourPackage,
+  getTourPackagePriceItems,
+  saveTourPackagePriceItem,
+  deleteTourPackagePriceItem,
   getBatchPackages,
   addBatchPackage,
   updateBatchPackage,
   deleteBatchPackage,
+  getBatchPackagePriceItems,
+  saveBatchPackagePriceItem,
+  deleteBatchPackagePriceItem,
   getTourBatches,
   addTourBatch,
   addTourBatchesBatch,
@@ -727,8 +845,10 @@ const isTripPackageEdit = ref(false)
 const tripPackageLoading = ref(false)
 const tripPackageFormRef = ref(null)
 const tripPackageForm = ref({
-  id: null, name: '', adultPrice: 0, originalAdultPrice: null, childPrice: 0, originalChildPrice: null, description: '', status: 1
+  id: null, name: '', adultPrice: null, originalAdultPrice: null, childPrice: null, originalChildPrice: null, description: '', status: 1
 })
+const packagePriceItems = ref([])
+const deletedPackagePriceItemIds = ref([])
 
 // 批次套餐
 const batchPackages = ref([])
@@ -739,6 +859,8 @@ const batchPackageFormRef = ref(null)
 const batchPackageForm = ref({
   id: null, name: '', extraFeePerPerson: 0, description: '', status: 1
 })
+const addonPriceItems = ref([])
+const deletedAddonPriceItemIds = ref([])
 
 // 班期
 const batches = ref([])
@@ -825,8 +947,8 @@ const isMainDirty = () => {
 
 const getSubDialogState = (type) => {
   switch (type) {
-    case 'tripPackage': return tripPackageForm.value
-    case 'batchPackage': return batchPackageForm.value
+    case 'tripPackage': return { form: tripPackageForm.value, priceItems: packagePriceItems.value, deletedIds: deletedPackagePriceItemIds.value }
+    case 'batchPackage': return { form: batchPackageForm.value, priceItems: addonPriceItems.value, deletedIds: deletedAddonPriceItemIds.value }
     case 'batch': return batchForm.value
     case 'batchAdd': return batchAddForm.value
     case 'remaining': return {
@@ -976,6 +1098,195 @@ const fetchBatches = async () => {
   }
 }
 
+const makeLocalKey = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
+
+const normalizePriceItemBatchIds = (value) => normalizeIdArray(value)
+
+const normalizePackagePriceItem = (item = {}) => ({
+  localKey: makeLocalKey(),
+  id: item.id || null,
+  name: item.name || '',
+  adultPrice: item.adultPrice ?? tripPackageForm.value.adultPrice ?? 0,
+  originalAdultPrice: item.originalAdultPrice ?? null,
+  childPrice: item.childPrice ?? tripPackageForm.value.childPrice ?? null,
+  originalChildPrice: item.originalChildPrice ?? null,
+  batchIds: normalizePriceItemBatchIds(item.batchIds),
+  status: item.status ?? 1,
+  sortOrder: item.sortOrder ?? 0
+})
+
+const normalizeAddonPriceItem = (item = {}) => ({
+  localKey: makeLocalKey(),
+  id: item.id || null,
+  name: item.name || '',
+  price: item.price ?? batchPackageForm.value.extraFeePerPerson ?? 0,
+  batchIds: normalizePriceItemBatchIds(item.batchIds),
+  status: item.status ?? 1,
+  sortOrder: item.sortOrder ?? 0
+})
+
+const addPackagePriceItem = () => {
+  packagePriceItems.value.push(normalizePackagePriceItem({ name: `价格项${packagePriceItems.value.length + 1}` }))
+}
+
+const addAddonPriceItem = () => {
+  addonPriceItems.value.push(normalizeAddonPriceItem({ name: `价格项${addonPriceItems.value.length + 1}` }))
+}
+
+const removePackagePriceItem = (index) => {
+  const [removed] = packagePriceItems.value.splice(index, 1)
+  if (removed?.id) {
+    deletedPackagePriceItemIds.value.push(removed.id)
+  }
+}
+
+const removeAddonPriceItem = (index) => {
+  const [removed] = addonPriceItems.value.splice(index, 1)
+  if (removed?.id) {
+    deletedAddonPriceItemIds.value.push(removed.id)
+  }
+}
+
+const formatBatchOptionLabel = (batch) => {
+  if (!batch) return ''
+  const available = getAvailableSeats(batch)
+  return `${batch.departureDate}（${batch.status || '可报名'}，余${available}）`
+}
+
+const validatePriceItemBatchConflicts = (items, label) => {
+  const used = new Map()
+  for (const item of items) {
+    if (item.status !== 1) continue
+    for (const batchId of normalizeIdArray(item.batchIds)) {
+      if (used.has(batchId)) {
+        const batch = batches.value.find(row => Number(row.id) === Number(batchId))
+        ElMessage.warning(`${label}的 ${batch?.departureDate || batchId} 已被多个启用价格项绑定`)
+        return false
+      }
+      used.set(batchId, item)
+    }
+  }
+  return true
+}
+
+const isBlankValue = (value) => value === null || value === undefined || value === ''
+
+const validateRequiredText = (value, message) => {
+  if (typeof value === 'string' ? value.trim() : value) return true
+  ElMessage.warning(message)
+  return false
+}
+
+const validateRequiredPositiveAmount = (value, message) => {
+  const number = Number(value)
+  if (Number.isFinite(number) && number > 0) return true
+  ElMessage.warning(message)
+  return false
+}
+
+const validateOptionalOriginalPrice = (originalPrice, salePrice, message) => {
+  if (isBlankValue(originalPrice)) return true
+  const original = Number(originalPrice)
+  const sale = Number(salePrice)
+  if (Number.isFinite(original) && Number.isFinite(sale) && original > sale) return true
+  ElMessage.warning(message)
+  return false
+}
+
+const validateTripPackageForm = () => {
+  if (!validateRequiredText(tripPackageForm.value.name, '请输入套餐名称')) return false
+  const hasPriceItems = packagePriceItems.value.length > 0
+  if (!hasPriceItems && !validateRequiredPositiveAmount(tripPackageForm.value.adultPrice, '未配置套餐价格项时，请输入大于0的成人售价')) return false
+  if (!hasPriceItems && !validateRequiredPositiveAmount(tripPackageForm.value.childPrice, '未配置套餐价格项时，请输入大于0的儿童售价')) return false
+  if (!isBlankValue(tripPackageForm.value.adultPrice) && Number(tripPackageForm.value.adultPrice) < 0) {
+    ElMessage.warning('成人售价不能小于0')
+    return false
+  }
+  if (!isBlankValue(tripPackageForm.value.childPrice) && Number(tripPackageForm.value.childPrice) < 0) {
+    ElMessage.warning('儿童售价不能小于0')
+    return false
+  }
+  if (!isBlankValue(tripPackageForm.value.originalAdultPrice) && !validateRequiredPositiveAmount(tripPackageForm.value.adultPrice, '填写成人划线价时，成人售价必须大于0')) return false
+  if (!isBlankValue(tripPackageForm.value.originalChildPrice) && !validateRequiredPositiveAmount(tripPackageForm.value.childPrice, '填写儿童划线价时，儿童售价必须大于0')) return false
+  if (!validateOptionalOriginalPrice(tripPackageForm.value.originalAdultPrice, tripPackageForm.value.adultPrice, '成人划线价必须高于成人售价')) return false
+  if (!validateOptionalOriginalPrice(tripPackageForm.value.originalChildPrice, tripPackageForm.value.childPrice, '儿童划线价必须高于儿童售价')) return false
+  return true
+}
+
+const validateBatchPackageForm = () => {
+  if (!validateRequiredText(batchPackageForm.value.name, '请输入附加费用名称')) return false
+  if (!validateRequiredPositiveAmount(batchPackageForm.value.extraFeePerPerson, '请输入大于0的附加费用售价')) return false
+  return true
+}
+
+const validatePackagePriceItems = () => {
+  for (let index = 0; index < packagePriceItems.value.length; index++) {
+    const item = packagePriceItems.value[index]
+    const label = `套餐价格项 ${index + 1}`
+    if (!validateRequiredPositiveAmount(item.adultPrice, `${label} 的成人售价必须大于0`)) return false
+    if (!validateRequiredPositiveAmount(item.childPrice, `${label} 的儿童售价必须大于0`)) return false
+    if (!validateOptionalOriginalPrice(item.originalAdultPrice, item.adultPrice, `${label} 的成人划线价必须高于成人售价`)) return false
+    if (!validateOptionalOriginalPrice(item.originalChildPrice, item.childPrice, `${label} 的儿童划线价必须高于儿童售价`)) return false
+  }
+  return true
+}
+
+const validateAddonPriceItems = () => {
+  for (let index = 0; index < addonPriceItems.value.length; index++) {
+    const item = addonPriceItems.value[index]
+    if (!validateRequiredPositiveAmount(item.price, `附加费用价格项 ${index + 1} 的售价/份必须大于0`)) return false
+  }
+  return true
+}
+
+const savePackagePriceItems = async (packageId) => {
+  if (!packageId) return
+  if (!validatePackagePriceItems()) return false
+  if (!validatePriceItemBatchConflicts(packagePriceItems.value, '套餐')) return false
+  for (const itemId of deletedPackagePriceItemIds.value) {
+    await deleteTourPackagePriceItem(packageId, itemId)
+  }
+  for (let index = 0; index < packagePriceItems.value.length; index++) {
+    const item = packagePriceItems.value[index]
+    await saveTourPackagePriceItem(packageId, {
+      id: item.id,
+      name: item.name || `价格项${index + 1}`,
+      adultPrice: item.adultPrice,
+      childPrice: item.childPrice,
+      originalAdultPrice: isBlankValue(item.originalAdultPrice) ? null : item.originalAdultPrice,
+      originalChildPrice: isBlankValue(item.originalChildPrice) ? null : item.originalChildPrice,
+      batchIds: serializeIdArray(item.batchIds),
+      status: item.status ?? 1,
+      sortOrder: item.sortOrder ?? index
+    })
+  }
+  deletedPackagePriceItemIds.value = []
+  return true
+}
+
+const saveAddonPriceItems = async (addonId) => {
+  if (!addonId) return
+  if (!validateAddonPriceItems()) return false
+  if (!validatePriceItemBatchConflicts(addonPriceItems.value, '附加费用')) return false
+  for (const itemId of deletedAddonPriceItemIds.value) {
+    await deleteBatchPackagePriceItem(addonId, itemId)
+  }
+  for (let index = 0; index < addonPriceItems.value.length; index++) {
+    const item = addonPriceItems.value[index]
+    await saveBatchPackagePriceItem(addonId, {
+      id: item.id,
+      name: item.name || `价格项${index + 1}`,
+      price: item.price,
+      originalPrice: null,
+      batchIds: serializeIdArray(item.batchIds),
+      status: item.status ?? 1,
+      sortOrder: item.sortOrder ?? index
+    })
+  }
+  deletedAddonPriceItemIds.value = []
+  return true
+}
+
 // 图片上传
 const handleImageUpload = async (options, index) => {
   const { file, onSuccess, onError } = options
@@ -1069,31 +1380,49 @@ const handlePosterUpload = async (options) => {
 // 行程套餐管理
 const showAddTripPackage = () => {
   isTripPackageEdit.value = false
-  tripPackageForm.value = { id: null, name: '', adultPrice: 0, originalAdultPrice: null, childPrice: 0, originalChildPrice: null, description: '', status: 1 }
+  tripPackageForm.value = { id: null, name: '', adultPrice: null, originalAdultPrice: null, childPrice: null, originalChildPrice: null, description: '', status: 1 }
+  packagePriceItems.value = []
+  deletedPackagePriceItemIds.value = []
   tripPackageDialogVisible.value = true
   nextTick(() => markSubDialogPristine('tripPackage'))
 }
 
-const editTripPackage = (row) => {
+const editTripPackage = async (row) => {
   isTripPackageEdit.value = true
   tripPackageForm.value = { ...row }
+  packagePriceItems.value = []
+  deletedPackagePriceItemIds.value = []
   tripPackageDialogVisible.value = true
+  try {
+    const items = await getTourPackagePriceItems(row.id)
+    packagePriceItems.value = (items || []).map(normalizePackagePriceItem)
+  } catch (error) {
+    console.error('获取套餐价格项失败:', error)
+  }
   nextTick(() => markSubDialogPristine('tripPackage'))
 }
 
 const submitTripPackage = async () => {
+  if (!validateTripPackageForm()) return
   tripPackageLoading.value = true
   try {
     const data = {
       ...tripPackageForm.value,
-      originalAdultPrice: normalizeOriginalPrice(tripPackageForm.value.originalAdultPrice, tripPackageForm.value.adultPrice),
-      originalChildPrice: normalizeOriginalPrice(tripPackageForm.value.originalChildPrice, tripPackageForm.value.childPrice),
+      adultPrice: isBlankValue(tripPackageForm.value.adultPrice) ? 0 : tripPackageForm.value.adultPrice,
+      childPrice: isBlankValue(tripPackageForm.value.childPrice) ? 0 : tripPackageForm.value.childPrice,
+      originalAdultPrice: isBlankValue(tripPackageForm.value.originalAdultPrice) ? null : tripPackageForm.value.originalAdultPrice,
+      originalChildPrice: isBlankValue(tripPackageForm.value.originalChildPrice) ? null : tripPackageForm.value.originalChildPrice,
       tourId: props.tourId
     }
     if (isTripPackageEdit.value) {
       await updateTourPackage(tripPackageForm.value.id, data)
     } else {
-      await addTourPackage(data)
+      const created = await addTourPackage(data)
+      tripPackageForm.value.id = created?.id || null
+    }
+    if (tripPackageForm.value.id) {
+      const saved = await savePackagePriceItems(tripPackageForm.value.id)
+      if (!saved) return
     }
     ElMessage.success('保存成功')
     markSubDialogPristine('tripPackage')
@@ -1120,25 +1449,41 @@ const handleDeleteTripPackage = (row) => {
 const showAddBatchPackage = () => {
   isBatchPackageEdit.value = false
   batchPackageForm.value = { id: null, name: '', extraFeePerPerson: 0, description: '', status: 1 }
+  addonPriceItems.value = []
+  deletedAddonPriceItemIds.value = []
   batchPackageDialogVisible.value = true
   nextTick(() => markSubDialogPristine('batchPackage'))
 }
 
-const editBatchPackage = (row) => {
+const editBatchPackage = async (row) => {
   isBatchPackageEdit.value = true
   batchPackageForm.value = { ...row }
+  addonPriceItems.value = []
+  deletedAddonPriceItemIds.value = []
   batchPackageDialogVisible.value = true
+  try {
+    const items = await getBatchPackagePriceItems(row.id)
+    addonPriceItems.value = (items || []).map(normalizeAddonPriceItem)
+  } catch (error) {
+    console.error('获取附加费用价格项失败:', error)
+  }
   nextTick(() => markSubDialogPristine('batchPackage'))
 }
 
 const submitBatchPackage = async () => {
+  if (!validateBatchPackageForm()) return
   batchPackageLoading.value = true
   try {
     const data = { ...batchPackageForm.value, tourId: props.tourId }
     if (isBatchPackageEdit.value) {
       await updateBatchPackage(batchPackageForm.value.id, data)
     } else {
-      await addBatchPackage(data)
+      const created = await addBatchPackage(data)
+      batchPackageForm.value.id = created?.id || null
+    }
+    if (batchPackageForm.value.id) {
+      const saved = await saveAddonPriceItems(batchPackageForm.value.id)
+      if (!saved) return
     }
     ElMessage.success('保存成功')
     markSubDialogPristine('batchPackage')
@@ -1182,10 +1527,6 @@ const getDiscountLabel = (originalPrice, salePrice) => {
   if (!hasPromotion(originalPrice, salePrice)) return ''
   const discount = Number(salePrice) * 10 / Number(originalPrice)
   return `${Number(discount.toFixed(1)).toString()}折`
-}
-
-const normalizeOriginalPrice = (originalPrice, salePrice) => {
-  return hasPromotion(originalPrice, salePrice) ? originalPrice : null
 }
 
 const formatAmount = (value) => {
@@ -1639,11 +1980,23 @@ const handleHotelEnabledChange = async (row) => {
   word-break: break-word;
 }
 
+.batch-table .batch-action-cell {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
 .table-actions {
   display: flex;
   justify-content: center;
   gap: 4px;
   flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.batch-action-cell .table-actions :deep(.el-button) {
+  min-width: 0;
+  padding-left: 7px;
+  padding-right: 7px;
 }
 
 .table-actions :deep(.el-button + .el-button) {
@@ -1742,7 +2095,22 @@ const handleHotelEnabledChange = async (row) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   margin-bottom: 15px;
+}
+
+.section-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.legacy-note {
+  color: #909399;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
 }
 
 .header-actions {
@@ -1765,6 +2133,125 @@ const handleHotelEnabledChange = async (row) => {
   color: #909399;
   font-size: 12px;
   line-height: 1.5;
+}
+
+.price-item-editor {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.price-item-head,
+.price-item-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.price-item-head {
+  margin-bottom: 12px;
+}
+
+.price-item-head h4 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.price-item-head p {
+  margin: 5px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.price-item-empty {
+  padding: 14px;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  color: #8c939d;
+  font-size: 12px;
+  text-align: center;
+  background: #fff;
+}
+
+.price-item-card {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.price-item-card + .price-item-card {
+  margin-top: 10px;
+}
+
+.price-item-card-head {
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.price-item-card-head strong {
+  color: #374151;
+  font-size: 13px;
+}
+
+.price-item-grid {
+  display: grid;
+  gap: 10px;
+  align-items: center;
+}
+
+.package-price-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.addon-price-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.price-field {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.price-field span {
+  color: #606266;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.price-field--switch {
+  grid-template-columns: 86px auto;
+  grid-column: 1 / -1;
+  justify-content: start;
+}
+
+.addon-price-grid .price-field--switch {
+  grid-column: auto;
+}
+
+.price-item-grid :deep(.el-input-number) {
+  width: 100%;
+}
+
+.price-item-batches {
+  width: 100%;
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .package-price-grid,
+  .addon-price-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .warning {
@@ -1901,6 +2388,7 @@ const handleHotelEnabledChange = async (row) => {
   justify-content: center;
   gap: 4px;
   flex-wrap: nowrap;
+  min-width: 0;
 }
 
 .table-actions :deep(.el-button + .el-button) {
