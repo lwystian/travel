@@ -105,13 +105,9 @@ public class TourProductSourceConfigService extends ServiceImpl<AuthProviderConf
         }
         if (validateEnabledMode && SOURCE_MINIAPP.equals(dto.getSourceMode())) {
             validateApiBaseUrl(dto.getMiniappApiBaseUrl());
-            if (dto.getMiniappBookingUrlTemplate().isBlank()) {
-                throw new ServiceException("启用小程序商品前必须配置统一预订链接模板");
-            }
         } else if (!dto.getMiniappApiBaseUrl().isBlank()) {
             validateApiBaseUrl(dto.getMiniappApiBaseUrl());
         }
-        validateBookingTemplate(dto.getMiniappBookingUrlTemplate());
     }
 
     private void validateHttpUrl(String value, String label) {
@@ -139,18 +135,6 @@ public class TourProductSourceConfigService extends ServiceImpl<AuthProviderConf
                 .collect(Collectors.toSet());
         if (!allowlist.isEmpty() && !allowlist.contains(uri.getHost().toLowerCase())) {
             throw new ServiceException("小程序 API 域名不在服务器允许列表中");
-        }
-    }
-
-    private void validateBookingTemplate(String value) {
-        if (value == null || value.isBlank()) {
-            return;
-        }
-        validateHttpUrl(value.replace("{tourId}", "tour-1")
-                .replace("{scheduleId}", "schedule-1")
-                .replace("{packageId}", "package-1"), "统一预订链接模板");
-        if (!value.contains("{tourId}")) {
-            throw new ServiceException("统一预订链接模板必须包含 {tourId}");
         }
     }
 

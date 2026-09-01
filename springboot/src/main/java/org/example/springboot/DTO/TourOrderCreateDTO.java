@@ -13,6 +13,21 @@ import java.util.List;
 @Schema(description = "行程订单创建请求")
 public class TourOrderCreateDTO {
 
+    @Schema(description = "商品来源：LOCAL/MINIAPP")
+    private String sourceType;
+
+    @Schema(description = "外部商品ID")
+    private String sourceTourId;
+
+    @Schema(description = "外部套餐ID")
+    private String sourcePackageId;
+
+    @Schema(description = "外部班期ID")
+    private String sourceScheduleId;
+
+    @Schema(description = "外部套餐价格项ID")
+    private String sourcePackagePriceItemId;
+
     @NotBlank(message = "行程编号不能为空")
     @Schema(description = "行程编号")
     private String productId;
@@ -82,8 +97,14 @@ public class TourOrderCreateDTO {
         @Schema(description = "附加费用ID")
         private Long batchPackageId;
 
+        @Schema(description = "外部附加费用ID")
+        private String sourceAddonId;
+
         @Schema(description = "附加费用价格项ID")
         private Long addonPriceItemId;
+
+        @Schema(description = "外部附加费用价格项ID")
+        private String sourceAddonPriceItemId;
 
         @Min(value = 1, message = "附加费用数量至少为1")
         @Schema(description = "数量/份数")

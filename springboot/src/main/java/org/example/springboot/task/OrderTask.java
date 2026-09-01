@@ -1,10 +1,9 @@
 package org.example.springboot.task;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import org.example.springboot.entity.TourBatch;
 import org.example.springboot.entity.TourOrder;
-import org.example.springboot.mapper.TourBatchMapper;
 import org.example.springboot.mapper.TourOrderMapper;
+import org.example.springboot.service.TourOrderInventoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +31,7 @@ public class OrderTask {
     private TourOrderMapper tourOrderMapper;
 
     @Autowired
-    private TourBatchMapper tourBatchMapper;
+    private TourOrderInventoryService tourOrderInventoryService;
 
     /**
      * 定时取消超时未支付的订单
@@ -58,19 +57,10 @@ public class OrderTask {
             logger.info("发现 {} 个超时未支付的订单", expiredOrders.size());
 
             for (TourOrder order : expiredOrders) {
-                // 查询批次ID
-                LambdaQueryWrapper<TourBatch> batchWrapper = new LambdaQueryWrapper<>();
-                batchWrapper.eq(TourBatch::getTourId, order.getTourId())
-                           .eq(TourBatch::getDepartureDate, order.getDepartureDate());
-                TourBatch batch = tourBatchMapper.selectOne(batchWrapper);
-
-                if (batch != null) {
+                Long batchId = tourOrderInventoryService.release(order);
+                if (batchId != null) {
                     int totalPeople = order.getAdultCount() + (order.getChildCount() != null ? order.getChildCount() : 0);
-                    // 原子释放锁定库存
-                    int result = tourBatchMapper.releaseOccupancy(batch.getId(), totalPeople);
-                    if (result > 0) {
-                        logger.info("超时取消释放锁定库存：批次={}, 人数={}", batch.getId(), totalPeople);
-                    }
+                    logger.info("超时取消释放锁定库存：批次={}, 人数={}", batchId, totalPeople);
                 }
 
                 order.setStatus(2);  // 2 = 已取消

@@ -37,13 +37,12 @@ APP_SECURITY_ALLOWED_ORIGINS=https://your-domain.com,http://your-server-ip
 APP_SECURITY_TOKEN_EXPIRE=2h
 APP_UPLOAD_IMAGE_MAX_SIZE=2MB
 MINIAPP_API_BASE_URL=https://mini-api.your-domain.com/api
-MINIAPP_BOOKING_URL_TEMPLATE="https://mini.your-domain.com/#/pages/tour/detail?id={tourId}&scheduleId={scheduleId}&packageId={packageId}"
 MINIAPP_API_ALLOWED_HOSTS=mini-api.your-domain.com
 ```
 
 `MINIAPP_API_BASE_URL` 必须是 travel 后端容器能够访问的小程序 API 根地址。生产环境应使用 HTTPS 域名；如果两个后端在同一个 Compose 网络中，使用小程序后端的服务名，不要填写容器自身的 `localhost`。
 
-`MINIAPP_BOOKING_URL_TEMPLATE` 用于把官网选择交给小程序的统一订单流程，必须包含 `{tourId}`，还可以包含 `{scheduleId}` 和 `{packageId}`。部署后先在“网站设置 → 商品来源”测试连接，再切换到“小程序商品”。配置保存在数据库中，环境变量只作为初始默认值。
+部署后先在“网站设置 → 商品来源”测试连接，再切换到“小程序商品”。官网会从小程序 API 读取商品、套餐、班期和库存，订单与支付仍使用 travel 原有流程；配置保存在数据库中，环境变量只作为初始默认值。
 
 `MINIAPP_API_ALLOWED_HOSTS` 是 travel 后端允许访问的小程序 API 域名白名单，多个域名用英文逗号分隔。生产环境建议配置；留空表示不限制，适合本地开发。
 

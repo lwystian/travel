@@ -27,6 +27,24 @@ public class TourOrder {
     @Schema(description = "行程ID")
     private Long tourId;
 
+    @Schema(description = "精确关联的出发批次ID")
+    private Long batchId;
+
+    @Schema(description = "商品来源：LOCAL/MINIAPP")
+    private String sourceType;
+
+    @Schema(description = "外部商品ID")
+    private String sourceTourId;
+
+    @Schema(description = "外部套餐ID")
+    private String sourcePackageId;
+
+    @Schema(description = "外部班期ID")
+    private String sourceScheduleId;
+
+    @Schema(description = "外部套餐价格项ID")
+    private String sourcePackagePriceItemId;
+
     @Schema(description = "行程名称")
     private String tourName;
 

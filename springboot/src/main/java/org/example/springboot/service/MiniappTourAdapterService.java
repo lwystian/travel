@@ -15,7 +15,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -50,6 +49,9 @@ public class MiniappTourAdapterService {
 
     @Resource
     private TourProductSourceConfigService configService;
+
+    @Resource
+    private MiniappInventoryService miniappInventoryService;
 
     private final RestTemplate restTemplate;
     private volatile List<Map<String, Object>> summaryCache = List.of();
@@ -176,7 +178,16 @@ public class MiniappTourAdapterService {
         TourProductSourceConfigDTO config = configService.getConfig();
         Map<String, Object> remote = getObjectData(buildUri(config.getMiniappApiBaseUrl(), "/tours/detail", Map.of("id", remoteId)));
         normalizeRemoteAssets(remote, config.getMiniappApiBaseUrl());
-        return adaptDetail(remote, remoteId, config);
+        Map<String, Object> detail = adaptDetail(remote, remoteId, config);
+        miniappInventoryService.applyLocalAllocations(detail);
+        return detail;
+    }
+
+    public String encodeTourId(String remoteId) {
+        if (remoteId == null || remoteId.isBlank()) {
+            throw new ServiceException("无效的小程序商品编号");
+        }
+        return encodeRemoteTourId(remoteId.trim());
     }
 
     public boolean isMiniappTourId(String id) {
@@ -316,7 +327,7 @@ public class MiniappTourAdapterService {
         BigDecimal originalPrice = discountOriginal(remote.get("originalPrice"), price);
         String pricingMode = "inquiry".equalsIgnoreCase(text(remote.get("pricingMode"))) ? "inquiry" : "fixed";
 
-        item.put("id", encodeTourId(remoteId));
+        item.put("id", encodeRemoteTourId(remoteId));
         item.put("sourceType", SOURCE_TYPE);
         item.put("sourceId", remoteId);
         item.put("code", "MINI-" + remoteId);
@@ -389,8 +400,6 @@ public class MiniappTourAdapterService {
         tour.put("id", summary.get("id"));
         tour.put("sourceType", SOURCE_TYPE);
         tour.put("sourceId", remoteTourId);
-        tour.put("bookingUrl", resolveBookingUrl(config.getMiniappBookingUrlTemplate(), remoteTourId, "", ""));
-        tour.put("bookingUrlTemplate", config.getMiniappBookingUrlTemplate());
         tour.put("title", remote.get("title"));
         tour.put("subtitle", remote.get("subtitle"));
         tour.put("code", summary.get("code"));
@@ -437,8 +446,6 @@ public class MiniappTourAdapterService {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("sourceType", SOURCE_TYPE);
         result.put("sourceId", remoteTourId);
-        result.put("bookingUrl", tour.get("bookingUrl"));
-        result.put("bookingUrlTemplate", tour.get("bookingUrlTemplate"));
         result.put("tour", tour);
         result.put("tags", displayTags(remote));
         result.put("features", features);
@@ -475,7 +482,7 @@ public class MiniappTourAdapterService {
             BigDecimal originalChildPrice = discountOriginal(source.get("originalChildPrice"), childPrice);
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", packageIds.id(source.get("id")));
-            item.put("sourceId", bool(source.get("_synthetic")) ? "" : text(source.get("id")));
+            item.put("sourceId", bool(source.get("_synthetic")) ? "__default__" : text(source.get("id")));
             item.put("name", defaultText(source.get("name"), "标准套餐"));
             item.put("adultPrice", adultPrice);
             item.put("childPrice", childPrice);
@@ -539,6 +546,8 @@ public class MiniappTourAdapterService {
             item.put("minGroupSize", integer(source.get("minGroupSize")));
             item.put("stock", integer(source.get("stock")));
             item.put("availableStock", Math.max(available, 0));
+            item.put("remoteAvailableStock", Math.max(available, 0));
+            item.put("remoteStatus", status);
             item.put("lockedStock", Math.max(locked, 0));
             item.put("bookedCount", Math.max(firstInteger(source.get("bookedCount")), 0));
             item.put("unlimitedStock", unlimitedStock);
@@ -568,8 +577,9 @@ public class MiniappTourAdapterService {
                     result.add(packagePriceItem(nextId++, source, map(entry.getValue()), packageId, List.of(batchId)));
                 }
             } else {
-                result.add(packagePriceItem(nextId++, source, source, packageId,
-                        mapRelatedIds(source.get("scheduleIds"), scheduleIds)));
+                List<Long> batchIds = mapRelatedIds(source.get("scheduleIds"), scheduleIds);
+                if (batchIds.isEmpty()) batchIds = scheduleIds.allIds();
+                result.add(packagePriceItem(nextId++, source, source, packageId, batchIds));
             }
         }
         return result;
@@ -688,8 +698,9 @@ public class MiniappTourAdapterService {
                     }
                 }
             } else {
-                result.add(addonPriceItem(nextId++, source, source, addonId,
-                        mapRelatedIds(source.get("scheduleIds"), scheduleIds), mappedPackageIds));
+                List<Long> batchIds = mapRelatedIds(source.get("scheduleIds"), scheduleIds);
+                if (batchIds.isEmpty()) batchIds = scheduleIds.allIds();
+                result.add(addonPriceItem(nextId++, source, source, addonId, batchIds, mappedPackageIds));
             }
         }
         return result;
@@ -948,7 +959,7 @@ public class MiniappTourAdapterService {
 
     private String joinNotices(Map<String, Object> remote) {
         List<String> notices = mergeStringLists(remote.get("purchaseNotice"), remote.get("bookingNotice"));
-        return notices.isEmpty() ? "以统一预订页展示规则为准" : String.join("；", notices);
+        return notices.isEmpty() ? "以当前商品展示规则为准" : String.join("；", notices);
     }
 
     private Map<String, Object> orderConfirmation(Map<String, Object> remote) {
@@ -981,14 +992,7 @@ public class MiniappTourAdapterService {
         return text(promotion.get("badgeText"));
     }
 
-    private String resolveBookingUrl(String template, String tourId, String scheduleId, String packageId) {
-        if (template == null || template.isBlank()) return "";
-        return template.replace("{tourId}", urlEncode(tourId))
-                .replace("{scheduleId}", urlEncode(scheduleId))
-                .replace("{packageId}", urlEncode(packageId));
-    }
-
-    private String encodeTourId(String remoteId) {
+    private String encodeRemoteTourId(String remoteId) {
         String encoded = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(remoteId.getBytes(StandardCharsets.UTF_8));
         return TOUR_ID_PREFIX + encoded;
@@ -1219,10 +1223,6 @@ public class MiniappTourAdapterService {
     private boolean bool(Object value) {
         if (value instanceof Boolean bool) return bool;
         return "true".equalsIgnoreCase(text(value)) || "1".equals(text(value));
-    }
-
-    private String urlEncode(String value) {
-        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     private record RemoteQuery(

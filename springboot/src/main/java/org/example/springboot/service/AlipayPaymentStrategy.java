@@ -10,11 +10,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.annotation.PostConstruct;
 import org.example.springboot.dto.AlipayConfigDTO;
 import org.example.springboot.entity.PaymentConfig;
-import org.example.springboot.entity.TourBatch;
 import org.example.springboot.entity.TourOrder;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.PaymentConfigMapper;
-import org.example.springboot.mapper.TourBatchMapper;
 import org.example.springboot.mapper.TourOrderMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +60,7 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
     private TourOrderMapper tourOrderMapper;
 
     @Autowired
-    private TourBatchMapper tourBatchMapper;
+    private TourOrderInventoryService tourOrderInventoryService;
 
     @Autowired(required = false)
     private StringRedisTemplate stringRedisTemplate;
@@ -370,18 +368,7 @@ public class AlipayPaymentStrategy implements PaymentStrategy {
     }
 
     private boolean confirmInventory(TourOrder order) {
-        TourBatch batch = tourBatchMapper.selectOne(new LambdaQueryWrapper<TourBatch>()
-                .eq(TourBatch::getTourId, order.getTourId())
-                .eq(TourBatch::getDepartureDate, order.getDepartureDate()));
-        if (batch == null) {
-            return false;
-        }
-        int totalPeople = safeCount(order.getAdultCount()) + safeCount(order.getChildCount());
-        return totalPeople > 0 && tourBatchMapper.confirmOccupancy(batch.getId(), totalPeople) > 0;
-    }
-
-    private int safeCount(Integer value) {
-        return value == null ? 0 : value;
+        return tourOrderInventoryService.confirm(order);
     }
 
     /**

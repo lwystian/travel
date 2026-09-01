@@ -115,7 +115,7 @@
             </div>
             <div>
               <strong>预订与库存</strong>
-              <span>{{ useMiniappProducts ? '小程序商品进入统一预订页，价格、库存和订单不会分裂。' : '本地商品继续使用官网原有预订和支付流程。' }}</span>
+              <span>{{ useMiniappProducts ? '商品、套餐、班期和库存读取小程序 API，下单与支付继续使用官网流程。' : '本地商品继续使用官网原有预订和支付流程。' }}</span>
             </div>
           </div>
 
@@ -123,14 +123,6 @@
             <el-form-item label="小程序 API 地址">
               <el-input v-model="sourceForm.miniappApiBaseUrl" placeholder="例如：https://mini.example.com/api" maxlength="500" />
               <span class="field-help">填写小程序后端的完整 API 根地址，travel 后端会从服务器侧访问该地址。</span>
-            </el-form-item>
-            <el-form-item label="统一预订链接模板">
-              <el-input
-                v-model="sourceForm.miniappBookingUrlTemplate"
-                placeholder="例如：https://mini.example.com/#/pages/tour/detail?id={tourId}&scheduleId={scheduleId}&packageId={packageId}"
-                maxlength="1000"
-              />
-              <span class="field-help">必须包含 {tourId}；可选使用 {scheduleId}、{packageId} 传递官网已选择的班期与套餐。</span>
             </el-form-item>
             <el-form-item label="接口异常保护">
               <el-switch
@@ -280,7 +272,7 @@ const activeTab = computed(() => {
 })
 
 const saveHint = computed(() => activeTab.value === 'tour-source'
-  ? '切换为小程序商品前请先测试连接并配置统一预订地址，保存后前台商品会立即切换。'
+  ? '切换为小程序商品前请先测试连接；保存后商品与库存立即切换，官网订单和支付流程保持不变。'
   : '保存后配置会立即对前台生效，请确认提示文案准确、客服渠道可用。')
 
 const switchTab = (key) => {

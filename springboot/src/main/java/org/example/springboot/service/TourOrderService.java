@@ -66,6 +66,12 @@ public class TourOrderService {
     @Resource
     private TourPriceItemService tourPriceItemService;
 
+    @Resource
+    private MiniappTourOrderBridgeService miniappTourOrderBridgeService;
+
+    @Resource
+    private TourOrderInventoryService tourOrderInventoryService;
+
     /**
      * 创建行程订单
      */
@@ -75,6 +81,9 @@ public class TourOrderService {
         User currentUser = JwtTokenUtils.getCurrentUser();
         if (currentUser == null) {
             throw new ServiceException("用户未登录");
+        }
+        if (miniappTourOrderBridgeService.supports(dto)) {
+            return createMiniappOrder(dto, currentUser);
         }
 
         // 2. 根据行程编号查询行程
@@ -219,6 +228,8 @@ public class TourOrderService {
             order.setOrderNo(generateOrderNo());
             order.setUserId(currentUser.getId());
             order.setTourId(tour.getId());
+            order.setBatchId(tourBatch.getId());
+            order.setSourceType(TourProductSourceConfigService.SOURCE_LOCAL);
             order.setTourName(tour.getTitle());
             order.setTourCode(tour.getCode());
             order.setPackageId(tourPackage.getId());
@@ -251,36 +262,7 @@ public class TourOrderService {
             order.setCreateTime(LocalDateTime.now());
             order.setUpdateTime(LocalDateTime.now());
 
-            // 16. 保存订单
-            tourOrderMapper.insert(order);
-            logger.info("行程订单创建成功：订单号={}, 用户={}, 行程={}, 总价={}, 锁定人数={}",
-                order.getOrderNo(), currentUser.getUsername(), tour.getTitle(), totalAmount, totalPeople);
-            siteNotificationService.sendToUser(
-                    currentUser.getId(),
-                    "订单已创建，请及时付款",
-                    "你已成功提交订单 " + order.getOrderNo() + "，请在订单有效期内完成支付。",
-                    "ORDER",
-                    "TOUR_ORDER",
-                    String.valueOf(order.getId()),
-                    "/orders"
-            );
-            siteNotificationService.sendToAdmins(
-                    "新的待付款订单",
-                    currentUser.getUsername()
-                            + " 提交了行程订单 " + order.getOrderNo()
-                            + "。联系人：" + order.getContactName()
-                            + "，联系电话：" + order.getContactPhone()
-                            + "，行程：" + order.getTourName()
-                            + "，出行人数：成人 " + order.getAdultCount() + " 人"
-                            + (order.getChildCount() != null && order.getChildCount() > 0 ? "，儿童 " + order.getChildCount() + " 人" : "")
-                            + "，订单金额：" + order.getTotalAmount() + " 元。请关注支付状态并做好后续对接准备。",
-                    "ORDER",
-                    "TOUR_ORDER",
-                    String.valueOf(order.getId()),
-                    "/back/order"
-            );
-
-            return copyMaskedOrderForUser(order);
+            return saveCreatedOrder(order, currentUser, totalPeople);
 
         } catch (ServiceException e) {
             // 业务异常：释放已锁定的库存
@@ -291,6 +273,133 @@ public class TourOrderService {
             releaseBatchOccupancy(tourBatch.getId(), totalPeople);
             throw new ServiceException("订单创建失败：" + e.getMessage());
         }
+    }
+
+    private TourOrder createMiniappOrder(TourOrderCreateDTO dto, User currentUser) {
+        MiniappTourOrderBridgeService.PreparedMiniappOrder prepared = miniappTourOrderBridgeService.prepare(dto);
+        LambdaQueryWrapper<TourOrder> existingWrapper = new LambdaQueryWrapper<>();
+        existingWrapper.eq(TourOrder::getUserId, currentUser.getId())
+                .eq(TourOrder::getSourceType, MiniappTourAdapterService.SOURCE_TYPE)
+                .eq(TourOrder::getSourceTourId, prepared.sourceTourId())
+                .eq(TourOrder::getStatus, 0);
+        if (tourOrderMapper.selectCount(existingWrapper) > 0) {
+            throw new ServiceException("您已有一笔该行程的待支付订单，请先完成支付或取消后再重新预订");
+        }
+
+        int childCount = dto.getChildCount() == null ? 0 : dto.getChildCount();
+        int totalPeople = dto.getAdultCount() + childCount;
+        TourBatch batch = prepared.batch();
+        if (!"可报名".equals(batch.getStatus())) {
+            throw new ServiceException("该班期" + batch.getStatus() + "，不可预订");
+        }
+        if (tourBatchMapper.lockOccupancy(batch.getId(), totalPeople) == 0) {
+            TourBatch latest = tourBatchMapper.selectById(batch.getId());
+            int available = latest == null ? 0
+                    : Math.max((latest.getRemaining() == null ? 0 : latest.getRemaining())
+                    - (latest.getOccupied() == null ? 0 : latest.getOccupied()), 0);
+            throw new ServiceException("余位不足，当前剩余" + available + "个名额");
+        }
+
+        try {
+            validateClientPrice("成人单价", prepared.adultPrice(), dto.getClientAdultUnitPrice());
+            if (dto.getClientChildUnitPrice() != null && dto.getClientChildUnitPrice().compareTo(BigDecimal.ZERO) > 0) {
+                validateClientPrice("儿童单价", prepared.childPrice(), dto.getClientChildUnitPrice());
+            }
+
+            BigDecimal tourAmount = prepared.adultPrice().multiply(BigDecimal.valueOf(dto.getAdultCount()))
+                    .add(prepared.childPrice().multiply(BigDecimal.valueOf(childCount)))
+                    .add(prepared.addonAmount());
+            BigDecimal hotelAmount = BigDecimal.ZERO;
+            if (dto.getHotelId() != null && dto.getHotelDays() != null && dto.getHotelDays() > 0) {
+                if (dto.getHotelPricePerNight() == null || dto.getHotelPricePerNight().compareTo(BigDecimal.ZERO) <= 0) {
+                    throw new ServiceException("酒店价格信息错误");
+                }
+                hotelAmount = dto.getHotelPricePerNight().multiply(BigDecimal.valueOf(dto.getHotelDays()));
+            }
+            BigDecimal payableAmount = tourAmount.add(hotelAmount);
+            validateClientPrice("总价", payableAmount, dto.getClientTotalPrice());
+
+            TourOrder order = new TourOrder();
+            order.setOrderNo(generateOrderNo());
+            order.setUserId(currentUser.getId());
+            order.setTourId(prepared.tourId());
+            order.setBatchId(batch.getId());
+            order.setSourceType(MiniappTourAdapterService.SOURCE_TYPE);
+            order.setSourceTourId(prepared.sourceTourId());
+            order.setSourcePackageId(prepared.sourcePackageId());
+            order.setSourceScheduleId(prepared.sourceScheduleId());
+            order.setSourcePackagePriceItemId(prepared.sourcePackagePriceItemId());
+            order.setTourName(prepared.tourName());
+            order.setTourCode(prepared.tourCode());
+            order.setPackageId(prepared.packageId());
+            order.setPackageName(prepared.packageName());
+            order.setPackagePriceItemId(prepared.packagePriceItemId());
+            order.setBatchPackageId(prepared.primaryAddonId());
+            order.setBatchPackageName(prepared.addonSummary());
+            order.setAddonItems(prepared.addonItemsJson());
+            order.setAddonSummary(prepared.addonSummary());
+            order.setDepartureDate(batch.getDepartureDate());
+            order.setAdultCount(dto.getAdultCount());
+            order.setChildCount(childCount);
+            order.setAdultUnitPrice(prepared.adultPrice());
+            order.setChildUnitPrice(prepared.childPrice());
+            order.setTourAmount(tourAmount);
+            order.setHotelId(dto.getHotelId());
+            order.setHotelName(dto.getHotelName());
+            order.setHotelDays(dto.getHotelDays());
+            order.setHotelPricePerNight(dto.getHotelPricePerNight());
+            order.setHotelAmount(hotelAmount);
+            order.setCouponUserId(null);
+            order.setCouponName(null);
+            order.setDiscountAmount(BigDecimal.ZERO);
+            order.setPayableAmount(payableAmount);
+            order.setTotalAmount(payableAmount);
+            order.setContactName(dto.getContactName());
+            order.setContactPhone(dto.getContactPhone());
+            order.setRemark(dto.getRemark());
+            order.setStatus(0);
+            order.setCreateTime(LocalDateTime.now());
+            order.setUpdateTime(LocalDateTime.now());
+            return saveCreatedOrder(order, currentUser, totalPeople);
+        } catch (ServiceException ex) {
+            releaseBatchOccupancy(batch.getId(), totalPeople);
+            throw ex;
+        } catch (Exception ex) {
+            releaseBatchOccupancy(batch.getId(), totalPeople);
+            throw new ServiceException("订单创建失败：" + ex.getMessage());
+        }
+    }
+
+    private void validateClientPrice(String label, BigDecimal serverPrice, BigDecimal clientPrice) {
+        if (clientPrice == null) return;
+        if (serverPrice.subtract(clientPrice).abs().compareTo(PRICE_TOLERANCE) > 0) {
+            logger.warn("{}校验失败：前端={}, 后端={}", label, clientPrice, serverPrice);
+            throw new ServiceException("价格已变更，请刷新页面后重试");
+        }
+    }
+
+    private TourOrder saveCreatedOrder(TourOrder order, User currentUser, int totalPeople) {
+        tourOrderMapper.insert(order);
+        logger.info("行程订单创建成功：订单号={}, 用户={}, 行程={}, 总价={}, 锁定人数={}, 来源={}",
+                order.getOrderNo(), currentUser.getUsername(), order.getTourName(), order.getTotalAmount(),
+                totalPeople, order.getSourceType());
+        siteNotificationService.sendToUser(
+                currentUser.getId(),
+                "订单已创建，请及时付款",
+                "你已成功提交订单 " + order.getOrderNo() + "，请在订单有效期内完成支付。",
+                "ORDER", "TOUR_ORDER", String.valueOf(order.getId()), "/orders");
+        siteNotificationService.sendToAdmins(
+                "新的待付款订单",
+                currentUser.getUsername()
+                        + " 提交了行程订单 " + order.getOrderNo()
+                        + "。联系人：" + order.getContactName()
+                        + "，联系电话：" + order.getContactPhone()
+                        + "，行程：" + order.getTourName()
+                        + "，出行人数：成人 " + order.getAdultCount() + " 人"
+                        + (order.getChildCount() != null && order.getChildCount() > 0 ? "，儿童 " + order.getChildCount() + " 人" : "")
+                        + "，订单金额：" + order.getTotalAmount() + " 元。请关注支付状态并做好后续对接准备。",
+                "ORDER", "TOUR_ORDER", String.valueOf(order.getId()), "/back/order");
+        return copyMaskedOrderForUser(order);
     }
 
     private AddonPriceResult calculateAddonPrice(Tour tour, TourBatch tourBatch, Long packageId,
@@ -456,17 +565,6 @@ public class TourOrderService {
     }
 
     /**
-     * 根据行程ID和出发日期获取批次ID
-     */
-    private Long getBatchId(Long tourId, LocalDate departureDate) {
-        LambdaQueryWrapper<TourBatch> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(TourBatch::getTourId, tourId)
-               .eq(TourBatch::getDepartureDate, departureDate);
-        TourBatch batch = tourBatchMapper.selectOne(wrapper);
-        return batch != null ? batch.getId() : null;
-    }
-
-    /**
      * 支付订单
      */
     @Transactional
@@ -488,18 +586,12 @@ public class TourOrderService {
             throw new ServiceException("订单状态不正确，无法支付");
         }
 
-        // 查询批次ID
-        Long batchId = getBatchId(order.getTourId(), order.getDepartureDate());
-        if (batchId == null) {
+        TourBatch paymentBatch = tourOrderInventoryService.findBatch(order);
+        if (paymentBatch == null) {
             throw new ServiceException("批次不存在");
         }
-
-        int totalPeople = order.getAdultCount() + (order.getChildCount() != null ? order.getChildCount() : 0);
-
-        // 原子确认库存（支付时：将occupied转为remaining扣减）
-        int result = tourBatchMapper.confirmOccupancy(batchId, totalPeople);
-        if (result == 0) {
-            logger.error("支付确认库存失败：订单号={}, 批次={}, 人数={}", order.getOrderNo(), batchId, totalPeople);
+        if (!tourOrderInventoryService.confirm(order)) {
+            logger.error("支付确认库存失败：订单号={}, 批次={}", order.getOrderNo(), paymentBatch.getId());
             throw new ServiceException("库存确认失败，请稍后重试");
         }
 
@@ -536,12 +628,9 @@ public class TourOrderService {
             throw new ServiceException("只有待支付的订单可以取消");
         }
 
-        // 查询批次ID
-        Long batchId = getBatchId(order.getTourId(), order.getDepartureDate());
+        Long batchId = tourOrderInventoryService.release(order);
         if (batchId != null) {
             int totalPeople = order.getAdultCount() + (order.getChildCount() != null ? order.getChildCount() : 0);
-            // 原子释放锁定库存
-            tourBatchMapper.releaseOccupancy(batchId, totalPeople);
             logger.info("释放锁定库存：批次={}, 人数={}", batchId, totalPeople);
         }
 
@@ -575,18 +664,10 @@ public class TourOrderService {
             throw new ServiceException("只有已支付的订单可以退款");
         }
 
-        // 查询批次
-        LambdaQueryWrapper<TourBatch> batchWrapper = new LambdaQueryWrapper<>();
-        batchWrapper.eq(TourBatch::getTourId, order.getTourId())
-                   .eq(TourBatch::getDepartureDate, order.getDepartureDate());
-        TourBatch batch = tourBatchMapper.selectOne(batchWrapper);
-
-        if (batch != null) {
+        Long refundedBatchId = tourOrderInventoryService.refund(order);
+        if (refundedBatchId != null) {
             int totalPeople = order.getAdultCount() + (order.getChildCount() != null ? order.getChildCount() : 0);
-            int maxCapacity = batch.getMaxCapacity() != null ? batch.getMaxCapacity() : 999;
-            // 原子退还余位
-            tourBatchMapper.returnRemaining(batch.getId(), totalPeople, maxCapacity);
-            logger.info("退还余位：批次={}, 人数={}", batch.getId(), totalPeople);
+            logger.info("退还余位：批次={}, 人数={}", refundedBatchId, totalPeople);
         }
 
         order.setStatus(3); // 已退款
@@ -827,6 +908,12 @@ public class TourOrderService {
         copy.setOrderNo(source.getOrderNo());
         copy.setUserId(source.getUserId());
         copy.setTourId(source.getTourId());
+        copy.setBatchId(source.getBatchId());
+        copy.setSourceType(source.getSourceType());
+        copy.setSourceTourId(source.getSourceTourId());
+        copy.setSourcePackageId(source.getSourcePackageId());
+        copy.setSourceScheduleId(source.getSourceScheduleId());
+        copy.setSourcePackagePriceItemId(source.getSourcePackagePriceItemId());
         copy.setTourName(source.getTourName());
         copy.setTourCode(source.getTourCode());
         copy.setPackageId(source.getPackageId());

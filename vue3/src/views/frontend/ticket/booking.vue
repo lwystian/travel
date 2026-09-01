@@ -51,7 +51,7 @@
         </div>
 
         <!-- 日历查看切换 -->
-        <div v-if="!isMiniappProduct" class="view-toggle">
+        <div class="view-toggle">
           <div class="toggle-buttons">
             <button
               :class="['toggle-btn', { active: viewMode === 'calendar' }]"
@@ -69,7 +69,7 @@
         </div>
 
         <!-- 日历组件 -->
-        <div v-if="!isMiniappProduct && viewMode === 'calendar'" class="calendar-container">
+        <div v-if="viewMode === 'calendar'" class="calendar-container">
           <div class="calendar-header">
             <button class="nav-btn" :disabled="!canGoPrevMonth" @click="prevMonth">&lt;</button>
             <div v-if="availableCalendarMonths.length > 1" class="calendar-month-tabs">
@@ -127,7 +127,7 @@
         </div>
 
         <!-- 列表查看 -->
-        <div v-if="!isMiniappProduct && viewMode === 'list'" class="list-container">
+        <div v-if="viewMode === 'list'" class="list-container">
           <table class="batch-table">
             <thead>
               <tr>
@@ -279,7 +279,7 @@
         </div>
 
         <!-- 行程套餐 -->
-        <div v-if="!isMiniappProduct" class="package-row">
+        <div class="package-row">
           <span class="package-label">行程套餐：</span>
           <div class="package-options">
             <button
@@ -311,7 +311,7 @@
         </div>
 
         <!-- 附加费用 -->
-        <div v-if="!isMiniappProduct" class="package-row">
+        <div class="package-row">
           <span class="package-label">附加费用：</span>
           <div class="package-options addon-options">
             <div
@@ -355,7 +355,7 @@
       <!-- 预订选择区域 -->
       <div class="booking-section-wrapper">
         <div class="booking-section">
-          <div v-if="!isMiniappProduct" class="booking-items">
+          <div class="booking-items">
             <div class="booking-item">
               <span class="booking-label">行程套餐：</span>
               <select v-model="selectedTrip" class="booking-select" @change="handleTripSelect">
@@ -431,7 +431,7 @@
             </div>
 
             <!-- 酒店预订选项 - 人数选择完成后显示 -->
-            <div v-if="adultCount > 0" class="hotel-booking-section">
+            <div v-if="adultCount > 0 && availableHotels.length > 0" class="hotel-booking-section">
               <div class="hotel-header" @click="toggleHotelSection">
                 <div class="hotel-title">
                   <span class="hotel-icon">🏨</span>
@@ -551,10 +551,6 @@
                 </div>
               </transition>
             </div>
-          </div>
-          <div v-else class="unified-booking-panel">
-            <strong>统一预订</strong>
-            <span>实时班期、库存、套餐价格和订单均以统一预订页为准。</span>
           </div>
           <button
   class="submit-btn"
@@ -844,8 +840,6 @@ const BOOKING_SELECTION_PREFIX = 'ticketBookingSelection:'
 const productInfo = ref({
   sourceType: 'LOCAL',
   sourceId: '',
-  bookingUrl: '',
-  bookingUrlTemplate: '',
   pricingMode: 'fixed',
   priceText: '',
   priceUnit: 'person',
@@ -863,9 +857,6 @@ const productInfo = ref({
 const renderedDetailContent = computed(() => renderContent(productInfo.value.detailContent))
 const isMiniappProduct = computed(() => productInfo.value.sourceType === 'MINIAPP')
 const isInquiryProduct = computed(() => String(productInfo.value.pricingMode).toLowerCase() === 'inquiry')
-const hasUnifiedBookingUrl = computed(() => /^https?:\/\//i.test(
-  productInfo.value.bookingUrlTemplate || productInfo.value.bookingUrl || ''
-))
 
 const productTags = ref([])
 const productFeatures = ref([])
@@ -1123,6 +1114,7 @@ const buildPackageWithPriceItem = (priceItem) => {
   return {
     ...base,
     packagePriceItemId: priceItem.id,
+    sourcePackagePriceItemId: priceItem.sourceId || '',
     priceItemName: priceItem.name || '',
     adultPrice: priceItem.adultPrice,
     childPrice: priceItem.childPrice,
@@ -1141,6 +1133,7 @@ const buildAddonWithPriceItem = (priceItem) => {
   return {
     ...base,
     addonPriceItemId: priceItem.id,
+    sourceAddonPriceItemId: priceItem.sourceId || '',
     priceItemName: priceItem.name || '',
     extraFeePerPerson: priceItem.price,
     originalPrice: priceItem.originalPrice,
@@ -1618,17 +1611,13 @@ const isSelectionComplete = computed(() => {
 
 // 检查当前批次是否可预订（综合考虑状态和余位）
 const currentBatchCanBook = computed(() => {
-  if (isMiniappProduct.value) return hasUnifiedBookingUrl.value
   if (!currentBatch.value) return false
   return !getBatchUnavailableReason(currentBatch.value)
 })
 
 // 不可预订的原因提示
 const cannotBookReason = computed(() => {
-  if (isMiniappProduct.value) {
-    return hasUnifiedBookingUrl.value ? '' : '统一预订地址尚未配置，请联系管理员'
-  }
-  if (!currentBatch.value) return ''
+  if (!currentBatch.value) return batchDates.value.length ? '请选择出发日期' : '暂无可预订班期'
   const selectionReason = getBatchSelectionUnavailableReason(currentBatch.value)
   if (selectionReason) {
     return `当前日期${selectionReason}，请重新选择出行日期`
@@ -1640,10 +1629,9 @@ const cannotBookReason = computed(() => {
   return ''
 })
 
-const canSubmitBooking = computed(() => isMiniappProduct.value ? hasUnifiedBookingUrl.value : currentBatchCanBook.value)
+const canSubmitBooking = computed(() => currentBatchCanBook.value)
 
 const submitButtonText = computed(() => {
-  if (isMiniappProduct.value) return hasUnifiedBookingUrl.value ? '前往统一预订' : '暂不可预订'
   return currentBatchCanBook.value ? '立刻报名' : '暂不可报名'
 })
 
@@ -2007,8 +1995,6 @@ const fetchProductDetail = async () => {
         productInfo.value = {
           sourceType: data.tour.sourceType || data.sourceType || 'LOCAL',
           sourceId: data.tour.sourceId || data.sourceId || '',
-          bookingUrl: data.tour.bookingUrl || data.bookingUrl || '',
-          bookingUrlTemplate: data.tour.bookingUrlTemplate || data.bookingUrlTemplate || '',
           pricingMode: data.tour.pricingMode || 'fixed',
           priceText: data.tour.priceText || '',
           priceUnit: data.tour.priceUnit || 'person',
@@ -2083,6 +2069,7 @@ const fetchProductDetail = async () => {
 
       packagePriceItems.value = (data.packagePriceItems || []).map(item => ({
         id: item.id,
+        sourceId: item.sourceId || '',
         packageId: item.packageId,
         name: item.name || '',
         adultPrice: item.adultPrice,
@@ -2099,6 +2086,7 @@ const fetchProductDetail = async () => {
 
       addonPriceItems.value = (data.addonPriceItems || []).map(item => ({
         id: item.id,
+        sourceId: item.sourceId || '',
         addonId: item.addonId,
         packageId: item.packageId ?? null,
         packageIds: normalizeBatchIds(item.packageIds),
@@ -2183,36 +2171,7 @@ const setDefaultCalendarMonth = () => {
   }
 }
 
-const fillBookingUrlTemplate = (template, values) => {
-  return String(template || '')
-    .replaceAll('{tourId}', encodeURIComponent(values.tourId || ''))
-    .replaceAll('{scheduleId}', encodeURIComponent(values.scheduleId || ''))
-    .replaceAll('{packageId}', encodeURIComponent(values.packageId || ''))
-}
-
-const openUnifiedBooking = (batch) => {
-  const template = productInfo.value.bookingUrlTemplate || productInfo.value.bookingUrl
-  if (!template) {
-    ElMessage.warning('该统一商品尚未配置预订地址，请联系管理员')
-    return
-  }
-  const url = fillBookingUrlTemplate(template, {
-    tourId: productInfo.value.sourceId,
-    scheduleId: batch?.sourceId,
-    packageId: selectedTripPackage.value?.sourceId
-  })
-  if (!/^https?:\/\//i.test(url)) {
-    ElMessage.warning('统一预订地址配置不正确，请联系管理员')
-    return
-  }
-  window.open(url, '_blank', 'noopener,noreferrer')
-}
-
 const handleBooking = async () => {
-  if (isMiniappProduct.value) {
-    openUnifiedBooking(currentRawBatch.value)
-    return
-  }
   if (!selectedTrip.value) {
     ElMessage.warning('请选择行程套餐')
     return
@@ -2246,13 +2205,20 @@ const handleBooking = async () => {
 
   // 构建订单数据
   const orderData = {
+    sourceType: productInfo.value.sourceType,
+    sourceTourId: productInfo.value.sourceId || null,
+    sourcePackageId: selectedTripPackage.value?.sourceId || null,
+    sourceScheduleId: batch.sourceId || null,
+    sourcePackagePriceItemId: selectedTripPackage.value?.sourcePackagePriceItemId || null,
     productId: productInfo.value.code,
     tripPackageId: selectedPackage.value,
     packagePriceItemId: selectedTripPackage.value?.packagePriceItemId || null,
     batchPackageId: selectedAddonPackages.value[0]?.id || null,
     addonSelections: selectedAddonPackages.value.map(pkg => ({
       batchPackageId: pkg.id,
+      sourceAddonId: pkg.sourceId || null,
       addonPriceItemId: pkg.addonPriceItemId || null,
+      sourceAddonPriceItemId: pkg.sourceAddonPriceItemId || null,
       quantity: Math.max(1, Number(addonQuantities.value[pkg.id] || 1))
     })),
     batchDate: selectedBatchDate.value,
@@ -3248,22 +3214,6 @@ onUnmounted(() => {
   flex: 1;
   min-width: 0;
   flex-wrap: wrap;
-}
-
-.unified-booking-panel {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  flex-direction: column;
-  gap: 4px;
-  color: #475467;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.unified-booking-panel strong {
-  color: #0f766e;
-  font-size: 15px;
 }
 
 .booking-item {

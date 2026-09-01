@@ -598,6 +598,12 @@ CREATE TABLE `tour` (
 CREATE TABLE `tour_batch` (
   `id` bigint NOT NULL AUTO_INCREMENT ,
   `tour_id` bigint NOT NULL ,
+  `source_type` varchar(20) DEFAULT NULL COMMENT '库存来源 LOCAL/MINIAPP',
+  `source_tour_id` varchar(255) DEFAULT NULL COMMENT '外部商品ID',
+  `source_schedule_id` varchar(255) DEFAULT NULL COMMENT '外部班期ID',
+  `source_available_stock` int DEFAULT NULL COMMENT '外部接口最近可售库存',
+  `source_unlimited_stock` tinyint(1) NOT NULL DEFAULT '0' COMMENT '外部库存是否不限量',
+  `source_stock_updated_at` datetime DEFAULT NULL COMMENT '外部库存同步时间',
   `departure_date` date NOT NULL ,
   `adult_date_extra_fee` decimal(10,2) DEFAULT '0.00' ,
   `child_date_extra_fee` decimal(10,2) DEFAULT '0.00' ,
@@ -612,6 +618,7 @@ CREATE TABLE `tour_batch` (
   `occupied` int DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_tour_date` (`tour_id`,`departure_date`),
+  UNIQUE KEY `uk_tour_batch_source_schedule` (`source_type`,`source_tour_id`,`source_schedule_id`),
   KEY `idx_departure_date` (`departure_date`),
   KEY `idx_tour_id` (`tour_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -648,6 +655,12 @@ CREATE TABLE `tour_order` (
   `order_no` varchar(50) NOT NULL ,
   `user_id` bigint NOT NULL ,
   `tour_id` bigint NOT NULL ,
+  `batch_id` bigint DEFAULT NULL COMMENT '精确出发批次ID',
+  `source_type` varchar(20) DEFAULT NULL COMMENT '商品来源 LOCAL/MINIAPP',
+  `source_tour_id` varchar(255) DEFAULT NULL COMMENT '外部商品ID',
+  `source_package_id` varchar(255) DEFAULT NULL COMMENT '外部套餐ID',
+  `source_schedule_id` varchar(255) DEFAULT NULL COMMENT '外部班期ID',
+  `source_package_price_item_id` varchar(255) DEFAULT NULL COMMENT '外部套餐价格项ID',
   `tour_name` varchar(255) NOT NULL ,
   `tour_code` varchar(50) NOT NULL ,
   `package_id` bigint NOT NULL ,
@@ -685,6 +698,8 @@ CREATE TABLE `tour_order` (
   UNIQUE KEY `uk_order_no` (`order_no`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_tour_id` (`tour_id`),
+  KEY `idx_tour_order_batch_id` (`batch_id`),
+  KEY `idx_tour_order_source` (`source_type`,`source_tour_id`,`source_schedule_id`),
   KEY `idx_departure_date` (`departure_date`),
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

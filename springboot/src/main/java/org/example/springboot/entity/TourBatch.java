@@ -21,6 +21,24 @@ public class TourBatch {
     @Schema(description = "关联行程ID")
     private Long tourId;
 
+    @Schema(description = "库存来源：LOCAL/MINIAPP")
+    private String sourceType;
+
+    @Schema(description = "外部商品ID")
+    private String sourceTourId;
+
+    @Schema(description = "外部班期ID")
+    private String sourceScheduleId;
+
+    @Schema(description = "外部接口最近一次返回的可售库存")
+    private Integer sourceAvailableStock;
+
+    @Schema(description = "外部库存是否不限量")
+    private Boolean sourceUnlimitedStock;
+
+    @Schema(description = "外部库存同步时间")
+    private LocalDateTime sourceStockUpdatedAt;
+
     @Schema(description = "出发日期")
     private LocalDate departureDate;
 
