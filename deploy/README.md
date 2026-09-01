@@ -36,6 +36,7 @@ USER_DEFAULT_PASSWORD=change-this-default-password
 APP_SECURITY_ALLOWED_ORIGINS=https://your-domain.com,http://your-server-ip
 APP_SECURITY_TOKEN_EXPIRE=2h
 APP_UPLOAD_IMAGE_MAX_SIZE=2MB
+KNIFE4J_BASIC_PASSWORD=change-this-doc-password
 MINIAPP_API_BASE_URL=https://mini-api.your-domain.com/api
 MINIAPP_API_ALLOWED_HOSTS=mini-api.your-domain.com
 ```
@@ -49,8 +50,12 @@ MINIAPP_API_ALLOWED_HOSTS=mini-api.your-domain.com
 启动：
 
 ```bash
-docker compose up -d --build
+docker compose build backend
+docker compose build frontend
+docker compose up -d
 ```
+
+后端镜像使用阿里云 Maven 公共镜像和 BuildKit 依赖缓存，适合国内服务器构建。前后端顺序构建可以降低小内存服务器的瞬时资源占用。
 
 Compose 会自动创建默认数据目录：
 
@@ -120,7 +125,9 @@ Compose 会自动创建需要的子目录。若服务器权限策略较严格，
 在 `deploy/` 目录执行：
 
 ```bash
-docker compose up -d --build backend frontend
+docker compose build backend
+docker compose build frontend
+docker compose up -d backend frontend
 ```
 
 MySQL、Redis、上传文件和备份目录都在 `TRAVEL_DATA_DIR` 下，不会因为重建容器丢失。

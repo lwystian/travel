@@ -1,8 +1,10 @@
+# syntax=docker/dockerfile:1
+
 FROM node:20-alpine AS build
 WORKDIR /workspace
 
 COPY package*.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci --prefer-offline --no-audit
 
 COPY . .
 RUN npm run build
