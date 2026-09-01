@@ -69,7 +69,7 @@ public class TourPackageService {
         }
         tourPackage.setName(tourPackage.getName().trim());
         tourPackage.setAdultPrice(nonNegativeAmount(tourPackage.getAdultPrice(), "成人售价不能小于0"));
-        tourPackage.setChildPrice(nonNegativeAmount(tourPackage.getChildPrice(), "儿童售价不能小于0"));
+        tourPackage.setChildPrice(optionalPositiveAmount(tourPackage.getChildPrice(), "儿童售价不能小于0"));
         validateOriginalPrice(tourPackage.getOriginalAdultPrice(), tourPackage.getAdultPrice(), "成人划线价必须高于成人售价");
         validateOriginalPrice(tourPackage.getOriginalChildPrice(), tourPackage.getChildPrice(), "儿童划线价必须高于儿童售价");
         if (tourPackage.getSortOrder() == null) {
@@ -83,6 +83,16 @@ public class TourPackageService {
             throw new ServiceException(message);
         }
         return amount;
+    }
+
+    private BigDecimal optionalPositiveAmount(BigDecimal value, String message) {
+        if (value == null || value.compareTo(BigDecimal.ZERO) == 0) {
+            return null;
+        }
+        if (value.compareTo(BigDecimal.ZERO) < 0) {
+            throw new ServiceException(message);
+        }
+        return value;
     }
 
     private void validateOriginalPrice(BigDecimal originalPrice, BigDecimal salePrice, String message) {

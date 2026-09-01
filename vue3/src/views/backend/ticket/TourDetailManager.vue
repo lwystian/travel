@@ -117,7 +117,7 @@
             </el-table-column>
             <el-table-column label="儿童售价" width="110">
               <template #default="scope">
-                <span>{{ scope.row.childPrice !== null && scope.row.childPrice !== undefined ? '¥' + scope.row.childPrice : '-' }}</span>
+                <span>{{ Number(scope.row.childPrice || 0) > 0 ? '¥' + scope.row.childPrice : '-' }}</span>
               </template>
             </el-table-column>
             <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip />
@@ -144,7 +144,7 @@
           <div class="section-header">
             <div class="section-title-block">
               <span class="section-title">附加费用</span>
-              <span class="legacy-note">旧模式兼容单价保留；新产品建议在附加费用价格项中批量绑定出发日期。</span>
+              <span class="legacy-note">旧模式兼容单价保留；新产品建议在附加费用价格项中绑定行程套餐和出发日期。</span>
             </div>
             <el-button type="primary" size="small" @click="showAddBatchPackage">
               <el-icon><Plus /></el-icon> 添加费用
@@ -399,9 +399,9 @@
           <el-input-number v-model="tripPackageForm.originalAdultPrice" :precision="2" :min="0" :step="10" style="width: 100%;" />
           <div class="form-tip">旧模式兼容划线价。价格项已配置划线价时，前台优先展示价格项划线价。</div>
         </el-form-item>
-        <el-form-item label="儿童售价" prop="childPrice">
+        <el-form-item label="儿童售价（可选）" prop="childPrice">
           <el-input-number v-model="tripPackageForm.childPrice" :precision="2" :min="0" :step="10" style="width: 100%;" />
-          <div class="form-tip">旧模式兼容字段。未配置套餐价格项时作为儿童结算价格；已配置价格项后可不填。</div>
+          <div class="form-tip">不接待儿童或不单独设置儿童价时可留空；已配置价格项后以前台对应价格项为准。</div>
         </el-form-item>
         <el-form-item label="儿童划线价">
           <el-input-number v-model="tripPackageForm.originalChildPrice" :precision="2" :min="0" :step="10" style="width: 100%;" />
@@ -422,7 +422,7 @@
           </div>
           <el-button type="primary" size="small" @click="addPackagePriceItem">添加价格项</el-button>
         </div>
-        <div v-if="packagePriceItems.length === 0" class="price-item-empty">暂无价格项，前台将使用上方成人/儿童售价；此时售价必须填写。</div>
+        <div v-if="packagePriceItems.length === 0" class="price-item-empty">暂无价格项，前台将使用上方售价；成人售价必须填写，儿童售价可选。</div>
         <div v-for="(item, index) in packagePriceItems" :key="item.localKey" class="price-item-card">
           <div class="price-item-card-head">
             <strong>价格项 {{ index + 1 }}</strong>
@@ -438,7 +438,7 @@
               <el-input-number v-model="item.originalAdultPrice" :precision="2" :min="0" :step="10" />
             </label>
             <label class="price-field">
-              <span>儿童售价</span>
+              <span>儿童售价（可选）</span>
               <el-input-number v-model="item.childPrice" :precision="2" :min="0" :step="10" />
             </label>
             <label class="price-field">
@@ -490,7 +490,7 @@
         </el-form-item>
         <el-form-item label="售价/份" prop="extraFeePerPerson">
           <el-input-number v-model="batchPackageForm.extraFeePerPerson" :precision="2" :min="0" :step="10" style="width: 100%;" />
-          <div class="form-tip">旧模式兼容单价。未配置附加费用价格项时使用；已配置价格项后，前台优先按价格项和出发日期展示。</div>
+          <div class="form-tip">旧模式兼容单价。未配置附加费用价格项时使用；已配置价格项后，前台优先按行程套餐、价格项和出发日期展示。</div>
         </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input v-model="batchPackageForm.description" type="textarea" :rows="2" />
@@ -503,7 +503,7 @@
         <div class="price-item-head">
           <div>
             <h4>附加费用价格项</h4>
-            <p>新模式主入口：同一附加费用可以为不同出发日期设置不同单价。</p>
+            <p>新模式主入口：同一附加费用可以按行程套餐和出发日期分别设置单价。</p>
           </div>
           <el-button type="primary" size="small" @click="addAddonPriceItem">添加价格项</el-button>
         </div>
@@ -518,11 +518,32 @@
               <span>售价/份</span>
               <el-input-number v-model="item.price" :precision="2" :min="0" :step="10" />
             </label>
+            <label class="price-field">
+              <span>适用套餐</span>
+              <el-select
+                v-model="item.packageIds"
+                multiple
+                filterable
+                collapse-tags
+                collapse-tags-tooltip
+                clearable
+                placeholder="不选则适用全部可用套餐"
+              >
+                <el-option
+                  v-for="pkg in tripPackages"
+                  :key="pkg.id"
+                  :label="pkg.name"
+                  :value="pkg.id"
+                  :disabled="!isAddonPackageEligible(item, pkg.id)"
+                />
+              </el-select>
+            </label>
             <div class="price-field price-field--switch">
               <span>状态</span>
               <el-switch v-model="item.status" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="停用" />
             </div>
           </div>
+          <div class="form-tip">可多选套餐，套餐选项会按全部已选日期的可用范围取交集；留空表示这些日期下的全部可用套餐。</div>
           <el-select
             v-model="item.batchIds"
             multiple
@@ -531,6 +552,7 @@
             collapse-tags-tooltip
             placeholder="选择适用出发日期"
             class="price-item-batches"
+            @change="handleAddonPriceItemBatchesChange(item)"
           >
             <el-option
               v-for="batch in batches"
@@ -849,6 +871,8 @@ const tripPackageForm = ref({
 })
 const packagePriceItems = ref([])
 const deletedPackagePriceItemIds = ref([])
+const packageBatchAvailability = ref({})
+const hasPackagePriceItemMode = ref(false)
 
 // 批次套餐
 const batchPackages = ref([])
@@ -1034,6 +1058,7 @@ const loadAllData = async () => {
       fetchBatches(),
       fetchAccommodationList()
     ])
+    await fetchPackageAvailability()
     await fetchTourHotels()
     await nextTick()
     markMainPristine()
@@ -1098,6 +1123,38 @@ const fetchBatches = async () => {
   }
 }
 
+const fetchPackageAvailability = async () => {
+  const packages = tripPackages.value || []
+  if (!packages.length) {
+    packageBatchAvailability.value = {}
+    hasPackagePriceItemMode.value = false
+    return
+  }
+  try {
+    const rows = await Promise.all(packages.map(async pkg => ({
+      packageId: Number(pkg.id),
+      items: await getTourPackagePriceItems(pkg.id)
+    })))
+    const availability = {}
+    let hasActiveItems = false
+    rows.forEach(({ packageId, items }) => {
+      const batchIds = new Set()
+      for (const item of items || []) {
+        if (Number(item.status ?? 1) !== 1) continue
+        hasActiveItems = true
+        normalizeIdArray(item.batchIds).forEach(id => batchIds.add(id))
+      }
+      availability[packageId] = Array.from(batchIds)
+    })
+    packageBatchAvailability.value = availability
+    hasPackagePriceItemMode.value = hasActiveItems
+  } catch (error) {
+    console.error('获取套餐适用日期失败:', error)
+    packageBatchAvailability.value = {}
+    hasPackagePriceItemMode.value = false
+  }
+}
+
 const makeLocalKey = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
 
 const normalizePriceItemBatchIds = (value) => normalizeIdArray(value)
@@ -1108,7 +1165,9 @@ const normalizePackagePriceItem = (item = {}) => ({
   name: item.name || '',
   adultPrice: item.adultPrice ?? tripPackageForm.value.adultPrice ?? 0,
   originalAdultPrice: item.originalAdultPrice ?? null,
-  childPrice: item.childPrice ?? tripPackageForm.value.childPrice ?? null,
+  childPrice: Number(item.childPrice ?? tripPackageForm.value.childPrice ?? 0) > 0
+    ? (item.childPrice ?? tripPackageForm.value.childPrice)
+    : null,
   originalChildPrice: item.originalChildPrice ?? null,
   batchIds: normalizePriceItemBatchIds(item.batchIds),
   status: item.status ?? 1,
@@ -1120,6 +1179,10 @@ const normalizeAddonPriceItem = (item = {}) => ({
   id: item.id || null,
   name: item.name || '',
   price: item.price ?? batchPackageForm.value.extraFeePerPerson ?? 0,
+  packageIds: (() => {
+    const packageIds = normalizeIdArray(item.packageIds)
+    return packageIds.length ? packageIds : normalizeIdArray(item.packageId ? [item.packageId] : [])
+  })(),
   batchIds: normalizePriceItemBatchIds(item.batchIds),
   status: item.status ?? 1,
   sortOrder: item.sortOrder ?? 0
@@ -1153,17 +1216,51 @@ const formatBatchOptionLabel = (batch) => {
   return `${batch.departureDate}（${batch.status || '可报名'}，余${available}）`
 }
 
-const validatePriceItemBatchConflicts = (items, label) => {
+const isPackageAvailableForBatch = (packageId, batchId) => {
+  if (!packageId || !batchId) return false
+  if (hasPackagePriceItemMode.value) {
+    return normalizeIdArray(packageBatchAvailability.value[Number(packageId)]).includes(Number(batchId))
+  }
+  const batch = batches.value.find(row => Number(row.id) === Number(batchId))
+  if (!batch) return false
+  const packageIds = normalizeIdArray(batch.packageIds)
+  return !packageIds.length || packageIds.includes(Number(packageId))
+}
+
+const isAddonPackageEligible = (item, packageId) => {
+  const batchIds = normalizeIdArray(item?.batchIds)
+  return !batchIds.length || batchIds.every(batchId => isPackageAvailableForBatch(packageId, batchId))
+}
+
+const handleAddonPriceItemBatchesChange = item => {
+  const packageIds = normalizeIdArray(item?.packageIds)
+  const retainedIds = packageIds.filter(packageId => isAddonPackageEligible(item, packageId))
+  if (retainedIds.length === packageIds.length) return
+  const removedNames = packageIds
+    .filter(packageId => !retainedIds.includes(packageId))
+    .map(packageId => tripPackages.value.find(pkg => Number(pkg.id) === packageId)?.name || `套餐${packageId}`)
+  item.packageIds = retainedIds
+  ElMessage.warning(`已移除不适用于全部所选日期的套餐：${removedNames.join('、')}`)
+}
+
+const validatePriceItemBatchConflicts = (items, label, getScope = () => 'default') => {
   const used = new Map()
   for (const item of items) {
     if (item.status !== 1) continue
+    const rawScopes = getScope(item)
+    const scopes = Array.isArray(rawScopes)
+      ? (rawScopes.length ? rawScopes : ['all'])
+      : [rawScopes || 'default']
     for (const batchId of normalizeIdArray(item.batchIds)) {
-      if (used.has(batchId)) {
-        const batch = batches.value.find(row => Number(row.id) === Number(batchId))
-        ElMessage.warning(`${label}的 ${batch?.departureDate || batchId} 已被多个启用价格项绑定`)
-        return false
+      for (const scope of scopes) {
+        const conflictKey = `${scope}:${batchId}`
+        if (used.has(conflictKey)) {
+          const batch = batches.value.find(row => Number(row.id) === Number(batchId))
+          ElMessage.warning(`${label}的 ${batch?.departureDate || batchId} 已被多个启用价格项绑定`)
+          return false
+        }
+        used.set(conflictKey, item)
       }
-      used.set(batchId, item)
     }
   }
   return true
@@ -1197,7 +1294,6 @@ const validateTripPackageForm = () => {
   if (!validateRequiredText(tripPackageForm.value.name, '请输入套餐名称')) return false
   const hasPriceItems = packagePriceItems.value.length > 0
   if (!hasPriceItems && !validateRequiredPositiveAmount(tripPackageForm.value.adultPrice, '未配置套餐价格项时，请输入大于0的成人售价')) return false
-  if (!hasPriceItems && !validateRequiredPositiveAmount(tripPackageForm.value.childPrice, '未配置套餐价格项时，请输入大于0的儿童售价')) return false
   if (!isBlankValue(tripPackageForm.value.adultPrice) && Number(tripPackageForm.value.adultPrice) < 0) {
     ElMessage.warning('成人售价不能小于0')
     return false
@@ -1224,7 +1320,11 @@ const validatePackagePriceItems = () => {
     const item = packagePriceItems.value[index]
     const label = `套餐价格项 ${index + 1}`
     if (!validateRequiredPositiveAmount(item.adultPrice, `${label} 的成人售价必须大于0`)) return false
-    if (!validateRequiredPositiveAmount(item.childPrice, `${label} 的儿童售价必须大于0`)) return false
+    if (!isBlankValue(item.childPrice) && Number(item.childPrice) < 0) {
+      ElMessage.warning(`${label} 的儿童售价不能小于0`)
+      return false
+    }
+    if (!isBlankValue(item.originalChildPrice) && !validateRequiredPositiveAmount(item.childPrice, `${label} 填写儿童划线价时，儿童售价必须大于0`)) return false
     if (!validateOptionalOriginalPrice(item.originalAdultPrice, item.adultPrice, `${label} 的成人划线价必须高于成人售价`)) return false
     if (!validateOptionalOriginalPrice(item.originalChildPrice, item.childPrice, `${label} 的儿童划线价必须高于儿童售价`)) return false
   }
@@ -1235,6 +1335,14 @@ const validateAddonPriceItems = () => {
   for (let index = 0; index < addonPriceItems.value.length; index++) {
     const item = addonPriceItems.value[index]
     if (!validateRequiredPositiveAmount(item.price, `附加费用价格项 ${index + 1} 的售价/份必须大于0`)) return false
+    if (Number(item.status ?? 1) !== 1) continue
+    for (const packageId of normalizeIdArray(item.packageIds)) {
+      if (!isAddonPackageEligible(item, packageId)) {
+        const pkg = tripPackages.value.find(row => Number(row.id) === packageId)
+        ElMessage.warning(`附加费用价格项 ${index + 1} 中，${pkg?.name || `套餐${packageId}`} 不适用于全部所选日期`)
+        return false
+      }
+    }
   }
   return true
 }
@@ -1252,7 +1360,7 @@ const savePackagePriceItems = async (packageId) => {
       id: item.id,
       name: item.name || `价格项${index + 1}`,
       adultPrice: item.adultPrice,
-      childPrice: item.childPrice,
+      childPrice: Number(item.childPrice || 0) > 0 ? item.childPrice : null,
       originalAdultPrice: isBlankValue(item.originalAdultPrice) ? null : item.originalAdultPrice,
       originalChildPrice: isBlankValue(item.originalChildPrice) ? null : item.originalChildPrice,
       batchIds: serializeIdArray(item.batchIds),
@@ -1267,7 +1375,11 @@ const savePackagePriceItems = async (packageId) => {
 const saveAddonPriceItems = async (addonId) => {
   if (!addonId) return
   if (!validateAddonPriceItems()) return false
-  if (!validatePriceItemBatchConflicts(addonPriceItems.value, '附加费用')) return false
+  if (!validatePriceItemBatchConflicts(
+    addonPriceItems.value,
+    '附加费用',
+    item => normalizeIdArray(item.packageIds).map(packageId => `package-${packageId}`)
+  )) return false
   for (const itemId of deletedAddonPriceItemIds.value) {
     await deleteBatchPackagePriceItem(addonId, itemId)
   }
@@ -1277,6 +1389,8 @@ const saveAddonPriceItems = async (addonId) => {
       id: item.id,
       name: item.name || `价格项${index + 1}`,
       price: item.price,
+      packageId: null,
+      packageIds: serializeIdArray(item.packageIds),
       originalPrice: null,
       batchIds: serializeIdArray(item.batchIds),
       status: item.status ?? 1,
@@ -1409,7 +1523,7 @@ const submitTripPackage = async () => {
     const data = {
       ...tripPackageForm.value,
       adultPrice: isBlankValue(tripPackageForm.value.adultPrice) ? 0 : tripPackageForm.value.adultPrice,
-      childPrice: isBlankValue(tripPackageForm.value.childPrice) ? 0 : tripPackageForm.value.childPrice,
+      childPrice: Number(tripPackageForm.value.childPrice || 0) > 0 ? tripPackageForm.value.childPrice : null,
       originalAdultPrice: isBlankValue(tripPackageForm.value.originalAdultPrice) ? null : tripPackageForm.value.originalAdultPrice,
       originalChildPrice: isBlankValue(tripPackageForm.value.originalChildPrice) ? null : tripPackageForm.value.originalChildPrice,
       tourId: props.tourId
@@ -1427,7 +1541,8 @@ const submitTripPackage = async () => {
     ElMessage.success('保存成功')
     markSubDialogPristine('tripPackage')
     tripPackageDialogVisible.value = false
-    fetchTripPackages()
+    await fetchTripPackages()
+    await fetchPackageAvailability()
   } catch (error) {
     console.error('操作失败:', error)
   } finally {
@@ -1441,7 +1556,8 @@ const handleDeleteTripPackage = (row) => {
     .then(async () => {
       await deleteTourPackage(row.id)
       ElMessage.success('删除成功')
-      fetchTripPackages()
+      await fetchTripPackages()
+      await fetchPackageAvailability()
     }).catch(() => {})
 }
 
@@ -1537,7 +1653,7 @@ const formatAmount = (value) => {
 const formatPackageOptionLabel = (pkg) => {
   if (!pkg) return ''
   const parts = [`成人¥${formatAmount(pkg.adultPrice)}`]
-  if (pkg.childPrice !== null && pkg.childPrice !== undefined && pkg.childPrice !== '') {
+  if (Number(pkg.childPrice || 0) > 0) {
     parts.push(`儿童¥${formatAmount(pkg.childPrice)}`)
   }
   return `${pkg.name || `套餐 ${pkg.id}`}（${parts.join(' / ')}）`

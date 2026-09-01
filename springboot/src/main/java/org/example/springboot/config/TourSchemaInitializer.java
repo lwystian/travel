@@ -31,6 +31,10 @@ public class TourSchemaInitializer {
         addColumn("tour_order", "addon_items", "ALTER TABLE `tour_order` ADD COLUMN `addon_items` TEXT DEFAULT NULL COMMENT '附加费用明细JSON' AFTER `batch_package_name`");
         addColumn("tour_order", "addon_summary", "ALTER TABLE `tour_order` ADD COLUMN `addon_summary` VARCHAR(500) DEFAULT NULL COMMENT '附加费用摘要' AFTER `addon_items`");
         initPriceItemTables();
+        addColumn("tour_addon_price_item", "package_id", "ALTER TABLE `tour_addon_price_item` ADD COLUMN `package_id` BIGINT DEFAULT NULL COMMENT '适用行程套餐ID，为空时适用全部套餐' AFTER `addon_id`");
+        addColumn("tour_addon_price_item", "package_ids", "ALTER TABLE `tour_addon_price_item` ADD COLUMN `package_ids` TEXT DEFAULT NULL COMMENT '适用行程套餐ID列表JSON，为空时适用全部套餐' AFTER `package_id`");
+        addIndex("tour_addon_price_item", "idx_package", "ALTER TABLE `tour_addon_price_item` ADD INDEX `idx_package` (`package_id`)");
+        normalizeOptionalChildPriceColumn();
         normalizeTourCodes();
         initTourCodeSequenceTable();
         seedTourCodeSequences();
@@ -64,6 +68,8 @@ public class TourSchemaInitializer {
                       `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '附加费用价格项ID',
                       `tour_id` BIGINT NOT NULL COMMENT '行程ID',
                       `addon_id` BIGINT NOT NULL COMMENT '附加费用ID',
+                      `package_id` BIGINT DEFAULT NULL COMMENT '兼容旧版单套餐关联',
+                      `package_ids` TEXT DEFAULT NULL COMMENT '适用行程套餐ID列表JSON，为空时适用全部套餐',
                       `name` VARCHAR(120) NOT NULL DEFAULT '价格项' COMMENT '价格项名称',
                       `price` DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '销售价',
                       `original_price` DECIMAL(10,2) DEFAULT NULL COMMENT '兼容旧数据字段，当前附加费用不使用划线价',
@@ -74,6 +80,7 @@ public class TourSchemaInitializer {
                       `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                       PRIMARY KEY (`id`),
                       KEY `idx_addon` (`addon_id`),
+                      KEY `idx_package` (`package_id`),
                       KEY `idx_tour` (`tour_id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='附加费用价格项表'
                     """);
@@ -96,6 +103,44 @@ public class TourSchemaInitializer {
             }
         } catch (Exception e) {
             LOGGER.warn("Initialize column failed: {}.{}", tableName, columnName, e);
+        }
+    }
+
+    private void addIndex(@NonNull String tableName, @NonNull String indexName, @NonNull String sql) {
+        try {
+            Integer count = jdbcTemplate.queryForObject("""
+                    SELECT COUNT(*)
+                    FROM information_schema.STATISTICS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = ?
+                      AND INDEX_NAME = ?
+                    """, Integer.class, tableName, indexName);
+            if (count == null || count == 0) {
+                jdbcTemplate.execute(Objects.requireNonNull(sql, "schema sql must not be null"));
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Initialize index failed: {}.{}", tableName, indexName, e);
+        }
+    }
+
+    private void normalizeOptionalChildPriceColumn() {
+        try {
+            Integer count = jdbcTemplate.queryForObject("""
+                    SELECT COUNT(*)
+                    FROM information_schema.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'tour_package'
+                      AND COLUMN_NAME = 'child_price'
+                      AND (IS_NULLABLE <> 'YES' OR COLUMN_DEFAULT IS NOT NULL)
+                    """, Integer.class);
+            if (count != null && count > 0) {
+                jdbcTemplate.execute("""
+                        ALTER TABLE `tour_package`
+                        MODIFY COLUMN `child_price` DECIMAL(10,2) DEFAULT NULL COMMENT '儿童价格，可选'
+                        """);
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Normalize optional tour package child price column failed", e);
         }
     }
 

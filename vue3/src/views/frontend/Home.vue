@@ -65,7 +65,7 @@
               <div v-if="featuredTour" class="program-layout">
                 <article class="program-hero reveal-item" style="--reveal-delay: 120ms" @click="goToTourDetail(featuredTour.id)">
                   <div class="program-image">
-                    <img :src="getImageUrl(featuredTour.mainImage)" :alt="featuredTour.title" />
+                    <img :src="getImageUrl(featuredTour.mainImage)" :alt="featuredTour.title" @error="handleImageError" />
                     <div class="program-badge">
                       <el-icon><Flag /></el-icon>
                       {{ getTourTypeName(featuredTour.tourType) }}
@@ -82,15 +82,19 @@
                     </div>
                     <div class="program-footer">
                       <div class="meta-row">
-                        <span v-if="featuredTour.days"><el-icon><Calendar /></el-icon>{{ featuredTour.days }}天{{ Math.max((featuredTour.days || 1) - 1, 0) }}晚</span>
+                        <span v-if="featuredTour.days"><el-icon><Calendar /></el-icon>{{ featuredTour.days }}天{{ featuredTour.nights ?? Math.max((featuredTour.days || 1) - 1, 0) }}晚</span>
                         <span v-if="featuredTour.starRating"><el-icon><Star /></el-icon>{{ featuredTour.starRating }}</span>
                         <span v-if="featuredTour.enrolledCount"><el-icon><User /></el-icon>{{ featuredTour.enrolledCount }}人已出行</span>
                       </div>
                       <div class="price-action">
-                        <div class="price">
+                        <div v-if="isInquiry(featuredTour)" class="price inquiry-home-price">
+                          <small>预订价格</small>
+                          <strong>{{ featuredTour.priceText || '客服咨询' }}</strong>
+                        </div>
+                        <div v-else class="price">
                           <small>参考价</small>
                           <strong>¥{{ featuredTour.minPrice !== undefined && featuredTour.minPrice !== null && featuredTour.minPrice !== '' ? featuredTour.minPrice : '--' }}</strong>
-                          <span>/人起</span>
+                          <span>/{{ getPriceUnitLabel(featuredTour.priceUnit) }}起</span>
                         </div>
                         <el-button type="primary" class="primary-action">
                           查看详情 <el-icon><ArrowRight /></el-icon>
@@ -108,15 +112,16 @@
                     :style="{ '--reveal-delay': `${220 + index * 110}ms` }"
                     @click="goToTourDetail(item.id)"
                   >
-                    <img :src="getImageUrl(item.mainImage)" :alt="item.title" loading="lazy" decoding="async" />
+                    <img :src="getImageUrl(item.mainImage)" :alt="item.title" loading="lazy" decoding="async" @error="handleImageError" />
                     <div class="program-card-body">
                       <div class="program-card-top">
                         <span>{{ getTourTypeName(item.tourType) }}</span>
-                        <strong v-if="item.minPrice !== undefined && item.minPrice !== null && item.minPrice !== ''">¥{{ item.minPrice }}起</strong>
+                        <strong v-if="isInquiry(item)" class="inquiry-card-price">{{ item.priceText || '客服咨询' }}</strong>
+                        <strong v-else-if="item.minPrice !== undefined && item.minPrice !== null && item.minPrice !== ''">¥{{ item.minPrice }}/{{ getPriceUnitLabel(item.priceUnit) }}起</strong>
                       </div>
                       <h4>{{ item.title }}</h4>
                       <div class="meta-row compact">
-                        <span v-if="item.days"><el-icon><Calendar /></el-icon>{{ item.days }}天{{ Math.max((item.days || 1) - 1, 0) }}晚</span>
+                        <span v-if="item.days"><el-icon><Calendar /></el-icon>{{ item.days }}天{{ item.nights ?? Math.max((item.days || 1) - 1, 0) }}晚</span>
                         <span v-if="item.starRating"><el-icon><Star /></el-icon>{{ item.starRating }}</span>
                       </div>
                     </div>
@@ -543,6 +548,17 @@ const getImageUrl = (url) => {
   if (!imageUrl) return noImage
   return imageUrl.startsWith('http') ? imageUrl : baseAPI + imageUrl
 }
+
+const handleImageError = event => {
+  const image = event?.target
+  if (!image || image.dataset.fallbackApplied) return
+  image.dataset.fallbackApplied = 'true'
+  image.src = noImage
+}
+
+const isInquiry = tour => String(tour?.pricingMode || '').toLowerCase() === 'inquiry'
+
+const getPriceUnitLabel = unit => ({ room: '间', group: '团', person: '人' }[unit] || '人')
 
 const getTourTypeName = (type) => {
   return getTourTypeLabel(type, '精选游')
@@ -1263,6 +1279,11 @@ onBeforeUnmount(() => {
     color: #7b8794;
     font-size: 13px;
   }
+}
+
+.inquiry-home-price strong,
+.program-card-top .inquiry-card-price {
+  color: #0f766e;
 }
 
 .primary-action {

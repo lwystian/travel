@@ -22,6 +22,12 @@ public class TourAddonPriceItem {
 
     private Long addonId;
 
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private Long packageId;
+
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private String packageIds;
+
     private String name;
 
     private BigDecimal price;

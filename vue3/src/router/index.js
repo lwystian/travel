@@ -107,6 +107,12 @@ export const backendRoutes = [
         meta: { title: '互动内容', icon: 'ChatDotRound', activeMenu: '/back/site-settings/site-access', permission: 'site-settings:manage' }
       },
       {
+        path: 'site-settings/tour-source',
+        name: 'TourProductSourceSetting',
+        component: () => import('@/views/backend/site/WebsiteSettings.vue'),
+        meta: { title: '商品来源', icon: 'Goods', activeMenu: '/back/site-settings/site-access', permission: 'site-settings:manage' }
+      },
+      {
         path: 'log',
         name: 'LogManagement',
         component: () => import('@/views/backend/log/LogManager.vue'),

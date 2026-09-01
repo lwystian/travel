@@ -57,6 +57,7 @@ public class AdminPermissionInterceptor implements HandlerInterceptor {
         PATH_PERMISSIONS.put("/api/site/footer", "site-footer:manage");
         PATH_PERMISSIONS.put("/api/site/assets", "site-assets:manage");
         PATH_PERMISSIONS.put("/api/site/access", "site-settings:manage");
+        PATH_PERMISSIONS.put("/api/site/tour-source", "site-settings:manage");
         PATH_PERMISSIONS.put("/api/site/page-content", "site-settings:manage");
         PATH_PERMISSIONS.put("/api/admin/logs", "log:view");
         PATH_PERMISSIONS.put("/api/log", "log:view");
@@ -164,6 +165,7 @@ public class AdminPermissionInterceptor implements HandlerInterceptor {
                 || path.equals("/api/payment-config/enabled")
                 || path.equals("/api/tour-order-pay/methods")
                 || path.startsWith("/api/site/access/public")
+                || path.startsWith("/api/site/tour-source/public")
                 || path.startsWith("/api/site/assets/public")
                 || path.startsWith("/api/site/footer/public")
                 || path.startsWith("/api/site/page-content/public")
@@ -187,8 +189,8 @@ public class AdminPermissionInterceptor implements HandlerInterceptor {
                 || path.equals("/api/tour/hot-keywords")
                 || path.equals("/api/tour/ticket-featured")
                 || path.equals("/api/tour/recommended")
-                || path.matches("^/api/tour/\\d+$")
-                || path.matches("^/api/tour/\\d+/detail$")
+                || path.matches("^/api/tour/(?:\\d+|miniapp-[A-Za-z0-9_-]+)$")
+                || path.matches("^/api/tour/(?:\\d+|miniapp-[A-Za-z0-9_-]+)/detail$")
                 || path.startsWith("/api/tour-detail/")
                 || path.startsWith("/api/tour-hotel/");
     }

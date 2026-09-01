@@ -4,7 +4,7 @@
     :model-value="modelValue"
     type="textarea"
     :rows="rows"
-    :maxlength="maxlength"
+    :maxlength="normalizedMaxlength"
     show-word-limit
     class="inline-edit-input inline-edit-input--textarea"
     :placeholder="placeholder"
@@ -13,7 +13,7 @@
   <el-input
     v-else-if="editMode"
     :model-value="modelValue"
-    :maxlength="maxlength"
+    :maxlength="normalizedMaxlength"
     class="inline-edit-input"
     :placeholder="placeholder"
     @update:model-value="emit('update:modelValue', $event)"
@@ -24,7 +24,9 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   modelValue: {
     type: [String, Number],
     default: ''
@@ -46,13 +48,18 @@ defineProps({
     default: 2
   },
   maxlength: {
-    type: Number,
+    type: [Number, String],
     default: 220
   },
   placeholder: {
     type: String,
     default: '请输入内容'
   }
+})
+
+const normalizedMaxlength = computed(() => {
+  const value = Number(props.maxlength)
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 220
 })
 
 const emit = defineEmits(['update:modelValue'])

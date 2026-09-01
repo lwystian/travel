@@ -9,13 +9,17 @@ import org.example.springboot.dto.TourDetailDTO;
 import org.example.springboot.dto.HomeRecommendDTO;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.Tour;
+import org.example.springboot.exception.ServiceException;
 import org.example.springboot.security.SecurityGuards;
+import org.example.springboot.service.MiniappTourAdapterService;
+import org.example.springboot.service.TourProductSourceConfigService;
 import org.example.springboot.service.TourService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 @Tag(name = "行程管理接口")
 @RestController
@@ -25,6 +29,12 @@ public class TourController {
 
     @Resource
     private TourService tourService;
+
+    @Resource
+    private MiniappTourAdapterService miniappTourAdapterService;
+
+    @Resource
+    private TourProductSourceConfigService tourProductSourceConfigService;
 
     @Operation(summary = "分页查询行程")
     @GetMapping("/page")
@@ -49,6 +59,16 @@ public class TourController {
         if (canIncludeInactive) {
             SecurityGuards.requirePermission("tour:manage");
         }
+        if (!canIncludeInactive && useMiniappSource()) {
+            return Result.success(withCatalogFallback(
+                    () -> miniappTourAdapterService.getTourPage(
+                            effectiveKeyword, tourType, city, destination, days, month, priceRange,
+                            searchMode, intentDestination, matchMode, sortType, currentPage, pageSize),
+                    () -> tourService.getToursByPage(
+                            effectiveKeyword, tourType, city, destination, days, month, priceRange,
+                            searchMode, intentDestination, matchMode, sortType, false, currentPage, pageSize)
+            ));
+        }
         Page<Tour> page = tourService.getToursByPage(
             effectiveKeyword, tourType, city, destination, days, month, priceRange, searchMode, intentDestination, matchMode, sortType, canIncludeInactive, currentPage, pageSize);
         return Result.success(page);
@@ -69,6 +89,16 @@ public class TourController {
             @RequestParam(defaultValue = "") String intentDestination,
             @RequestParam(defaultValue = "") String matchMode) {
         String effectiveKeyword = !keyword.isBlank() ? keyword : search;
+        if (useMiniappSource()) {
+            return Result.success(withCatalogFallback(
+                    () -> miniappTourAdapterService.getTourFilters(
+                            effectiveKeyword, tourType, city, destination, days, month, priceRange,
+                            searchMode, intentDestination, matchMode),
+                    () -> tourService.getTourFilters(
+                            effectiveKeyword, tourType, city, destination, days, month, priceRange,
+                            searchMode, intentDestination, matchMode)
+            ));
+        }
         return Result.success(tourService.getTourFilters(
             effectiveKeyword, tourType, city, destination, days, month, priceRange, searchMode, intentDestination, matchMode));
     }
@@ -76,12 +106,24 @@ public class TourController {
     @Operation(summary = "获取前台热门行程关键词")
     @GetMapping("/hot-keywords")
     public Result<?> getHotKeywords() {
+        if (useMiniappSource()) {
+            return Result.success(withCatalogFallback(
+                    () -> miniappTourAdapterService.getHotKeywords(8),
+                    () -> tourService.getHotKeywords(8)
+            ));
+        }
         return Result.success(tourService.getHotKeywords(8));
     }
 
     @Operation(summary = "获取行程预订页精选推荐")
     @GetMapping("/ticket-featured")
     public Result<?> getTicketFeaturedTours() {
+        if (useMiniappSource()) {
+            return Result.success(withCatalogFallback(
+                    () -> miniappTourAdapterService.getFeaturedTours(4),
+                    () -> tourService.getTicketFeaturedTours(4)
+            ));
+        }
         return Result.success(tourService.getTicketFeaturedTours(4));
     }
 
@@ -96,6 +138,12 @@ public class TourController {
     @Operation(summary = "获取所有上架行程（前台使用）")
     @GetMapping("/list")
     public Result<?> getActiveTours() {
+        if (useMiniappSource()) {
+            return Result.success(withCatalogFallback(
+                    miniappTourAdapterService::getActiveTours,
+                    tourService::getActiveTours
+            ));
+        }
         List<Tour> tours = tourService.getActiveTours();
         return Result.success(tours);
     }
@@ -105,6 +153,12 @@ public class TourController {
     @Operation(summary = "获取精选行程（首页使用）")
     @GetMapping("/featured")
     public Result<?> getFeaturedTours() {
+        if (useMiniappSource()) {
+            return Result.success(withCatalogFallback(
+                    () -> miniappTourAdapterService.getFeaturedTours(6),
+                    tourService::getFeaturedTours
+            ));
+        }
         List<Tour> tours = tourService.getFeaturedTours();
         return Result.success(tours);
     }
@@ -112,6 +166,12 @@ public class TourController {
     @Operation(summary = "获取更多推荐行程（首页使用）")
     @GetMapping("/more")
     public Result<?> getMoreTours() {
+        if (useMiniappSource()) {
+            return Result.success(withCatalogFallback(
+                    () -> miniappTourAdapterService.getMoreTours(6, 24),
+                    tourService::getMoreTours
+            ));
+        }
         List<Tour> tours = tourService.getMoreTours();
         return Result.success(tours);
     }
@@ -167,15 +227,20 @@ public class TourController {
 
     @Operation(summary = "根据ID获取行程详情（简单信息）")
     @GetMapping("/{id}")
-    public Result<?> getTourById(@PathVariable Long id) {
-        Tour tour = tourService.getTourById(id);
-        return Result.success(tour);
+    public Result<?> getTourById(@PathVariable String id) {
+        if (miniappTourAdapterService.isMiniappTourId(id)) {
+            return Result.success(miniappTourAdapterService.getTourDetail(id).get("tour"));
+        }
+        return Result.success(tourService.getTourById(parseLocalTourId(id)));
     }
 
     @Operation(summary = "根据ID获取行程完整详情（包含套餐、批次等）")
     @GetMapping("/{id}/detail")
-    public Result<?> getTourDetail(@PathVariable Long id) {
-        TourDetailDTO detail = tourService.getTourDetail(id);
+    public Result<?> getTourDetail(@PathVariable String id) {
+        if (miniappTourAdapterService.isMiniappTourId(id)) {
+            return Result.success(miniappTourAdapterService.getTourDetail(id));
+        }
+        TourDetailDTO detail = tourService.getTourDetail(parseLocalTourId(id));
         return Result.success(detail);
     }
 
@@ -245,6 +310,12 @@ public class TourController {
             @RequestParam(required = false) String scenicName,
             @RequestParam(required = false) String location,
             @RequestParam(defaultValue = "6") Integer limit) {
+        if (useMiniappSource()) {
+            return Result.success(withCatalogFallback(
+                    () -> miniappTourAdapterService.getRecommendedTours(scenicName, location, limit == null ? 6 : limit),
+                    () -> tourService.getRecommendedToursByScenic(scenicName, location, limit)
+            ));
+        }
         List<Tour> tours = tourService.getRecommendedToursByScenic(scenicName, location, limit);
         return Result.success(tours);
     }
@@ -270,5 +341,29 @@ public class TourController {
         }
         tourService.updateRecommendSort(ids);
         return Result.success();
+    }
+
+    private boolean useMiniappSource() {
+        return tourProductSourceConfigService.isMiniappMode();
+    }
+
+    private <T> T withCatalogFallback(Supplier<T> remote, Supplier<T> local) {
+        try {
+            return remote.get();
+        } catch (ServiceException ex) {
+            if (!tourProductSourceConfigService.shouldFallbackToLocal()) {
+                throw ex;
+            }
+            logger.warn("Miniapp product source unavailable, fallback to local catalog: {}", ex.getMessage());
+            return local.get();
+        }
+    }
+
+    private Long parseLocalTourId(String id) {
+        try {
+            return Long.valueOf(id);
+        } catch (NumberFormatException ignored) {
+            throw new ServiceException("行程不存在");
+        }
     }
 }

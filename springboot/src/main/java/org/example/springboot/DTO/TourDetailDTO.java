@@ -127,6 +127,8 @@ public class TourDetailDTO {
     public static class AddonPriceItemInfo {
         private Long id;
         private Long addonId;
+        private Long packageId;
+        private List<Long> packageIds;
         private String name;
         private BigDecimal price;
         private BigDecimal originalPrice;

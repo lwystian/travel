@@ -3,7 +3,7 @@
     <section class="settings-hero">
       <div class="hero-copy">
         <h1>网站设置</h1>
-        <span>集中管理官网访问、访问终端与互动内容开关。</span>
+        <span>集中管理官网访问、互动能力与行程商品来源。</span>
       </div>
       <div class="status-group">
         <div class="site-status-pill" :class="{ closed: !form.siteEnabled }">
@@ -13,6 +13,10 @@
         <div class="site-status-pill" :class="{ closed: !form.publicInteractionEnabled }">
           <span class="status-dot"></span>
           <strong>{{ form.publicInteractionEnabled ? '互动已开启' : '互动已关闭' }}</strong>
+        </div>
+        <div class="site-status-pill source-pill" :class="{ remote: useMiniappProducts }">
+          <span class="status-dot"></span>
+          <strong>{{ useMiniappProducts ? '小程序商品' : '本地商品' }}</strong>
         </div>
       </div>
     </section>
@@ -88,6 +92,69 @@
           </div>
         </div>
 
+        <div v-else-if="activeTab === 'tour-source'" class="control-card source-module">
+          <div class="card-head source-mode-head">
+            <div>
+              <h2>官网行程商品来源</h2>
+              <span>切换后只影响官网前台展示；原有本地商品、后台上架功能和历史订单都会保留。</span>
+            </div>
+            <el-switch
+              v-model="useMiniappProducts"
+              size="large"
+              inline-prompt
+              active-text="小程序"
+              inactive-text="本地"
+              style="--el-switch-on-color: #0f766e; --el-switch-off-color: #64748b"
+            />
+          </div>
+
+          <div class="source-flow" :class="{ active: useMiniappProducts }">
+            <div>
+              <strong>商品展示</strong>
+              <span>{{ useMiniappProducts ? '小程序上架后，官网通过同源后端接口自动读取并转换字段。' : '官网继续读取 travel 原有商品表。' }}</span>
+            </div>
+            <div>
+              <strong>预订与库存</strong>
+              <span>{{ useMiniappProducts ? '小程序商品进入统一预订页，价格、库存和订单不会分裂。' : '本地商品继续使用官网原有预订和支付流程。' }}</span>
+            </div>
+          </div>
+
+          <el-form label-position="top" class="copy-form source-form">
+            <el-form-item label="小程序 API 地址">
+              <el-input v-model="sourceForm.miniappApiBaseUrl" placeholder="例如：https://mini.example.com/api" maxlength="500" />
+              <span class="field-help">填写小程序后端的完整 API 根地址，travel 后端会从服务器侧访问该地址。</span>
+            </el-form-item>
+            <el-form-item label="统一预订链接模板">
+              <el-input
+                v-model="sourceForm.miniappBookingUrlTemplate"
+                placeholder="例如：https://mini.example.com/#/pages/tour/detail?id={tourId}&scheduleId={scheduleId}&packageId={packageId}"
+                maxlength="1000"
+              />
+              <span class="field-help">必须包含 {tourId}；可选使用 {scheduleId}、{packageId} 传递官网已选择的班期与套餐。</span>
+            </el-form-item>
+            <el-form-item label="接口异常保护">
+              <el-switch
+                v-model="sourceForm.fallbackToLocal"
+                inline-prompt
+                active-text="回退"
+                inactive-text="报错"
+              />
+              <span class="field-help">开启后，小程序商品列表暂时不可用时自动显示原有本地商品；已打开的小程序商品详情不会串到本地商品。</span>
+            </el-form-item>
+          </el-form>
+
+          <div class="connection-check">
+            <div>
+              <strong>连接检查</strong>
+              <span>测试 API 地址是否可达，并读取当前已上架商品数量。</span>
+            </div>
+            <el-button :loading="checkingSource" @click="testTourSource">
+              <el-icon><Connection /></el-icon>
+              测试连接
+            </el-button>
+          </div>
+        </div>
+
         <div v-else class="control-card">
           <div class="card-head">
             <div>
@@ -121,7 +188,7 @@
           </el-form>
         </div>
 
-        <div v-if="activeTab !== 'public-interaction'" class="support-config">
+        <div v-if="activeTab === 'site-access' || activeTab === 'device-access'" class="support-config">
           <div class="support-head">
             <h2>客服入口设置</h2>
             <span>用于网站关闭和移动端拒绝页面。可填写企业微信、微信客服、企微活码、二维码图片或客服凭证。</span>
@@ -145,9 +212,9 @@
         <div class="save-bar">
           <div>
             <strong>生产提示</strong>
-            <span>保存后配置会立即对前台生效，请确认提示文案准确、客服渠道可用。</span>
+            <span>{{ saveHint }}</span>
           </div>
-          <el-button type="primary" size="large" :loading="saving" @click="saveConfig">保存设置</el-button>
+          <el-button type="primary" size="large" :loading="saving" @click="saveCurrentConfig">保存设置</el-button>
         </div>
       </main>
     </section>
@@ -157,14 +224,16 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ChatDotRound, Monitor, SwitchButton } from '@element-plus/icons-vue'
+import { ChatDotRound, Connection, Goods, Monitor, SwitchButton } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getSiteAccessConfig, saveSiteAccessConfig } from '@/api/siteAccess'
+import { checkMiniappTourSource, getTourSourceConfig, saveTourSourceConfig } from '@/api/tourSource'
 
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
 const saving = ref(false)
+const checkingSource = ref(false)
 
 const form = reactive({
   siteEnabled: true,
@@ -182,23 +251,44 @@ const form = reactive({
   supportQrImageUrl: ''
 })
 
+const sourceForm = reactive({
+  sourceMode: 'LOCAL',
+  miniappApiBaseUrl: '',
+  miniappBookingUrlTemplate: '',
+  fallbackToLocal: true
+})
+
+const useMiniappProducts = computed({
+  get: () => sourceForm.sourceMode === 'MINIAPP',
+  set: enabled => {
+    sourceForm.sourceMode = enabled ? 'MINIAPP' : 'LOCAL'
+  }
+})
+
 const navItems = [
   { key: 'site-access', title: '网站开关', desc: '开启或关闭官网前台', icon: SwitchButton },
   { key: 'device-access', title: '访问终端', desc: '控制移动端访问策略', icon: Monitor },
-  { key: 'public-interaction', title: '互动内容', desc: '关闭用户发帖评论', icon: ChatDotRound }
+  { key: 'public-interaction', title: '互动内容', desc: '关闭用户发帖评论', icon: ChatDotRound },
+  { key: 'tour-source', title: '商品来源', desc: '切换本地或小程序商品', icon: Goods }
 ]
 
 const activeTab = computed(() => {
   if (route.path.includes('device-access')) return 'device-access'
   if (route.path.includes('public-interaction')) return 'public-interaction'
+  if (route.path.includes('tour-source')) return 'tour-source'
   return 'site-access'
 })
+
+const saveHint = computed(() => activeTab.value === 'tour-source'
+  ? '切换为小程序商品前请先测试连接并配置统一预订地址，保存后前台商品会立即切换。'
+  : '保存后配置会立即对前台生效，请确认提示文案准确、客服渠道可用。')
 
 const switchTab = (key) => {
   const pathMap = {
     'site-access': '/back/site-settings/site-access',
     'device-access': '/back/site-settings/device-access',
-    'public-interaction': '/back/site-settings/public-interaction'
+    'public-interaction': '/back/site-settings/public-interaction',
+    'tour-source': '/back/site-settings/tour-source'
   }
   router.push(pathMap[key] || pathMap['site-access'])
 }
@@ -206,21 +296,46 @@ const switchTab = (key) => {
 const loadConfig = async () => {
   loading.value = true
   try {
-    const data = await getSiteAccessConfig()
-    Object.assign(form, data || {})
+    const [siteData, sourceData] = await Promise.all([
+      getSiteAccessConfig(),
+      getTourSourceConfig()
+    ])
+    Object.assign(form, siteData || {})
+    Object.assign(sourceForm, sourceData || {})
   } finally {
     loading.value = false
   }
 }
 
-const saveConfig = async () => {
+const saveCurrentConfig = async () => {
   saving.value = true
   try {
-    await saveSiteAccessConfig({ ...form }, {
-      successMsg: '网站设置已保存'
-    })
+    if (activeTab.value === 'tour-source') {
+      const data = await saveTourSourceConfig({ ...sourceForm }, {
+        successMsg: '商品来源设置已保存'
+      })
+      Object.assign(sourceForm, data || {})
+    } else {
+      await saveSiteAccessConfig({ ...form }, {
+        successMsg: '网站设置已保存'
+      })
+    }
   } finally {
     saving.value = false
+  }
+}
+
+const testTourSource = async () => {
+  checkingSource.value = true
+  try {
+    const result = await checkMiniappTourSource({ ...sourceForm })
+    const count = Number(result?.productCount || 0)
+    const sample = result?.sampleTitle ? `，示例：${result.sampleTitle}` : ''
+    ElMessage.success(`连接成功，读取到 ${count} 个已上架商品${sample}`)
+  } catch {
+    ElMessage.error('连接失败，请检查 API 地址、小程序后端状态和网络访问策略')
+  } finally {
+    checkingSource.value = false
   }
 }
 
@@ -626,6 +741,102 @@ onMounted(loadConfig)
   }
 }
 
+.site-status-pill.source-pill {
+  border-color: rgba(71, 85, 105, 0.22);
+  background: #f8fafc;
+  box-shadow: none;
+
+  .status-dot {
+    background: #64748b;
+  }
+}
+
+.site-status-pill.source-pill.remote {
+  border-color: rgba(15, 118, 110, 0.24);
+  background: #f0fdfa;
+
+  .status-dot {
+    background: #0f766e;
+  }
+}
+
+.source-module {
+  display: grid;
+  gap: 22px;
+}
+
+.source-flow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+
+  div {
+    display: grid;
+    gap: 7px;
+    padding: 18px 20px;
+  }
+
+  div + div {
+    border-left: 1px solid #e2e8f0;
+  }
+
+  strong {
+    color: #334155;
+  }
+
+  span {
+    color: #64748b;
+    line-height: 1.65;
+  }
+}
+
+.source-flow.active {
+  border-color: #99f6e4;
+  background: #f0fdfa;
+
+  strong {
+    color: #115e59;
+  }
+}
+
+.source-form {
+  padding-top: 4px;
+}
+
+.field-help {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.connection-check {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 18px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+
+  div {
+    display: grid;
+    gap: 5px;
+  }
+
+  strong {
+    color: #1e3a8a;
+  }
+
+  span {
+    color: #475569;
+    line-height: 1.5;
+  }
+}
+
 @media (max-width: 1080px) {
   .settings-hero {
     align-items: flex-start;
@@ -655,6 +866,20 @@ onMounted(loadConfig)
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+
+  .source-flow {
+    grid-template-columns: 1fr;
+
+    div + div {
+      border-top: 1px solid #e2e8f0;
+      border-left: 0;
+    }
+  }
+
+  .connection-check {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 </style>

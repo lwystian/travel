@@ -155,7 +155,8 @@ public class TourOrderService {
 
         try {
             // 8. 获取附加费用及份数
-            AddonPriceResult addonPriceResult = calculateAddonPrice(tour, tourBatch, dto, totalPeople);
+            AddonPriceResult addonPriceResult = calculateAddonPrice(
+                    tour, tourBatch, tourPackage.getId(), dto, totalPeople);
 
             // 9. 后端精确计算价格
             TourPackagePriceItem packagePriceItem = tourPriceItemService.resolvePackagePriceItem(
@@ -292,7 +293,8 @@ public class TourOrderService {
         }
     }
 
-    private AddonPriceResult calculateAddonPrice(Tour tour, TourBatch tourBatch, TourOrderCreateDTO dto, int totalPeople) {
+    private AddonPriceResult calculateAddonPrice(Tour tour, TourBatch tourBatch, Long packageId,
+                                                 TourOrderCreateDTO dto, int totalPeople) {
         List<TourOrderCreateDTO.AddonSelection> selections = new ArrayList<>();
         if (dto.getAddonSelections() != null && !dto.getAddonSelections().isEmpty()) {
             selections.addAll(dto.getAddonSelections());
@@ -325,7 +327,10 @@ public class TourOrderService {
                 throw new ServiceException("附加费用不存在或已停用");
             }
             TourAddonPriceItem addonPriceItem = tourPriceItemService.resolveAddonPriceItem(
-                    tour.getId(), addon.getId(), tourBatch.getId(), selection.getAddonPriceItemId());
+                    tour.getId(), addon.getId(), tourBatch.getId(), packageId, selection.getAddonPriceItemId());
+            if (addonPriceItem == null && tourPriceItemService.hasActiveAddonPriceItems(addon.getId())) {
+                throw new ServiceException("该出发日期和行程套餐不支持所选附加费用");
+            }
             if (addonPriceItem == null && !availableAddonIds.isEmpty() && !availableAddonIds.contains(selection.getBatchPackageId())) {
                 throw new ServiceException("该出发日期不支持所选附加费用");
             }

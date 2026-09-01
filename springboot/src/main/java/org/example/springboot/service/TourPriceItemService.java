@@ -76,6 +76,7 @@ public class TourPriceItemService {
         return addonPriceItemMapper.selectList(new LambdaQueryWrapper<TourAddonPriceItem>()
                 .eq(TourAddonPriceItem::getTourId, tourId)
                 .orderByAsc(TourAddonPriceItem::getAddonId)
+                .orderByAsc(TourAddonPriceItem::getPackageId)
                 .orderByAsc(TourAddonPriceItem::getSortOrder)
                 .orderByAsc(TourAddonPriceItem::getId));
     }
@@ -86,6 +87,7 @@ public class TourPriceItemService {
         }
         return addonPriceItemMapper.selectList(new LambdaQueryWrapper<TourAddonPriceItem>()
                 .eq(TourAddonPriceItem::getAddonId, addonId)
+                .orderByAsc(TourAddonPriceItem::getPackageId)
                 .orderByAsc(TourAddonPriceItem::getSortOrder)
                 .orderByAsc(TourAddonPriceItem::getId));
     }
@@ -97,6 +99,16 @@ public class TourPriceItemService {
         Long count = packagePriceItemMapper.selectCount(new LambdaQueryWrapper<TourPackagePriceItem>()
                 .eq(TourPackagePriceItem::getTourId, tourId)
                 .eq(TourPackagePriceItem::getStatus, 1));
+        return count != null && count > 0;
+    }
+
+    public boolean hasActiveAddonPriceItems(Long addonId) {
+        if (addonId == null) {
+            return false;
+        }
+        Long count = addonPriceItemMapper.selectCount(new LambdaQueryWrapper<TourAddonPriceItem>()
+                .eq(TourAddonPriceItem::getAddonId, addonId)
+                .eq(TourAddonPriceItem::getStatus, 1));
         return count != null && count > 0;
     }
 
@@ -123,24 +135,43 @@ public class TourPriceItemService {
         return matchedItems.isEmpty() ? null : matchedItems.get(0);
     }
 
-    public TourAddonPriceItem resolveAddonPriceItem(Long tourId, Long addonId, Long batchId, Long requestedPriceItemId) {
+    public TourAddonPriceItem resolveAddonPriceItem(Long tourId, Long addonId, Long batchId, Long packageId,
+                                                    Long requestedPriceItemId) {
         if (tourId == null || addonId == null || batchId == null) {
             return null;
         }
+        TourAddonPriceItem requestedItem = null;
         if (requestedPriceItemId != null) {
-            TourAddonPriceItem item = addonPriceItemMapper.selectById(requestedPriceItemId);
-            if (!isAddonPriceItemMatched(item, tourId, addonId, batchId)) {
-                throw new ServiceException("附加费用价格项与当前出发日期不匹配");
+            requestedItem = addonPriceItemMapper.selectById(requestedPriceItemId);
+            if (!isAddonPriceItemMatched(requestedItem, tourId, addonId, batchId, packageId)) {
+                throw new ServiceException("附加费用价格项与当前出发日期或行程套餐不匹配");
             }
-            return item;
         }
         List<TourAddonPriceItem> matchedItems = getAddonPriceItems(addonId).stream()
-                .filter(item -> isAddonPriceItemMatched(item, tourId, addonId, batchId))
+                .filter(item -> isAddonPriceItemMatched(item, tourId, addonId, batchId, packageId))
                 .toList();
-        if (matchedItems.size() > 1) {
-            throw new ServiceException("该附加费用在当前出发日期存在多个启用价格项，请联系管理员处理");
+        List<TourAddonPriceItem> packageItems = packageId == null ? List.of() : matchedItems.stream()
+                .filter(item -> parseAddonPackageIds(item).contains(packageId))
+                .toList();
+        if (packageItems.size() > 1) {
+            throw new ServiceException("该附加费用在当前出发日期和套餐存在多个启用价格项，请联系管理员处理");
         }
-        return matchedItems.isEmpty() ? null : matchedItems.get(0);
+        TourAddonPriceItem resolvedItem;
+        if (!packageItems.isEmpty()) {
+            resolvedItem = packageItems.get(0);
+        } else {
+            List<TourAddonPriceItem> genericItems = matchedItems.stream()
+                    .filter(item -> parseAddonPackageIds(item).isEmpty())
+                    .toList();
+            if (genericItems.size() > 1) {
+                throw new ServiceException("该附加费用在当前出发日期存在多个通用价格项，请联系管理员处理");
+            }
+            resolvedItem = genericItems.isEmpty() ? null : genericItems.get(0);
+        }
+        if (requestedItem != null && (resolvedItem == null || !Objects.equals(requestedItem.getId(), resolvedItem.getId()))) {
+            throw new ServiceException("附加费用价格已变更，请刷新页面后重试");
+        }
+        return resolvedItem;
     }
 
     @Transactional
@@ -234,6 +265,17 @@ public class TourPriceItemService {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
+    public Set<Long> parseAddonPackageIds(TourAddonPriceItem item) {
+        if (item == null) {
+            return new LinkedHashSet<>();
+        }
+        Set<Long> packageIds = parseBatchIds(item.getPackageIds());
+        if (packageIds.isEmpty() && item.getPackageId() != null) {
+            packageIds.add(item.getPackageId());
+        }
+        return packageIds;
+    }
+
     public String serializeBatchIds(Set<Long> batchIds) {
         if (batchIds == null || batchIds.isEmpty()) {
             return "";
@@ -263,9 +305,12 @@ public class TourPriceItemService {
         item.setName(StringUtils.defaultIfBlank(source.getName(), "价格项"));
         BigDecimal adultPrice = positiveAmount(source.getAdultPrice(), "成人售价必须大于0");
         item.setAdultPrice(adultPrice);
-        BigDecimal childPrice = positiveAmount(source.getChildPrice(), "儿童售价必须大于0");
+        BigDecimal childPrice = optionalPositiveAmount(source.getChildPrice(), "儿童售价不能小于0");
         item.setChildPrice(childPrice);
         item.setOriginalAdultPrice(validateOriginal(source.getOriginalAdultPrice(), adultPrice, "成人划线价必须高于成人售价"));
+        if (source.getOriginalChildPrice() != null && childPrice == null) {
+            throw new ServiceException("填写儿童划线价时必须先设置儿童售价");
+        }
         item.setOriginalChildPrice(validateOriginal(source.getOriginalChildPrice(), childPrice, "儿童划线价必须高于儿童售价"));
         item.setBatchIds(serializeBatchIds(requireTourBatchIds(tourPackage.getTourId(), parseBatchIds(source.getBatchIds()))));
         item.setStatus(source.getStatus() == null ? 1 : source.getStatus());
@@ -288,12 +333,20 @@ public class TourPriceItemService {
         }
         item.setTourId(addon.getTourId());
         item.setAddonId(addon.getId());
+        Set<Long> packageIds = requireTourPackageIds(addon.getTourId(), parseAddonPackageIds(source));
+        Set<Long> batchIds = requireTourBatchIds(addon.getTourId(), parseBatchIds(source.getBatchIds()));
+        Integer status = source.getStatus() == null ? 1 : source.getStatus();
+        if (Integer.valueOf(1).equals(status)) {
+            requirePackagesAvailableForBatches(addon.getTourId(), packageIds, batchIds);
+        }
+        item.setPackageIds(serializeBatchIds(packageIds));
+        item.setPackageId(packageIds.size() == 1 ? packageIds.iterator().next() : null);
         item.setName(StringUtils.defaultIfBlank(source.getName(), "价格项"));
         BigDecimal price = positiveAmount(source.getPrice(), "附加费用售价必须大于0");
         item.setPrice(price);
         item.setOriginalPrice(null);
-        item.setBatchIds(serializeBatchIds(requireTourBatchIds(addon.getTourId(), parseBatchIds(source.getBatchIds()))));
-        item.setStatus(source.getStatus() == null ? 1 : source.getStatus());
+        item.setBatchIds(serializeBatchIds(batchIds));
+        item.setStatus(status);
         item.setSortOrder(source.getSortOrder() == null ? 0 : source.getSortOrder());
         return item;
     }
@@ -310,6 +363,66 @@ public class TourPriceItemService {
             throw new ServiceException("存在不属于当前行程的出发班期");
         }
         return validIds;
+    }
+
+    private Set<Long> requireTourPackageIds(Long tourId, Set<Long> packageIds) {
+        if (packageIds == null || packageIds.isEmpty()) {
+            return new LinkedHashSet<>();
+        }
+        List<TourPackage> packages = tourPackageMapper.selectList(new LambdaQueryWrapper<TourPackage>()
+                .eq(TourPackage::getTourId, tourId)
+                .in(TourPackage::getId, packageIds));
+        Set<Long> validIds = packages.stream()
+                .map(TourPackage::getId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (validIds.size() != packageIds.size()) {
+            throw new ServiceException("存在不属于当前行程的适用套餐");
+        }
+        return validIds;
+    }
+
+    private void requirePackagesAvailableForBatches(Long tourId, Set<Long> packageIds, Set<Long> batchIds) {
+        if (packageIds == null || packageIds.isEmpty() || batchIds == null || batchIds.isEmpty()) {
+            return;
+        }
+        List<TourBatch> batches = tourBatchMapper.selectList(new LambdaQueryWrapper<TourBatch>()
+                .eq(TourBatch::getTourId, tourId)
+                .in(TourBatch::getId, batchIds));
+        Map<Long, TourBatch> batchMap = batches.stream()
+                .collect(Collectors.toMap(TourBatch::getId, batch -> batch, (left, right) -> left));
+
+        if (hasActivePackagePriceItems(tourId)) {
+            Map<Long, Set<Long>> availableBatchMap = packageBatchMap(tourId);
+            for (Long packageId : packageIds) {
+                Set<Long> availableBatchIds = availableBatchMap.getOrDefault(packageId, Set.of());
+                for (Long batchId : batchIds) {
+                    if (!availableBatchIds.contains(batchId)) {
+                        throw unavailablePackageBatchException(packageId, batchMap.get(batchId));
+                    }
+                }
+            }
+            return;
+        }
+
+        for (Long batchId : batchIds) {
+            TourBatch batch = batchMap.get(batchId);
+            Set<Long> availablePackageIds = batch == null ? Set.of() : parseBatchIds(batch.getPackageIds());
+            if (availablePackageIds.isEmpty()) {
+                continue;
+            }
+            for (Long packageId : packageIds) {
+                if (!availablePackageIds.contains(packageId)) {
+                    throw unavailablePackageBatchException(packageId, batch);
+                }
+            }
+        }
+    }
+
+    private ServiceException unavailablePackageBatchException(Long packageId, TourBatch batch) {
+        String batchLabel = batch != null && batch.getDepartureDate() != null
+                ? batch.getDepartureDate().toString()
+                : String.valueOf(batch == null ? "" : batch.getId());
+        return new ServiceException("套餐ID " + packageId + " 不适用于出发日期 " + batchLabel + "，请调整适用套餐或日期");
     }
 
     private void assertNoPackageBatchConflict(TourPackagePriceItem target) {
@@ -346,14 +459,27 @@ public class TourPriceItemService {
         List<TourAddonPriceItem> siblings = addonPriceItemMapper.selectList(new LambdaQueryWrapper<TourAddonPriceItem>()
                 .eq(TourAddonPriceItem::getAddonId, target.getAddonId())
                 .eq(TourAddonPriceItem::getStatus, 1));
+        Set<Long> targetPackageIds = parseAddonPackageIds(target);
         for (TourAddonPriceItem sibling : siblings) {
             if (Objects.equals(sibling.getId(), target.getId())) {
+                continue;
+            }
+            Set<Long> siblingPackageIds = parseAddonPackageIds(sibling);
+            boolean sameScope;
+            if (targetPackageIds.isEmpty() || siblingPackageIds.isEmpty()) {
+                sameScope = targetPackageIds.isEmpty() && siblingPackageIds.isEmpty();
+            } else {
+                Set<Long> overlap = new LinkedHashSet<>(siblingPackageIds);
+                overlap.retainAll(targetPackageIds);
+                sameScope = !overlap.isEmpty();
+            }
+            if (!sameScope) {
                 continue;
             }
             Set<Long> duplicate = parseBatchIds(sibling.getBatchIds());
             duplicate.retainAll(targetBatchIds);
             if (!duplicate.isEmpty()) {
-                throw new ServiceException("同一附加费用的同一出发日期只能绑定一个启用价格项");
+                throw new ServiceException("同一附加费用、行程套餐和出发日期只能绑定一个启用价格项");
             }
         }
     }
@@ -366,10 +492,13 @@ public class TourPriceItemService {
                 && parseBatchIds(item.getBatchIds()).contains(batchId);
     }
 
-    private boolean isAddonPriceItemMatched(TourAddonPriceItem item, Long tourId, Long addonId, Long batchId) {
+    private boolean isAddonPriceItemMatched(TourAddonPriceItem item, Long tourId, Long addonId, Long batchId,
+                                            Long packageId) {
+        Set<Long> packageIds = parseAddonPackageIds(item);
         return item != null
                 && Objects.equals(item.getTourId(), tourId)
                 && Objects.equals(item.getAddonId(), addonId)
+                && (packageIds.isEmpty() || packageIds.contains(packageId))
                 && Integer.valueOf(1).equals(item.getStatus())
                 && parseBatchIds(item.getBatchIds()).contains(batchId);
     }
@@ -404,6 +533,16 @@ public class TourPriceItemService {
             throw new ServiceException(message);
         }
         return amount;
+    }
+
+    private BigDecimal optionalPositiveAmount(BigDecimal value, String message) {
+        if (value == null || value.compareTo(BigDecimal.ZERO) == 0) {
+            return null;
+        }
+        if (value.compareTo(BigDecimal.ZERO) < 0) {
+            throw new ServiceException(message);
+        }
+        return value;
     }
 
     private BigDecimal validateOriginal(BigDecimal original, BigDecimal sale, String message) {

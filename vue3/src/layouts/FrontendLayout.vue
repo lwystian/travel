@@ -48,7 +48,6 @@
                       <el-icon><Reading /></el-icon>
                       我的攻略
                     </el-dropdown-item>
-                    <el-dropdown-divider />
                     <el-dropdown-item command="logout" divided>
                       <el-icon><SwitchButton /></el-icon>
                       退出登录
@@ -2908,6 +2907,8 @@ onMounted(() => {
     width: 100%;
     max-width: none;
     margin-left: 0;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .location-selector {
@@ -2918,33 +2919,36 @@ onMounted(() => {
 
   .smart-search-wrapper {
     width: 100%;
-    flex-direction: column;
+    flex-direction: row;
 
     .category-dropdown {
-      width: 100%;
-      margin-bottom: 8px;
+      width: auto;
+      flex: 0 0 auto;
+      margin-bottom: 0;
 
       .category-selector {
-        width: 100%;
-        border-radius: 24px;
-        justify-content: center;
+        width: auto;
+        border-radius: 24px 0 0 24px;
+        justify-content: flex-start;
       }
     }
 
     .search-input {
-      width: 100%;
+      width: auto;
+      min-width: 0;
+      flex: 1 1 auto;
 
       :deep(.el-input__wrapper) {
-        border-radius: 24px;
-        border-left: 2px solid #e94560;
+        border-radius: 0;
+        border-left: none;
       }
     }
 
     .search-btn {
-      position: absolute;
-      right: 0;
-      top: 0;
+      position: static;
+      flex: 0 0 auto;
       height: 48px;
+      padding: 0 14px;
       border-radius: 0 24px 24px 0;
     }
   }
@@ -2980,6 +2984,15 @@ onMounted(() => {
     gap: 26px;
   }
 
+  .footer-lower {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 26px;
+  }
+
+  .footer-text-info {
+    grid-column: auto;
+  }
+
   .footer-contact-grid {
     grid-template-columns: 1fr;
   }
@@ -2995,6 +3008,16 @@ onMounted(() => {
     grid-column: auto;
   }
 
+  .footer-cert-list {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 18px;
+  }
+
+  .footer-image-preview {
+    display: none;
+  }
+
   .footer-bottom {
     flex-direction: column;
   }
@@ -3007,7 +3030,7 @@ onMounted(() => {
       margin-right: 12px;
 
       span {
-        display: none;
+        display: inline;
       }
     }
 

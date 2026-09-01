@@ -221,7 +221,7 @@
       >
         <!-- 左侧图片 -->
         <div class="card-image">
-          <img :src="getTourImage(item.mainImage)" :alt="item.title" loading="lazy" decoding="async" />
+          <img :src="getTourImage(item.mainImage)" :alt="item.title" loading="lazy" decoding="async" @error="handleImageError" />
           <span v-if="item.tag" class="image-tag">{{ item.tag }}</span>
         </div>
 
@@ -229,8 +229,8 @@
         <div class="card-content">
           <div class="card-title">
             <h3>
-              <span class="star-badge">
-                <span class="num">{{ item.starRating || 4.8 }}</span>
+              <span v-if="Number(item.starRating) > 0" class="star-badge">
+                <span class="num">{{ item.starRating }}</span>
                 <span class="star">★</span>
               </span>
               <span class="title-text">{{ item.title }}</span>
@@ -240,7 +240,7 @@
           <!-- 出发城市 - 左对齐显示 -->
           <div class="card-row departure-row">
             <span class="row-label departure-label">出发城市：</span>
-            <span class="row-departure">{{ item.subtitle }}</span>
+            <span class="row-departure">{{ item.city || '待确认' }}</span>
           </div>
 
           <div class="card-row schedule-row" v-if="item.displayDates">
@@ -261,14 +261,17 @@
 
         <!-- 右侧价格 - 底部对齐 -->
         <div class="card-price">
-          <div v-if="item.minDiscountLabel" class="discount-ribbon">{{ item.minDiscountLabel }}</div>
-          <div v-if="item.minOriginalPrice" class="original-price">外网价 ¥{{ formatPrice(item.minOriginalPrice) }}</div>
-          <div class="price-wrapper">
+          <div v-if="isInquiry(item)" class="inquiry-price">{{ item.priceText || '客服咨询' }}</div>
+          <template v-else>
+            <div v-if="item.minDiscountLabel" class="discount-ribbon">{{ item.minDiscountLabel }}</div>
+            <div v-if="item.minOriginalPrice" class="original-price">外网价 ¥{{ formatPrice(item.minOriginalPrice) }}</div>
+            <div class="price-wrapper">
             <span class="currency">¥</span>
             <span class="price">{{ formatPrice(item.minPrice) }}</span>
-            <span class="unit">起/人</span>
-          </div>
-          <div v-if="getSavedAmount(item)" class="save-line">已省 ¥{{ formatPrice(getSavedAmount(item)) }}</div>
+              <span class="unit">起/{{ getPriceUnitLabel(item.priceUnit) }}</span>
+            </div>
+            <div v-if="getSavedAmount(item)" class="save-line">已省 ¥{{ formatPrice(getSavedAmount(item)) }}</div>
+          </template>
         </div>
       </div>
 
@@ -307,15 +310,15 @@
               @click="goToDetail(item.id)"
             >
               <div class="card-image">
-                <img :src="getTourImage(item.mainImage)" :alt="item.title" loading="lazy" decoding="async" />
+                <img :src="getTourImage(item.mainImage)" :alt="item.title" loading="lazy" decoding="async" @error="handleImageError" />
                 <span v-if="item.tag" class="image-tag">{{ item.tag }}</span>
               </div>
 
               <div class="card-content">
                 <div class="card-title">
                   <h3>
-                    <span class="star-badge">
-                      <span class="num">{{ item.starRating || 4.8 }}</span>
+                    <span v-if="Number(item.starRating) > 0" class="star-badge">
+                      <span class="num">{{ item.starRating }}</span>
                       <span class="star">★</span>
                     </span>
                     <span class="title-text">{{ item.title }}</span>
@@ -324,7 +327,7 @@
 
                 <div class="card-row departure-row">
                   <span class="row-label departure-label">出发城市：</span>
-                  <span class="row-departure">{{ item.subtitle }}</span>
+                  <span class="row-departure">{{ item.city || '待确认' }}</span>
                 </div>
 
                 <div class="card-row schedule-row" v-if="item.displayDates">
@@ -343,14 +346,17 @@
               </div>
 
               <div class="card-price">
-                <div v-if="item.minDiscountLabel" class="discount-ribbon">{{ item.minDiscountLabel }}</div>
-                <div v-if="item.minOriginalPrice" class="original-price">外网价 ¥{{ formatPrice(item.minOriginalPrice) }}</div>
-                <div class="price-wrapper">
-                  <span class="currency">¥</span>
-                  <span class="price">{{ formatPrice(item.minPrice) }}</span>
-                  <span class="unit">起/人</span>
-                </div>
-                <div v-if="getSavedAmount(item)" class="save-line">已省 ¥{{ formatPrice(getSavedAmount(item)) }}</div>
+                <div v-if="isInquiry(item)" class="inquiry-price">{{ item.priceText || '客服咨询' }}</div>
+                <template v-else>
+                  <div v-if="item.minDiscountLabel" class="discount-ribbon">{{ item.minDiscountLabel }}</div>
+                  <div v-if="item.minOriginalPrice" class="original-price">外网价 ¥{{ formatPrice(item.minOriginalPrice) }}</div>
+                  <div class="price-wrapper">
+                    <span class="currency">¥</span>
+                    <span class="price">{{ formatPrice(item.minPrice) }}</span>
+                    <span class="unit">起/{{ getPriceUnitLabel(item.priceUnit) }}</span>
+                  </div>
+                  <div v-if="getSavedAmount(item)" class="save-line">已省 ¥{{ formatPrice(getSavedAmount(item)) }}</div>
+                </template>
               </div>
             </div>
           </div>
@@ -367,11 +373,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Search, Loading, Close } from '@element-plus/icons-vue'
-import { getTourPage, getTourFilters, getHotTourKeywords, getTicketFeaturedTours } from '@/api/tour'
+import { getTourPage, getTourFilters, getHotTourKeywords } from '@/api/tour'
 import noImage from '@/assets/images/no-image.png'
 import { getTourTypeLabel } from '@/utils/tourTypes'
 void Search
@@ -415,12 +421,12 @@ const formatMoreDatesForDisplay = (value) => {
   if (!value) return ''
   const normalize = item => {
     const text = String(item || '').trim()
-    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(text)) {
-      const [, month, day] = text.split('-')
+    if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(text)) {
+      const [, month, day] = text.split(/[-/]/)
       return `${month.padStart(2, '0')}-${day.padStart(2, '0')}`
     }
-    if (/^\d{1,2}-\d{1,2}$/.test(text)) {
-      const [month, day] = text.split('-')
+    if (/^\d{1,2}[-/]\d{1,2}$/.test(text)) {
+      const [month, day] = text.split(/[-/]/)
       return `${month.padStart(2, '0')}-${day.padStart(2, '0')}`
     }
     return text
@@ -437,12 +443,12 @@ const parseDateItems = (value) => {
 
 const normalizeDateForDisplay = item => {
   const text = String(item || '').trim()
-  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(text)) {
-    const [, month, day] = text.split('-')
+  if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(text)) {
+    const [, month, day] = text.split(/[-/]/)
     return `${month.padStart(2, '0')}-${day.padStart(2, '0')}`
   }
-  if (/^\d{1,2}-\d{1,2}$/.test(text)) {
-    const [month, day] = text.split('-')
+  if (/^\d{1,2}[-/]\d{1,2}$/.test(text)) {
+    const [month, day] = text.split(/[-/]/)
     return `${month.padStart(2, '0')}-${day.padStart(2, '0')}`
   }
   return text
@@ -769,6 +775,17 @@ const getTourImage = (url) => {
   return imageUrl.startsWith('/') ? `${baseAPI}${imageUrl}` : `${baseAPI}/${imageUrl}`
 }
 
+const handleImageError = event => {
+  const image = event?.target
+  if (!image || image.dataset.fallbackApplied) return
+  image.dataset.fallbackApplied = 'true'
+  image.src = noImage
+}
+
+const isInquiry = item => String(item?.pricingMode || '').toLowerCase() === 'inquiry'
+
+const getPriceUnitLabel = unit => ({ room: '间', group: '团', person: '人' }[unit] || '人')
+
 const decorateFilterItems = (items = [], labelGetter) => {
   return items.map(item => ({
     ...item,
@@ -910,6 +927,7 @@ const loadFilters = async () => {
 
 const fetchTickets = async ({ scroll = false } = {}) => {
   loading.value = true
+  hasSearched.value = true
   try {
     const res = await getTourPage(buildQueryParams())
     ticketList.value = normalizeTours(res?.records)
@@ -1025,18 +1043,20 @@ const clearAllFilters = () => {
 }
 
 // 重置搜索（回到初始状态）
-const resetSearch = () => {
+const resetSearch = (fetchAll = true) => {
   searchKeyword.value = ''
   searchDisplayKeyword.value = ''
   searchMode.value = ''
   intentDestination.value = ''
   searchMatchMode.value = ''
   activeFilters.value = { tourType: '', city: '', destination: '', days: '', month: '', priceRange: '' }
-  hasSearched.value = false
   sortType.value = 'default'
   currentPage.value = 1
   ticketList.value = []
   totalCount.value = 0
+  if (fetchAll) {
+    performSearch({ scroll: false })
+  }
 }
 
 // 分页处理
@@ -1053,7 +1073,7 @@ const handleCurrentChange = (page) => {
 }
 
 // 从URL参数初始化搜索
-const initFromUrl = () => {
+const initFromUrl = async () => {
   const searchParam = route.query.search
   const tourTypeParam = route.query.tourType
   const cityParam = route.query.city
@@ -1112,30 +1132,30 @@ const initFromUrl = () => {
   }
 
   if (hasParams) {
-    performSearch({ scroll: false })
+    await performSearch({ scroll: false })
   }
+  return hasParams
 }
 
 const loadInitialData = async () => {
   initialLoading.value = true
   try {
-    const [keywords, featured] = await Promise.all([
+    const [keywords] = await Promise.all([
       getHotTourKeywords(),
-      getTicketFeaturedTours(),
       loadFilters()
     ])
     hotKeywords.value = Array.isArray(keywords)
       ? keywords.map(item => typeof item === 'string' ? { value: item, label: getDestinationLabel(item) || item } : item)
       : []
-    recommendList.value = normalizeTours(featured)
   } catch (error) {
     console.error('获取行程预订初始数据失败:', error)
   } finally {
+    const hasUrlParams = await initFromUrl()
+    if (!hasUrlParams) {
+      await performSearch({ scroll: false })
+    }
     initialLoading.value = false
     isDataLoaded.value = true
-    nextTick(() => {
-      initFromUrl()
-    })
   }
 }
 
@@ -1161,7 +1181,7 @@ watch(() => route.query, (query) => {
 
   if (hasParams) {
     // 重置所有筛选条件（复用 resetSearch 函数）
-    resetSearch()
+    resetSearch(false)
 
     // 应用新的搜索关键词
     if (newSearch) {
@@ -1194,6 +1214,8 @@ watch(() => route.query, (query) => {
 
     hasSearched.value = true
     performSearch({ scroll: false })
+  } else {
+    resetSearch()
   }
 }, { deep: true })
 
@@ -1643,6 +1665,13 @@ onMounted(() => {
   text-decoration-thickness: 1px;
 }
 
+.inquiry-price {
+  color: #0f766e;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
 .price-wrapper {
   text-align: right;
   white-space: nowrap;
@@ -1796,6 +1825,22 @@ onMounted(() => {
   
   .card-content {
     gap: 8px;
+  }
+
+  .pagination-container {
+    width: 100%;
+    overflow: hidden;
+
+    :deep(.el-pagination) {
+      width: 100%;
+      justify-content: center;
+    }
+
+    :deep(.el-pagination__total),
+    :deep(.el-pagination__sizes),
+    :deep(.el-pagination__jump) {
+      display: none;
+    }
   }
 }
 </style>

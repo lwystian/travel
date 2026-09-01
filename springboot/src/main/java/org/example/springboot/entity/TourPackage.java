@@ -29,6 +29,7 @@ public class TourPackage {
     private BigDecimal adultPrice;
 
     @Schema(description = "儿童价格")
+    @TableField(insertStrategy = FieldStrategy.ALWAYS, updateStrategy = FieldStrategy.ALWAYS)
     private BigDecimal childPrice;
 
     @Schema(description = "成人原价/门市价，用于前台划线价展示")

@@ -1190,6 +1190,8 @@ public class TourService {
         TourDetailDTO.AddonPriceItemInfo info = new TourDetailDTO.AddonPriceItemInfo();
         info.setId(item.getId());
         info.setAddonId(item.getAddonId());
+        info.setPackageId(item.getPackageId());
+        info.setPackageIds(new ArrayList<>(tourPriceItemService.parseAddonPackageIds(item)));
         info.setName(item.getName());
         info.setPrice(item.getPrice());
         info.setOriginalPrice(null);

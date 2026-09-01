@@ -714,7 +714,7 @@ CREATE TABLE `tour_package` (
   `name` varchar(100) NOT NULL ,
   `adult_price` decimal(10,2) NOT NULL DEFAULT '0.00' ,
   `original_adult_price` decimal(10,2) DEFAULT NULL ,
-  `child_price` decimal(10,2) DEFAULT '0.00' ,
+  `child_price` decimal(10,2) DEFAULT NULL ,
   `original_child_price` decimal(10,2) DEFAULT NULL ,
   `description` varchar(500) DEFAULT '' ,
   `sort_order` int DEFAULT '0' ,
@@ -748,6 +748,8 @@ CREATE TABLE `tour_addon_price_item` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '附加费用价格项ID',
   `tour_id` bigint NOT NULL COMMENT '行程ID',
   `addon_id` bigint NOT NULL COMMENT '附加费用ID',
+  `package_id` bigint DEFAULT NULL COMMENT '兼容旧版单套餐关联',
+  `package_ids` text DEFAULT NULL COMMENT '适用行程套餐ID列表JSON，为空时适用全部套餐',
   `name` varchar(120) NOT NULL DEFAULT '价格项' COMMENT '价格项名称',
   `price` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '销售价',
   `original_price` decimal(10,2) DEFAULT NULL COMMENT '兼容旧数据字段，当前附加费用不使用划线价',
@@ -758,6 +760,7 @@ CREATE TABLE `tour_addon_price_item` (
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_addon` (`addon_id`),
+  KEY `idx_package` (`package_id`),
   KEY `idx_tour` (`tour_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -836,6 +839,10 @@ INSERT INTO `content_moderation_config` (`config_key`, `config_value`, `descript
 ('admin_guide_review_required', '0', '管理员发布或编辑攻略是否需要人工审核'),
 ('admin_comment_review_required', '0', '管理员发布评论或住宿评价是否需要人工审核'),
 ('public_interaction_enabled', '1', '前台用户评论、住宿评价、攻略发布等互动内容是否开放');
+
+INSERT INTO `auth_provider_config` (`config_type`, `config_name`, `enabled`, `config_data`, `description`) VALUES
+('tour_product_source', '行程商品来源', 0, '{"sourceMode":"LOCAL","miniappApiBaseUrl":"","miniappBookingUrlTemplate":"","fallbackToLocal":true}', '控制官网前台使用本地商品或小程序统一商品')
+ON DUPLICATE KEY UPDATE `config_name` = VALUES(`config_name`), `description` = VALUES(`description`);
 
 -- ----------------------------
 -- Foreign keys
