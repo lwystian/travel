@@ -2,7 +2,6 @@
   <div class="category-management">
     <div class="page-header">
       <h1 class="page-title">景点分类管理</h1>
-      <p class="page-subtitle">Scenic Spot Category Management</p>
     </div>
 
     <!-- 操作按钮 -->

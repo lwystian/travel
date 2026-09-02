@@ -63,7 +63,6 @@
           </el-form>
           <aside class="test-panel">
             <div class="test-panel-head">
-              <span>Configuration Check</span>
               <strong>短信完整测试</strong>
               <p>向指定手机号发送一次真实测试验证码，校验 AccessKey、签名、模板和阿里云接口调用链路。</p>
             </div>
@@ -154,7 +153,6 @@
           </el-form>
           <aside class="test-panel">
             <div class="test-panel-head">
-              <span>Delivery Check</span>
               <strong>SMTP完整测试</strong>
               <p>向指定邮箱发送测试邮件，校验 SMTP 主机、端口、账号授权、发件地址和投递能力。</p>
             </div>
@@ -196,7 +194,6 @@
           </el-form>
           <aside class="test-panel">
             <div class="test-panel-head">
-              <span>Captcha Check</span>
               <strong>极验完整测试</strong>
               <p>调用极验注册接口获取挑战参数，校验 Captcha ID、Captcha Key 配置完整性和服务连通性。</p>
             </div>

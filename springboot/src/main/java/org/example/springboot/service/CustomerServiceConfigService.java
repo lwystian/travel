@@ -27,6 +27,7 @@ public class CustomerServiceConfigService extends ServiceImpl<AuthProviderConfig
     private static final List<String> CHANNELS = List.of(
             "home", "chongqing", "sanxia", "xisha", "train", "team", "tour", "order", "user"
     );
+    private static final String CORP_ID_PATTERN = "^ww[A-Za-z0-9_-]{4,62}$";
 
     @Resource
     private SiteAccessConfigService siteAccessConfigService;
@@ -77,7 +78,15 @@ public class CustomerServiceConfigService extends ServiceImpl<AuthProviderConfig
         if (dto.getDisplayName().isBlank()) {
             dto.setDisplayName("在线客服");
         }
+        dto.setCorpId(clean(dto.getCorpId(), 64));
+        if (!dto.getCorpId().isBlank() && !dto.getCorpId().matches(CORP_ID_PATTERN)) {
+            if (rejectInvalidUrl) {
+                throw new ServiceException("企业微信企业 ID 格式无效，应以 ww 开头");
+            }
+            dto.setCorpId("");
+        }
         dto.setServiceUrl(normalizeWecomUrl(dto.getServiceUrl(), "默认客服链接", rejectInvalidUrl));
+        dto.setIconUrl(normalizeAssetUrl(dto.getIconUrl(), rejectInvalidUrl));
 
         Map<String, String> source = dto.getChannelUrls() == null ? Map.of() : dto.getChannelUrls();
         Map<String, String> channels = new LinkedHashMap<>();
@@ -85,6 +94,31 @@ public class CustomerServiceConfigService extends ServiceImpl<AuthProviderConfig
             channels.put(channel, normalizeWecomUrl(source.get(channel), "页面客服链接", rejectInvalidUrl));
         }
         dto.setChannelUrls(channels);
+    }
+
+    private String normalizeAssetUrl(String value, boolean rejectInvalidUrl) {
+        String url = clean(value, 500);
+        if (url.isBlank()) {
+            return "";
+        }
+        if (url.startsWith("/")) {
+            return url;
+        }
+        try {
+            URI uri = URI.create(url);
+            boolean valid = ("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme()))
+                    && uri.getHost() != null
+                    && uri.getRawUserInfo() == null;
+            if (valid) {
+                return uri.toString();
+            }
+        } catch (IllegalArgumentException ignored) {
+            // 统一在下方返回清晰的配置错误。
+        }
+        if (rejectInvalidUrl) {
+            throw new ServiceException("客服图标地址无效，请重新上传图片");
+        }
+        return "";
     }
 
     private String normalizeWecomUrl(String value, String fieldName, boolean rejectInvalidUrl) {

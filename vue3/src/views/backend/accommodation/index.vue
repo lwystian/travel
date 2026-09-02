@@ -2,7 +2,6 @@
   <div class="accommodation-management">
     <div class="page-header">
       <h1 class="page-title">住宿管理</h1>
-      <p class="page-subtitle">Accommodation Management</p>
     </div>
 
     <!-- 操作按钮 -->

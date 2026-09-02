@@ -3,7 +3,6 @@
     <section class="page-shell">
       <header class="page-hero">
         <div>
-          <span class="eyebrow">Guide Studio</span>
           <h1>我的攻略</h1>
           <p>管理已发布的旅行攻略，跟踪审核状态、浏览数据和内容维护动作。</p>
         </div>

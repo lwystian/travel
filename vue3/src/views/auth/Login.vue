@@ -6,7 +6,6 @@
           <div class="brand-logo">侠客行</div>
           <div>
             <h1>旅游服务平台</h1>
-            <p>Travel Service Platform</p>
           </div>
         </div>
         <div class="visual-copy">

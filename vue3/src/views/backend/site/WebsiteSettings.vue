@@ -8,15 +8,23 @@
       <div class="status-group">
         <div class="site-status-pill" :class="{ closed: !form.siteEnabled }">
           <span class="status-dot"></span>
-          <strong>{{ form.siteEnabled ? '网站已开启' : '网站已关闭' }}</strong>
+          <strong>{{ form.siteEnabled ? '网站开启' : '网站关闭' }}</strong>
+        </div>
+        <div class="site-status-pill" :class="{ closed: !form.rejectMobile }">
+          <span class="status-dot"></span>
+          <strong>{{ form.rejectMobile ? '移动端跳转开启' : '移动端跳转关闭' }}</strong>
         </div>
         <div class="site-status-pill" :class="{ closed: !form.publicInteractionEnabled }">
           <span class="status-dot"></span>
-          <strong>{{ form.publicInteractionEnabled ? '互动已开启' : '互动已关闭' }}</strong>
+          <strong>{{ form.publicInteractionEnabled ? '互动开启' : '互动关闭' }}</strong>
+        </div>
+        <div class="site-status-pill" :class="{ closed: !customerServiceForm.enabled }">
+          <span class="status-dot"></span>
+          <strong>{{ customerServiceForm.enabled ? '客服开启' : '客服关闭' }}</strong>
         </div>
         <div class="site-status-pill source-pill" :class="{ remote: useMiniappProducts }">
           <span class="status-dot"></span>
-          <strong>{{ useMiniappProducts ? '小程序商品' : '本地商品' }}</strong>
+          <strong>{{ useMiniappProducts ? '商品来源：小程序' : '商品来源：本地' }}</strong>
         </div>
       </div>
     </section>
@@ -108,7 +116,7 @@
           </div>
 
           <div class="customer-service-preview" :class="{ disabled: !customerServiceForm.enabled }">
-            <img :src="customerServiceIcon" alt="客服图标" />
+            <img :src="customerServiceIconUrl" alt="客服图标" @error="handleCustomerServiceIconError" />
             <div>
               <strong>{{ customerServiceForm.displayName || '在线客服' }}</strong>
               <span v-if="customerServiceForm.enabled && hasDefaultCustomerServiceUrl">前台入口已开启，未单独配置的页面将使用默认链接。</span>
@@ -130,6 +138,10 @@
               <el-form-item label="客服名称">
                 <el-input v-model="customerServiceForm.displayName" maxlength="30" show-word-limit placeholder="在线客服" />
               </el-form-item>
+              <el-form-item label="企业微信企业 ID">
+                <el-input v-model="customerServiceForm.corpId" maxlength="64" placeholder="ww 开头的企业 ID" />
+                <span class="field-help">企业微信管理后台“我的企业”中查看。网页跳转由客服链接完成，企业 ID 作为企业身份配置保留。</span>
+              </el-form-item>
               <el-form-item label="默认企业微信客服链接">
                 <el-input
                   v-model="customerServiceForm.serviceUrl"
@@ -137,6 +149,21 @@
                   placeholder="https://work.weixin.qq.com/kfid/..."
                 />
                 <span class="field-help">从企业微信“微信客服”中复制以 https://work.weixin.qq.com/kfid/ 开头的接入链接。</span>
+              </el-form-item>
+              <el-form-item label="客服图标">
+                <div class="customer-service-icon-field">
+                  <img :src="customerServiceIconUrl" alt="客服图标预览" @error="handleCustomerServiceIconError" />
+                  <el-upload
+                    :show-file-list="false"
+                    :http-request="uploadCustomerServiceIcon"
+                    :before-upload="validateCustomerServiceIcon"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                  >
+                    <el-button :loading="uploadingCustomerServiceIcon">上传图标</el-button>
+                  </el-upload>
+                  <el-button v-if="customerServiceForm.iconUrl" link type="danger" @click="customerServiceForm.iconUrl = ''">恢复默认</el-button>
+                </div>
+                <span class="field-help">建议上传透明背景的正方形图片；未上传或图片加载失败时自动使用系统默认客服图标。</span>
               </el-form-item>
             </div>
 
@@ -275,6 +302,9 @@ import { ElMessage } from 'element-plus'
 import { getSiteAccessConfig, saveSiteAccessConfig } from '@/api/siteAccess'
 import { checkMiniappTourSource, getTourSourceConfig, saveTourSourceConfig } from '@/api/tourSource'
 import { getCustomerServiceConfig, saveCustomerServiceConfig } from '@/api/customerService'
+import request from '@/utils/request'
+import { getAssetUrl } from '@/utils/siteAssets'
+import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
 import customerServiceIcon from '@/assets/images/customer-service.png'
 
 const route = useRoute()
@@ -282,6 +312,7 @@ const router = useRouter()
 const loading = ref(false)
 const saving = ref(false)
 const checkingSource = ref(false)
+const uploadingCustomerServiceIcon = ref(false)
 
 const form = reactive({
   siteEnabled: true,
@@ -309,7 +340,9 @@ const sourceForm = reactive({
 const customerServiceForm = reactive({
   enabled: false,
   displayName: '在线客服',
+  corpId: '',
   serviceUrl: '',
+  iconUrl: '',
   channelUrls: {}
 })
 
@@ -326,6 +359,35 @@ const customerServiceChannels = [
 ]
 
 const hasDefaultCustomerServiceUrl = computed(() => /^https:\/\/work\.weixin\.qq\.com\/kfid\//i.test(customerServiceForm.serviceUrl || ''))
+const customerServiceIconUrl = computed(() => getAssetUrl(customerServiceForm.iconUrl, customerServiceIcon))
+
+const handleCustomerServiceIconError = event => {
+  if (event?.target && event.target.src !== customerServiceIcon) {
+    event.target.src = customerServiceIcon
+  }
+}
+
+const validateCustomerServiceIcon = file => {
+  if (!isSupportedImageFile(file)) {
+    ElMessage.error(getSupportedImageMessage())
+    return false
+  }
+  return true
+}
+
+const uploadCustomerServiceIcon = async options => {
+  uploadingCustomerServiceIcon.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', options.file)
+    customerServiceForm.iconUrl = await request.upload('/file/upload/img', formData, { showDefaultMsg: false })
+    ElMessage.success('客服图标已上传，请保存设置')
+  } catch (error) {
+    options.onError?.(error)
+  } finally {
+    uploadingCustomerServiceIcon.value = false
+  }
+}
 
 const useMiniappProducts = computed({
   get: () => sourceForm.sourceMode === 'MINIAPP',
@@ -469,7 +531,7 @@ onMounted(loadConfig)
     font-weight: 900;
   }
 
-  span {
+  .hero-copy > span {
     display: inline-block;
     margin-top: 10px;
     color: #64748b;
@@ -487,7 +549,7 @@ onMounted(loadConfig)
   justify-content: flex-end;
   gap: 10px;
   flex: 0 0 auto;
-  max-width: 420px;
+  max-width: 620px;
 }
 
 .site-status-pill {
@@ -520,7 +582,6 @@ onMounted(loadConfig)
     border-radius: 50%;
     background: #16a34a;
     box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.12);
-    transform: translateY(-5px);
   }
 
   strong {
@@ -890,8 +951,24 @@ onMounted(loadConfig)
 
 .customer-service-base-fields {
   display: grid;
-  grid-template-columns: minmax(220px, 0.7fr) minmax(360px, 1.8fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+
+.customer-service-icon-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+
+  img {
+    width: 56px;
+    height: 56px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: #fff;
+    object-fit: contain;
+  }
 }
 
 .channel-settings {

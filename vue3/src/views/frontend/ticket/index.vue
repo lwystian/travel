@@ -423,10 +423,11 @@ const getCardTags = item => {
   const features = parseTags(item?.feature)
   const tags = parseTags(item?.tags)
   const featureSet = new Set(features)
-  return Array.from(new Set([...features, ...tags])).map(text => ({
+  const result = Array.from(new Set([...features, ...tags])).map(text => ({
     text,
     isFeature: featureSet.has(text)
   }))
+  return item?.sourceType === 'MINIAPP' ? result.slice(0, 6) : result
 }
 
 const formatMoreDatesForDisplay = (value) => {

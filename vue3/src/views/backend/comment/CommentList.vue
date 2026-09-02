@@ -2,7 +2,6 @@
   <div class="comment-management">
     <section class="hero-panel">
       <div>
-        <p class="eyebrow">Comment Console</p>
         <h1>评论管理</h1>
         <span>统一管理景点评论与住宿评价，只有审核通过的内容才会在前台展示。</span>
       </div>

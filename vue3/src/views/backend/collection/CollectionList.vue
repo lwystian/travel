@@ -2,7 +2,6 @@
   <div class="collection-management">
     <section class="hero-panel">
       <div>
-        <p class="eyebrow">Collection Console</p>
         <h1>收藏管理</h1>
         <span>统一管理景点、攻略、行程收藏，兼容当前前台收藏业务。</span>
       </div>

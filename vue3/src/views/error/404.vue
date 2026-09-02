@@ -7,7 +7,7 @@
           <span>路线暂未抵达</span>
         </div>
 
-        <p class="eyebrow">404 / PAGE NOT FOUND</p>
+        <p class="eyebrow">404</p>
         <h1 id="not-found-title">这段旅程还没有开放</h1>
         <p class="description">
           你访问的页面可能已迁移、下架，或者地址里有一小段走偏了。

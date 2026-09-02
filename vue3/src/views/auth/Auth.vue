@@ -4,7 +4,6 @@
       <div class="auth-header" v-if="showHeader">
         <div class="logo"><el-icon><Place /></el-icon></div>
         <h1 class="title">侠客行国旅</h1>
-        <div class="subtitle">TRAVEL INFORMATION SYSTEM</div>
       </div>
       
       <el-form :model="formData" :rules="rules" ref="formRef" class="auth-form">

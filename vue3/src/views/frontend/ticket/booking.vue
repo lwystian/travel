@@ -178,7 +178,7 @@
             </tbody>
           </table>
           <div class="list-price-note">
-            <span>※ 日历价格 = 行程套餐价 + 日期附加费，附加费用在结算区单独计算</span>
+            <span>{{ isMiniappCruise ? '※ 房型价格随出发日期变化，以当前所选房型和班期为准' : '※ 日历价格 = 行程套餐价 + 日期附加费，附加费用在结算区单独计算' }}</span>
           </div>
         </div>
       </div>
@@ -280,12 +280,12 @@
 
         <!-- 行程套餐 -->
         <div class="package-row">
-          <span class="package-label">行程套餐：</span>
+          <span class="package-label">{{ isMiniappCruise ? '房型套餐：' : '行程套餐：' }}</span>
           <div class="package-options">
             <button
               v-for="pkg in displayTripPackages"
               :key="pkg.id"
-              :class="['package-btn', { active: selectedPackage === pkg.id }]"
+              :class="['package-btn', { active: selectedPackage === pkg.id, 'batch-package-btn': isMiniappCruise && pkg.description }]"
               @click="selectTripPackage(pkg.id)"
             >
               <span class="package-name">
@@ -305,13 +305,18 @@
                 </span>
               </div>
               <span v-else class="package-date-hint">{{ packageAvailableDateLabel(pkg.id) }}</span>
+              <span v-if="isMiniappCruise && pkg.description" class="package-hover-card" role="tooltip">
+                <span class="package-hover-title">房型说明</span>
+                <span class="package-hover-name">{{ pkg.name }}</span>
+                <span class="package-hover-desc">{{ pkg.description }}</span>
+              </span>
             </button>
-            <span v-if="displayTripPackages.length === 0" class="package-empty">暂无可选行程套餐</span>
+            <span v-if="displayTripPackages.length === 0" class="package-empty">{{ isMiniappCruise ? '暂无可选房型' : '暂无可选行程套餐' }}</span>
           </div>
         </div>
 
         <!-- 附加费用 -->
-        <div class="package-row">
+        <div v-if="!isMiniappCruise" class="package-row">
           <span class="package-label">附加费用：</span>
           <div class="package-options addon-options">
             <div
@@ -357,15 +362,15 @@
         <div class="booking-section">
           <div class="booking-items">
             <div class="booking-item">
-              <span class="booking-label">行程套餐：</span>
+              <span class="booking-label">{{ isMiniappCruise ? '房型套餐：' : '行程套餐：' }}</span>
               <select v-model="selectedTrip" class="booking-select" @change="handleTripSelect">
-                <option value="">请选择行程套餐</option>
+                <option value="">{{ isMiniappCruise ? '请选择房型套餐' : '请选择行程套餐' }}</option>
                 <option v-for="pkg in displayTripPackages" :key="pkg.id" :value="String(pkg.id)">
                   {{ packageSelectLabel(pkg) }}
                 </option>
               </select>
             </div>
-            <div class="booking-item">
+            <div v-if="!isMiniappCruise" class="booking-item">
               <span class="booking-label">附加费用：</span>
               <div class="booking-addon-list">
                 <span v-if="selectedAddonPackages.length === 0" class="booking-addon-empty">未选择</span>
@@ -605,7 +610,6 @@
         <transition name="detail-collapse">
           <div v-show="isTourDetailExpanded" id="tour-detail-content-panel" class="tour-detail-body">
             <aside class="tour-detail-aside">
-              <div class="tour-detail-kicker">Travel Detail</div>
               <h2>{{ activeDetailSection?.title || '行程详细' }}</h2>
               <p>当前展示该行程的{{ activeDetailSection?.title || '详细内容' }}。</p>
               <div class="detail-summary-list">
@@ -627,10 +631,9 @@
             <div class="tour-detail-main">
               <header class="tour-detail-card-head">
                 <div>
-                  <span>Tour Information</span>
                   <h3>{{ activeDetailSection?.title || productInfo.title || '行程安排' }}</h3>
                 </div>
-                <em>{{ productInfo.code || 'Tour' }}</em>
+                <em>{{ productInfo.code || '行程' }}</em>
               </header>
               <article
                 v-if="renderedActiveDetailContent"
@@ -647,7 +650,6 @@
     <section v-if="productReviews.length" class="tour-review-section">
       <header class="tour-review-head">
         <div>
-          <span>Traveler Reviews</span>
           <h2>游客评价</h2>
         </div>
         <strong>{{ productReviews.length }} 条</strong>
@@ -682,7 +684,6 @@
     >
       <section class="booking-dialog-content">
         <header class="booking-dialog-head">
-          <span>Order Preview</span>
           <h2>{{ activeOrderConfirmation.title || '确认订单信息' }}</h2>
           <p>{{ activeOrderConfirmation.subtitle || '请核对行程、出发日期、出行人数与预计金额，提交后将为你锁定当前名额。' }}</p>
         </header>
@@ -698,7 +699,7 @@
             <span>行程套餐</span>
             <strong>{{ selectedTripPackage?.name || '-' }}</strong>
           </div>
-          <div>
+          <div v-if="!isMiniappCruise">
             <span>附加费用</span>
             <strong>{{ addonSummary || '无' }}</strong>
           </div>
@@ -757,7 +758,6 @@
         <div class="success-mark">
           <el-icon><Check /></el-icon>
         </div>
-        <span>Order Created</span>
         <h2>订单创建成功</h2>
         <p>请继续填写联系人与出行人信息，确认无误后即可选择支付方式。</p>
 
@@ -811,7 +811,6 @@
     >
       <section class="booking-dialog-content">
         <header class="booking-dialog-head">
-          <span>Booking Notice</span>
           <h2>{{ bookingPopupNotice?.title || '预订须知' }}</h2>
         </header>
         <article
@@ -928,10 +927,12 @@ const productInfo = ref({
   tourType: '',
   enrolledCount: 0,
   notice: '',
+  isCruise: false,
   detailContent: ''
 })
 
 const isMiniappProduct = computed(() => productInfo.value.sourceType === 'MINIAPP')
+const isMiniappCruise = computed(() => isMiniappProduct.value && Boolean(productInfo.value.isCruise))
 const isInquiryProduct = computed(() => String(productInfo.value.pricingMode).toLowerCase() === 'inquiry')
 
 const parseDetailSections = content => {
@@ -2183,6 +2184,7 @@ const fetchProductDetail = async () => {
           tourType: data.tour.tourType || '',
           enrolledCount: data.tour.enrolledCount || 0,
           notice: data.tour.notice || '',
+          isCruise: Boolean(data.tour.isCruise),
           detailContent: data.tour.detailContent || ''
         }
       }
@@ -2237,7 +2239,8 @@ const fetchProductDetail = async () => {
         adultDiscountLabel: pkg.adultDiscountLabel || '',
         childDiscountLabel: pkg.childDiscountLabel || '',
         adultSavedAmount: pkg.adultSavedAmount || 0,
-        childSavedAmount: pkg.childSavedAmount || 0
+        childSavedAmount: pkg.childSavedAmount || 0,
+        description: pkg.description || ''
       }))
 
       // 批次套餐

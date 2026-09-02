@@ -65,6 +65,37 @@
 
     <!-- 行程列表表格 -->
     <el-card shadow="never" class="table-card">
+      <section v-if="isMiniappMode && tourList.length" class="mini-sort-panel">
+        <header>
+          <div>
+            <strong>前台展示顺序</strong>
+            <span>拖动当前页商品调整官网行程列表顺序，松开后自动保存。</span>
+          </div>
+          <el-tag v-if="miniSortSaving" type="warning" effect="plain">正在保存</el-tag>
+          <el-tag v-else type="success" effect="plain">已同步后端</el-tag>
+        </header>
+        <div class="mini-sort-list">
+          <article
+            v-for="(item, index) in tourList"
+            :key="item.sourceId || item.id"
+            :class="['mini-sort-item', { dragging: miniDraggedIndex === index }]"
+            draggable="true"
+            @dragstart="handleMiniDragStart($event, index)"
+            @dragover.prevent
+            @drop.prevent="handleMiniDrop(index)"
+            @dragend="miniDraggedIndex = -1"
+          >
+            <el-icon class="drag-handle" title="拖动排序"><Rank /></el-icon>
+            <span class="sort-position">{{ (currentPage - 1) * pageSize + index + 1 }}</span>
+            <img :src="item.mainImage" alt="" @error="event => event.target.style.visibility = 'hidden'" />
+            <strong :title="item.title">{{ item.title }}</strong>
+            <el-tag :type="item.websiteVisible ? 'success' : 'info'" size="small">
+              {{ item.websiteVisible ? '官网展示' : '官网隐藏' }}
+            </el-tag>
+          </article>
+        </div>
+      </section>
+
       <el-table :data="tourList" border style="width: 100%" v-loading="loading" header-align="center">
         <el-table-column :label="isMiniappMode ? '小程序ID' : 'ID'" :width="isMiniappMode ? 150 : 70" align="center" header-align="center">
           <template #default="scope">
@@ -194,7 +225,7 @@
           layout="total, sizes, prev, pager, next, jumper"
           :total="total"
           :page-size="pageSize"
-          :page-sizes="[10, 20, 50]"
+          :page-sizes="[10, 20, 50, 100]"
           :current-page="currentPage"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
@@ -381,7 +412,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Refresh, Edit, Delete, Switch, ArrowDown, List } from '@element-plus/icons-vue'
+import { Plus, Search, Refresh, Edit, Delete, Switch, ArrowDown, List, Rank } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import TourDetailManager from './TourDetailManager.vue'
 import { getPublicTourSourceConfig } from '@/api/tourSource'
@@ -584,6 +615,8 @@ const isMiniappMode = ref(false)
 // 行程列表
 const tourList = ref([])
 const loading = ref(false)
+const miniSortSaving = ref(false)
+const miniDraggedIndex = ref(-1)
 
 // 搜索表单
 const searchForm = reactive({
@@ -882,6 +915,51 @@ const handleMiniSortChange = async (row, value, oldValue) => {
     return
   }
   await fetchTours()
+}
+
+const handleMiniDragStart = (event, index) => {
+  if (miniSortSaving.value) {
+    event.preventDefault()
+    return
+  }
+  miniDraggedIndex.value = index
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', String(index))
+  }
+}
+
+const handleMiniDrop = async targetIndex => {
+  const sourceIndex = miniDraggedIndex.value
+  miniDraggedIndex.value = -1
+  if (sourceIndex < 0 || sourceIndex === targetIndex || miniSortSaving.value) return
+
+  const previous = [...tourList.value]
+  const reordered = [...tourList.value]
+  const [moved] = reordered.splice(sourceIndex, 1)
+  reordered.splice(targetIndex, 0, moved)
+  tourList.value = reordered
+  miniSortSaving.value = true
+  try {
+    const startOrder = (currentPage.value - 1) * pageSize.value + 1
+    await request.put('/tour/source-display/reorder', {
+      sourceIds: reordered.map(item => item.sourceId),
+      startOrder
+    }, {
+      showDefaultMsg: false,
+      successMsg: '前台展示顺序已保存'
+    })
+    reordered.forEach((item, index) => {
+      item.sortOrder = startOrder + index
+    })
+    await fetchTours()
+  } catch (error) {
+    tourList.value = previous
+    console.error('保存小程序商品拖拽顺序失败:', error)
+    ElMessage.error('拖拽顺序保存失败，请稍后重试')
+  } finally {
+    miniSortSaving.value = false
+  }
 }
 
 const handleSearchCityChange = (value) => {
@@ -1223,6 +1301,89 @@ onMounted(async () => {
 
   .table-card {
     border-radius: 8px;
+
+    .mini-sort-panel {
+      margin-bottom: 16px;
+      padding: 16px;
+      border: 1px solid #dbeafe;
+      border-radius: 8px;
+      background: #f8fbff;
+
+      > header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 12px;
+
+        > div {
+          display: grid;
+          gap: 4px;
+        }
+
+        strong {
+          color: #1e3a8a;
+        }
+
+        span {
+          color: #64748b;
+          font-size: 13px;
+        }
+      }
+    }
+
+    .mini-sort-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .mini-sort-item {
+      display: grid;
+      grid-template-columns: 28px 34px 48px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 54px;
+      padding: 7px 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: #fff;
+      cursor: grab;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+
+      &:hover {
+        border-color: #93c5fd;
+        box-shadow: 0 5px 14px rgba(37, 99, 235, 0.08);
+      }
+
+      &.dragging {
+        opacity: 0.45;
+      }
+
+      .drag-handle {
+        color: #2563eb;
+        font-size: 20px;
+      }
+
+      .sort-position {
+        color: #64748b;
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+      }
+
+      img {
+        width: 48px;
+        height: 38px;
+        border-radius: 4px;
+        object-fit: cover;
+      }
+
+      > strong {
+        overflow: hidden;
+        color: #1f2937;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
 
     .tour-title {
       display: flex;

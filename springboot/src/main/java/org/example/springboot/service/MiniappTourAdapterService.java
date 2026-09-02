@@ -403,41 +403,56 @@ public class MiniappTourAdapterService {
             String remoteTourId,
             TourProductSourceConfigDTO config) {
         Map<String, Object> summary = adaptSummary(remote);
-        List<Map<String, Object>> remotePackages = mapList(remote.get("packages"));
-        if (remotePackages.isEmpty()) {
-            Map<String, Object> defaultPackage = new LinkedHashMap<>();
-            defaultPackage.put("id", "default");
-            defaultPackage.put("_synthetic", true);
-            defaultPackage.put("name", "标准套餐");
-            defaultPackage.put("price", remote.get("price"));
-            defaultPackage.put("originalPrice", remote.get("originalPrice"));
-            defaultPackage.put("description", remote.get("subtitle"));
-            remotePackages.add(defaultPackage);
-        }
-        List<Map<String, Object>> remoteSchedules = mapList(remote.get("schedules"));
-        List<Map<String, Object>> remoteAddons = mapList(remote.get("addonPackages"));
+        Map<String, Object> cruiseBooking = map(remote.get("cruiseBooking"));
+        CruiseProductAdaptation cruiseProduct = adaptCruiseProduct(cruiseBooking, remote);
 
-        IdRegistry packageIds = new IdRegistry(remotePackages);
-        IdRegistry scheduleIds = new IdRegistry(remoteSchedules);
-        IdRegistry addonIds = new IdRegistry(remoteAddons);
+        List<Map<String, Object>> packages;
+        List<Map<String, Object>> schedules;
+        List<Map<String, Object>> packagePrices;
+        List<Map<String, Object>> addons;
+        List<Map<String, Object>> addonPrices;
+        if (cruiseProduct != null) {
+            packages = cruiseProduct.packages();
+            schedules = cruiseProduct.schedules();
+            packagePrices = cruiseProduct.packagePrices();
+            addons = List.of();
+            addonPrices = List.of();
+        } else {
+            List<Map<String, Object>> remotePackages = mapList(remote.get("packages"));
+            if (remotePackages.isEmpty()) {
+                Map<String, Object> defaultPackage = new LinkedHashMap<>();
+                defaultPackage.put("id", "default");
+                defaultPackage.put("_synthetic", true);
+                defaultPackage.put("name", "标准套餐");
+                defaultPackage.put("price", remote.get("price"));
+                defaultPackage.put("originalPrice", remote.get("originalPrice"));
+                defaultPackage.put("description", remote.get("subtitle"));
+                remotePackages.add(defaultPackage);
+            }
+            List<Map<String, Object>> remoteSchedules = mapList(remote.get("schedules"));
+            List<Map<String, Object>> remoteAddons = mapList(remote.get("addonPackages"));
+            IdRegistry packageIds = new IdRegistry(remotePackages);
+            IdRegistry scheduleIds = new IdRegistry(remoteSchedules);
+            IdRegistry addonIds = new IdRegistry(remoteAddons);
 
-        List<Map<String, Object>> packages = adaptPackages(remotePackages, packageIds, remote);
-        List<Map<String, Object>> schedules = adaptSchedules(remoteSchedules, scheduleIds, packageIds, addonIds);
-        Map<Long, BigDecimal> packageBasePrices = packages.stream().collect(Collectors.toMap(
-                item -> longValue(item.get("id"), 0L),
-                item -> decimal(item.get("adultPrice")),
-                (left, right) -> left,
-                LinkedHashMap::new
-        ));
-        List<Map<String, Object>> packagePrices = adaptPackagePriceItems(
-                mapList(remote.get("packagePriceItems")), packageIds, scheduleIds, packageBasePrices);
-        if (packagePrices.isEmpty()) {
-            packagePrices = synthesizeSchedulePackagePrices(
-                    remotePackages, remoteSchedules, packageIds, scheduleIds, packageBasePrices);
+            packages = adaptPackages(remotePackages, packageIds, remote);
+            schedules = adaptSchedules(remoteSchedules, scheduleIds, packageIds, addonIds);
+            Map<Long, BigDecimal> packageBasePrices = packages.stream().collect(Collectors.toMap(
+                    item -> longValue(item.get("id"), 0L),
+                    item -> decimal(item.get("adultPrice")),
+                    (left, right) -> left,
+                    LinkedHashMap::new
+            ));
+            packagePrices = adaptPackagePriceItems(
+                    mapList(remote.get("packagePriceItems")), packageIds, scheduleIds, packageBasePrices);
+            if (packagePrices.isEmpty()) {
+                packagePrices = synthesizeSchedulePackagePrices(
+                        remotePackages, remoteSchedules, packageIds, scheduleIds, packageBasePrices);
+            }
+            addons = adaptAddons(remoteAddons, addonIds);
+            addonPrices = adaptAddonPriceItems(
+                    mapList(remote.get("addonPriceItems")), addonIds, scheduleIds, packageIds);
         }
-        List<Map<String, Object>> addons = adaptAddons(remoteAddons, addonIds);
-        List<Map<String, Object>> addonPrices = adaptAddonPriceItems(
-                mapList(remote.get("addonPriceItems")), addonIds, scheduleIds, packageIds);
 
         Map<String, Object> tour = new LinkedHashMap<>();
         tour.put("id", summary.get("id"));
@@ -459,7 +474,7 @@ public class MiniappTourAdapterService {
         tour.put("pricingMode", summary.get("pricingMode"));
         tour.put("priceText", summary.get("priceText"));
         tour.put("priceUnit", summary.get("priceUnit"));
-        tour.put("isCruise", !map(remote.get("cruiseBooking")).isEmpty());
+        tour.put("isCruise", !cruiseBooking.isEmpty());
         tour.put("enrolledCount", summary.get("enrolledCount"));
         tour.put("commentCount", summary.get("commentCount"));
         tour.put("score", summary.get("starRating"));
@@ -514,11 +529,130 @@ public class MiniappTourAdapterService {
         result.put("serviceGuarantees", mapList(remote.get("serviceGuarantees")));
         result.put("reviews", mapList(remote.get("reviews")));
         result.put("ticketTypes", mapList(remote.get("ticketTypes")));
-        result.put("cruiseBooking", map(remote.get("cruiseBooking")));
+        result.put("cruiseBooking", cruiseBooking);
         result.put("bookingPopupNotice", map(remote.get("bookingPopupNotice")));
         result.put("orderConfirmation", orderConfirmation(remote));
         result.put("miniappFields", remote);
         return result;
+    }
+
+    private CruiseProductAdaptation adaptCruiseProduct(
+            Map<String, Object> cruiseBooking,
+            Map<String, Object> tour) {
+        List<Map<String, Object>> routes = mapList(cruiseBooking.get("routes"));
+        if (routes.isEmpty()) {
+            return null;
+        }
+
+        Map<String, Map<String, Object>> packageSources = new LinkedHashMap<>();
+        List<Map<String, Object>> scheduleSources = new ArrayList<>();
+        for (Map<String, Object> route : routes) {
+            for (Map<String, Object> schedule : mapList(route.get("schedules"))) {
+                String scheduleId = text(schedule.get("id")).trim();
+                String date = text(schedule.get("date")).trim();
+                if (scheduleId.isBlank() || date.isBlank()) continue;
+
+                for (Map<String, Object> cabin : mapList(schedule.get("cabins"))) {
+                    String cabinId = firstNonBlank(cabin.get("id"), cabin.get("cabinId"));
+                    String scheduleCabinId = firstNonBlank(cabin.get("scheduleCabinId"), cabinId);
+                    if (cabinId.isBlank() || scheduleCabinId.isBlank()) continue;
+
+                    Map<String, Object> packageSource = packageSources.computeIfAbsent(cabinId, key -> {
+                        Map<String, Object> item = new LinkedHashMap<>(cabin);
+                        item.put("id", key);
+                        item.put("name", defaultText(cabin.get("name"), "邮轮房型"));
+                        item.put("description", cruiseCabinDescription(cabin));
+                        return item;
+                    });
+                    BigDecimal currentBasePrice = positiveDecimal(packageSource.get("price"));
+                    BigDecimal cabinPrice = positiveDecimal(cabin.get("price"));
+                    if (currentBasePrice == null || (cabinPrice != null && cabinPrice.compareTo(currentBasePrice) < 0)) {
+                        packageSource.put("price", cabin.get("price"));
+                        packageSource.put("originalPrice", cabin.get("originalPrice"));
+                        packageSource.put("promotion", cabin.get("promotion"));
+                    }
+
+                    Map<String, Object> scheduleSource = new LinkedHashMap<>();
+                    String compositeScheduleId = scheduleId + "::" + scheduleCabinId;
+                    scheduleSource.put("id", compositeScheduleId);
+                    scheduleSource.put("remoteScheduleId", scheduleId);
+                    scheduleSource.put("scheduleCabinId", scheduleCabinId);
+                    scheduleSource.put("date", date);
+                    scheduleSource.put("endDate", schedule.get("endDate"));
+                    scheduleSource.put("status", firstNonNull(cabin.get("status"), schedule.get("status")));
+                    int cabinCapacity = Math.max(integerOrDefault(cabin.get("capacity"), 1), 1);
+                    int availableRooms = Math.max(firstInteger(cabin.get("availableStock"), schedule.get("availableStock")), 0);
+                    int availablePassengerStock = (int) Math.min(
+                            (long) availableRooms * cabinCapacity,
+                            999999L);
+                    scheduleSource.put("stock", availablePassengerStock);
+                    scheduleSource.put("availableStock", availablePassengerStock);
+                    scheduleSource.put("remoteAvailableRooms", availableRooms);
+                    scheduleSource.put("lockedStock", 0);
+                    scheduleSource.put("unlimitedStock", firstNonNull(cabin.get("unlimitedStock"), schedule.get("unlimitedStock")));
+                    scheduleSource.put("packageIds", List.of(cabinId));
+                    scheduleSource.put("_packageSourceId", cabinId);
+                    scheduleSource.put("_priceSourceId", scheduleCabinId);
+                    scheduleSource.put("_cabin", cabin);
+                    scheduleSources.add(scheduleSource);
+                }
+            }
+        }
+        if (packageSources.isEmpty() || scheduleSources.isEmpty()) {
+            return null;
+        }
+
+        List<Map<String, Object>> remotePackages = new ArrayList<>(packageSources.values());
+        IdRegistry packageIds = new IdRegistry(remotePackages);
+        IdRegistry scheduleIds = new IdRegistry(scheduleSources);
+        IdRegistry emptyAddonIds = new IdRegistry(List.of());
+        List<Map<String, Object>> packages = adaptPackages(remotePackages, packageIds, tour);
+        for (Map<String, Object> item : packages) {
+            item.put("childPrice", null);
+            item.put("originalChildPrice", null);
+            item.put("childDiscountLabel", "");
+            item.put("childSavedAmount", BigDecimal.ZERO);
+        }
+        List<Map<String, Object>> schedules = adaptSchedules(
+                scheduleSources, scheduleIds, packageIds, emptyAddonIds);
+
+        Map<Long, BigDecimal> packageBasePrices = packages.stream().collect(Collectors.toMap(
+                item -> longValue(item.get("id"), 0L),
+                item -> decimal(item.get("adultPrice")),
+                (left, right) -> left,
+                LinkedHashMap::new
+        ));
+        List<Map<String, Object>> packagePrices = new ArrayList<>();
+        long nextPriceId = 1;
+        for (Map<String, Object> scheduleSource : scheduleSources) {
+            Long packageId = packageIds.idOrNull(scheduleSource.get("_packageSourceId"));
+            Long batchId = scheduleIds.idOrNull(scheduleSource.get("id"));
+            Map<String, Object> cabin = map(scheduleSource.get("_cabin"));
+            if (packageId == null || batchId == null || cabin.isEmpty()) continue;
+            Map<String, Object> source = new LinkedHashMap<>(cabin);
+            source.put("id", scheduleSource.get("_priceSourceId"));
+            source.put("name", defaultText(cabin.get("name"), "房型价格"));
+            source.put("adultPrice", cabin.get("price"));
+            source.put("originalAdultPrice", cabin.get("originalPrice"));
+            source.put("childPrice", null);
+            source.put("originalChildPrice", null);
+            packagePrices.add(packagePriceItem(
+                    nextPriceId++, source, source, packageId, List.of(batchId), packageBasePrices.get(packageId)));
+        }
+        return new CruiseProductAdaptation(packages, schedules, packagePrices);
+    }
+
+    private String cruiseCabinDescription(Map<String, Object> cabin) {
+        List<String> parts = new ArrayList<>();
+        addLabeledItem(parts, "房型", cabin.get("roomType"));
+        addLabeledItem(parts, "面积", cabin.get("area"));
+        addLabeledItem(parts, "楼层", cabin.get("floor"));
+        addLabeledItem(parts, "可住", cabin.get("capacity"));
+        addLabeledItem(parts, "床型", cabin.get("bedType"));
+        addLabeledItem(parts, "窗型", cabin.get("windowType"));
+        List<String> facilities = stringList(cabin.get("facilities"));
+        if (!facilities.isEmpty()) parts.add("设施：" + String.join("、", facilities));
+        return String.join("；", parts);
     }
 
     private List<Map<String, Object>> adaptPackages(
@@ -945,11 +1079,14 @@ public class MiniappTourAdapterService {
     }
 
     private String resolveFeature(Map<String, Object> remote) {
-        List<String> features = stringList(remote.get("bookingFeatures"));
-        if (!features.isEmpty()) return features.get(0);
+        Set<String> features = new LinkedHashSet<>(stringList(remote.get("bookingFeatures")));
         List<Map<String, Object>> guarantees = mapList(remote.get("serviceGuarantees"));
-        if (!guarantees.isEmpty()) return text(guarantees.get(0).get("title"));
-        return text(remote.get("subtitle"));
+        for (Map<String, Object> guarantee : guarantees) {
+            String title = text(guarantee.get("title")).trim();
+            if (!title.isBlank()) features.add(title);
+        }
+        if (features.isEmpty()) features.addAll(stringList(remote.get("highlights")));
+        return features.isEmpty() ? text(remote.get("subtitle")) : String.join("，", features);
     }
 
     private List<String> displayTags(Map<String, Object> remote) {
@@ -970,30 +1107,41 @@ public class MiniappTourAdapterService {
 
     private String buildDetailContent(Map<String, Object> remote) {
         StringBuilder html = new StringBuilder();
-        appendTextSection(html, "行程简介", productIntroductions(remote));
-        appendRichSection(html, "产品亮点", remote.get("highlightContent"));
-        if (text(remote.get("highlightContent")).isBlank()) {
-            html.append(listSection("产品亮点", mergeStringLists(
-                    remote.get("highlights"), remote.get("recommendedReason"), remote.get("bookingFeatures"))));
+        appendRichOrTextSection(html, "邮轮简介", remote.get("highlightContent"),
+                mergeStringLists(productIntroductions(remote), remote.get("highlights"),
+                        remote.get("recommendedReason"), remote.get("bookingFeatures")));
+
+        if (!text(remote.get("itineraryContent")).isBlank()) {
+            appendRichSection(html, "行程详情", remote.get("itineraryContent"));
+        } else if (!mapList(remote.get("itinerary")).isEmpty()) {
+            appendItinerary(html, "行程详情", mapList(remote.get("itinerary")));
+        } else {
+            appendTextSection(html, "行程详情", List.of("暂无行程详情"));
         }
-        appendTravelProfile(html, remote);
-        appendRichSection(html, "行程安排", remote.get("itineraryContent"));
-        if (text(remote.get("itineraryContent")).isBlank()) {
-            appendItinerary(html, mapList(remote.get("itinerary")));
-        }
-        appendTextSection(html, "行程说明", List.of(text(remote.get("itineraryNotice"))));
-        appendRichSection(html, "费用说明", remote.get("feeContent"));
-        if (text(remote.get("feeContent")).isBlank()) {
-            html.append(listSection("费用包含", stringList(remote.get("feeIncludes"))));
-            html.append(listSection("费用不含", stringList(remote.get("feeExcludes"))));
-        }
-        appendRichSection(html, "预订须知", remote.get("noticeContent"));
-        if (text(remote.get("noticeContent")).isBlank()) {
-            html.append(listSection("预订须知", mergeStringLists(remote.get("purchaseNotice"), remote.get("bookingNotice"))));
-        }
-        html.append(listSection("退订政策", stringList(remote.get("refundPolicy"))));
-        appendGuarantees(html, mapList(remote.get("serviceGuarantees")));
+
+        List<String> feeDetails = new ArrayList<>();
+        for (String item : stringList(remote.get("feeIncludes"))) feeDetails.add("费用包含：" + item);
+        for (String item : stringList(remote.get("feeExcludes"))) feeDetails.add("费用不含：" + item);
+        appendRichOrTextSection(html, "费用详情", remote.get("feeContent"), feeDetails);
+
+        List<String> bookingNotices = mergeStringLists(
+                remote.get("purchaseNotice"), remote.get("bookingNotice"), remote.get("itineraryNotice"));
+        for (String item : stringList(remote.get("refundPolicy"))) bookingNotices.add("退订说明：" + item);
+        appendRichOrTextSection(html, "预订须知", remote.get("noticeContent"), bookingNotices);
         return html.toString();
+    }
+
+    private void appendRichOrTextSection(
+            StringBuilder html,
+            String title,
+            Object richContent,
+            List<String> fallbackContent) {
+        if (!text(richContent).isBlank()) {
+            appendRichSection(html, title, richContent);
+        } else {
+            appendTextSection(html, title,
+                    fallbackContent.isEmpty() ? List.of("暂无" + title) : fallbackContent);
+        }
     }
 
     private List<String> productIntroductions(Map<String, Object> remote) {
@@ -1085,9 +1233,9 @@ public class MiniappTourAdapterService {
         if (!content.isBlank()) items.add(label + "：" + content);
     }
 
-    private void appendItinerary(StringBuilder html, List<Map<String, Object>> itinerary) {
+    private void appendItinerary(StringBuilder html, String sectionTitle, List<Map<String, Object>> itinerary) {
         if (itinerary.isEmpty()) return;
-        html.append("<section><h2>行程安排</h2>");
+        html.append("<section><h2>").append(sectionTitle).append("</h2>");
         for (Map<String, Object> day : itinerary) {
             html.append("<h3>第").append(integerOrDefault(day.get("day"), 1)).append("天 ")
                     .append(HtmlUtils.htmlEscape(text(day.get("title")))).append("</h3>");
@@ -1264,8 +1412,9 @@ public class MiniappTourAdapterService {
     }
 
     private String scheduleStatus(String status, int available) {
-        if (available <= 0 || "full".equalsIgnoreCase(status)) return "已满";
-        if ("closed".equalsIgnoreCase(status) || "expired".equalsIgnoreCase(status)) return "已截止";
+        if (available <= 0 || "full".equalsIgnoreCase(status) || "sold_out".equalsIgnoreCase(status)) return "已满";
+        if ("closed".equalsIgnoreCase(status) || "expired".equalsIgnoreCase(status)
+                || "disabled".equalsIgnoreCase(status)) return "已截止";
         return "可报名";
     }
 
@@ -1450,6 +1599,12 @@ public class MiniappTourAdapterService {
             String searchMode,
             String intentDestination,
             String matchMode) {
+    }
+
+    private record CruiseProductAdaptation(
+            List<Map<String, Object>> packages,
+            List<Map<String, Object>> schedules,
+            List<Map<String, Object>> packagePrices) {
     }
 
     private static final class IdRegistry {

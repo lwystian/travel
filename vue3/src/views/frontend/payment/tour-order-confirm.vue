@@ -16,7 +16,6 @@
     <section v-else-if="order" class="checkout-shell">
       <header class="checkout-hero">
         <div>
-          <span class="eyebrow">Checkout</span>
           <h1>确认订单信息</h1>
           <p>请核对行程、联系人和出行人信息。提交后将进入支付方式选择。</p>
         </div>
@@ -32,7 +31,6 @@
           <article class="panel-card">
             <header class="panel-head">
               <div>
-                <span>Product</span>
                 <strong>行程信息</strong>
               </div>
             </header>
@@ -63,7 +61,6 @@
           <article class="panel-card">
             <header class="panel-head">
               <div>
-                <span>Contact</span>
                 <strong>联系人信息</strong>
               </div>
               <p>用于接收出团通知、合同签署和订单服务提醒。</p>
@@ -81,7 +78,6 @@
           <article class="panel-card">
             <header class="panel-head">
               <div>
-                <span>Travelers</span>
                 <strong>出行人信息</strong>
               </div>
               <el-button type="primary" @click="showAddTravelerDialog">
@@ -152,7 +148,6 @@
         >
           <div ref="summaryCardRef" class="summary-card" :class="{ 'is-fixed': summaryFixed }" :style="summaryFixedStyle">
             <header>
-              <span>Settlement</span>
               <strong>结算信息</strong>
             </header>
             <div class="fee-list">

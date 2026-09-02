@@ -2,7 +2,6 @@
   <div class="asset-config-page">
     <section class="page-hero">
       <div>
-        <p>Site Assets</p>
         <h1>站点素材配置</h1>
         <span>前台品牌、二维码、背景图和默认占位图</span>
       </div>

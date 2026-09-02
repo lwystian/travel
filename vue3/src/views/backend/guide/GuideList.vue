@@ -2,7 +2,6 @@
   <div class="guide-back-list">
     <div class="page-header">
       <h1 class="page-title">攻略管理</h1>
-      <p class="page-subtitle">Travel Guide Management</p>
     </div>
 
     <!-- 搜索区域 -->

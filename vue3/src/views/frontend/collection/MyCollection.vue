@@ -3,7 +3,6 @@
     <section class="page-shell">
       <header class="page-hero">
         <div>
-          <span class="eyebrow">Collection Center</span>
           <h1>我的收藏</h1>
           <p>集中管理已收藏的景点、攻略和行程，快速回到感兴趣的内容。</p>
         </div>

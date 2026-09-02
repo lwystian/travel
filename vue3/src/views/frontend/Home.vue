@@ -383,7 +383,7 @@ const defaultSectionContent = {
     linkUrl: '/guide'
   },
   assurance: {
-    eyebrow: 'Operational Standard',
+    eyebrow: '',
     title: '把旅行服务拆成可确认、可通知、可追踪的业务节点',
     desc: '从信息核验、支付安全到行前通知和售后跟进，每个关键环节都有明确反馈，帮助客户减少等待、降低信息遗漏风险。'
   },

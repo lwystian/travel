@@ -2,7 +2,6 @@
   <div class="footer-config-page">
     <section class="page-hero">
       <div>
-        <p>Site Footer</p>
         <h1>网站页脚配置</h1>
         <span>维护页脚展示状态、企业信息、备案链接、导航链接、二维码、证书和法律说明。</span>
       </div>

@@ -2,7 +2,6 @@
   <div class="recommend-management">
     <div class="page-header">
       <h1 class="page-title">首页推荐管理</h1>
-      <p class="page-subtitle">Homepage Recommendation Management</p>
     </div>
 
     <!-- 操作说明 -->

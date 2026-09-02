@@ -268,6 +268,28 @@ public class TourController {
         ));
     }
 
+    @Operation(summary = "拖拽调整外部行程商品官网顺序")
+    @PutMapping("/source-display/reorder")
+    @OperationLog(operationType = "UPDATE", description = "拖拽调整小程序行程官网顺序", targetType = "行程")
+    public Result<?> reorderSourceDisplay(@RequestBody Map<String, Object> body) {
+        SecurityGuards.requirePermission("tour:manage");
+        Object sourceIdsValue = body.get("sourceIds");
+        if (!(sourceIdsValue instanceof List<?> values)) {
+            throw new ServiceException("拖拽排序商品不能为空");
+        }
+        List<String> sourceIds = values.stream()
+                .map(value -> value == null ? "" : String.valueOf(value).trim())
+                .toList();
+        int startOrder;
+        try {
+            startOrder = body.get("startOrder") == null ? 1 : Integer.parseInt(String.valueOf(body.get("startOrder")));
+        } catch (NumberFormatException ex) {
+            throw new ServiceException("拖拽排序起始值必须是整数");
+        }
+        tourSourceDisplayConfigService.reorder(MiniappTourAdapterService.SOURCE_TYPE, sourceIds, startOrder);
+        return Result.success(Map.of("count", sourceIds.size(), "startOrder", startOrder));
+    }
+
     @Operation(summary = "根据ID获取行程完整详情（包含套餐、批次等）")
     @GetMapping("/{id}/detail")
     public Result<?> getTourDetail(@PathVariable String id) {

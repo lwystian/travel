@@ -8,7 +8,7 @@
     :aria-label="displayName"
     :title="displayName"
   >
-    <img :src="customerServiceIcon" alt="" aria-hidden="true" />
+    <img :src="customerServiceIconUrl" alt="" aria-hidden="true" @error="handleIconError" />
   </a>
 </template>
 
@@ -16,13 +16,16 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { getPublicCustomerServiceConfig } from '@/api/customerService'
+import { getAssetUrl } from '@/utils/siteAssets'
 import customerServiceIcon from '@/assets/images/customer-service.png'
 
 const route = useRoute()
 const config = ref({
   enabled: false,
   displayName: '在线客服',
+  corpId: '',
   serviceUrl: '',
+  iconUrl: '',
   channelUrls: {}
 })
 
@@ -60,7 +63,14 @@ const customerServiceUrl = computed(() => {
 })
 
 const displayName = computed(() => String(config.value.displayName || '在线客服').trim() || '在线客服')
+const customerServiceIconUrl = computed(() => getAssetUrl(config.value.iconUrl, customerServiceIcon))
 const visible = computed(() => config.value.enabled && Boolean(customerServiceUrl.value))
+
+const handleIconError = event => {
+  if (event?.target && event.target.src !== customerServiceIcon) {
+    event.target.src = customerServiceIcon
+  }
+}
 
 const loadCustomerServiceConfig = async () => {
   try {

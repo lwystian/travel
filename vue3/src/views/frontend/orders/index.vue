@@ -3,7 +3,6 @@
     <section class="orders-shell">
       <header class="orders-header">
         <div>
-          <span class="kicker">Order Center</span>
           <h1>我的订单</h1>
           <p>查看行程订单、支付状态、联系人与出行信息。</p>
         </div>

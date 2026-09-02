@@ -3,7 +3,7 @@
     <!-- 页面标题 -->
     <div class="page-header">
       <h1 class="page-title">内容审核管理</h1>
-      <p class="page-subtitle">Content Review Management - 公安备案合规审核</p>
+      <p class="page-subtitle">公安备案合规审核</p>
     </div>
 
     <!-- 统计卡片 -->

@@ -2,7 +2,6 @@
   <div class="scenic-list-container">
     <div class="page-header">
       <h1 class="page-title">景点管理</h1>
-      <p class="page-subtitle">Scenic Spot Management</p>
     </div>
 
     <!-- 操作按钮 -->

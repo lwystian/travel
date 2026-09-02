@@ -4,12 +4,14 @@ import jakarta.annotation.Resource;
 import org.example.springboot.exception.ServiceException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashSet;
 
 @Service
 public class TourSourceDisplayConfigService {
@@ -66,6 +68,35 @@ public class TourSourceDisplayConfigService {
                     `sort_order` = VALUES(`sort_order`),
                     `update_time` = CURRENT_TIMESTAMP
                 """, normalizedType, normalizedTourId, visible ? 1 : 0, sortOrder);
+    }
+
+    @Transactional
+    public void reorder(String sourceType, List<String> sourceTourIds, int startOrder) {
+        String normalizedType = text(sourceType);
+        if (normalizedType.isBlank() || normalizedType.length() > 20) {
+            throw new ServiceException("商品来源无效");
+        }
+        if (sourceTourIds == null || sourceTourIds.isEmpty() || sourceTourIds.size() > 500) {
+            throw new ServiceException("拖拽排序商品数量无效");
+        }
+        LinkedHashSet<String> normalizedIds = new LinkedHashSet<>();
+        for (String sourceTourId : sourceTourIds) {
+            String normalizedId = text(sourceTourId);
+            if (normalizedId.isBlank() || normalizedId.length() > 255 || !normalizedIds.add(normalizedId)) {
+                throw new ServiceException("拖拽排序商品编号无效");
+            }
+        }
+        int sortOrder = startOrder;
+        for (String sourceTourId : normalizedIds) {
+            jdbcTemplate.update("""
+                    INSERT INTO `tour_source_display_config`
+                        (`source_type`, `source_tour_id`, `visible`, `sort_order`)
+                    VALUES (?, ?, 1, ?)
+                    ON DUPLICATE KEY UPDATE
+                        `sort_order` = VALUES(`sort_order`),
+                        `update_time` = CURRENT_TIMESTAMP
+                    """, normalizedType, sourceTourId, sortOrder++);
+        }
     }
 
     public Comparator<Map<String, Object>> defaultComparator() {

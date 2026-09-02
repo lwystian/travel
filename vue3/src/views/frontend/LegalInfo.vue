@@ -2,7 +2,6 @@
   <main class="legal-page">
     <section class="legal-hero" :style="legalHeroStyle">
       <div class="legal-hero__content">
-        <p>Trust Center</p>
         <template v-if="editMode">
           <el-input v-model="currentPage.title" class="legal-edit-title" maxlength="60" placeholder="页面标题" />
           <el-input v-model="currentPage.summary" type="textarea" :rows="2" maxlength="220" show-word-limit placeholder="页面摘要" />

@@ -3,7 +3,6 @@
     <!-- 页面标题 -->
     <div class="page-header">
       <h1 class="page-title">用户管理</h1>
-      <p class="page-subtitle">User Management</p>
     </div>
 
     <!-- 操作按钮 -->

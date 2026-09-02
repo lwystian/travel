@@ -2,7 +2,6 @@
   <div class="coupon-admin">
     <section class="coupon-hero">
       <div>
-        <span>Coupon Center</span>
         <h2>优惠券管理</h2>
         <p>配置满减、折扣、适用行程与发放范围，发券后用户会收到站内信提醒。</p>
       </div>

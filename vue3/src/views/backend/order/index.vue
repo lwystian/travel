@@ -2,7 +2,6 @@
   <div class="order-management">
     <div class="page-header">
       <h1 class="page-title">订单管理</h1>
-      <p class="page-subtitle">Order Management</p>
     </div>
 
     <!-- 搜索表单 -->

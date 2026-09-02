@@ -3,7 +3,6 @@
     <div class="page-header-wrapper">
       <div class="page-header">
         <div class="header-content">
-          <div class="eyebrow">Account Center</div>
           <h1 class="page-title">个人中心</h1>
           <p class="page-subtitle">管理展示资料、登录手机号与邮箱验证信息</p>
         </div>
@@ -78,7 +77,6 @@
                   <section class="profile-card profile-editor">
                     <div class="section-heading">
                       <div>
-                        <span>Profile</span>
                         <h3>展示资料</h3>
                       </div>
                       <p>昵称会显示在评论、攻略和个人中心中，账号标识仅用于系统兼容与审计。</p>
@@ -109,7 +107,6 @@
                   <section class="profile-card security-panel">
                     <div class="section-heading">
                       <div>
-                        <span>Security</span>
                         <h3>账号绑定</h3>
                       </div>
                       <p>邮箱和手机号需要先完成极验验证，再通过验证码确认绑定或更换。</p>
@@ -169,7 +166,6 @@
                       <el-icon><Lock /></el-icon>
                     </div>
                     <div>
-                      <span>Security Check</span>
                       <h3 class="password-title">修改登录密码</h3>
                       <p class="password-desc">修改前需要完成极验，并验证当前绑定手机号。</p>
                     </div>
@@ -248,7 +244,6 @@
               <div class="traveler-center">
                 <section class="traveler-hero">
                   <div>
-                    <span>Travelers</span>
                     <h3>常用出行人</h3>
                     <p>维护本人或同行人的实名资料，预订行程时可直接选择，避免重复填写。</p>
                   </div>
@@ -392,7 +387,6 @@
               <div class="coupon-center">
                 <section class="coupon-head">
                   <div>
-                    <span>Coupons</span>
                     <h3>优惠券包</h3>
                     <p>领取平台优惠券，预订行程时系统会自动筛选当前订单可用券。</p>
                   </div>

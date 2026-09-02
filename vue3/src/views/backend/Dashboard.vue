@@ -2,7 +2,6 @@
   <div class="dashboard-workbench">
     <section class="hero-panel">
       <div class="hero-copy">
-        <p class="eyebrow">Management Console</p>
         <h1>{{ greeting }}，{{ displayName }}</h1>
         <p class="hero-desc">围绕订单履约、内容审核、产品维护和系统配置开展日常运营。</p>
         <div class="hero-meta">
@@ -47,7 +46,6 @@
       <article class="panel module-panel">
         <div class="panel-header">
           <div>
-            <p class="eyebrow">Workflow</p>
             <h2>日常运营入口</h2>
           </div>
         </div>
@@ -74,7 +72,6 @@
       <article class="panel standard-panel">
         <div class="panel-header">
           <div>
-            <p class="eyebrow">Standard</p>
             <h2>推荐处理顺序</h2>
           </div>
         </div>
@@ -94,7 +91,6 @@
     <section class="panel system-panel">
       <div class="panel-header">
         <div>
-          <p class="eyebrow">Configuration</p>
           <h2>系统与官网配置</h2>
         </div>
       </div>

@@ -16,7 +16,6 @@
     <section v-else-if="order" class="pay-shell">
       <header class="pay-hero">
         <div>
-          <span class="eyebrow">Secure Payment</span>
           <h1>选择支付方式</h1>
           <p>请确认订单金额与支付方式，系统将通过当前窗口跳转至支付渠道。</p>
         </div>
@@ -32,7 +31,6 @@
           <article class="panel-card">
             <header class="panel-head">
               <div>
-                <span>Order</span>
                 <strong>订单信息</strong>
               </div>
               <code>{{ order.orderNo }}</code>
@@ -69,7 +67,6 @@
           <article class="panel-card">
             <header class="panel-head">
               <div>
-                <span>Payment Method</span>
                 <strong>支付方式</strong>
               </div>
             </header>
@@ -104,7 +101,6 @@
         <aside class="amount-panel">
           <div class="amount-card">
             <header>
-              <span>Payable</span>
               <strong>支付确认</strong>
             </header>
             <div class="amount-value">
