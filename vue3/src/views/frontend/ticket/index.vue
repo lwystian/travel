@@ -248,14 +248,15 @@
             <span class="row-more">{{ item.displayDates }}</span>
           </div>
 
-          <div class="card-row feature-row" v-if="item.feature">
-            <span class="row-label">班期特色：</span>
-            <span class="row-feature">{{ item.feature }}</span>
-          </div>
-
           <!-- 标签组 -->
-          <div class="card-tags" v-if="item.tags && item.tags.length">
-            <span class="card-tag" v-for="tag in item.tags" :key="tag">{{ tag }}</span>
+          <div class="card-tags" v-if="getCardTags(item).length">
+            <span
+              v-for="tag in getCardTags(item)"
+              :key="tag.text"
+              :class="['card-tag', { 'feature-tag': tag.isFeature }]"
+            >
+              {{ tag.text }}
+            </span>
           </div>
         </div>
 
@@ -335,13 +336,14 @@
                   <span class="row-more">{{ item.displayDates }}</span>
                 </div>
 
-                <div class="card-row feature-row" v-if="item.feature">
-                  <span class="row-label">班期特色：</span>
-                  <span class="row-feature">{{ item.feature }}</span>
-                </div>
-
-                <div class="card-tags" v-if="item.tags && item.tags.length">
-                  <span class="card-tag" v-for="tag in item.tags" :key="tag">{{ tag }}</span>
+                <div class="card-tags" v-if="getCardTags(item).length">
+                  <span
+                    v-for="tag in getCardTags(item)"
+                    :key="tag.text"
+                    :class="['card-tag', { 'feature-tag': tag.isFeature }]"
+                  >
+                    {{ tag.text }}
+                  </span>
                 </div>
               </div>
 
@@ -415,6 +417,16 @@ const parseTags = (tags) => {
     return tags.split(/[,\s，、]+/).map(t => t.trim()).filter(Boolean)
   }
   return []
+}
+
+const getCardTags = item => {
+  const features = parseTags(item?.feature)
+  const tags = parseTags(item?.tags)
+  const featureSet = new Set(features)
+  return Array.from(new Set([...features, ...tags])).map(text => ({
+    text,
+    isFeature: featureSet.has(text)
+  }))
 }
 
 const formatMoreDatesForDisplay = (value) => {
@@ -1592,28 +1604,6 @@ onMounted(() => {
   color: #333;
 }
 
-.feature-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: 4px;
-}
-
-.feature-row .row-feature {
-  color: #f60;
-  min-width: 0;
-  word-break: break-word;
-  white-space: normal;
-  line-height: 1.42;
-  max-height: 2.84em;
-  text-align: left;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .card-tags {
   display: flex;
   flex-wrap: wrap;
@@ -1629,6 +1619,13 @@ onMounted(() => {
   background: #fff5f0;
   border-radius: 12px;
   border: 1px solid #ffe0c0;
+}
+
+.card-tag.feature-tag {
+  border-color: #ffb27a;
+  background: #fff7ed;
+  color: #e85d04;
+  font-weight: 600;
 }
 
 /* 右侧价格区域 - 底部对齐 */

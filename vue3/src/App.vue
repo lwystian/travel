@@ -1,5 +1,5 @@
 <template>
-  <div v-if="shouldCheckAccess && !accessReady" class="site-access-preflight">
+  <div v-if="shouldCheckAccess && (!accessReady || mobileRedirectPending)" class="site-access-preflight">
     <div>
       <span></span>
       <strong>正在检查访问状态</strong>
@@ -18,17 +18,20 @@
     :support-qr-image-url="resolvedSupportQrImage"
   />
   <router-view v-else />
+  <CustomerServiceFloat v-if="showGlobalCustomerService" />
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import SiteAccessNotice from '@/components/frontend/SiteAccessNotice.vue'
+import CustomerServiceFloat from '@/components/frontend/CustomerServiceFloat.vue'
 import { getPublicSiteAccessConfig } from '@/api/siteAccess'
 import noImage from '@/assets/images/no-image.png'
 
 const route = useRoute()
 const baseAPI = process.env.VUE_APP_BASE_API || '/api'
+const mobileSiteUrl = process.env.VUE_APP_MOBILE_SITE_URL || 'https://m.xkxtravel.com'
 const ACCESS_CONFIG_CACHE_TTL = 5 * 60 * 1000
 const accessReady = ref(false)
 const accessLoadedAt = ref(0)
@@ -63,6 +66,13 @@ const isMobileDevice = () => {
   return uaMatched || iPadDesktopMode || (coarsePointer && noHover && smallViewport)
 }
 
+const mobileRedirectPending = computed(() => {
+  return shouldCheckAccess.value
+    && accessReady.value
+    && accessConfig.rejectMobile
+    && isMobileDevice()
+})
+
 const accessBlock = computed(() => {
   if (isBackendOrAuthRoute.value) {
     return { blocked: false }
@@ -76,16 +86,14 @@ const accessBlock = computed(() => {
       contact: accessConfig.closedContact
     }
   }
-  if (accessConfig.rejectMobile && isMobileDevice()) {
-    return {
-      blocked: true,
-      mode: 'mobile',
-      title: accessConfig.mobileTitle,
-      message: accessConfig.mobileMessage,
-      contact: accessConfig.mobileContact
-    }
-  }
   return { blocked: false }
+})
+
+const showGlobalCustomerService = computed(() => {
+  return accessReady.value
+    && !mobileRedirectPending.value
+    && !accessBlock.value.blocked
+    && !route.path.startsWith('/back')
 })
 
 const resolvedSupportQrImage = computed(() => {
@@ -117,6 +125,11 @@ const loadSiteAccess = async () => {
     accessReady.value = true
   }
 }
+
+watch(mobileRedirectPending, shouldRedirect => {
+  if (!shouldRedirect || window.location.hostname === 'm.xkxtravel.com') return
+  window.location.replace(mobileSiteUrl)
+}, { immediate: true })
 
 onMounted(loadSiteAccess)
 watch(() => route.fullPath, loadSiteAccess)

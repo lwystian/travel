@@ -575,8 +575,14 @@
           :style="detailNavFixedStyle"
         >
           <nav class="detail-nav-tabs" aria-label="行程详情目录">
-            <button class="detail-nav-tab active" type="button" @click="isTourDetailExpanded = true">
-              行程详细
+            <button
+              v-for="section in detailSections"
+              :key="section.key"
+              :class="['detail-nav-tab', { active: section.key === activeDetailSectionKey }]"
+              type="button"
+              @click="selectDetailSection(section.key)"
+            >
+              {{ section.title }}
             </button>
           </nav>
           <div class="detail-nav-tools">
@@ -600,8 +606,8 @@
           <div v-show="isTourDetailExpanded" id="tour-detail-content-panel" class="tour-detail-body">
             <aside class="tour-detail-aside">
               <div class="tour-detail-kicker">Travel Detail</div>
-              <h2>行程详细</h2>
-              <p>清晰查看每日安排、费用说明、注意事项与补充信息。</p>
+              <h2>{{ activeDetailSection?.title || '行程详细' }}</h2>
+              <p>当前展示该行程的{{ activeDetailSection?.title || '详细内容' }}。</p>
               <div class="detail-summary-list">
                 <div>
                   <span>天数</span>
@@ -621,12 +627,16 @@
             <div class="tour-detail-main">
               <header class="tour-detail-card-head">
                 <div>
-                  <span>Itinerary</span>
-                  <h3>{{ productInfo.title || '行程安排' }}</h3>
+                  <span>Tour Information</span>
+                  <h3>{{ activeDetailSection?.title || productInfo.title || '行程安排' }}</h3>
                 </div>
                 <em>{{ productInfo.code || 'Tour' }}</em>
               </header>
-              <article v-if="renderedDetailContent" class="tour-detail-content content-display" v-html="renderedDetailContent"></article>
+              <article
+                v-if="renderedActiveDetailContent"
+                :class="['tour-detail-content', 'content-display', { 'miniapp-detail-content': isMiniappProduct }]"
+                v-html="renderedActiveDetailContent"
+              ></article>
               <div v-else class="tour-detail-empty">暂无行程详细内容</div>
             </div>
           </div>
@@ -921,9 +931,49 @@ const productInfo = ref({
   detailContent: ''
 })
 
-const renderedDetailContent = computed(() => renderContent(productInfo.value.detailContent))
 const isMiniappProduct = computed(() => productInfo.value.sourceType === 'MINIAPP')
 const isInquiryProduct = computed(() => String(productInfo.value.pricingMode).toLowerCase() === 'inquiry')
+
+const parseDetailSections = content => {
+  const source = String(content || '').trim()
+  const fallback = [{ key: 'detail', title: '行程详细', content: source }]
+  if (!source || !isMiniappProduct.value || typeof DOMParser === 'undefined') return fallback
+
+  const documentNode = new DOMParser().parseFromString(`<main id="tour-detail-root">${source}</main>`, 'text/html')
+  const root = documentNode.getElementById('tour-detail-root')
+  if (!root) return fallback
+
+  const sections = Array.from(root.children)
+    .filter(element => element.tagName === 'SECTION')
+    .map((section, index) => {
+      const titleElement = Array.from(section.children)
+        .find(element => /^H[1-6]$/.test(element.tagName))
+      const title = titleElement?.textContent?.trim()
+      if (!title) return null
+
+      const contentElement = section.cloneNode(true)
+      const clonedTitle = Array.from(contentElement.children)
+        .find(element => /^H[1-6]$/.test(element.tagName))
+      clonedTitle?.remove()
+      return {
+        key: `section-${index}`,
+        title,
+        content: contentElement.innerHTML.trim()
+      }
+    })
+    .filter(section => section?.content)
+
+  return sections.length ? sections : fallback
+}
+
+const detailSections = computed(() => parseDetailSections(productInfo.value.detailContent))
+const activeDetailSectionKey = ref('detail')
+const activeDetailSection = computed(() => {
+  return detailSections.value.find(section => section.key === activeDetailSectionKey.value)
+    || detailSections.value[0]
+    || null
+})
+const renderedActiveDetailContent = computed(() => renderContent(activeDetailSection.value?.content || ''))
 
 const productTags = ref([])
 const productFeatures = ref([])
@@ -2545,6 +2595,11 @@ const showRefundPolicy = () => {
   refundPolicyVisible.value = true
 }
 
+const selectDetailSection = key => {
+  activeDetailSectionKey.value = key
+  isTourDetailExpanded.value = true
+}
+
 // 监听视频源变化，重新加载视频
 watch(videoUrl, (newUrl) => {
   if (newUrl && videoPlayer.value) {
@@ -2557,6 +2612,12 @@ watch(isTourDetailExpanded, () => {
     requestDetailNavPositionUpdate()
   })
 })
+
+watch(detailSections, sections => {
+  if (!sections.some(section => section.key === activeDetailSectionKey.value)) {
+    activeDetailSectionKey.value = sections[0]?.key || 'detail'
+  }
+}, { immediate: true })
 
 // =============================================
 // 生命周期
@@ -2874,6 +2935,30 @@ onUnmounted(() => {
   flex: 1;
   padding: 30px;
   color: #333;
+}
+
+.miniapp-detail-content :deep(img) {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  object-fit: contain;
+}
+
+.miniapp-detail-content :deep(p),
+.miniapp-detail-content :deep(li) {
+  text-align: justify !important;
+  text-justify: inter-ideograph;
+}
+
+.miniapp-detail-content :deep(ul) {
+  margin-left: 0;
+  list-style: none !important;
+}
+
+.miniapp-detail-content :deep(ul > li) {
+  display: block;
+  padding-left: 0;
+  list-style: none !important;
 }
 
 .tour-detail-empty {

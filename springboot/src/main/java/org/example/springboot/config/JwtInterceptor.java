@@ -38,6 +38,7 @@ public class JwtInterceptor implements HandlerInterceptor {
             "/api/seo",
             "/api/search",
             "/api/site/access/public",
+            "/api/site/customer-service/public",
             "/api/site/tour-source/public",
             "/api/site/assets/public",
             "/api/site/footer/public",

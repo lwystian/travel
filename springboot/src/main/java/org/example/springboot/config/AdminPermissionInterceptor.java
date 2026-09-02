@@ -165,6 +165,7 @@ public class AdminPermissionInterceptor implements HandlerInterceptor {
                 || path.equals("/api/payment-config/enabled")
                 || path.equals("/api/tour-order-pay/methods")
                 || path.startsWith("/api/site/access/public")
+                || path.startsWith("/api/site/customer-service/public")
                 || path.startsWith("/api/site/tour-source/public")
                 || path.startsWith("/api/site/assets/public")
                 || path.startsWith("/api/site/footer/public")

@@ -150,40 +150,28 @@
         <div v-else class="control-card">
           <div class="card-head">
             <div>
-              <h2>一键拒绝移动端访问</h2>
-              <span>开启后手机、平板等移动端访问前台时会看到桌面访问提示，电脑端不受影响。</span>
+              <h2>移动端自动跳转</h2>
+              <span>开启后手机、平板访问官网前台时会自动进入移动站，电脑端和后台管理不受影响。</span>
             </div>
             <el-switch
               v-model="form.rejectMobile"
               size="large"
               inline-prompt
-              active-text="拒绝"
-              inactive-text="允许"
+              active-text="跳转"
+              inactive-text="直访"
             />
           </div>
 
           <div class="preview-box" :class="{ warning: form.rejectMobile }">
-            <strong>{{ form.rejectMobile ? form.mobileTitle : '当前移动端允许访问' }}</strong>
-            <span>{{ form.rejectMobile ? form.mobileMessage : '用户可通过电脑、手机和平板访问前台页面。' }}</span>
+            <strong>{{ form.rejectMobile ? '移动端将进入专用站点' : '当前移动端直接访问 PC 官网' }}</strong>
+            <span>{{ form.rejectMobile ? '目标地址：https://m.xkxtravel.com' : '用户可通过电脑、手机和平板访问同一套官网页面。' }}</span>
           </div>
-
-          <el-form label-position="top" class="copy-form">
-            <el-form-item label="移动端提示标题">
-              <el-input v-model="form.mobileTitle" maxlength="40" show-word-limit />
-            </el-form-item>
-            <el-form-item label="移动端提示说明">
-              <el-input v-model="form.mobileMessage" type="textarea" :rows="4" maxlength="180" show-word-limit />
-            </el-form-item>
-            <el-form-item label="移动端提示联系文案">
-              <el-input v-model="form.mobileContact" maxlength="120" show-word-limit />
-            </el-form-item>
-          </el-form>
         </div>
 
-        <div v-if="activeTab === 'site-access' || activeTab === 'device-access'" class="support-config">
+        <div v-if="activeTab === 'site-access'" class="support-config">
           <div class="support-head">
             <h2>客服入口设置</h2>
-            <span>用于网站关闭和移动端拒绝页面。可填写企业微信、微信客服、企微活码、二维码图片或客服凭证。</span>
+            <span>用于网站关闭提示页。可填写企业微信、微信客服、企微活码、二维码图片或客服凭证。</span>
           </div>
           <el-form label-position="top" class="copy-form">
             <el-form-item label="按钮文字">
@@ -273,7 +261,9 @@ const activeTab = computed(() => {
 
 const saveHint = computed(() => activeTab.value === 'tour-source'
   ? '切换为小程序商品前请先测试连接；保存后商品与库存立即切换，官网订单和支付流程保持不变。'
-  : '保存后配置会立即对前台生效，请确认提示文案准确、客服渠道可用。')
+  : activeTab.value === 'device-access'
+    ? '开启后移动设备会自动跳转至移动站，电脑端官网和后台管理保持原样。'
+    : '保存后配置会立即对前台生效，请确认提示文案准确、客服渠道可用。')
 
 const switchTab = (key) => {
   const pathMap = {
