@@ -623,6 +623,19 @@ CREATE TABLE `tour_batch` (
   KEY `idx_tour_id` (`tour_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE `tour_source_display_config` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '配置ID',
+  `source_type` varchar(20) NOT NULL COMMENT '商品来源 LOCAL/MINIAPP',
+  `source_tour_id` varchar(255) NOT NULL COMMENT '外部商品ID',
+  `visible` tinyint(1) NOT NULL DEFAULT '1' COMMENT '官网是否展示',
+  `sort_order` int NOT NULL DEFAULT '0' COMMENT '官网展示排序，数值越小越靠前',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tour_source_display` (`source_type`,`source_tour_id`),
+  KEY `idx_tour_source_display_sort` (`source_type`,`visible`,`sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='外部行程商品官网展示配置';
+
 CREATE TABLE `tour_collection` (
   `id` bigint NOT NULL AUTO_INCREMENT ,
   `user_id` bigint NOT NULL ,

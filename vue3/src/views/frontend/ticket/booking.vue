@@ -6,7 +6,7 @@
         <!-- 主图/主视频区域 -->
         <div class="main-image-container">
           <!-- 有视频时显示视频播放器 -->
-          <div v-if="hasVideo" class="video-container">
+          <div v-if="activeMedia.type === 'video'" class="video-container">
             <video
               ref="videoPlayer"
               :key="videoUrl"
@@ -28,7 +28,7 @@
           <!-- 没有视频时显示图片 -->
           <img
             v-else
-            :src="currentImage"
+            :src="activeMedia.url || currentImage"
             alt="产品图片"
             class="main-image"
             @error="handleImageError"
@@ -634,6 +634,35 @@
       </div>
     </section>
 
+    <section v-if="productReviews.length" class="tour-review-section">
+      <header class="tour-review-head">
+        <div>
+          <span>Traveler Reviews</span>
+          <h2>游客评价</h2>
+        </div>
+        <strong>{{ productReviews.length }} 条</strong>
+      </header>
+      <div class="tour-review-list">
+        <article v-for="review in productReviews" :key="review.id" class="tour-review-item">
+          <div class="tour-review-meta">
+            <strong>{{ review.nickname || '匿名游客' }}</strong>
+            <el-rate :model-value="Number(review.rating || 0)" disabled />
+            <span>{{ review.createdAt || '' }}</span>
+          </div>
+          <p>{{ review.content || '用户未填写文字评价' }}</p>
+          <div v-if="review.images?.length" class="tour-review-images">
+            <img
+              v-for="image in review.images"
+              :key="image"
+              :src="image"
+              alt="游客评价图片"
+              @error="handleImageError"
+            />
+          </div>
+        </article>
+      </div>
+    </section>
+
     <el-dialog
       v-model="bookingConfirmVisible"
       width="720px"
@@ -644,9 +673,15 @@
       <section class="booking-dialog-content">
         <header class="booking-dialog-head">
           <span>Order Preview</span>
-          <h2>确认订单信息</h2>
-          <p>请核对行程、出发日期、出行人数与预计金额，提交后将为你锁定当前名额。</p>
+          <h2>{{ activeOrderConfirmation.title || '确认订单信息' }}</h2>
+          <p>{{ activeOrderConfirmation.subtitle || '请核对行程、出发日期、出行人数与预计金额，提交后将为你锁定当前名额。' }}</p>
         </header>
+
+        <article
+          v-if="renderedOrderConfirmationContent"
+          class="order-confirmation-content content-display"
+          v-html="renderedOrderConfirmationContent"
+        ></article>
 
         <div class="booking-dialog-grid">
           <div>
@@ -689,7 +724,14 @@
 
       <template #footer>
         <el-button @click="bookingConfirmVisible = false" :disabled="bookingSubmitting">返回修改</el-button>
-        <el-button type="primary" @click="confirmCreateOrder" :loading="bookingSubmitting">确认提交</el-button>
+        <el-button
+          v-if="activeOrderConfirmation.contactText"
+          @click="viewSupplier"
+          :disabled="bookingSubmitting"
+        >{{ activeOrderConfirmation.contactText }}</el-button>
+        <el-button type="primary" @click="confirmCreateOrder" :loading="bookingSubmitting">
+          {{ activeOrderConfirmation.confirmText || '确认提交' }}
+        </el-button>
       </template>
     </el-dialog>
 
@@ -748,6 +790,31 @@
     >
       <article v-if="renderedRefundPolicyContent" class="refund-policy-content content-display" v-html="renderedRefundPolicyContent"></article>
       <div v-else class="tour-detail-empty">暂无退订政策</div>
+    </el-dialog>
+
+    <el-dialog
+      v-model="bookingNoticeVisible"
+      width="680px"
+      align-center
+      :close-on-click-modal="false"
+      class="booking-modern-dialog"
+    >
+      <section class="booking-dialog-content">
+        <header class="booking-dialog-head">
+          <span>Booking Notice</span>
+          <h2>{{ bookingPopupNotice?.title || '预订须知' }}</h2>
+        </header>
+        <article
+          v-if="renderedBookingNoticeContent"
+          class="booking-notice-content content-display"
+          v-html="renderedBookingNoticeContent"
+        ></article>
+      </section>
+      <template #footer>
+        <el-button type="primary" @click="bookingNoticeVisible = false">
+          {{ bookingPopupNotice?.confirmText || '我已了解' }}
+        </el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -865,6 +932,28 @@ const supplierInfo = ref({ name: '' })
 const refundPolicy = ref({ support: '', special: '' })
 const refundPolicyVisible = ref(false)
 const renderedRefundPolicyContent = computed(() => renderContent(refundPolicy.value?.content || ''))
+const productReviews = ref([])
+const bookingPopupNotice = ref(null)
+const bookingNoticeVisible = ref(false)
+const sourceOrderConfirmation = ref({
+  enabled: false,
+  title: '',
+  subtitle: '',
+  content: '',
+  contactText: '',
+  confirmText: ''
+})
+const activeOrderConfirmation = computed(() =>
+  isMiniappProduct.value && sourceOrderConfirmation.value.enabled
+    ? sourceOrderConfirmation.value
+    : { enabled: false, title: '', subtitle: '', content: '', contactText: '', confirmText: '' }
+)
+const renderedOrderConfirmationContent = computed(() =>
+  renderContent(activeOrderConfirmation.value.content || '')
+)
+const renderedBookingNoticeContent = computed(() =>
+  renderContent(bookingPopupNotice.value?.content || '')
+)
 const isTourCollected = ref(false)
 const favoriteLoading = ref(false)
 const isTourDetailExpanded = ref(true)
@@ -901,6 +990,13 @@ const currentImage = computed(() => {
     return productImages.value.main[currentImageIndex.value] || productImages.value.main[0] || ''
   }
   return mediaList.value[currentImageIndex.value] || noImage
+})
+
+const activeMedia = computed(() => {
+  if (hasVideo.value) {
+    return mediaList.value[currentMediaIndex.value] || mediaList.value[0] || { type: 'image', url: noImage }
+  }
+  return { type: 'image', url: currentImage.value }
 })
 
 const handleImageError = event => {
@@ -1160,7 +1256,7 @@ const getMinPriceCandidate = (type) => {
       const hasBookableBatch = normalizeBatchIds(item.batchIds).some(id => bookableBatchIds.has(id))
       if (!hasBookableBatch) return
       const packagePrice = Number(item[priceKey])
-      if (!Number.isFinite(packagePrice) || packagePrice < 0) return
+      if (!Number.isFinite(packagePrice) || packagePrice < 0 || (isChild && packagePrice === 0)) return
       const originalPrice = hasPromotion(item[originalKey], item[priceKey]) ? Number(item[originalKey]) : 0
       const amountSaved = savedAmount(originalPrice, packagePrice)
       if (!best || packagePrice < best.salePrice || (packagePrice === best.salePrice && amountSaved > best.savedAmount)) {
@@ -1177,7 +1273,7 @@ const getMinPriceCandidate = (type) => {
     }
     if (pkg[priceKey] === null || pkg[priceKey] === undefined) return
     const packagePrice = Number(pkg[priceKey])
-    if (!Number.isFinite(packagePrice) || packagePrice < 0) return
+    if (!Number.isFinite(packagePrice) || packagePrice < 0 || (isChild && packagePrice === 0)) return
 
     const availableBatches = bookableBatches.filter(batch => isPackageAvailableForBatch(batch, pkg.id))
     let dateExtraFees = availableBatches.map(batch => Number(batch[extraKey] || 0))
@@ -1217,19 +1313,31 @@ const minChildCandidate = computed(() => {
   return getMinPriceCandidate('child')
 })
 
-const minAdultPrice = computed(() => minAdultCandidate.value?.salePrice ?? Number(productInfo.value.minPrice || 0))
+const effectiveMinAdultCandidate = computed(() => {
+  const candidate = minAdultCandidate.value
+  const summaryPrice = Number(productInfo.value.minPrice || 0)
+  if (candidate && (candidate.salePrice > 0 || summaryPrice <= 0)) return candidate
+  return {
+    salePrice: summaryPrice,
+    originalPrice: Number(productInfo.value.minOriginalPrice || 0),
+    discountLabel: productInfo.value.minDiscountLabel || '',
+    savedAmount: Number(productInfo.value.minSavedAmount || 0)
+  }
+})
+
+const minAdultPrice = computed(() => effectiveMinAdultCandidate.value.salePrice)
 
 const minChildPrice = computed(() => minChildCandidate.value?.salePrice ?? 0)
 
-const minAdultOriginalPrice = computed(() => minAdultCandidate.value?.originalPrice || 0)
+const minAdultOriginalPrice = computed(() => effectiveMinAdultCandidate.value.originalPrice || 0)
 
 const minChildOriginalPrice = computed(() => minChildCandidate.value?.originalPrice || 0)
 
-const minAdultDiscountLabel = computed(() => minAdultCandidate.value?.discountLabel || '')
+const minAdultDiscountLabel = computed(() => effectiveMinAdultCandidate.value.discountLabel || '')
 
 const minChildDiscountLabel = computed(() => minChildCandidate.value?.discountLabel || '')
 
-const minAdultSavedAmount = computed(() => minAdultCandidate.value?.savedAmount || 0)
+const minAdultSavedAmount = computed(() => effectiveMinAdultCandidate.value.savedAmount || 0)
 
 const minChildSavedAmount = computed(() => minChildCandidate.value?.savedAmount || 0)
 
@@ -1982,6 +2090,17 @@ const fetchProductDetail = async () => {
   }
 
   loading.value = true
+  bookingNoticeVisible.value = false
+  bookingPopupNotice.value = null
+  productReviews.value = []
+  sourceOrderConfirmation.value = {
+    enabled: false,
+    title: '',
+    subtitle: '',
+    content: '',
+    contactText: '',
+    confirmText: ''
+  }
 
   try {
     const res = await getTourDetailFull(productId)
@@ -2042,6 +2161,19 @@ const fetchProductDetail = async () => {
 
       // 退订政策
       refundPolicy.value = data.refundPolicy || { support: '', special: '' }
+      productReviews.value = Array.isArray(data.reviews) ? data.reviews : []
+      bookingPopupNotice.value = data.bookingPopupNotice?.content || data.bookingPopupNotice?.title
+        ? data.bookingPopupNotice
+        : null
+      bookingNoticeVisible.value = Boolean(bookingPopupNotice.value)
+      sourceOrderConfirmation.value = {
+        enabled: Boolean(data.orderConfirmation?.enabled),
+        title: data.orderConfirmation?.title || '',
+        subtitle: data.orderConfirmation?.subtitle || '',
+        content: data.orderConfirmation?.content || '',
+        contactText: data.orderConfirmation?.contactText || '',
+        confirmText: data.orderConfirmation?.confirmText || ''
+      }
 
       // 行程套餐
       tripPackages.value = (data.tripPackages || []).map(pkg => ({
@@ -2129,12 +2261,21 @@ const fetchProductDetail = async () => {
       if (data.video && data.video.url && data.video.enabled === 1) {
         hasVideo.value = true
         videoUrl.value = data.video.url
-        mediaList.value = data.images?.thumbnails?.map((thumb, idx) => ({
+        const poster = data.video.poster || data.images?.main?.[0] || noImage
+        const imageMedia = (data.images?.thumbnails || []).map((thumb, idx) => ({
+          type: 'image',
+          url: data.images.main?.[idx] || thumb,
           thumbnail: thumb,
-          poster: data.images.main[idx] || thumb
-        })) || []
+          poster: data.images.main?.[idx] || thumb
+        }))
+        mediaList.value = [
+          { type: 'video', url: data.video.url, thumbnail: poster, poster },
+          ...imageMedia
+        ]
+        currentMediaIndex.value = 0
       } else {
         hasVideo.value = false
+        videoUrl.value = ''
       }
 
       // 设置日历默认月份为最早有行程的月份
@@ -2742,6 +2883,93 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   background: #fbfcff;
+}
+
+.tour-review-section {
+  width: min(var(--frontend-container-safe-width), var(--page-max-width));
+  margin: 0 auto;
+  padding: 0 0 72px;
+  box-sizing: border-box;
+}
+
+.tour-review-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 0 16px;
+  border-bottom: 1px solid #e4e7ec;
+}
+
+.tour-review-head span {
+  color: #f60;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tour-review-head h2 {
+  margin: 5px 0 0;
+  color: #101828;
+  font-size: 24px;
+}
+
+.tour-review-head > strong {
+  color: #667085;
+  font-size: 14px;
+}
+
+.tour-review-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding-top: 16px;
+}
+
+.tour-review-item {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.tour-review-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tour-review-meta strong {
+  color: #1d2939;
+  font-size: 14px;
+}
+
+.tour-review-meta > span {
+  margin-left: auto;
+  color: #98a2b3;
+  font-size: 12px;
+}
+
+.tour-review-item > p {
+  margin: 12px 0 0;
+  color: #475467;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.tour-review-images {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.tour-review-images img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 .detail-collapse-enter-active,
@@ -3949,6 +4177,16 @@ onUnmounted(() => {
   .main-content {
     flex-direction: column;
   }
+  .tour-review-section {
+    padding: 0 12px 46px;
+  }
+  .tour-review-list {
+    grid-template-columns: 1fr;
+  }
+  .tour-review-meta > span {
+    width: 100%;
+    margin-left: 0;
+  }
   .detail-nav {
     align-items: stretch;
     gap: 8px;
@@ -4535,6 +4773,16 @@ onUnmounted(() => {
   color: #667085;
   font-size: 14px;
   line-height: 1.7;
+}
+
+.order-confirmation-content,
+.booking-notice-content {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid #e4eaf3;
+  border-radius: 8px;
+  background: #fff;
+  color: #475467;
 }
 
 .booking-dialog-grid {

@@ -13,12 +13,14 @@ import org.example.springboot.exception.ServiceException;
 import org.example.springboot.security.SecurityGuards;
 import org.example.springboot.service.MiniappTourAdapterService;
 import org.example.springboot.service.TourProductSourceConfigService;
+import org.example.springboot.service.TourSourceDisplayConfigService;
 import org.example.springboot.service.TourService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 @Tag(name = "行程管理接口")
@@ -35,6 +37,9 @@ public class TourController {
 
     @Resource
     private TourProductSourceConfigService tourProductSourceConfigService;
+
+    @Resource
+    private TourSourceDisplayConfigService tourSourceDisplayConfigService;
 
     @Operation(summary = "分页查询行程")
     @GetMapping("/page")
@@ -58,6 +63,10 @@ public class TourController {
         boolean canIncludeInactive = Boolean.TRUE.equals(includeInactive);
         if (canIncludeInactive) {
             SecurityGuards.requirePermission("tour:manage");
+        }
+        if (canIncludeInactive && useMiniappSource()) {
+            return Result.success(miniappTourAdapterService.getManageTourPage(
+                    effectiveKeyword, tourType, city, destination, currentPage, pageSize));
         }
         if (!canIncludeInactive && useMiniappSource()) {
             return Result.success(withCatalogFallback(
@@ -232,6 +241,31 @@ public class TourController {
             return Result.success(miniappTourAdapterService.getTourDetail(id).get("tour"));
         }
         return Result.success(tourService.getTourById(parseLocalTourId(id)));
+    }
+
+    @Operation(summary = "更新外部行程商品的官网展示配置")
+    @PutMapping("/source-display")
+    @OperationLog(operationType = "UPDATE", description = "更新小程序行程官网展示配置", targetType = "行程")
+    public Result<?> updateSourceDisplay(@RequestBody Map<String, Object> body) {
+        SecurityGuards.requirePermission("tour:manage");
+        String sourceId = body.get("sourceId") == null ? "" : String.valueOf(body.get("sourceId")).trim();
+        Object visibleValue = body.get("visible");
+        boolean visible = visibleValue instanceof Boolean value
+                ? value
+                : "1".equals(String.valueOf(visibleValue))
+                    || "true".equalsIgnoreCase(String.valueOf(visibleValue));
+        int sortOrder;
+        try {
+            sortOrder = body.get("sortOrder") == null ? 0 : Integer.parseInt(String.valueOf(body.get("sortOrder")));
+        } catch (NumberFormatException ex) {
+            throw new ServiceException("排序值必须是整数");
+        }
+        tourSourceDisplayConfigService.save(MiniappTourAdapterService.SOURCE_TYPE, sourceId, visible, sortOrder);
+        return Result.success(Map.of(
+                "sourceId", sourceId,
+                "visible", visible,
+                "sortOrder", sortOrder
+        ));
     }
 
     @Operation(summary = "根据ID获取行程完整详情（包含套餐、批次等）")

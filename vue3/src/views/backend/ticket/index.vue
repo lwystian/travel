@@ -2,10 +2,10 @@
   <div class="tour-management">
     <div class="page-header">
       <h1 class="page-title">行程管理</h1>
-      <p class="page-subtitle">Tour Product Management</p>
+      <p class="page-subtitle">{{ isMiniappMode ? '小程序商品展示管理' : '本地行程商品管理' }}</p>
     </div>
 
-    <div class="action-bar">
+    <div v-if="!isMiniappMode" class="action-bar">
       <div class="action-right">
         <el-button type="primary" @click="showAddDialog" class="add-btn">
           <el-icon><Plus /></el-icon> 添加行程
@@ -66,7 +66,13 @@
     <!-- 行程列表表格 -->
     <el-card shadow="never" class="table-card">
       <el-table :data="tourList" border style="width: 100%" v-loading="loading" header-align="center">
-        <el-table-column prop="id" label="ID" width="70" align="center" header-align="center" />
+        <el-table-column :label="isMiniappMode ? '小程序ID' : 'ID'" :width="isMiniappMode ? 150 : 70" align="center" header-align="center">
+          <template #default="scope">
+            <span class="source-id" :title="String(scope.row.sourceId || scope.row.id)">
+              {{ scope.row.sourceId || scope.row.id }}
+            </span>
+          </template>
+        </el-table-column>
         <el-table-column prop="code" label="行程编号" width="120" align="center" header-align="center">
           <template #default="scope">
             <el-tag v-if="scope.row.code" size="small" effect="plain">{{ scope.row.code }}</el-tag>
@@ -109,7 +115,8 @@
         </el-table-column>
         <el-table-column label="最低价" width="100" align="center" header-align="center">
           <template #default="scope">
-            <span class="price">¥{{ scope.row.minPrice }}</span>
+            <span v-if="scope.row.pricingMode === 'inquiry'" class="muted-text">客服咨询</span>
+            <span v-else class="price">¥{{ scope.row.minPrice }}</span>
           </template>
         </el-table-column>
         <el-table-column label="评分" width="80" align="center" header-align="center">
@@ -122,14 +129,38 @@
             <el-tag v-for="tag in parseTags(scope.row.tags)" :key="tag" size="small" style="margin-right: 4px; margin-bottom: 2px;">{{ tag }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="80" align="center" header-align="center">
+        <el-table-column :label="isMiniappMode ? '小程序状态' : '状态'" width="100" align="center" header-align="center">
           <template #default="scope">
-            <el-tag :type="scope.row.status === 1 ? 'success' : 'info'">
-              {{ scope.row.status === 1 ? '上架' : '下架' }}
+            <el-tag :type="(isMiniappMode ? scope.row.sourceStatus : scope.row.status) === 1 ? 'success' : 'info'">
+              {{ (isMiniappMode ? scope.row.sourceStatus : scope.row.status) === 1 ? '上架' : '下架' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right" align="center" header-align="center">
+        <el-table-column v-if="isMiniappMode" label="官网排序" width="145" align="center" header-align="center">
+          <template #default="scope">
+            <el-input-number
+              v-model="scope.row.sortOrder"
+              :min="-9999"
+              :max="9999"
+              :step="1"
+              size="small"
+              controls-position="right"
+              style="width: 105px;"
+              :disabled="scope.row.displaySaving"
+              @change="(value, oldValue) => handleMiniSortChange(scope.row, value, oldValue)"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column v-if="isMiniappMode" label="官网展示" width="105" fixed="right" align="center" header-align="center">
+          <template #default="scope">
+            <el-switch
+              v-model="scope.row.websiteVisible"
+              :loading="scope.row.displaySaving"
+              @change="value => handleMiniVisibilityChange(scope.row, value)"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column v-else label="操作" width="100" fixed="right" align="center" header-align="center">
           <template #default="scope">
             <el-dropdown trigger="click" @command="(cmd) => handleAction(cmd, scope.row)">
               <el-button type="primary" size="small">
@@ -173,6 +204,7 @@
 
     <!-- 添加/编辑行程对话框 -->
     <el-dialog
+      v-if="!isMiniappMode"
       :title="isEdit ? '编辑行程' : '添加行程'"
       v-model="dialogVisible"
       width="75%"
@@ -338,6 +370,7 @@
 
     <!-- 预订详情管理对话框 -->
     <TourDetailManager
+      v-if="!isMiniappMode"
       v-model="detailDialogVisible"
       :tour-id="detailManagerTourId"
       :tour-title="detailManagerTourTitle"
@@ -351,6 +384,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Refresh, Edit, Delete, Switch, ArrowDown, List } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import TourDetailManager from './TourDetailManager.vue'
+import { getPublicTourSourceConfig } from '@/api/tourSource'
 import { tourTypeOptions, getTourTypeLabel } from '@/utils/tourTypes'
 import { getSupportedImageMessage, isSupportedImageFile } from '@/utils/imageCompression'
 import { chinaRegionOptions, regionCascaderProps, getRegionKeyword, getRegionLabel, findRegionPath, selectRegionOnExpand } from '@/utils/chinaRegion'
@@ -545,6 +579,7 @@ const getDestinationLabel = (dest) => {
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+const isMiniappMode = ref(false)
 
 // 行程列表
 const tourList = ref([])
@@ -793,13 +828,16 @@ const fetchTours = async () => {
         tourList.value = (res.records || []).map(item => ({
           ...item,
           moreDates: formatMoreDatesForDisplay(item.moreDates),
-          tags: parseTags(item.tags)
+          tags: parseTags(item.tags),
+          websiteVisible: item.websiteVisible !== false,
+          displaySaving: false
         }))
         total.value = res.total || 0
       }
     })
   } catch (error) {
     console.error('获取行程列表失败:', error)
+    ElMessage.error('获取行程列表失败，请检查小程序接口状态')
   } finally {
     loading.value = false
   }
@@ -809,6 +847,41 @@ const getCityLabel = (city) => {
   if (!city) return '-'
   const normalizedCity = String(city).trim()
   return cityMap[normalizedCity] || legacyLocationMap[normalizedCity] || normalizedCity
+}
+
+const saveMiniDisplay = async (row, successMsg) => {
+  row.displaySaving = true
+  try {
+    await request.put('/tour/source-display', {
+      sourceId: row.sourceId,
+      visible: row.websiteVisible,
+      sortOrder: Number(row.sortOrder || 0)
+    }, {
+      showDefaultMsg: false,
+      successMsg
+    })
+    return true
+  } catch (error) {
+    console.error('保存小程序商品官网展示配置失败:', error)
+    ElMessage.error('官网展示配置保存失败，请稍后重试')
+    return false
+  } finally {
+    row.displaySaving = false
+  }
+}
+
+const handleMiniVisibilityChange = async (row, value) => {
+  const saved = await saveMiniDisplay(row, value ? '已在官网展示' : '已从官网隐藏')
+  if (!saved) row.websiteVisible = !value
+}
+
+const handleMiniSortChange = async (row, value, oldValue) => {
+  const saved = await saveMiniDisplay(row, '官网排序已更新')
+  if (!saved) {
+    row.sortOrder = oldValue ?? 0
+    return
+  }
+  await fetchTours()
 }
 
 const handleSearchCityChange = (value) => {
@@ -1072,8 +1145,15 @@ const submitForm = async () => {
   })
 }
 
-onMounted(() => {
-  fetchTours()
+onMounted(async () => {
+  try {
+    const config = await getPublicTourSourceConfig()
+    isMiniappMode.value = config?.sourceMode === 'MINIAPP'
+  } catch (error) {
+    console.error('获取行程商品来源失败:', error)
+    ElMessage.warning('暂时无法识别行程商品来源，请刷新后重试')
+  }
+  await fetchTours()
 })
 </script>
 
@@ -1160,6 +1240,17 @@ onMounted(() => {
     .price {
       color: #f56c6c;
       font-weight: 600;
+    }
+
+    .source-id {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .muted-text {
+      color: #909399;
     }
 
     .action-buttons {

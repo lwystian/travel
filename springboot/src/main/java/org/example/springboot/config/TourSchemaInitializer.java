@@ -42,6 +42,7 @@ public class TourSchemaInitializer {
         addColumn("tour_order", "source_package_price_item_id", "ALTER TABLE `tour_order` ADD COLUMN `source_package_price_item_id` VARCHAR(255) DEFAULT NULL COMMENT '外部套餐价格项ID' AFTER `source_schedule_id`");
         addIndex("tour_order", "idx_tour_order_batch_id", "ALTER TABLE `tour_order` ADD INDEX `idx_tour_order_batch_id` (`batch_id`)");
         addIndex("tour_order", "idx_tour_order_source", "ALTER TABLE `tour_order` ADD INDEX `idx_tour_order_source` (`source_type`, `source_tour_id`, `source_schedule_id`)");
+        initTourSourceDisplayConfigTable();
         addColumn("tour_order", "package_price_item_id", "ALTER TABLE `tour_order` ADD COLUMN `package_price_item_id` BIGINT DEFAULT NULL COMMENT '套餐价格项ID' AFTER `package_name`");
         addColumn("tour_order", "addon_items", "ALTER TABLE `tour_order` ADD COLUMN `addon_items` TEXT DEFAULT NULL COMMENT '附加费用明细JSON' AFTER `batch_package_name`");
         addColumn("tour_order", "addon_summary", "ALTER TABLE `tour_order` ADD COLUMN `addon_summary` VARCHAR(500) DEFAULT NULL COMMENT '附加费用摘要' AFTER `addon_items`");
@@ -54,6 +55,27 @@ public class TourSchemaInitializer {
         initTourCodeSequenceTable();
         seedTourCodeSequences();
         addUniqueIndex("uk_tour_code", "ALTER TABLE `tour` ADD UNIQUE INDEX `uk_tour_code` (`code`)");
+    }
+
+    private void initTourSourceDisplayConfigTable() {
+        try {
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS `tour_source_display_config` (
+                      `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '配置ID',
+                      `source_type` VARCHAR(20) NOT NULL COMMENT '商品来源 LOCAL/MINIAPP',
+                      `source_tour_id` VARCHAR(255) NOT NULL COMMENT '外部商品ID',
+                      `visible` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '官网是否展示',
+                      `sort_order` INT NOT NULL DEFAULT 0 COMMENT '官网展示排序，数值越小越靠前',
+                      `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                      `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                      PRIMARY KEY (`id`),
+                      UNIQUE KEY `uk_tour_source_display` (`source_type`, `source_tour_id`),
+                      KEY `idx_tour_source_display_sort` (`source_type`, `visible`, `sort_order`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='外部行程商品官网展示配置'
+                    """);
+        } catch (Exception e) {
+            LOGGER.warn("Initialize tour source display config table failed", e);
+        }
     }
 
     private void initPriceItemTables() {

@@ -53,6 +53,9 @@ public class MiniappTourAdapterService {
     @Resource
     private MiniappInventoryService miniappInventoryService;
 
+    @Resource
+    private TourSourceDisplayConfigService displayConfigService;
+
     private final RestTemplate restTemplate;
     private volatile List<Map<String, Object>> summaryCache = List.of();
     private volatile String summaryCacheApiBaseUrl = "";
@@ -85,6 +88,28 @@ public class MiniappTourAdapterService {
                 priceRange, searchMode, intentDestination, matchMode);
         List<Map<String, Object>> tours = filterTours(loadAdaptedSummaries(), query, null);
         sortTours(tours, sortType);
+
+        long current = currentPage == null || currentPage < 1 ? 1 : currentPage;
+        long size = pageSize == null || pageSize < 1 ? 10 : Math.min(pageSize, 100);
+        long total = tours.size();
+        int from = (int) Math.min((current - 1) * size, total);
+        int to = (int) Math.min(from + size, total);
+        Page<Map<String, Object>> page = new Page<>(current, size, total);
+        page.setRecords(new ArrayList<>(tours.subList(from, to)));
+        return page;
+    }
+
+    public Page<Map<String, Object>> getManageTourPage(
+            String keyword,
+            String tourType,
+            String city,
+            String destination,
+            Integer currentPage,
+            Integer pageSize) {
+        RemoteQuery query = new RemoteQuery(keyword, tourType, city, destination,
+                "", "", "", "", "", "");
+        List<Map<String, Object>> tours = filterTours(loadAdaptedSummaries(true), query, null);
+        sortTours(tours, "default");
 
         long current = currentPage == null || currentPage < 1 ? 1 : currentPage;
         long size = pageSize == null || pageSize < 1 ? 10 : Math.min(pageSize, 100);
@@ -175,6 +200,9 @@ public class MiniappTourAdapterService {
 
     public Map<String, Object> getTourDetail(String encodedId) {
         String remoteId = decodeTourId(encodedId);
+        if (!displayConfigService.isVisible(SOURCE_TYPE, remoteId)) {
+            throw new ServiceException("行程不存在或已停止展示");
+        }
         TourProductSourceConfigDTO config = configService.getConfig();
         Map<String, Object> remote = getObjectData(buildUri(config.getMiniappApiBaseUrl(), "/tours/detail", Map.of("id", remoteId)));
         normalizeRemoteAssets(remote, config.getMiniappApiBaseUrl());
@@ -222,7 +250,15 @@ public class MiniappTourAdapterService {
         summaryFailureBackoffUntil = 0L;
     }
 
-    private synchronized List<Map<String, Object>> loadAdaptedSummaries() {
+    private List<Map<String, Object>> loadAdaptedSummaries() {
+        return loadAdaptedSummaries(false);
+    }
+
+    private List<Map<String, Object>> loadAdaptedSummaries(boolean includeHidden) {
+        return displayConfigService.apply(SOURCE_TYPE, loadCachedAdaptedSummaries(), includeHidden);
+    }
+
+    private synchronized List<Map<String, Object>> loadCachedAdaptedSummaries() {
         TourProductSourceConfigDTO config = configService.getConfig();
         long now = System.currentTimeMillis();
         boolean sameSource = config.getMiniappApiBaseUrl().equals(summaryCacheApiBaseUrl);
@@ -366,6 +402,7 @@ public class MiniappTourAdapterService {
             Map<String, Object> remote,
             String remoteTourId,
             TourProductSourceConfigDTO config) {
+        Map<String, Object> summary = adaptSummary(remote);
         List<Map<String, Object>> remotePackages = mapList(remote.get("packages"));
         if (remotePackages.isEmpty()) {
             Map<String, Object> defaultPackage = new LinkedHashMap<>();
@@ -386,16 +423,22 @@ public class MiniappTourAdapterService {
 
         List<Map<String, Object>> packages = adaptPackages(remotePackages, packageIds, remote);
         List<Map<String, Object>> schedules = adaptSchedules(remoteSchedules, scheduleIds, packageIds, addonIds);
+        Map<Long, BigDecimal> packageBasePrices = packages.stream().collect(Collectors.toMap(
+                item -> longValue(item.get("id"), 0L),
+                item -> decimal(item.get("adultPrice")),
+                (left, right) -> left,
+                LinkedHashMap::new
+        ));
         List<Map<String, Object>> packagePrices = adaptPackagePriceItems(
-                mapList(remote.get("packagePriceItems")), packageIds, scheduleIds);
+                mapList(remote.get("packagePriceItems")), packageIds, scheduleIds, packageBasePrices);
         if (packagePrices.isEmpty()) {
-            packagePrices = synthesizeSchedulePackagePrices(remotePackages, remoteSchedules, packageIds, scheduleIds);
+            packagePrices = synthesizeSchedulePackagePrices(
+                    remotePackages, remoteSchedules, packageIds, scheduleIds, packageBasePrices);
         }
         List<Map<String, Object>> addons = adaptAddons(remoteAddons, addonIds);
         List<Map<String, Object>> addonPrices = adaptAddonPriceItems(
                 mapList(remote.get("addonPriceItems")), addonIds, scheduleIds, packageIds);
 
-        Map<String, Object> summary = adaptSummary(remote);
         Map<String, Object> tour = new LinkedHashMap<>();
         tour.put("id", summary.get("id"));
         tour.put("sourceType", SOURCE_TYPE);
@@ -420,23 +463,30 @@ public class MiniappTourAdapterService {
         tour.put("enrolledCount", summary.get("enrolledCount"));
         tour.put("commentCount", summary.get("commentCount"));
         tour.put("score", summary.get("starRating"));
+        tour.put("recommendDate", summary.get("recommendDate"));
+        tour.put("moreDates", summary.get("moreDates"));
+        tour.put("difficulty", remote.get("difficulty"));
         tour.put("groupSizeText", remote.get("groupSizeText"));
         tour.put("ageRange", remote.get("ageRange"));
         tour.put("suitableFor", stringList(remote.get("suitableFor")));
+        tour.put("travelerLimit", integer(remote.get("travelerLimit")));
         tour.put("notice", joinNotices(remote));
         tour.put("detailContent", buildDetailContent(remote));
 
-        List<String> images = stringList(remote.get("images"));
-        String cover = text(remote.get("cover"));
-        if (!cover.isBlank() && !images.contains(cover)) {
-            images.add(0, cover);
-        }
+        Map<String, Object> mediaInfo = adaptMedia(remote);
+        @SuppressWarnings("unchecked")
+        List<String> images = (List<String>) mediaInfo.get("images");
         Map<String, Object> imageInfo = new LinkedHashMap<>();
         imageInfo.put("main", images);
         imageInfo.put("thumbnails", new ArrayList<>(images));
 
+        List<String> introductions = productIntroductions(remote);
         List<String> features = mergeStringLists(
                 remote.get("highlights"), remote.get("bookingFeatures"), remote.get("recommendedReason"));
+        for (Map<String, Object> guarantee : mapList(remote.get("serviceGuarantees"))) {
+            String title = text(guarantee.get("title")).trim();
+            if (!title.isBlank() && !features.contains(title)) features.add(title);
+        }
         Map<String, Object> refundPolicy = new LinkedHashMap<>();
         List<String> refundItems = stringList(remote.get("refundPolicy"));
         refundPolicy.put("support", refundItems.isEmpty() ? "按商品规则退订" : refundItems.get(0));
@@ -449,7 +499,7 @@ public class MiniappTourAdapterService {
         result.put("tour", tour);
         result.put("tags", displayTags(remote));
         result.put("features", features);
-        result.put("featureText", String.join("，", features));
+        result.put("featureText", featureText(introductions, features));
         result.put("supplier", Map.of("name", "小程序统一商品"));
         result.put("refundPolicy", refundPolicy);
         result.put("tripPackages", packages);
@@ -458,10 +508,13 @@ public class MiniappTourAdapterService {
         result.put("addonPriceItems", addonPrices);
         result.put("batchDates", schedules);
         result.put("images", imageInfo);
-        result.put("video", Map.of("url", "", "poster", "", "enabled", 0));
+        result.put("video", mediaInfo.get("video"));
         result.put("availableHotels", List.of());
         result.put("stats", mapList(remote.get("stats")));
         result.put("serviceGuarantees", mapList(remote.get("serviceGuarantees")));
+        result.put("reviews", mapList(remote.get("reviews")));
+        result.put("ticketTypes", mapList(remote.get("ticketTypes")));
+        result.put("cruiseBooking", map(remote.get("cruiseBooking")));
         result.put("bookingPopupNotice", map(remote.get("bookingPopupNotice")));
         result.put("orderConfirmation", orderConfirmation(remote));
         result.put("miniappFields", remote);
@@ -475,8 +528,8 @@ public class MiniappTourAdapterService {
         List<Map<String, Object>> result = new ArrayList<>();
         for (Map<String, Object> source : remotePackages) {
             Map<String, Object> promotion = map(source.get("promotion"));
-            BigDecimal adultPrice = decimalOrDefault(source.get("price"), decimal(tour.get("price")));
-            BigDecimal childPrice = nullableDecimal(source.get("childPrice"));
+            BigDecimal adultPrice = effectiveFixedPrice(source.get("price"), tour.get("price"));
+            BigDecimal childPrice = positiveDecimal(source.get("childPrice"));
             BigDecimal originalAdultPrice = discountOriginal(
                     firstNonNull(source.get("originalPrice"), source.get("originalAdultPrice")), adultPrice);
             BigDecimal originalChildPrice = discountOriginal(source.get("originalChildPrice"), childPrice);
@@ -539,7 +592,7 @@ public class MiniappTourAdapterService {
             item.put("packageIds", mappedPackageIds);
             item.put("addonIds", mappedAddonIds);
             item.put("adultPrice", decimal(source.get("adultPrice")));
-            item.put("childPrice", nullableDecimal(source.get("childPrice")));
+            item.put("childPrice", positiveDecimal(source.get("childPrice")));
             item.put("originalAdultPrice", positiveDecimal(source.get("originalAdultPrice")));
             item.put("originalChildPrice", positiveDecimal(source.get("originalChildPrice")));
             item.put("singleRoomDiff", decimal(source.get("singleRoomDiff")));
@@ -559,7 +612,8 @@ public class MiniappTourAdapterService {
     private List<Map<String, Object>> adaptPackagePriceItems(
             List<Map<String, Object>> remoteItems,
             IdRegistry packageIds,
-            IdRegistry scheduleIds) {
+            IdRegistry scheduleIds,
+            Map<Long, BigDecimal> packageBasePrices) {
         List<Map<String, Object>> result = new ArrayList<>();
         long nextId = 1;
         for (Map<String, Object> source : remoteItems) {
@@ -574,12 +628,14 @@ public class MiniappTourAdapterService {
                     if (batchId == null) {
                         continue;
                     }
-                    result.add(packagePriceItem(nextId++, source, map(entry.getValue()), packageId, List.of(batchId)));
+                    result.add(packagePriceItem(nextId++, source, map(entry.getValue()), packageId,
+                            List.of(batchId), packageBasePrices.get(packageId)));
                 }
             } else {
                 List<Long> batchIds = mapRelatedIds(source.get("scheduleIds"), scheduleIds);
                 if (batchIds.isEmpty()) batchIds = scheduleIds.allIds();
-                result.add(packagePriceItem(nextId++, source, source, packageId, batchIds));
+                result.add(packagePriceItem(nextId++, source, source, packageId,
+                        batchIds, packageBasePrices.get(packageId)));
             }
         }
         return result;
@@ -590,11 +646,13 @@ public class MiniappTourAdapterService {
             Map<String, Object> source,
             Map<String, Object> price,
             Long packageId,
-            List<Long> batchIds) {
+            List<Long> batchIds,
+            BigDecimal fallbackAdultPrice) {
         Map<String, Object> promotion = map(price.get("promotion"));
         if (promotion.isEmpty()) promotion = map(source.get("promotion"));
-        BigDecimal adultPrice = decimal(price.get("adultPrice"));
-        BigDecimal childPrice = nullableDecimal(price.get("childPrice"));
+        BigDecimal adultPrice = effectiveFixedPrice(
+                firstNonNull(price.get("adultPrice"), price.get("price")), fallbackAdultPrice);
+        BigDecimal childPrice = positiveDecimal(price.get("childPrice"));
         BigDecimal originalAdultPrice = discountOriginal(price.get("originalAdultPrice"), adultPrice);
         BigDecimal originalChildPrice = discountOriginal(price.get("originalChildPrice"), childPrice);
         Map<String, Object> item = new LinkedHashMap<>();
@@ -620,7 +678,8 @@ public class MiniappTourAdapterService {
             List<Map<String, Object>> remotePackages,
             List<Map<String, Object>> remoteSchedules,
             IdRegistry packageIds,
-            IdRegistry scheduleIds) {
+            IdRegistry scheduleIds,
+            Map<Long, BigDecimal> packageBasePrices) {
         List<Map<String, Object>> result = new ArrayList<>();
         long nextId = 1;
         for (Map<String, Object> schedule : remoteSchedules) {
@@ -644,7 +703,8 @@ public class MiniappTourAdapterService {
                 price.put("originalAdultPrice", firstNonNull(schedule.get("originalAdultPrice"), pkg.get("originalPrice")));
                 price.put("originalChildPrice", schedule.get("originalChildPrice"));
                 price.put("promotion", schedule.get("promotion"));
-                result.add(packagePriceItem(nextId++, pkg, price, packageId, List.of(batchId)));
+                result.add(packagePriceItem(nextId++, pkg, price, packageId,
+                        List.of(batchId), packageBasePrices.get(packageId)));
             }
         }
         return result;
@@ -835,16 +895,22 @@ public class MiniappTourAdapterService {
     }
 
     private void sortTours(List<Map<String, Object>> tours, String sortType) {
+        Comparator<Map<String, Object>> defaultComparator = displayConfigService.defaultComparator();
         if ("price_asc".equals(sortType)) {
             tours.sort(Comparator
                     .comparing((Map<String, Object> item) -> "inquiry".equalsIgnoreCase(text(item.get("pricingMode"))))
-                    .thenComparing(item -> decimal(item.get("minPrice"))));
+                    .thenComparing(item -> decimal(item.get("minPrice")))
+                    .thenComparing(defaultComparator));
         } else if ("price_desc".equals(sortType)) {
             tours.sort(Comparator
                     .comparing((Map<String, Object> item) -> "inquiry".equalsIgnoreCase(text(item.get("pricingMode"))))
-                    .thenComparing((Map<String, Object> item) -> decimal(item.get("minPrice")), Comparator.reverseOrder()));
+                    .thenComparing((Map<String, Object> item) -> decimal(item.get("minPrice")), Comparator.reverseOrder())
+                    .thenComparing(defaultComparator));
         } else if ("popular".equals(sortType)) {
-            tours.sort(Comparator.comparingInt((Map<String, Object> item) -> integer(item.get("enrolledCount"))).reversed());
+            tours.sort(Comparator.comparingInt((Map<String, Object> item) -> integer(item.get("enrolledCount")))
+                    .reversed().thenComparing(defaultComparator));
+        } else {
+            tours.sort(defaultComparator);
         }
     }
 
@@ -904,11 +970,18 @@ public class MiniappTourAdapterService {
 
     private String buildDetailContent(Map<String, Object> remote) {
         StringBuilder html = new StringBuilder();
+        appendTextSection(html, "行程简介", productIntroductions(remote));
         appendRichSection(html, "产品亮点", remote.get("highlightContent"));
+        if (text(remote.get("highlightContent")).isBlank()) {
+            html.append(listSection("产品亮点", mergeStringLists(
+                    remote.get("highlights"), remote.get("recommendedReason"), remote.get("bookingFeatures"))));
+        }
+        appendTravelProfile(html, remote);
         appendRichSection(html, "行程安排", remote.get("itineraryContent"));
         if (text(remote.get("itineraryContent")).isBlank()) {
             appendItinerary(html, mapList(remote.get("itinerary")));
         }
+        appendTextSection(html, "行程说明", List.of(text(remote.get("itineraryNotice"))));
         appendRichSection(html, "费用说明", remote.get("feeContent"));
         if (text(remote.get("feeContent")).isBlank()) {
             html.append(listSection("费用包含", stringList(remote.get("feeIncludes"))));
@@ -919,10 +992,62 @@ public class MiniappTourAdapterService {
             html.append(listSection("预订须知", mergeStringLists(remote.get("purchaseNotice"), remote.get("bookingNotice"))));
         }
         html.append(listSection("退订政策", stringList(remote.get("refundPolicy"))));
-        if (html.length() == 0 && !text(remote.get("overview")).isBlank()) {
-            html.append("<p>").append(HtmlUtils.htmlEscape(text(remote.get("overview")))).append("</p>");
-        }
+        appendGuarantees(html, mapList(remote.get("serviceGuarantees")));
         return html.toString();
+    }
+
+    private List<String> productIntroductions(Map<String, Object> remote) {
+        Set<String> result = new LinkedHashSet<>();
+        Map<String, Object> cruiseBooking = map(remote.get("cruiseBooking"));
+        for (Object value : new Object[]{
+                remote.get("cruiseIntroduction"), cruiseBooking.get("introduction"),
+                remote.get("subtitle"), remote.get("overview")}) {
+            String introduction = text(value).trim();
+            if (!introduction.isBlank()) result.add(introduction);
+        }
+        return new ArrayList<>(result);
+    }
+
+    private String featureText(List<String> introductions, List<String> features) {
+        List<String> content = new ArrayList<>(new LinkedHashSet<>(introductions));
+        List<String> remainingFeatures = features.stream()
+                .filter(feature -> !content.contains(feature))
+                .toList();
+        if (!remainingFeatures.isEmpty()) content.add(String.join("；", remainingFeatures));
+        return String.join("\n", content);
+    }
+
+    private Map<String, Object> adaptMedia(Map<String, Object> remote) {
+        Set<String> images = new LinkedHashSet<>();
+        String videoUrl = "";
+        String videoPoster = "";
+        for (Map<String, Object> media : mapList(remote.get("media"))) {
+            String type = text(media.get("type")).trim().toLowerCase(Locale.ROOT);
+            String url = text(media.get("url")).trim();
+            String cover = text(media.get("cover")).trim();
+            if ("image".equals(type) && !url.isBlank()) {
+                images.add(url);
+            } else if ("video".equals(type) && videoUrl.isBlank() && !url.isBlank()) {
+                videoUrl = url;
+                videoPoster = cover;
+            } else if ("channel_video".equals(type) && !cover.isBlank()) {
+                images.add(cover);
+            }
+        }
+        images.addAll(stringList(remote.get("images")));
+        String cover = text(remote.get("cover")).trim();
+        if (!cover.isBlank()) images.add(cover);
+        if (images.isEmpty() && !videoPoster.isBlank()) images.add(videoPoster);
+        if (videoPoster.isBlank()) videoPoster = images.stream().findFirst().orElse("");
+
+        Map<String, Object> video = new LinkedHashMap<>();
+        video.put("url", videoUrl);
+        video.put("poster", videoPoster);
+        video.put("enabled", videoUrl.isBlank() ? 0 : 1);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("images", new ArrayList<>(images));
+        result.put("video", video);
+        return result;
     }
 
     private void appendRichSection(StringBuilder html, String title, Object content) {
@@ -930,6 +1055,34 @@ public class MiniappTourAdapterService {
         if (!value.isBlank()) {
             html.append("<section><h2>").append(title).append("</h2>").append(value).append("</section>");
         }
+    }
+
+    private void appendTextSection(StringBuilder html, String title, List<String> content) {
+        List<String> values = content.stream()
+                .map(value -> value == null ? "" : value.trim())
+                .filter(value -> !value.isBlank())
+                .distinct()
+                .toList();
+        if (values.isEmpty()) return;
+        html.append("<section><h2>").append(title).append("</h2>");
+        for (String value : values) {
+            html.append("<p>").append(HtmlUtils.htmlEscape(value)).append("</p>");
+        }
+        html.append("</section>");
+    }
+
+    private void appendTravelProfile(StringBuilder html, Map<String, Object> remote) {
+        List<String> items = new ArrayList<>();
+        addLabeledItem(items, "成团人数", remote.get("groupSizeText"));
+        addLabeledItem(items, "年龄范围", remote.get("ageRange"));
+        List<String> suitableFor = stringList(remote.get("suitableFor"));
+        if (!suitableFor.isEmpty()) items.add("适合人群：" + String.join("、", suitableFor));
+        html.append(listSection("适用说明", items));
+    }
+
+    private void addLabeledItem(List<String> items, String label, Object value) {
+        String content = text(value).trim();
+        if (!content.isBlank()) items.add(label + "：" + content);
     }
 
     private void appendItinerary(StringBuilder html, List<Map<String, Object>> itinerary) {
@@ -941,11 +1094,57 @@ public class MiniappTourAdapterService {
             if (!text(day.get("routeTitle")).isBlank()) {
                 html.append("<p><strong>").append(HtmlUtils.htmlEscape(text(day.get("routeTitle")))).append("</strong></p>");
             }
+            List<String> profile = new ArrayList<>();
+            addLabeledItem(profile, "城市", day.get("city"));
+            addLabeledItem(profile, "交通", day.get("transport"));
+            addLabeledItem(profile, "住宿", day.get("accommodation"));
+            List<String> meals = stringList(day.get("meals"));
+            if (!meals.isEmpty()) profile.add("餐食：" + String.join("、", meals));
+            if (!profile.isEmpty()) {
+                html.append("<p>").append(HtmlUtils.htmlEscape(String.join("；", profile))).append("</p>");
+            }
             if (!text(day.get("description")).isBlank()) {
                 html.append("<p>").append(HtmlUtils.htmlEscape(text(day.get("description")))).append("</p>");
             }
+            List<String> attractions = stringList(day.get("attractions"));
+            if (!attractions.isEmpty()) {
+                html.append("<p><strong>游览：</strong>")
+                        .append(HtmlUtils.htmlEscape(String.join("、", attractions))).append("</p>");
+            }
+            List<Map<String, Object>> nodes = mapList(day.get("nodes"));
+            if (!nodes.isEmpty()) {
+                html.append("<ul>");
+                for (Map<String, Object> node : nodes) {
+                    String nodeTitle = String.join(" ", nonBlankValues(
+                            text(node.get("time")), text(node.get("title"))));
+                    String nodeContent = text(node.get("content"));
+                    html.append("<li>");
+                    if (!nodeTitle.isBlank()) html.append("<strong>").append(HtmlUtils.htmlEscape(nodeTitle)).append("</strong>");
+                    if (!nodeContent.isBlank()) html.append(" ").append(HtmlUtils.htmlEscape(nodeContent));
+                    html.append("</li>");
+                }
+                html.append("</ul>");
+            }
+            for (String image : stringList(day.get("images"))) {
+                html.append("<img src=\"").append(HtmlUtils.htmlEscape(image)).append("\" alt=\"行程图片\">");
+            }
         }
         html.append("</section>");
+    }
+
+    private void appendGuarantees(StringBuilder html, List<Map<String, Object>> guarantees) {
+        if (guarantees.isEmpty()) return;
+        html.append("<section><h2>服务保障</h2><ul>");
+        for (Map<String, Object> guarantee : guarantees) {
+            String title = text(guarantee.get("title")).trim();
+            String detail = firstNonBlank(guarantee.get("detail"), guarantee.get("description"));
+            if (title.isBlank() && detail.isBlank()) continue;
+            html.append("<li>");
+            if (!title.isBlank()) html.append("<strong>").append(HtmlUtils.htmlEscape(title)).append("</strong>");
+            if (!detail.isBlank()) html.append(title.isBlank() ? "" : "：").append(HtmlUtils.htmlEscape(detail));
+            html.append("</li>");
+        }
+        html.append("</ul></section>");
     }
 
     private String listSection(String title, List<String> items) {
@@ -958,7 +1157,8 @@ public class MiniappTourAdapterService {
     }
 
     private String joinNotices(Map<String, Object> remote) {
-        List<String> notices = mergeStringLists(remote.get("purchaseNotice"), remote.get("bookingNotice"));
+        List<String> notices = mergeStringLists(
+                remote.get("purchaseNotice"), remote.get("bookingNotice"), remote.get("itineraryNotice"));
         return notices.isEmpty() ? "以当前商品展示规则为准" : String.join("；", notices);
     }
 
@@ -968,7 +1168,11 @@ public class MiniappTourAdapterService {
         result.put("title", text(remote.get("orderConfirmationTitle")));
         result.put("subtitle", text(remote.get("orderConfirmationSubtitle")));
         result.put("content", text(remote.get("orderConfirmationContent")));
-        result.put("buttonText", text(remote.get("orderConfirmationButtonText")));
+        result.put("contactText", text(remote.get("orderConfirmationContactText")));
+        String confirmText = firstNonBlank(
+                remote.get("orderConfirmationConfirmText"), remote.get("orderConfirmationButtonText"));
+        result.put("confirmText", confirmText);
+        result.put("buttonText", confirmText);
         return result;
     }
 
@@ -1209,6 +1413,16 @@ public class MiniappTourAdapterService {
 
     private BigDecimal decimalOrDefault(Object value, BigDecimal fallback) {
         return value == null ? fallback : decimal(value);
+    }
+
+    private BigDecimal effectiveFixedPrice(Object value, Object fallbackValue) {
+        BigDecimal price = nullableDecimal(value);
+        BigDecimal fallback = nullableDecimal(fallbackValue);
+        if (price == null || (price.compareTo(BigDecimal.ZERO) <= 0
+                && fallback != null && fallback.compareTo(BigDecimal.ZERO) > 0)) {
+            return fallback == null ? BigDecimal.ZERO : fallback;
+        }
+        return price;
     }
 
     private BigDecimal nullableDecimal(Object value) {
