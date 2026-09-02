@@ -50,7 +50,7 @@ services:
     build:
       context: ../springboot
       dockerfile: Dockerfile
-    image: travel-backend:${APP_VERSION:-latest}
+    image: travel-pc-backend:latest
     container_name: travel-backend
     restart: unless-stopped
     depends_on:
@@ -81,7 +81,7 @@ services:
       APP_AMAP_SECURITY_CODE: ${APP_AMAP_SECURITY_CODE:-}
       MINIAPP_API_BASE_URL: ${MINIAPP_API_BASE_URL:-http://host.docker.internal:8080/api}
       MINIAPP_API_ALLOWED_HOSTS: ${MINIAPP_API_ALLOWED_HOSTS:-}
-      KNIFE4J_BASIC_PASSWORD: ${KNIFE4J_BASIC_PASSWORD}
+      KNIFE4J_BASIC_PASSWORD: ${KNIFE4J_BASIC_PASSWORD:-}
       USER_DEFAULT_PASSWORD: ${USER_DEFAULT_PASSWORD}
       JAVA_OPTS: ${JAVA_OPTS:--Xms512m -Xmx1024m}
     volumes:
@@ -101,7 +101,7 @@ services:
     build:
       context: ../vue3
       dockerfile: Dockerfile
-    image: travel-frontend:${APP_VERSION:-latest}
+    image: travel-pc-frontend:latest
     container_name: travel-frontend
     restart: unless-stopped
     depends_on:
@@ -111,6 +111,12 @@ services:
       TZ: ${TZ:-Asia/Shanghai}
     ports:
       - "${HTTP_PORT:-80}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
     networks:
       - travel-net
 

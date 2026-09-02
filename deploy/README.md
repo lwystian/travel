@@ -7,6 +7,11 @@
 ```text
 deploy/
   docker-compose.yml
+  docker-compose.registry.yml
+  deploy.sh
+  update-images.sh
+  publish-images.cmd
+  publish-images.ps1
   .env.example
   mysql/conf.d/
   mysql/initdb/
@@ -28,6 +33,7 @@ cp .env.example .env
 编辑 `deploy/.env`，至少修改这些值：
 
 ```env
+IMAGE_REGISTRY=ccr.ccs.tencentyun.com/lwystian/travel
 MYSQL_ROOT_PASSWORD=change-this-root-password
 MYSQL_PASSWORD=change-this-app-password
 REDIS_PASSWORD=change-this-redis-password
@@ -47,7 +53,27 @@ MINIAPP_API_ALLOWED_HOSTS=mini-api.your-domain.com
 
 `MINIAPP_API_ALLOWED_HOSTS` 是 travel 后端允许访问的小程序 API 域名白名单，多个域名用英文逗号分隔。生产环境建议配置；留空表示不限制，适合本地开发。
 
-启动：
+### 推荐：从镜像仓库启动
+
+PC 前后端使用固定镜像标签，不需要维护具体版本号：
+
+```text
+ccr.ccs.tencentyun.com/lwystian/travel:pc-backend-latest
+ccr.ccs.tencentyun.com/lwystian/travel:pc-frontend-latest
+```
+
+服务器首次登录腾讯云镜像仓库后，使用与小程序相同风格的部署命令启动，不在服务器执行 Maven 或 npm：
+
+```bash
+docker login ccr.ccs.tencentyun.com
+bash deploy.sh start
+```
+
+`docker-compose.yml` 定义本地构建镜像，`docker-compose.registry.yml` 只在服务器部署时把前后端映射到腾讯云固定标签。`deploy.sh` 会自动同时加载两个文件。
+
+### 备用：从服务器源码构建
+
+仅在镜像仓库暂时不可用、且服务器资源充足时使用：
 
 ```bash
 docker compose build backend
@@ -122,15 +148,72 @@ Compose 会自动创建需要的子目录。若服务器权限策略较严格，
 
 ## 5. 更新应用
 
-在 `deploy/` 目录执行：
+### 5.1 Windows 本地发布镜像
+
+本地安装并启动 Docker Desktop，在项目根目录执行与小程序一致的入口命令：
+
+```powershell
+.\publish
+```
+
+脚本会先串行构建所选本地镜像，再统一打标签并推送到腾讯云，不要求输入版本号。也可以只发布一个服务：
+
+```powershell
+.\publish backend
+.\publish frontend
+```
+
+镜像推送中断后可直接复用本地构建结果重试：
+
+```powershell
+.\publish -PushOnly
+```
+
+### 5.2 服务器轻量更新
+
+首次切换到镜像更新方式时，先拉取包含部署脚本的代码，并补充镜像仓库地址：
 
 ```bash
-docker compose build backend
-docker compose build frontend
-docker compose up -d backend frontend
+cd /root/travel
+git pull --ff-only
+cd deploy
+grep -q '^IMAGE_REGISTRY=' .env || echo 'IMAGE_REGISTRY=ccr.ccs.tencentyun.com/lwystian/travel' >> .env
+docker login ccr.ccs.tencentyun.com
+bash deploy.sh update
+```
+
+以后每次本地执行 `.\publish` 成功后，服务器只需要：
+
+```bash
+cd /root/travel/deploy
+bash deploy.sh update
+```
+
+更新脚本会自动完成：
+
+1. 备份 MySQL 数据库并校验压缩包。
+2. 给当前运行镜像保留 `pc-backend-previous`、`pc-frontend-previous` 标签。
+3. 拉取两个 `latest` 镜像，不运行 Maven、npm 或 Docker build。
+4. 先更新后端并等待健康，再更新前端。
+5. 任一新容器健康检查失败时尝试恢复更新前镜像。
+
+不要再在低内存生产服务器执行：
+
+```bash
+docker compose up -d --build backend frontend
 ```
 
 MySQL、Redis、上传文件和备份目录都在 `TRAVEL_DATA_DIR` 下，不会因为重建容器丢失。
+
+更新完成后可以确认实际运行镜像：
+
+```bash
+docker inspect travel-backend --format '{{.Image}}'
+docker inspect travel-frontend --format '{{.Image}}'
+bash deploy.sh status
+```
+
+前端 `index.html` 已设置为禁止缓存，带哈希的 JS/CSS 文件仍使用长期缓存。这样每次容器切换后，浏览器会重新获取入口文件并加载新资源。
 
 ## 6. 备份
 
@@ -147,8 +230,8 @@ docker compose exec mysql mysqldump -u root -p tourism_system > tourism_system.s
 容器日志：
 
 ```bash
-docker compose logs -f backend
-docker compose logs -f frontend
+bash deploy.sh logs
+bash deploy.sh logs frontend
 docker compose logs -f mysql
 ```
 

@@ -92,6 +92,72 @@
           </div>
         </div>
 
+        <div v-else-if="activeTab === 'customer-service'" class="control-card customer-service-module">
+          <div class="card-head">
+            <div>
+              <h2>全站在线客服</h2>
+              <span>启用后，官网前台各页面显示客服悬浮图标，用户点击后进入企业微信客服。</span>
+            </div>
+            <el-switch
+              v-model="customerServiceForm.enabled"
+              size="large"
+              inline-prompt
+              active-text="开启"
+              inactive-text="关闭"
+            />
+          </div>
+
+          <div class="customer-service-preview" :class="{ disabled: !customerServiceForm.enabled }">
+            <img :src="customerServiceIcon" alt="客服图标" />
+            <div>
+              <strong>{{ customerServiceForm.displayName || '在线客服' }}</strong>
+              <span v-if="customerServiceForm.enabled && hasDefaultCustomerServiceUrl">前台入口已开启，未单独配置的页面将使用默认链接。</span>
+              <span v-else-if="customerServiceForm.enabled">请填写有效的企业微信客服链接后保存。</span>
+              <span v-else>当前前台不会显示客服悬浮入口。</span>
+            </div>
+            <el-link
+              v-if="hasDefaultCustomerServiceUrl"
+              :href="customerServiceForm.serviceUrl"
+              target="_blank"
+              type="primary"
+            >
+              测试链接
+            </el-link>
+          </div>
+
+          <el-form label-position="top" class="customer-service-form">
+            <div class="customer-service-base-fields">
+              <el-form-item label="客服名称">
+                <el-input v-model="customerServiceForm.displayName" maxlength="30" show-word-limit placeholder="在线客服" />
+              </el-form-item>
+              <el-form-item label="默认企业微信客服链接">
+                <el-input
+                  v-model="customerServiceForm.serviceUrl"
+                  maxlength="500"
+                  placeholder="https://work.weixin.qq.com/kfid/..."
+                />
+                <span class="field-help">从企业微信“微信客服”中复制以 https://work.weixin.qq.com/kfid/ 开头的接入链接。</span>
+              </el-form-item>
+            </div>
+
+            <div class="channel-settings">
+              <div class="channel-settings-head">
+                <strong>页面专属客服链接</strong>
+                <span>可选。留空时使用默认链接，适合将不同业务页面分配给不同客服账号。</span>
+              </div>
+              <div class="channel-grid">
+                <el-form-item v-for="item in customerServiceChannels" :key="item.key" :label="item.label">
+                  <el-input
+                    v-model="customerServiceForm.channelUrls[item.key]"
+                    maxlength="500"
+                    :placeholder="`${item.label}留空使用默认链接`"
+                  />
+                </el-form-item>
+              </div>
+            </div>
+          </el-form>
+        </div>
+
         <div v-else-if="activeTab === 'tour-source'" class="control-card source-module">
           <div class="card-head source-mode-head">
             <div>
@@ -170,8 +236,8 @@
 
         <div v-if="activeTab === 'site-access'" class="support-config">
           <div class="support-head">
-            <h2>客服入口设置</h2>
-            <span>用于网站关闭提示页。可填写企业微信、微信客服、企微活码、二维码图片或客服凭证。</span>
+            <h2>维护页备用客服</h2>
+            <span>仅用于网站关闭提示页；正常页面的悬浮客服请在“在线客服”中配置。</span>
           </div>
           <el-form label-position="top" class="copy-form">
             <el-form-item label="按钮文字">
@@ -204,10 +270,12 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ChatDotRound, Connection, Goods, Monitor, SwitchButton } from '@element-plus/icons-vue'
+import { ChatDotRound, Connection, Goods, Monitor, Service, SwitchButton } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getSiteAccessConfig, saveSiteAccessConfig } from '@/api/siteAccess'
 import { checkMiniappTourSource, getTourSourceConfig, saveTourSourceConfig } from '@/api/tourSource'
+import { getCustomerServiceConfig, saveCustomerServiceConfig } from '@/api/customerService'
+import customerServiceIcon from '@/assets/images/customer-service.png'
 
 const route = useRoute()
 const router = useRouter()
@@ -238,6 +306,27 @@ const sourceForm = reactive({
   fallbackToLocal: true
 })
 
+const customerServiceForm = reactive({
+  enabled: false,
+  displayName: '在线客服',
+  serviceUrl: '',
+  channelUrls: {}
+})
+
+const customerServiceChannels = [
+  { key: 'home', label: '首页及通用页面' },
+  { key: 'chongqing', label: '重庆周边' },
+  { key: 'sanxia', label: '三峡行程' },
+  { key: 'xisha', label: '西沙行程' },
+  { key: 'train', label: '旅游专列' },
+  { key: 'team', label: '团队定制' },
+  { key: 'tour', label: '行程列表与详情' },
+  { key: 'order', label: '订单与支付' },
+  { key: 'user', label: '个人中心' }
+]
+
+const hasDefaultCustomerServiceUrl = computed(() => /^https:\/\/work\.weixin\.qq\.com\/kfid\//i.test(customerServiceForm.serviceUrl || ''))
+
 const useMiniappProducts = computed({
   get: () => sourceForm.sourceMode === 'MINIAPP',
   set: enabled => {
@@ -249,18 +338,22 @@ const navItems = [
   { key: 'site-access', title: '网站开关', desc: '开启或关闭官网前台', icon: SwitchButton },
   { key: 'device-access', title: '访问终端', desc: '控制移动端访问策略', icon: Monitor },
   { key: 'public-interaction', title: '互动内容', desc: '关闭用户发帖评论', icon: ChatDotRound },
+  { key: 'customer-service', title: '在线客服', desc: '配置企业微信入口', icon: Service },
   { key: 'tour-source', title: '商品来源', desc: '切换本地或小程序商品', icon: Goods }
 ]
 
 const activeTab = computed(() => {
   if (route.path.includes('device-access')) return 'device-access'
   if (route.path.includes('public-interaction')) return 'public-interaction'
+  if (route.path.includes('customer-service')) return 'customer-service'
   if (route.path.includes('tour-source')) return 'tour-source'
   return 'site-access'
 })
 
 const saveHint = computed(() => activeTab.value === 'tour-source'
   ? '切换为小程序商品前请先测试连接；保存后商品与库存立即切换，官网订单和支付流程保持不变。'
+  : activeTab.value === 'customer-service'
+    ? '客服配置由官网独立保存，不读取或修改小程序；开启前请确认企业微信链接能够正常访问。'
   : activeTab.value === 'device-access'
     ? '开启后移动设备会自动跳转至移动站，电脑端官网和后台管理保持原样。'
     : '保存后配置会立即对前台生效，请确认提示文案准确、客服渠道可用。')
@@ -270,6 +363,7 @@ const switchTab = (key) => {
     'site-access': '/back/site-settings/site-access',
     'device-access': '/back/site-settings/device-access',
     'public-interaction': '/back/site-settings/public-interaction',
+    'customer-service': '/back/site-settings/customer-service',
     'tour-source': '/back/site-settings/tour-source'
   }
   router.push(pathMap[key] || pathMap['site-access'])
@@ -278,12 +372,15 @@ const switchTab = (key) => {
 const loadConfig = async () => {
   loading.value = true
   try {
-    const [siteData, sourceData] = await Promise.all([
+    const [siteData, sourceData, customerServiceData] = await Promise.all([
       getSiteAccessConfig(),
-      getTourSourceConfig()
+      getTourSourceConfig(),
+      getCustomerServiceConfig()
     ])
     Object.assign(form, siteData || {})
     Object.assign(sourceForm, sourceData || {})
+    Object.assign(customerServiceForm, customerServiceData || {})
+    customerServiceForm.channelUrls = customerServiceData?.channelUrls || {}
   } finally {
     loading.value = false
   }
@@ -297,6 +394,17 @@ const saveCurrentConfig = async () => {
         successMsg: '商品来源设置已保存'
       })
       Object.assign(sourceForm, data || {})
+    } else if (activeTab.value === 'customer-service') {
+      const data = await saveCustomerServiceConfig({
+        ...customerServiceForm,
+        channelUrls: { ...customerServiceForm.channelUrls }
+      }, {
+        successMsg: '在线客服设置已保存'
+      })
+      if (data && typeof data === 'object') {
+        Object.assign(customerServiceForm, data)
+        customerServiceForm.channelUrls = data.channelUrls || {}
+      }
     } else {
       await saveSiteAccessConfig({ ...form }, {
         successMsg: '网站设置已保存'
@@ -723,6 +831,96 @@ onMounted(loadConfig)
   }
 }
 
+.customer-service-module {
+  display: grid;
+  gap: 22px;
+}
+
+.customer-service-preview {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 20px;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background: #f0fdf4;
+
+  img {
+    width: 64px;
+    height: 65px;
+    object-fit: contain;
+  }
+
+  div {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  strong {
+    color: #14532d;
+    font-size: 17px;
+  }
+
+  span {
+    color: #475569;
+    line-height: 1.6;
+  }
+}
+
+.customer-service-preview.disabled {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+
+  img {
+    filter: grayscale(1);
+    opacity: 0.55;
+  }
+
+  strong {
+    color: #475569;
+  }
+}
+
+.customer-service-form {
+  display: grid;
+  gap: 20px;
+}
+
+.customer-service-base-fields {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(360px, 1.8fr);
+  gap: 16px;
+}
+
+.channel-settings {
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.channel-settings-head {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+
+  strong {
+    color: #1e293b;
+    font-size: 16px;
+  }
+
+  span {
+    color: #64748b;
+    line-height: 1.6;
+  }
+}
+
+.channel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
 .site-status-pill.source-pill {
   border-color: rgba(71, 85, 105, 0.22);
   background: #f8fafc;
@@ -857,6 +1055,20 @@ onMounted(loadConfig)
       border-top: 1px solid #e2e8f0;
       border-left: 0;
     }
+  }
+
+  .customer-service-preview {
+    grid-template-columns: 64px minmax(0, 1fr);
+
+    .el-link {
+      grid-column: 1 / -1;
+      justify-self: start;
+    }
+  }
+
+  .customer-service-base-fields,
+  .channel-grid {
+    grid-template-columns: 1fr;
   }
 
   .connection-check {

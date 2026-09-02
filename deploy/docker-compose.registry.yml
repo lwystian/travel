@@ -1,0 +1,6 @@
+services:
+  backend:
+    image: ${IMAGE_REGISTRY:-ccr.ccs.tencentyun.com/lwystian/travel}:pc-backend-latest
+
+  frontend:
+    image: ${IMAGE_REGISTRY:-ccr.ccs.tencentyun.com/lwystian/travel}:pc-frontend-latest

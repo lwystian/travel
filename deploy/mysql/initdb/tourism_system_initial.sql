@@ -869,7 +869,8 @@ INSERT INTO `content_moderation_config` (`config_key`, `config_value`, `descript
 ('public_interaction_enabled', '1', '前台用户评论、住宿评价、攻略发布等互动内容是否开放');
 
 INSERT INTO `auth_provider_config` (`config_type`, `config_name`, `enabled`, `config_data`, `description`) VALUES
-('tour_product_source', '行程商品来源', 0, '{"sourceMode":"LOCAL","miniappApiBaseUrl":"","miniappBookingUrlTemplate":"","fallbackToLocal":true}', '控制官网前台使用本地商品或小程序统一商品')
+('tour_product_source', '行程商品来源', 0, '{"sourceMode":"LOCAL","miniappApiBaseUrl":"","miniappBookingUrlTemplate":"","fallbackToLocal":true}', '控制官网前台使用本地商品或小程序统一商品'),
+('customer_service', '在线客服配置', 0, '{"enabled":false,"displayName":"在线客服","serviceUrl":"","channelUrls":{"home":"","chongqing":"","sanxia":"","xisha":"","train":"","team":"","tour":"","order":"","user":""}}', '控制官网客服悬浮入口和企业微信渠道链接')
 ON DUPLICATE KEY UPDATE `config_name` = VALUES(`config_name`), `description` = VALUES(`description`);
 
 -- ----------------------------

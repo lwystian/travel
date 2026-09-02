@@ -2938,10 +2938,20 @@ onUnmounted(() => {
 }
 
 .miniapp-detail-content :deep(img) {
+  display: block;
   width: 100% !important;
   max-width: 100% !important;
   height: auto !important;
+  margin-right: auto;
+  margin-left: auto;
   object-fit: contain;
+}
+
+.miniapp-detail-content :deep(figure) {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
 }
 
 .miniapp-detail-content :deep(p),
@@ -2959,6 +2969,11 @@ onUnmounted(() => {
   display: block;
   padding-left: 0;
   list-style: none !important;
+}
+
+.miniapp-detail-content :deep(ul > li::marker) {
+  content: '';
+  font-size: 0;
 }
 
 .tour-detail-empty {

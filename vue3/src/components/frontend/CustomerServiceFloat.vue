@@ -16,13 +16,11 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { getPublicCustomerServiceConfig } from '@/api/customerService'
-import { getPublicSiteAccessConfig } from '@/api/siteAccess'
 import customerServiceIcon from '@/assets/images/customer-service.png'
 
 const route = useRoute()
 const config = ref({
   enabled: false,
-  configured: false,
   displayName: '在线客服',
   serviceUrl: '',
   channelUrls: {}
@@ -62,7 +60,7 @@ const customerServiceUrl = computed(() => {
 })
 
 const displayName = computed(() => String(config.value.displayName || '在线客服').trim() || '在线客服')
-const visible = computed(() => config.value.enabled && config.value.configured && Boolean(customerServiceUrl.value))
+const visible = computed(() => config.value.enabled && Boolean(customerServiceUrl.value))
 
 const loadCustomerServiceConfig = async () => {
   try {
@@ -73,19 +71,7 @@ const loadCustomerServiceConfig = async () => {
       channelUrls: data?.channelUrls || {}
     }
   } catch {
-    try {
-      const fallback = await getPublicSiteAccessConfig()
-      const serviceUrl = validWecomUrl(fallback?.supportUrl)
-      config.value = {
-        enabled: Boolean(serviceUrl),
-        configured: Boolean(serviceUrl),
-        displayName: fallback?.supportButtonText || '在线客服',
-        serviceUrl,
-        channelUrls: {}
-      }
-    } catch {
-      config.value.enabled = false
-    }
+    config.value.enabled = false
   }
 }
 

@@ -57,6 +57,7 @@ public class AdminPermissionInterceptor implements HandlerInterceptor {
         PATH_PERMISSIONS.put("/api/site/footer", "site-footer:manage");
         PATH_PERMISSIONS.put("/api/site/assets", "site-assets:manage");
         PATH_PERMISSIONS.put("/api/site/access", "site-settings:manage");
+        PATH_PERMISSIONS.put("/api/site/customer-service", "site-settings:manage");
         PATH_PERMISSIONS.put("/api/site/tour-source", "site-settings:manage");
         PATH_PERMISSIONS.put("/api/site/page-content", "site-settings:manage");
         PATH_PERMISSIONS.put("/api/admin/logs", "log:view");
