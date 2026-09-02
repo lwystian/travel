@@ -44,6 +44,7 @@ public class WebConfig implements WebMvcConfigurer {
         "/api/feed.xml",
         "/api/rss.xml",
         "/api/seo/**",
+        "/api/monitor/health",
         "/api/img/**",          // 图片资源接口（带前缀）
         "/img/**",              // 图片资源接口（不带前缀）
         "/api/tour-order-pay/notify",

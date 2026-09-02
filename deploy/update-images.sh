@@ -41,19 +41,32 @@ container_image_id() {
 
 wait_healthy() {
   local service="$1"
+  local timeout_seconds="${2:-180}"
+  local deadline=$((SECONDS + timeout_seconds))
   local container_id
   local status
   container_id="$(compose ps -q "${service}")"
   [[ -n "${container_id}" ]] || return 1
-  for _ in $(seq 1 45); do
+  while (( SECONDS < deadline )); do
     status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "${container_id}" 2>/dev/null || true)"
     case "${status}" in
-      healthy) return 0 ;;
+      healthy|running) return 0 ;;
       unhealthy|exited|dead) return 1 ;;
     esac
     sleep 2
   done
   return 1
+}
+
+show_failure_details() {
+  local service="$1"
+  local container_id
+  container_id="$(compose ps -q "${service}" 2>/dev/null || true)"
+  printf '[诊断] %s 容器未通过健康检查，以下是最近日志：\n' "${service}" >&2
+  if [[ -n "${container_id}" ]]; then
+    docker inspect --format '容器状态={{.State.Status}}，健康状态={{if .State.Health}}{{.State.Health.Status}}{{else}}未配置{{end}}' "${container_id}" >&2 || true
+  fi
+  compose logs --no-color --tail=120 "${service}" >&2 || true
 }
 
 rollback() {
@@ -100,14 +113,16 @@ compose pull backend frontend
 
 info "切换后端容器"
 compose up -d --no-build --no-deps --force-recreate backend
-if ! wait_healthy backend; then
+if ! wait_healthy backend 300; then
+  show_failure_details backend
   rollback "${old_backend_id}" "${old_frontend_id}" "${backend_target}" "${frontend_target}"
   fail "新后端未通过健康检查，已尝试恢复旧镜像。"
 fi
 
 info "切换前端容器"
 compose up -d --no-build --no-deps --force-recreate frontend
-if ! wait_healthy frontend; then
+if ! wait_healthy frontend 180; then
+  show_failure_details frontend
   rollback "${old_backend_id}" "${old_frontend_id}" "${backend_target}" "${frontend_target}"
   fail "新前端未通过健康检查，已尝试恢复旧镜像。"
 fi

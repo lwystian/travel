@@ -52,7 +52,6 @@ public class MonitorController {
     @GetMapping("/health")
     @Operation(summary = "健康检查")
     public Result<String> healthCheck() {
-        requireAdmin();
         return Result.success("系统运行正常");
     }
 

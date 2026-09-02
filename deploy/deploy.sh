@@ -78,7 +78,7 @@ start_all() {
 }
 
 update_all() {
-  exec bash "${SCRIPT_DIR}/update-images.sh"
+  exec "${SCRIPT_DIR}/update-images.sh"
 }
 
 restart_all() {
