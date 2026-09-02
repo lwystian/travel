@@ -66,7 +66,7 @@ ccr.ccs.tencentyun.com/lwystian/travel:pc-frontend-latest
 
 ```bash
 docker login ccr.ccs.tencentyun.com
-bash deploy.sh start
+./deploy.sh start
 ```
 
 `docker-compose.yml` 定义本地构建镜像，`docker-compose.registry.yml` 只在服务器部署时把前后端映射到腾讯云固定标签。`deploy.sh` 会自动同时加载两个文件。
@@ -179,14 +179,14 @@ git pull --ff-only
 cd deploy
 grep -q '^IMAGE_REGISTRY=' .env || echo 'IMAGE_REGISTRY=ccr.ccs.tencentyun.com/lwystian/travel' >> .env
 docker login ccr.ccs.tencentyun.com
-bash deploy.sh update
+./deploy.sh update
 ```
 
 以后每次本地执行 `.\publish` 成功后，服务器只需要：
 
 ```bash
 cd /root/travel/deploy
-bash deploy.sh update
+./deploy.sh update
 ```
 
 更新脚本会自动完成：
@@ -210,7 +210,7 @@ MySQL、Redis、上传文件和备份目录都在 `TRAVEL_DATA_DIR` 下，不会
 ```bash
 docker inspect travel-backend --format '{{.Image}}'
 docker inspect travel-frontend --format '{{.Image}}'
-bash deploy.sh status
+./deploy.sh status
 ```
 
 前端 `index.html` 已设置为禁止缓存，带哈希的 JS/CSS 文件仍使用长期缓存。这样每次容器切换后，浏览器会重新获取入口文件并加载新资源。
@@ -230,8 +230,8 @@ docker compose exec mysql mysqldump -u root -p tourism_system > tourism_system.s
 容器日志：
 
 ```bash
-bash deploy.sh logs
-bash deploy.sh logs frontend
+./deploy.sh logs
+./deploy.sh logs frontend
 docker compose logs -f mysql
 ```
 

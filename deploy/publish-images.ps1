@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(Position = 0, ValueFromRemainingArguments = $true)]
     [string[]]$Services,
@@ -20,13 +20,13 @@ function Write-Section {
     param([string]$Message)
 
     Write-Host ""
-    Write-Host "[RUNNING] $Message" -ForegroundColor Cyan
+    Write-Host "[进行中] $Message" -ForegroundColor Cyan
 }
 
 function Write-Success {
     param([string]$Message)
 
-    Write-Host "[DONE] $Message" -ForegroundColor Green
+    Write-Host "[完成] $Message" -ForegroundColor Green
 }
 
 function Invoke-Docker {
@@ -34,7 +34,7 @@ function Invoke-Docker {
 
     & docker @Arguments
     if ($LASTEXITCODE -ne 0) {
-        throw "Docker command failed: docker $($Arguments -join ' ')"
+        throw "Docker 命令执行失败：docker $($Arguments -join ' ')"
     }
 }
 
@@ -52,12 +52,12 @@ function Invoke-DockerWithRetry {
 
         if ($attempt -lt $MaxAttempts) {
             $delaySeconds = 5 * $attempt
-            Write-Host "[RETRY] Transfer interrupted. Retrying in $delaySeconds seconds; uploaded layers will be reused." -ForegroundColor Yellow
+            Write-Host "[重试] 网络传输中断，$delaySeconds 秒后重试；已上传的镜像层会继续复用。" -ForegroundColor Yellow
             Start-Sleep -Seconds $delaySeconds
         }
     }
 
-    throw "Docker command failed after $MaxAttempts attempts: docker $($Arguments -join ' ')"
+    throw "Docker 命令连续 $MaxAttempts 次执行失败：docker $($Arguments -join ' ')"
 }
 
 function Test-DockerRegistryCredential {
@@ -77,25 +77,25 @@ function Test-DockerRegistryCredential {
 }
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-    throw "Docker was not found. Install and start Docker Desktop first."
+    throw "没有找到 Docker，请先安装并启动 Docker Desktop。"
 }
 
 if ($NoPush -and $PushOnly) {
-    throw "-NoPush and -PushOnly cannot be used together."
+    throw "-NoPush 与 -PushOnly 不能同时使用。"
 }
 
 if ($NoCache -and $PushOnly) {
-    throw "-NoCache cannot be used with -PushOnly."
+    throw "-NoCache 不能与 -PushOnly 同时使用。"
 }
 
 $Registry = $Registry.Trim().TrimEnd([char]'/')
 if ($Registry -notmatch '^[A-Za-z0-9.-]+(?::[0-9]+)?/[A-Za-z0-9._/-]+$') {
-    throw "Invalid image registry path: $Registry"
+    throw "镜像仓库地址格式不正确：$Registry"
 }
 
 $RegistryUsername = $RegistryUsername.Trim()
 if ([string]::IsNullOrWhiteSpace($RegistryUsername)) {
-    throw "Registry username cannot be empty."
+    throw "腾讯云镜像仓库账号不能为空。"
 }
 
 $registryHost = ($Registry -split '/', 2)[0]
@@ -106,16 +106,16 @@ $localEnv = Join-Path $deployDir ".env"
 $exampleEnv = Join-Path $deployDir ".env.example"
 
 if (-not (Test-Path -LiteralPath $composeFile)) {
-    throw "Compose file was not found: $composeFile"
+    throw "没有找到 Compose 文件：$composeFile"
 }
 
 if (Test-Path -LiteralPath $localEnv) {
     $envFile = $localEnv
 } elseif (Test-Path -LiteralPath $exampleEnv) {
     $envFile = $exampleEnv
-    Write-Host "[NOTICE] deploy/.env was not found. The example file is used only to parse Compose." -ForegroundColor Yellow
+    Write-Host "[提示] 没有找到 deploy/.env，本次仅使用示例配置解析 Compose。" -ForegroundColor Yellow
 } else {
-    throw "Neither deploy/.env nor deploy/.env.example was found."
+    throw "没有找到 deploy/.env 或 deploy/.env.example。"
 }
 
 $allImages = @(
@@ -123,13 +123,13 @@ $allImages = @(
         Service = "backend"
         Local = "travel-pc-backend:latest"
         Remote = "$Registry`:pc-backend-latest"
-        Name = "Java backend"
+        Name = "Java 后端"
     },
     [PSCustomObject]@{
         Service = "frontend"
         Local = "travel-pc-frontend:latest"
         Remote = "$Registry`:pc-frontend-latest"
-        Name = "PC frontend"
+        Name = "PC 前端"
     }
 )
 
@@ -141,7 +141,7 @@ foreach ($rawService in @($Services)) {
             continue
         }
         if ($service -notin @("backend", "frontend")) {
-            throw "Unsupported service: $part. Valid values: backend, frontend."
+            throw "不支持的服务：$part。可选值为 backend、frontend。"
         }
         if (-not $selectedServices.Contains($service)) {
             $selectedServices.Add($service)
@@ -155,28 +155,28 @@ if ($selectedServices.Count -eq 0) {
     $images = @($allImages | Where-Object { $selectedServices.Contains($_.Service) })
 }
 
-Write-Section "Checking Docker Desktop"
-Invoke-Docker -Arguments @("info", "--format", "Docker {{.ServerVersion}} {{.OSType}}/{{.Architecture}}")
+Write-Section "检查 Docker Desktop"
+Invoke-Docker -Arguments @("info", "--format", "Docker 服务端 {{.ServerVersion}}，平台 {{.OSType}}/{{.Architecture}}")
 
 $oldPlatform = $env:DOCKER_DEFAULT_PLATFORM
 $env:DOCKER_DEFAULT_PLATFORM = "linux/amd64"
 
 try {
-    Write-Host "[INFO] Project: $projectRoot"
-    Write-Host "[INFO] Registry: $Registry"
-    Write-Host "[INFO] Platform: linux/amd64"
-    Write-Host "[INFO] Services: $($images.Service -join ', ')"
+    Write-Host "[信息] 项目目录：$projectRoot"
+    Write-Host "[信息] 镜像仓库：$Registry"
+    Write-Host "[信息] 构建平台：linux/amd64"
+    Write-Host "[信息] 本次服务：$($images.Service -join '、')"
 
     if ($PushOnly) {
-        Write-Host "[INFO] Push-only mode: local images will be reused." -ForegroundColor Yellow
+        Write-Host "[信息] 续传模式：跳过构建，直接复用本地镜像。" -ForegroundColor Yellow
         foreach ($image in $images) {
-            Invoke-Docker -Arguments @("image", "inspect", $image.Local, "--format", "Found {{index .RepoTags 0}}, ID={{.Id}}")
+            Invoke-Docker -Arguments @("image", "inspect", $image.Local, "--format", "已找到 {{index .RepoTags 0}}，ID={{.Id}}")
         }
     } else {
         $index = 0
         foreach ($image in $images) {
             $index++
-            Write-Section "[$index/$($images.Count)] Building $($image.Name)"
+            Write-Section "[$index/$($images.Count)] 构建 $($image.Name)镜像"
 
             $arguments = @(
                 "compose",
@@ -190,36 +190,36 @@ try {
             $arguments += $image.Service
 
             Invoke-Docker -Arguments $arguments
-            Invoke-Docker -Arguments @("image", "inspect", $image.Local, "--format", "Built {{index .RepoTags 0}}, ID={{.Id}}, size={{.Size}} bytes")
-            Write-Success "$($image.Name) image built"
+            Invoke-Docker -Arguments @("image", "inspect", $image.Local, "--format", "镜像 {{index .RepoTags 0}} 已生成，ID={{.Id}}，大小={{.Size}} 字节")
+            Write-Success "$($image.Name)镜像构建完成"
         }
     }
 
     if ($NoPush) {
         Write-Host ""
-        Write-Success "All selected local images were built. Push was skipped."
+        Write-Success "所选本地镜像均已构建，本次按参数要求未推送。"
         exit 0
     }
 
     if (Test-DockerRegistryCredential -RegistryHost $registryHost) {
-        Write-Success "Saved registry credentials found"
+        Write-Success "已找到本机保存的腾讯云登录凭据"
     } else {
-        Write-Section "Logging in to Tencent Cloud Container Registry"
+        Write-Section "登录腾讯云容器镜像仓库"
         Invoke-Docker -Arguments @("login", "--username", $RegistryUsername, $registryHost)
     }
 
     $index = 0
     foreach ($image in $images) {
         $index++
-        Write-Section "[$index/$($images.Count)] Pushing $($image.Name)"
+        Write-Section "[$index/$($images.Count)] 推送 $($image.Name)镜像"
         Invoke-Docker -Arguments @("tag", $image.Local, $image.Remote)
         Invoke-DockerWithRetry -Arguments @("push", $image.Remote)
-        Write-Success "$($image.Remote) pushed"
+        Write-Success "$($image.Remote) 推送完成"
     }
 
     Write-Host ""
-    Write-Success "All selected PC images were published"
-    Write-Host "Server command: cd /root/travel/deploy && bash deploy.sh update" -ForegroundColor Green
+    Write-Success "所选 PC 镜像已全部发布"
+    Write-Host "服务器执行：cd /root/travel/deploy && ./deploy.sh update" -ForegroundColor Green
 } finally {
     if ($null -eq $oldPlatform) {
         Remove-Item Env:DOCKER_DEFAULT_PLATFORM -ErrorAction SilentlyContinue

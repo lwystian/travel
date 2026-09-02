@@ -9,24 +9,24 @@ COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.yml"
 REGISTRY_COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.registry.yml"
 
 fail() {
-  printf '[ERROR] %s\n' "$*" >&2
+  printf '[失败] %s\n' "$*" >&2
   exit 1
 }
 
 info() {
-  printf '[RUNNING] %s\n' "$*"
+  printf '[进行中] %s\n' "$*"
 }
 
 success() {
-  printf '[DONE] %s\n' "$*"
+  printf '[完成] %s\n' "$*"
 }
 
 check_runtime() {
-  command -v docker >/dev/null 2>&1 || fail "Docker was not found."
-  docker compose version >/dev/null 2>&1 || fail "Docker Compose Plugin is unavailable."
-  [[ -f "${ENV_FILE}" ]] || fail "deploy/.env was not found."
-  [[ -f "${COMPOSE_FILE}" ]] || fail "docker-compose.yml was not found."
-  [[ -f "${REGISTRY_COMPOSE_FILE}" ]] || fail "docker-compose.registry.yml was not found."
+  command -v docker >/dev/null 2>&1 || fail "没有找到 Docker。"
+  docker compose version >/dev/null 2>&1 || fail "Docker Compose Plugin 不可用。"
+  [[ -f "${ENV_FILE}" ]] || fail "没有找到 deploy/.env。"
+  [[ -f "${COMPOSE_FILE}" ]] || fail "没有找到 docker-compose.yml。"
+  [[ -f "${REGISTRY_COMPOSE_FILE}" ]] || fail "没有找到 docker-compose.registry.yml。"
 }
 
 compose() {
@@ -60,20 +60,20 @@ wait_healthy() {
 }
 
 start_all() {
-  info "Pulling fixed PC latest images"
+  info "拉取 PC 前后端固定 latest 镜像"
   compose pull backend frontend
 
-  info "Starting MySQL and Redis"
+  info "启动 MySQL 和 Redis"
   compose up -d mysql redis
-  wait_healthy mysql 300 || fail "MySQL did not become healthy."
-  wait_healthy redis 180 || fail "Redis did not become healthy."
+  wait_healthy mysql 300 || fail "MySQL 未通过健康检查。"
+  wait_healthy redis 180 || fail "Redis 未通过健康检查。"
 
-  info "Starting backend and frontend without building source code"
+  info "直接启动前后端镜像，不在服务器构建源码"
   compose up -d --no-build backend frontend
-  wait_healthy backend 300 || fail "Backend did not become healthy."
-  wait_healthy frontend 180 || fail "Frontend did not become healthy."
+  wait_healthy backend 300 || fail "后端未通过健康检查。"
+  wait_healthy frontend 180 || fail "前端未通过健康检查。"
 
-  success "All services are running"
+  success "全部服务已启动"
   compose ps
 }
 
@@ -83,24 +83,24 @@ update_all() {
 
 restart_all() {
   compose restart mysql redis backend frontend
-  wait_healthy backend 300 || fail "Backend did not become healthy after restart."
-  wait_healthy frontend 180 || fail "Frontend did not become healthy after restart."
-  success "All services restarted"
+  wait_healthy backend 300 || fail "重启后端后健康检查失败。"
+  wait_healthy frontend 180 || fail "重启前端后健康检查失败。"
+  success "全部服务已重启"
   compose ps
 }
 
 usage() {
   cat <<'EOF'
-Travel PC deployment tool
+Travel PC 部署工具
 
-Usage:
-  bash deploy.sh start          First deployment or start all services
-  bash deploy.sh update         Back up the database, pull latest images, and update
-  bash deploy.sh status         Show service status
-  bash deploy.sh logs           Follow backend logs
-  bash deploy.sh logs frontend  Follow frontend logs
-  bash deploy.sh restart        Restart all services
-  bash deploy.sh help           Show this help
+用法：
+  ./deploy.sh start          首次部署或启动全部服务
+  ./deploy.sh update         备份数据库、拉取最新镜像并更新
+  ./deploy.sh status         查看服务状态
+  ./deploy.sh logs           查看后端日志
+  ./deploy.sh logs frontend  查看前端日志
+  ./deploy.sh restart        重启全部服务
+  ./deploy.sh help           查看帮助
 EOF
 }
 
@@ -127,6 +127,6 @@ case "${1:-start}" in
     ;;
   *)
     usage
-    fail "Unknown command: $1"
+    fail "未知命令：$1"
     ;;
 esac
