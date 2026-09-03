@@ -617,6 +617,8 @@ const tourList = ref([])
 const loading = ref(false)
 const miniSortSaving = ref(false)
 const miniDraggedIndex = ref(-1)
+let tourFetchSequence = 0
+const miniVisibilityOverrides = new Map()
 
 // 搜索表单
 const searchForm = reactive({
@@ -844,9 +846,10 @@ const tourRules = {
 
 // 获取行程列表
 const fetchTours = async () => {
+  const fetchSequence = ++tourFetchSequence
   loading.value = true
   try {
-    await request.get('/tour/page', {
+    const res = await request.get('/tour/page', {
       keyword: searchForm.title,
       tourType: searchForm.tourType,
       city: searchForm.city,
@@ -854,26 +857,36 @@ const fetchTours = async () => {
       includeInactive: true,
       currentPage: currentPage.value,
       pageSize: pageSize.value
-    }, {
-      showDefaultMsg: false,
-      onSuccess: (res) => {
-        // 确保每条记录的 tags 是数组格式
-        tourList.value = (res.records || []).map(item => ({
-          ...item,
-          moreDates: formatMoreDatesForDisplay(item.moreDates),
-          tags: parseTags(item.tags),
-          websiteVisible: item.websiteVisible !== false,
-          displaySaving: false
-        }))
-        total.value = res.total || 0
+    }, { showDefaultMsg: false })
+    if (fetchSequence !== tourFetchSequence) return
+
+    tourList.value = (res.records || []).map(item => {
+      const sourceId = String(item.sourceId || '')
+      const serverVisible = normalizeWebsiteVisible(item.websiteVisible)
+      const overrideVisible = miniVisibilityOverrides.get(sourceId)
+      if (overrideVisible === serverVisible) miniVisibilityOverrides.delete(sourceId)
+      return {
+        ...item,
+        moreDates: formatMoreDatesForDisplay(item.moreDates),
+        tags: parseTags(item.tags),
+        websiteVisible: overrideVisible ?? serverVisible,
+        displaySaving: false
       }
     })
+    total.value = res.total || 0
   } catch (error) {
+    if (fetchSequence !== tourFetchSequence) return
     console.error('获取行程列表失败:', error)
     ElMessage.error('获取行程列表失败，请检查小程序接口状态')
   } finally {
-    loading.value = false
+    if (fetchSequence === tourFetchSequence) loading.value = false
   }
+}
+
+const normalizeWebsiteVisible = value => {
+  if (value === false || value === 0 || value === '0') return false
+  if (typeof value === 'string' && value.toLowerCase() === 'false') return false
+  return true
 }
 
 const getCityLabel = (city) => {
@@ -893,6 +906,9 @@ const saveMiniDisplay = async (row, successMsg) => {
       showDefaultMsg: false,
       successMsg
     })
+    miniVisibilityOverrides.set(String(row.sourceId || ''), Boolean(row.websiteVisible))
+    tourFetchSequence += 1
+    loading.value = false
     return true
   } catch (error) {
     console.error('保存小程序商品官网展示配置失败:', error)
@@ -1027,6 +1043,7 @@ const resetSearch = () => {
 // 分页
 const handleSizeChange = (size) => {
   pageSize.value = size
+  currentPage.value = 1
   fetchTours()
 }
 

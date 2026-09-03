@@ -684,8 +684,8 @@
     >
       <section class="booking-dialog-content">
         <header class="booking-dialog-head">
-          <h2>{{ activeOrderConfirmation.title || '确认订单信息' }}</h2>
-          <p>{{ activeOrderConfirmation.subtitle || '请核对行程、出发日期、出行人数与预计金额，提交后将为你锁定当前名额。' }}</p>
+          <h2>{{ activeOrderConfirmation.title || (isMiniappProduct ? '预订确认' : '确认订单信息') }}</h2>
+          <p>{{ activeOrderConfirmation.subtitle || (isMiniappProduct ? '库存与价格实时变化，请在提交前再次核对预订信息' : '请核对行程、出发日期、出行人数与预计金额，提交后将为你锁定当前名额。') }}</p>
         </header>
 
         <article
@@ -736,12 +736,12 @@
       <template #footer>
         <el-button @click="bookingConfirmVisible = false" :disabled="bookingSubmitting">返回修改</el-button>
         <el-button
-          v-if="activeOrderConfirmation.contactText"
-          @click="viewSupplier"
+          v-if="activeOrderConfirmation.enabled"
+          @click="contactBeforeOrdering"
           :disabled="bookingSubmitting"
-        >{{ activeOrderConfirmation.contactText }}</el-button>
+        >{{ activeOrderConfirmation.contactText || '咨询客服' }}</el-button>
         <el-button type="primary" @click="confirmCreateOrder" :loading="bookingSubmitting">
-          {{ activeOrderConfirmation.confirmText || '确认提交' }}
+          {{ activeOrderConfirmation.confirmText || (isMiniappProduct ? '已咨询，立即下单' : '确认提交') }}
         </el-button>
       </template>
     </el-dialog>
@@ -835,6 +835,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowDown, Check } from '@element-plus/icons-vue'
 import { getTourDetailFull } from '@/api/tour'
 import { createTourOrder } from '@/api/tourOrder'
+import { getPublicCustomerServiceConfig, resolveCustomerServiceUrl } from '@/api/customerService'
 import request from '@/utils/request'
 import { renderContent } from '@/utils/contentRenderer'
 import { getTourTypeLabel } from '@/utils/tourTypes'
@@ -1004,6 +1005,10 @@ const renderedOrderConfirmationContent = computed(() =>
 )
 const renderedBookingNoticeContent = computed(() =>
   renderContent(bookingPopupNotice.value?.content || '')
+)
+const customerServiceConfig = ref(null)
+const orderCustomerServiceUrl = computed(() =>
+  resolveCustomerServiceUrl(customerServiceConfig.value, 'order')
 )
 const isTourCollected = ref(false)
 const favoriteLoading = ref(false)
@@ -2590,6 +2595,23 @@ const viewSupplier = () => {
   ElMessage.info(`供应商：${supplierInfo.value.name}`)
 }
 
+const loadCustomerServiceConfig = async () => {
+  try {
+    customerServiceConfig.value = await getPublicCustomerServiceConfig()
+  } catch {
+    customerServiceConfig.value = null
+  }
+}
+
+const contactBeforeOrdering = () => {
+  if (!orderCustomerServiceUrl.value) {
+    ElMessage.warning('订单客服暂未配置，请稍后再试')
+    void loadCustomerServiceConfig()
+    return
+  }
+  window.open(orderCustomerServiceUrl.value, '_blank', 'noopener,noreferrer')
+}
+
 const filterByDeparture = () => {
   ElMessage.info(`筛选 ${formatCity(productInfo.value.departure)} 出发的线路`)
 }
@@ -2626,6 +2648,7 @@ watch(detailSections, sections => {
 // 生命周期
 // =============================================
 onMounted(() => {
+  void loadCustomerServiceConfig()
   nextTick(() => {
     fetchProductDetail()
     requestDetailNavPositionUpdate()
@@ -4026,8 +4049,11 @@ onUnmounted(() => {
 
 .package-options {
   display: flex;
+  flex: 1;
   gap: 10px;
   flex-wrap: wrap;
+  min-width: 0;
+  max-width: calc(100% - 80px);
   overflow: visible;
 }
 
@@ -4091,7 +4117,7 @@ onUnmounted(() => {
 
 .package-hover-card {
   position: absolute;
-  left: 0;
+  right: 0;
   top: calc(100% + 12px);
   width: min(380px, 72vw);
   padding: 16px;
@@ -4101,7 +4127,7 @@ onUnmounted(() => {
   color: #344054;
   box-shadow: 0 18px 42px rgba(16, 24, 40, 0.16);
   box-sizing: border-box;
-  display: grid;
+  display: none;
   gap: 8px;
   line-height: 1.65;
   text-align: left;
@@ -4116,7 +4142,7 @@ onUnmounted(() => {
 .package-hover-card::before {
   content: '';
   position: absolute;
-  left: 24px;
+  right: 24px;
   top: -7px;
   width: 12px;
   height: 12px;
@@ -4128,6 +4154,7 @@ onUnmounted(() => {
 
 .batch-package-btn:hover .package-hover-card,
 .batch-package-btn:focus-visible .package-hover-card {
+  display: grid;
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
@@ -4237,6 +4264,17 @@ onUnmounted(() => {
 }
 
 @media (max-width: 1024px) {
+  .package-hover-card {
+    right: auto;
+    left: 0;
+    width: min(380px, calc(100vw - 32px));
+  }
+
+  .package-hover-card::before {
+    right: auto;
+    left: 24px;
+  }
+
   .tour-detail-section {
     padding: 24px 16px 56px;
   }
@@ -4886,6 +4924,20 @@ onUnmounted(() => {
   border-radius: 8px;
   background: #fff;
   color: #475467;
+}
+
+.booking-notice-content {
+  text-align: justify;
+  text-align-last: left;
+  text-justify: inter-ideograph;
+}
+
+.booking-notice-content :deep(p),
+.booking-notice-content :deep(li),
+.booking-notice-content :deep(div) {
+  text-align: justify !important;
+  text-align-last: left;
+  text-justify: inter-ideograph;
 }
 
 .booking-dialog-grid {

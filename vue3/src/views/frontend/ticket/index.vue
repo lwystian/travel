@@ -248,6 +248,11 @@
             <span class="row-more">{{ item.displayDates }}</span>
           </div>
 
+          <div v-if="getCardFeatureText(item)" class="card-feature-summary">
+            <span class="feature-summary-label">产品特色：</span>
+            <span class="feature-summary-text">{{ getCardFeatureText(item) }}</span>
+          </div>
+
           <!-- 标签组 -->
           <div class="card-tags" v-if="getCardTags(item).length">
             <span
@@ -336,6 +341,11 @@
                   <span class="row-more">{{ item.displayDates }}</span>
                 </div>
 
+                <div v-if="getCardFeatureText(item)" class="card-feature-summary">
+                  <span class="feature-summary-label">产品特色：</span>
+                  <span class="feature-summary-text">{{ getCardFeatureText(item) }}</span>
+                </div>
+
                 <div class="card-tags" v-if="getCardTags(item).length">
                   <span
                     v-for="tag in getCardTags(item)"
@@ -420,7 +430,7 @@ const parseTags = (tags) => {
 }
 
 const getCardTags = item => {
-  const features = parseTags(item?.feature)
+  const features = item?.sourceType === 'MINIAPP' ? [] : parseTags(item?.feature)
   const tags = parseTags(item?.tags)
   const featureSet = new Set(features)
   const result = Array.from(new Set([...features, ...tags])).map(text => ({
@@ -428,6 +438,13 @@ const getCardTags = item => {
     isFeature: featureSet.has(text)
   }))
   return item?.sourceType === 'MINIAPP' ? result.slice(0, 6) : result
+}
+
+const getCardFeatureText = item => {
+  if (item?.sourceType !== 'MINIAPP') return ''
+  return String(item.featureText || item.feature || item.subtitle || '')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 const formatMoreDatesForDisplay = (value) => {
@@ -1603,6 +1620,30 @@ onMounted(() => {
 
 .schedule-row .row-more {
   color: #333;
+}
+
+.card-feature-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  margin-top: 1px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.feature-summary-label {
+  flex-shrink: 0;
+  color: #999;
+}
+
+.feature-summary-text {
+  min-width: 0;
+  color: #555;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .card-tags {

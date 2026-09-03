@@ -15,7 +15,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { getPublicCustomerServiceConfig } from '@/api/customerService'
+import { getPublicCustomerServiceConfig, resolveCustomerServiceUrl } from '@/api/customerService'
 import { getAssetUrl } from '@/utils/siteAssets'
 import customerServiceIcon from '@/assets/images/customer-service.png'
 
@@ -43,24 +43,7 @@ const currentChannel = computed(() => {
   return 'home'
 })
 
-const validWecomUrl = value => {
-  if (!value) return ''
-  try {
-    const url = new URL(String(value))
-    return url.protocol === 'https:'
-      && url.hostname === 'work.weixin.qq.com'
-      && url.pathname.startsWith('/kfid/')
-      ? url.toString()
-      : ''
-  } catch {
-    return ''
-  }
-}
-
-const customerServiceUrl = computed(() => {
-  const channelUrl = config.value.channelUrls?.[currentChannel.value]
-  return validWecomUrl(channelUrl) || validWecomUrl(config.value.serviceUrl)
-})
+const customerServiceUrl = computed(() => resolveCustomerServiceUrl(config.value, currentChannel.value))
 
 const displayName = computed(() => String(config.value.displayName || '在线客服').trim() || '在线客服')
 const customerServiceIconUrl = computed(() => getAssetUrl(config.value.iconUrl, customerServiceIcon))
@@ -92,7 +75,7 @@ onMounted(loadCustomerServiceConfig)
 .customer-service-float {
   position: fixed;
   right: clamp(18px, 2vw, 32px);
-  bottom: 32px;
+  bottom: clamp(160px, 22vh, 220px);
   z-index: 900;
   width: 68px;
   height: 68px;
@@ -128,7 +111,7 @@ onMounted(loadCustomerServiceConfig)
 @media (max-width: 768px) {
   .customer-service-float {
     right: 16px;
-    bottom: calc(22px + env(safe-area-inset-bottom));
+    bottom: calc(96px + env(safe-area-inset-bottom));
     width: 60px;
     height: 60px;
   }

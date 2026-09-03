@@ -127,6 +127,7 @@ public class TourSourceDisplayConfigService {
     }
 
     private int integer(Object value) {
+        if (value instanceof Boolean bool) return bool ? 1 : 0;
         if (value instanceof Number number) return number.intValue();
         try {
             return Integer.parseInt(text(value));

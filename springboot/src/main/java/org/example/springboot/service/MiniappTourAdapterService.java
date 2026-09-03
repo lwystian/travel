@@ -41,6 +41,8 @@ public class MiniappTourAdapterService {
     private static final long SUMMARY_CACHE_MILLIS = 15_000L;
     private static final long SUMMARY_STALE_MILLIS = 10 * 60_000L;
     private static final long FAILURE_BACKOFF_MILLIS = 5_000L;
+    private static final String SUPPLIER_NAME = "重庆侠客行国际旅行社";
+    private static final Pattern TEXT_COMPARE_NOISE = Pattern.compile("[\\s\\p{P}\\p{S}]+");
     private static final Pattern RELATIVE_UPLOAD = Pattern.compile(
             "(^|[\\s\\\"'(<=>])(/?(?:api/)?uploads/[^\\\"'<>\\s)\\]}]+)",
             Pattern.CASE_INSENSITIVE
@@ -387,7 +389,9 @@ public class MiniappTourAdapterService {
         item.put("commentCount", integer(remote.get("commentCount")));
         item.put("recommendDate", nextScheduleDate);
         item.put("moreDates", text(cruiseHomeSummary.get("departureDateText")));
+        List<String> summaryFeatures = productFeatures(remote);
         item.put("feature", resolveFeature(remote));
+        item.put("featureText", featureText(productIntroductions(remote), summaryFeatures));
         item.put("tags", tags);
         item.put("enrolledCount", firstInteger(remote.get("displayRegistrationCount"), remote.get("saleCount")));
         item.put("actualRegistrationCount", integer(remote.get("actualRegistrationCount")));
@@ -496,12 +500,7 @@ public class MiniappTourAdapterService {
         imageInfo.put("thumbnails", new ArrayList<>(images));
 
         List<String> introductions = productIntroductions(remote);
-        List<String> features = mergeStringLists(
-                remote.get("highlights"), remote.get("bookingFeatures"), remote.get("recommendedReason"));
-        for (Map<String, Object> guarantee : mapList(remote.get("serviceGuarantees"))) {
-            String title = text(guarantee.get("title")).trim();
-            if (!title.isBlank() && !features.contains(title)) features.add(title);
-        }
+        List<String> features = productFeatures(remote);
         Map<String, Object> refundPolicy = new LinkedHashMap<>();
         List<String> refundItems = stringList(remote.get("refundPolicy"));
         refundPolicy.put("support", refundItems.isEmpty() ? "按商品规则退订" : refundItems.get(0));
@@ -515,7 +514,7 @@ public class MiniappTourAdapterService {
         result.put("tags", displayTags(remote));
         result.put("features", features);
         result.put("featureText", featureText(introductions, features));
-        result.put("supplier", Map.of("name", "小程序统一商品"));
+        result.put("supplier", Map.of("name", SUPPLIER_NAME));
         result.put("refundPolicy", refundPolicy);
         result.put("tripPackages", packages);
         result.put("packagePriceItems", packagePrices);
@@ -1079,14 +1078,15 @@ public class MiniappTourAdapterService {
     }
 
     private String resolveFeature(Map<String, Object> remote) {
-        Set<String> features = new LinkedHashSet<>(stringList(remote.get("bookingFeatures")));
-        List<Map<String, Object>> guarantees = mapList(remote.get("serviceGuarantees"));
-        for (Map<String, Object> guarantee : guarantees) {
-            String title = text(guarantee.get("title")).trim();
-            if (!title.isBlank()) features.add(title);
-        }
-        if (features.isEmpty()) features.addAll(stringList(remote.get("highlights")));
-        return features.isEmpty() ? text(remote.get("subtitle")) : String.join("，", features);
+        List<String> features = productFeatures(remote);
+        return features.isEmpty() ? first(productIntroductions(remote)) : String.join("，", features);
+    }
+
+    private List<String> productFeatures(Map<String, Object> remote) {
+        return distinctTexts(
+                remote.get("bookingFeatures"),
+                remote.get("recommendedReason"),
+                remote.get("highlights"));
     }
 
     private List<String> displayTags(Map<String, Object> remote) {
@@ -1107,9 +1107,11 @@ public class MiniappTourAdapterService {
 
     private String buildDetailContent(Map<String, Object> remote) {
         StringBuilder html = new StringBuilder();
+        List<String> introductionContent = new ArrayList<>();
+        productIntroductions(remote).forEach(item -> addDistinctText(introductionContent, item));
+        productFeatures(remote).forEach(item -> addDistinctText(introductionContent, item));
         appendRichOrTextSection(html, "邮轮简介", remote.get("highlightContent"),
-                mergeStringLists(productIntroductions(remote), remote.get("highlights"),
-                        remote.get("recommendedReason"), remote.get("bookingFeatures")));
+                introductionContent);
 
         if (!text(remote.get("itineraryContent")).isBlank()) {
             appendRichSection(html, "行程详情", remote.get("itineraryContent"));
@@ -1145,24 +1147,22 @@ public class MiniappTourAdapterService {
     }
 
     private List<String> productIntroductions(Map<String, Object> remote) {
-        Set<String> result = new LinkedHashSet<>();
+        List<String> result = new ArrayList<>();
         Map<String, Object> cruiseBooking = map(remote.get("cruiseBooking"));
         for (Object value : new Object[]{
                 remote.get("cruiseIntroduction"), cruiseBooking.get("introduction"),
                 remote.get("subtitle"), remote.get("overview")}) {
             String introduction = text(value).trim();
-            if (!introduction.isBlank()) result.add(introduction);
+            addDistinctText(result, introduction);
         }
-        return new ArrayList<>(result);
+        return result;
     }
 
     private String featureText(List<String> introductions, List<String> features) {
-        List<String> content = new ArrayList<>(new LinkedHashSet<>(introductions));
-        List<String> remainingFeatures = features.stream()
-                .filter(feature -> !content.contains(feature))
-                .toList();
-        if (!remainingFeatures.isEmpty()) content.add(String.join("；", remainingFeatures));
-        return String.join("\n", content);
+        List<String> content = new ArrayList<>();
+        introductions.forEach(item -> addDistinctText(content, item));
+        features.forEach(item -> addDistinctText(content, item));
+        return String.join("；", content);
     }
 
     private Map<String, Object> adaptMedia(Map<String, Object> remote) {
@@ -1462,6 +1462,41 @@ public class MiniappTourAdapterService {
         Set<String> result = new LinkedHashSet<>();
         for (Object value : values) result.addAll(stringList(value));
         return new ArrayList<>(result);
+    }
+
+    private List<String> distinctTexts(Object... values) {
+        List<String> result = new ArrayList<>();
+        for (Object value : values) {
+            for (String item : stringList(value)) {
+                addDistinctText(result, item);
+            }
+        }
+        return result;
+    }
+
+    private void addDistinctText(List<String> result, String candidate) {
+        String value = text(candidate).trim();
+        String comparable = comparableText(value);
+        if (comparable.isBlank()) return;
+
+        for (int index = 0; index < result.size(); index++) {
+            String existing = result.get(index);
+            String existingComparable = comparableText(existing);
+            if (existingComparable.equals(comparable) || existingComparable.contains(comparable)) {
+                return;
+            }
+            if (comparable.contains(existingComparable)) {
+                result.set(index, value);
+                return;
+            }
+        }
+        result.add(value);
+    }
+
+    private String comparableText(String value) {
+        return TEXT_COMPARE_NOISE.matcher(HtmlUtils.htmlUnescape(value))
+                .replaceAll("")
+                .toLowerCase(Locale.ROOT);
     }
 
     @SuppressWarnings("unchecked")
